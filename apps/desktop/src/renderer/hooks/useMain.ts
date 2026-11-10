@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import type { PreviewState, ProjectInfo, ProjectSummary } from "../../shared/ipc";
+import { applyEvent } from "../../shared/conversation";
+import type { AgentStatus, ConversationState, PreviewState, ProjectInfo, ProjectSummary } from "../../shared/ipc";
 import { upstart } from "../lib/bridge";
 
 /** The known projects and the open one, kept in step with the main process. */
@@ -17,6 +18,36 @@ export function useProjects() {
     };
   }, []);
   return { projects, current };
+}
+
+/** The open project's conversation, kept in step with the agent's work. */
+export function useConversation(projectId: string | undefined) {
+  const [state, setState] = useState<ConversationState | null>(null);
+  useEffect(() => {
+    let live = true;
+    setState(null);
+    // Events and answers come in order: what the answer holds is not applied twice.
+    const off = upstart.on("conversation:event", ({ projectId: id, event }) =>
+      setState((s) => (s && s.projectId === id ? { ...s, items: applyEvent(s.items, event) } : s)),
+    );
+    if (projectId) void upstart.invoke("conversation:get").then((s) => live && setState(s));
+    return () => {
+      live = false;
+      off();
+    };
+  }, [projectId]);
+  return state && state.projectId === projectId ? state.items : [];
+}
+
+const NO_STATUS: AgentStatus = { auth: "unknown", hasApiKey: false, models: [] };
+
+export function useAgentStatus() {
+  const [status, setStatus] = useState<AgentStatus>(NO_STATUS);
+  useEffect(() => {
+    void upstart.invoke("agent:status").then(setStatus);
+    return upstart.on("agent:status", setStatus);
+  }, []);
+  return status;
 }
 
 const EMPTY_PREVIEW: PreviewState = { route: null, title: "", routes: [], loading: false };

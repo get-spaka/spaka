@@ -4,6 +4,7 @@
 // both sides are checked against the same definition. The preload exposes
 // only these channels, and the main process accepts them only from the
 // interface's own main frame.
+import type { ConversationEvent, ConversationItem } from "./conversation";
 
 export type AppInfo = {
   version: string;
@@ -31,6 +32,26 @@ export type PreviewState = {
   loading: boolean;
 };
 
+/** A model the maker can pick, with the effort levels it accepts. */
+export type ModelChoice = { id: string; name: string; efforts: Effort[] };
+
+export type SignInMethod = "claudeai" | "console";
+
+export type AgentStatus = {
+  /** "unknown" until the first check. */
+  auth: "unknown" | "signed-in" | "signed-out" | "signing-in";
+  /** How the agent is signed in: "claude.ai", "console", "api_key"… as the binary says. */
+  method?: string;
+  hasApiKey: boolean;
+  /** While signing in: the page to open if the browser did not open by itself. */
+  signInUrl?: string;
+  signInFailed?: boolean;
+  models: ModelChoice[];
+};
+
+/** A project's conversation, as shown. */
+export type ConversationState = { projectId: string; items: ConversationItem[] };
+
 /** Calls from the interface that get an answer: channel → (args) → answer. */
 export type Invokes = {
   "app:info": () => AppInfo;
@@ -40,8 +61,25 @@ export type Invokes = {
   /** Asks the maker for a folder, then opens it. Null when they cancel. */
   "projects:choose-folder": () => ProjectInfo | null;
   "projects:current": () => ProjectInfo | null;
+  /** Closes the open project, back to the new-website state. */
+  "projects:close": () => void;
   "preview:navigate": (route: string) => void;
   "preview:reload": () => void;
+  /** The open project's conversation; empty when no project is open. */
+  "conversation:get": () => ConversationState | null;
+  /** Sends a message to the agent. Without an open project, a new one is created from it. */
+  "conversation:send": (text: string, newProject?: { model: string; effort: Effort }) => void;
+  "conversation:stop": () => void;
+  "conversation:start-over": () => void;
+  "agent:status": () => AgentStatus;
+  "agent:sign-in": (method: SignInMethod) => void;
+  "agent:cancel-sign-in": () => void;
+  /** Opens, in the maker's browser, the sign-in page the binary printed. */
+  "agent:open-sign-in-page": () => void;
+  /** Keeps an API key for the agent, encrypted by the system; null removes it. */
+  "agent:set-api-key": (key: string | null) => AgentStatus;
+  "agent:set-model": (model: string) => ProjectInfo;
+  "agent:set-effort": (effort: Effort) => ProjectInfo;
 };
 
 /** One-way messages from the interface to the main process. */
@@ -54,8 +92,11 @@ export type Sends = {
 /** One-way messages from the main process to the interface. */
 export type Events = {
   "projects:changed": (projects: ProjectSummary[]) => void;
-  "project:opened": (project: ProjectInfo) => void;
+  /** A project was opened, or null when none is open any more. */
+  "project:opened": (project: ProjectInfo | null) => void;
   "preview:state": (state: PreviewState) => void;
+  "conversation:event": (message: { projectId: string; event: ConversationEvent }) => void;
+  "agent:status": (status: AgentStatus) => void;
 };
 
 export type InvokeChannel = keyof Invokes;
@@ -71,11 +112,23 @@ export const channels = {
     "projects:open",
     "projects:choose-folder",
     "projects:current",
+    "projects:close",
     "preview:navigate",
     "preview:reload",
+    "conversation:get",
+    "conversation:send",
+    "conversation:stop",
+    "conversation:start-over",
+    "agent:status",
+    "agent:sign-in",
+    "agent:cancel-sign-in",
+    "agent:open-sign-in-page",
+    "agent:set-api-key",
+    "agent:set-model",
+    "agent:set-effort",
   ],
   send: ["app:ready", "preview:bounds"],
-  events: ["projects:changed", "project:opened", "preview:state"],
+  events: ["projects:changed", "project:opened", "preview:state", "conversation:event", "agent:status"],
 } as const satisfies {
   invoke: readonly InvokeChannel[];
   send: readonly SendChannel[];

@@ -15,6 +15,6 @@ describe("readEnvironment", () => {
       UPSTART_DATA_DIR: "/tmp/d",
       UPSTART_PROJECTS_DIR: "/tmp/p",
     });
-    expect(env).toEqual({ background: true, dataDir: "/tmp/d", projectsDir: "/tmp/p" });
+    expect(env).toMatchObject({ background: true, dataDir: "/tmp/d", projectsDir: "/tmp/p", agentReplay: undefined });
   });
 });

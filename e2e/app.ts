@@ -42,6 +42,8 @@ export async function launchApp({ env = {}, packaged = false }: LaunchOptions = 
       UPSTART_BACKGROUND: "1",
       UPSTART_DATA_DIR: dataDir,
       UPSTART_PROJECTS_DIR: projectsDir,
+      // The agent is played back from a recording unless a check asks for the real one ("").
+      UPSTART_AGENT_REPLAY: join(import.meta.dirname, "fixtures/bakery.jsonl"),
       ...env,
     },
   });
