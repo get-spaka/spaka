@@ -1,5 +1,5 @@
 ---
-status: accepted; skills built and checked with the real agent on 2026-11-10, connectors not yet
+status: accepted; skills and connectors built and checked with the real agent on 2026-11-10
 ---
 
 # Skills and connectors extend the agent; a connector that launches a local program runs outside the sandbox, by approval
@@ -25,4 +25,6 @@ A project received from someone else can carry skills and connectors, and the th
 - A connector's secrets (a token, a key) go in the system keychain, never in the project's files. A received project arrives without them.
 - The agent can write a skill into the project when the maker asks for one. It gets it with the maker's next message: the agent starts again with its skills, resuming the conversation.
 - The agent's kit loads skills only through plugin folders. Upstart assembles them in its own data, one per origin, from skill folders only (regular files, no links), and enables those skills by name. The agent can read that folder, its shell can run a skill's scripts inside the sandbox, and nothing can write there. The binary still lists its own built-in skills when it starts, but the agent is not offered them and launching one is refused (checked with the real agent).
-- How auto mode judges a call to a connector's tool has not been checked.
+- Auto mode let the agent call a connector's tool that only reads (checked with the real agent). A call with effects elsewhere (sending, deleting) has not been tried.
+- The agent starts again with its connectors when one is added, removed, turned on or given a secret, resuming the conversation, as for skills.
+- A remote connector that asks the maker to sign in (OAuth) is shown as such and stays unusable: Upstart cannot run that sign-in yet.

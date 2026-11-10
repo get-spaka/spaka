@@ -25,6 +25,37 @@ export type ProjectInfo = ProjectSummary & { model: string; effort: Effort; site
 export type SkillOrigin = "upstart" | "app" | "project";
 export type SkillInfo = { origin: SkillOrigin; name: string; description: string; path: string };
 
+/** Where a connector is kept (ADR 0010): the app's data, or the project's folder. */
+export type ConnectorScope = "app" | "project";
+/**
+ * - on: the agent gets it;
+ * - needs-approval: a project's local program, not approved on this machine;
+ * - needs-secret: a value the connector needs is not set here;
+ * - replaced: the project has a connector of the same name.
+ */
+export type ConnectorState = "on" | "needs-approval" | "needs-secret" | "replaced";
+export type ConnectorInfo = {
+  scope: ConnectorScope;
+  name: string;
+  kind: "remote" | "local";
+  /** The address, or the command line. */
+  target: string;
+  secrets: { name: string; set: boolean }[];
+  state: ConnectorState;
+  /** As the agent's kit reports it, once the agent started with it. */
+  status?: "connected" | "failed" | "needs-auth" | "pending" | "disabled";
+  error?: string;
+};
+export type ConnectorDraft = {
+  name: string;
+  kind: "remote" | "local";
+  /** The address, or the command line. */
+  target: string;
+  transport?: "http" | "sse";
+  /** Header values (remote) or environment variables (local), kept encrypted by the app. */
+  secrets?: { name: string; value: string }[];
+};
+
 export type ExportResult = { folder: string; pages: string[]; files: number; warnings: string[] };
 
 export type Rect = { x: number; y: number; width: number; height: number };
@@ -111,6 +142,12 @@ export type Invokes = {
   "skills:choose-folder": () => string | null;
   "skills:add": (origin: "app" | "project", folder: string) => SkillInfo;
   "skills:remove": (origin: "app" | "project", name: string) => void;
+  "connectors:list": () => ConnectorInfo[];
+  "connectors:add": (scope: ConnectorScope, draft: ConnectorDraft) => void;
+  "connectors:remove": (scope: ConnectorScope, name: string) => void;
+  "connectors:set-secrets": (scope: ConnectorScope, name: string, values: Record<string, string>) => void;
+  /** Turns on a project's local connector on this machine, as its command is now. */
+  "connectors:approve": (name: string) => void;
   "history:list": () => HistoryEntry[];
   /** Puts the project back as a version had it (a new version is added). */
   "history:restore": (id: string) => HistoryEntry[];
@@ -136,6 +173,7 @@ export type Events = {
   "history:changed": (message: { projectId: string; entries: HistoryEntry[] }) => void;
   /** The skills changed: added, removed, or written by the agent. */
   "skills:changed": (skills: SkillInfo[]) => void;
+  "connectors:changed": (connectors: ConnectorInfo[]) => void;
 };
 
 export type InvokeChannel = keyof Invokes;
@@ -175,6 +213,11 @@ export const channels = {
     "skills:choose-folder",
     "skills:add",
     "skills:remove",
+    "connectors:list",
+    "connectors:add",
+    "connectors:remove",
+    "connectors:set-secrets",
+    "connectors:approve",
     "history:list",
     "history:restore",
     "history:undo",
@@ -188,6 +231,7 @@ export const channels = {
     "agent:status",
     "history:changed",
     "skills:changed",
+    "connectors:changed",
   ],
 } as const satisfies {
   invoke: readonly InvokeChannel[];

@@ -63,9 +63,14 @@ export class Agent {
     this.record(projectId, { type: "notice", id: `${Date.now().toString(36)}-n`, text, at: Date.now() });
   }
 
-  /** The skills may have changed: an idle agent starts again with them, a working one at its next message. */
-  refreshSkills() {
-    for (const session of this.sessions.values()) session.refreshSkills();
+  /** Skills or connectors may have changed: an idle agent starts again with them, a working one at its next message. */
+  refreshExtensions() {
+    for (const session of this.sessions.values()) session.refreshExtensions();
+  }
+
+  /** The open project's connectors as its agent's kit sees them. */
+  async connectorStatus(projectId: string) {
+    return (await this.sessions.get(projectId)?.connectorStatus()) ?? [];
   }
 
   isWorking(projectId: string) {

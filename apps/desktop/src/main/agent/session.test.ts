@@ -357,3 +357,31 @@ test("a plugin Upstart did not assemble is an isolation problem", () => {
   );
   expect(isolationProblem({ ...base, tools: [...TOOLS, "Skill"], plugins: [] } as never)).toMatch(/tools: Skill/);
 });
+
+test("the maker's connectors that are on reach the agent, and a change starts it again at the next message", async () => {
+  let servers: Record<string, unknown> = { docs: { type: "http", url: "https://mcp.example.com/mcp" } };
+  const connectorServers = { servers: () => servers, fingerprint: () => JSON.stringify(servers) };
+  const docsInit = {
+    ...init("s1"),
+    tools: [...TOOLS, "mcp__docs__search"],
+    mcp_servers: [{ name: "docs", status: "connected" }],
+  };
+  const { s, fake, turnEnd } = session([[docsInit, ...writeTurn(dir).slice(1)], writeTurn(dir)], {
+    connectorServers,
+    extraOptions: () => ({ mcpServers: { upstart: { type: "sdk" } } }),
+    connectors: ["upstart"],
+  });
+  s.start();
+  expect(Object.keys(fake.runs[0]!.options.mcpServers as object).sort()).toEqual(["docs", "upstart"]);
+  let ended = turnEnd();
+  s.send("First");
+  await ended;
+  // The connector's tools are not an isolation problem: Upstart gave them.
+  expect(s.problems).toEqual([]);
+  servers = {};
+  ended = turnEnd();
+  s.send("Second");
+  await ended;
+  expect(fake.runs).toHaveLength(2);
+  expect(Object.keys(fake.runs[1]!.options.mcpServers as object)).toEqual(["upstart"]);
+});

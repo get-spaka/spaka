@@ -4,13 +4,14 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { app, BrowserWindow, dialog, safeStorage, shell } from "electron";
-import type { HistoryEntry, ProjectInfo } from "../shared/ipc";
+import type { ConnectorInfo, HistoryEntry, ProjectInfo } from "../shared/ipc";
 import { en as t } from "../shared/strings/en";
 import { Agent, projectNameFrom } from "./agent/agent";
 import { AgentAuth } from "./agent/auth";
 import { agentBinary, cleanEnv, nodeLauncher } from "./agent/confinement";
 import { LOOK_TOOL, UPSTART_SERVER, upstartServer } from "./agent/preview-tool";
 import { Recorder, replayQuery } from "./agent/replay";
+import { Connectors, type Vault } from "./connectors/connectors";
 import { readEnvironment } from "./environment";
 import { exportProject } from "./export";
 import { History } from "./history/history";
@@ -101,15 +102,24 @@ async function main() {
     app.isPackaged ? join(process.resourcesPath, "skills") : join(here, "../../skills"),
     join(userData, "skills"),
   );
+  // Secrets are encrypted by the system keychain. A background launch is a
+  // check: it never touches the keychain, which could show a dialog.
+  const vault: Vault = env.background
+    ? {
+        encrypt: (text) => Buffer.from(`check:${Buffer.from(text).toString("base64")}`),
+        decrypt: (data) => Buffer.from(data.toString().replace(/^check:/, ""), "base64").toString(),
+      }
+    : {
+        encrypt: (text) => safeStorage.encryptString(text),
+        decrypt: (data) => safeStorage.decryptString(data),
+      };
+  const connectors = new Connectors(userData, vault);
   let agent: Agent;
   const auth = new AgentAuth({
     binary,
     env: agentEnv,
     keyFile: join(userData, "api-key.bin"),
-    vault: {
-      encrypt: (text) => safeStorage.encryptString(text),
-      decrypt: (data) => safeStorage.decryptString(data),
-    },
+    vault,
     onChange: () => void agent.signInChanged(),
   });
   agent = new Agent({
@@ -123,6 +133,7 @@ async function main() {
       }),
       connectors: [UPSTART_SERVER],
       skills,
+      connectorServers: connectors,
       query: (env.agentReplay ? replayQuery(env.agentReplay, env.agentReplaySpeed) : query) as never,
       recorder: env.agentRecord ? new Recorder(env.agentRecord) : undefined,
     },
@@ -139,6 +150,7 @@ async function main() {
     // What the agent writes reaches the preview before the disk (ADR 0009).
     onAgentEvent: (projectId, event) => {
       if (tap && tap.projectId === projectId) tap.tap.handle(event);
+      if (event.kind === "init" && projectId === current?.id) void followConnectors();
     },
   });
   let tap: { projectId: string; tap: FileTap } | undefined;
@@ -192,8 +204,33 @@ async function main() {
     clearTimeout(skillsTimer);
     skillsTimer = setTimeout(() => {
       ipc.emit("skills:changed", skills.list(current?.path));
-      agent.refreshSkills();
+      agent.refreshExtensions();
     }, 300);
+  };
+  // Connectors: their definitions with their state here, and how the agent's kit sees them.
+  const connectorList = async (): Promise<ConnectorInfo[]> => {
+    const live = current ? await agent.connectorStatus(current.id) : [];
+    return connectors.list(current).map((c) => {
+      const status = c.state === "on" ? live.find((s) => s.name === c.name) : undefined;
+      return status ? { ...c, status: status.status as ConnectorInfo["status"], error: status.error } : c;
+    });
+  };
+  let connectorsTimer: NodeJS.Timeout | undefined;
+  const connectorsChanged = () => {
+    clearTimeout(connectorsTimer);
+    connectorsTimer = setTimeout(async () => {
+      agent.refreshExtensions();
+      ipc.emit("connectors:changed", await connectorList());
+    }, 300);
+  };
+  /** After the agent starts, its connectors connect: the interface follows until none is pending. */
+  const followConnectors = async () => {
+    for (let i = 0; i < 40; i++) {
+      const list = await connectorList();
+      ipc.emit("connectors:changed", list);
+      if (!list.some((c) => c.status === "pending")) return;
+      await new Promise((r) => setTimeout(r, 500));
+    }
   };
   const watchSkills = (project: ProjectInfo | undefined) => {
     for (const watcher of skillWatchers) watcher.close();
@@ -201,7 +238,14 @@ async function main() {
     const appSkills = join(userData, "skills");
     mkdirSync(appSkills, { recursive: true });
     const watched: [string, (name: string) => boolean][] = [[appSkills, () => true]];
-    if (project) watched.push([join(project.path, ".upstart"), (name) => name.startsWith("skills")]);
+    if (project)
+      watched.push([
+        join(project.path, ".upstart"),
+        (name) => {
+          if (name.startsWith("connectors")) connectorsChanged();
+          return name.startsWith("skills");
+        },
+      ]);
     for (const [dir, relevant] of watched) {
       try {
         skillWatchers.push(
@@ -360,6 +404,24 @@ async function main() {
   ipc.handle("skills:remove", (origin, name) => {
     skills.remove(origin, name, current?.path);
     skillsChanged();
+  });
+  ipc.handle("connectors:list", () => connectorList());
+  ipc.handle("connectors:add", (scope, draft) => {
+    connectors.add(scope, draft, current);
+    connectorsChanged();
+  });
+  ipc.handle("connectors:remove", (scope, name) => {
+    connectors.remove(scope, name, current);
+    connectorsChanged();
+  });
+  ipc.handle("connectors:set-secrets", (scope, name, values) => {
+    connectors.setSecrets(scope, name, values, current?.id);
+    connectorsChanged();
+  });
+  ipc.handle("connectors:approve", (name) => {
+    if (!current) throw new Error("No project is open.");
+    connectors.approveByName(name, current);
+    connectorsChanged();
   });
   ipc.handle("history:list", () => historyEntries());
   ipc.handle("history:restore", (id) => goBack(id));

@@ -59,7 +59,10 @@ describe("the app's shell, launched in the background", () => {
     await launched.window.waitForTimeout(300);
     const seen = front.stop();
     const fronts = seen.filter((s) => s.startsWith("front:"));
-    expect(fronts).toEqual(frontBefore.filter((s) => s.startsWith("front:")));
+    // Another app coming to the front meanwhile (the maker switching apps) also fails this: the message says which.
+    expect(fronts, `apps seen in front: ${fronts.join(", ")}`).toEqual(
+      frontBefore.filter((s) => s.startsWith("front:")),
+    );
     expect(seen).not.toContain("electron:Foreground");
   });
 });

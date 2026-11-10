@@ -4,7 +4,15 @@ import { Conversation } from "./components/Conversation";
 import { PreviewPane } from "./components/PreviewPane";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { Sidebar } from "./components/Sidebar";
-import { useAgentStatus, useConversation, useHistory, usePreviewState, useProjects, useSkills } from "./hooks/useMain";
+import {
+  useAgentStatus,
+  useConnectors,
+  useConversation,
+  useHistory,
+  usePreviewState,
+  useProjects,
+  useSkills,
+} from "./hooks/useMain";
 import { upstart } from "./lib/bridge";
 
 export function App() {
@@ -15,6 +23,7 @@ export function App() {
   const history = useHistory(current?.id);
   const status = useAgentStatus();
   const skills = useSkills(current?.id);
+  const connectors = useConnectors(current?.id);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
@@ -43,7 +52,14 @@ export function App() {
         covered={settingsOpen}
         layoutKey={sidebarOpen}
       />
-      {settingsOpen && <SettingsDialog project={current} skills={skills} onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && (
+        <SettingsDialog
+          project={current}
+          skills={skills}
+          connectors={connectors}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
     </div>
   );
 }

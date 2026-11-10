@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { applyEvent } from "../../shared/conversation";
 import type {
   AgentStatus,
+  ConnectorInfo,
   ConversationState,
   HistoryEntry,
   PreviewState,
@@ -95,4 +96,20 @@ export function useSkills(projectId: string | undefined) {
     };
   }, [projectId]);
   return skills;
+}
+
+/** The connectors, with their state, kept in step with the main process. */
+export function useConnectors(projectId: string | undefined) {
+  const [connectors, setConnectors] = useState<ConnectorInfo[]>([]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: another project has other connectors
+  useEffect(() => {
+    let live = true;
+    void upstart.invoke("connectors:list").then((list) => live && setConnectors(list));
+    const off = upstart.on("connectors:changed", setConnectors);
+    return () => {
+      live = false;
+      off();
+    };
+  }, [projectId]);
+  return connectors;
 }

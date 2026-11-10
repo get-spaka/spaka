@@ -34,6 +34,12 @@ export type SessionDeps = {
   extraOptions?: () => { mcpServers?: Record<string, unknown>; allowedTools?: string[] };
   /** The connectors the agent is given, by server name, for the isolation check. */
   connectors?: string[];
+  /** The maker's connectors that are on for a project (ADR 0010), as the kit takes them. */
+  connectorServers?: {
+    servers(project: { id: string; path: string }): Record<string, unknown>;
+    /** Changes when the connectors the agent would get change. */
+    fingerprint(project: { id: string; path: string }): string;
+  };
   /** Builds the agent's skills for a project into `outDir` (ADR 0010). */
   skills?: {
     assemble(projectDir: string, outDir: string): AssembledSkills;
@@ -67,6 +73,10 @@ export class AgentSession {
   private stderr = "";
   /** The skills the running agent was given, and their fingerprint at the time. */
   private skills: { assembled: AssembledSkills; fingerprint: string } | undefined;
+  /** The maker's connectors the running agent was given, and their fingerprint at the time. */
+  private connectors: { names: string[]; fingerprint: string } | undefined;
+  /** The connectors' state as the agent's kit last reported it. */
+  private serverStatus: { name: string; status: string; error?: string }[] = [];
   readonly problems: string[] = [];
 
   constructor(
@@ -90,6 +100,12 @@ export class AgentSession {
     const inbox = new Inbox<SDKUserMessage>();
     const resume = this.sessionId();
     const skills = this.assembleSkills();
+    const extra = this.deps.extraOptions?.() ?? {};
+    const servers = this.deps.connectorServers?.servers(this.project) ?? {};
+    this.connectors = {
+      names: Object.keys(servers),
+      fingerprint: this.deps.connectorServers?.fingerprint(this.project) ?? "",
+    };
     const q = this.deps.query({
       prompt: inbox,
       options: {
@@ -105,7 +121,8 @@ export class AgentSession {
         ...(skills?.plugins.length ? { plugins: skills.plugins } : {}),
         includePartialMessages: true,
         ...(resume ? { resume } : {}),
-        ...this.deps.extraOptions?.(),
+        ...extra,
+        mcpServers: { ...servers, ...extra.mcpServers },
         stderr: (data: string) => {
           this.stderr = (this.stderr + data).slice(-4000);
         },
@@ -124,7 +141,7 @@ export class AgentSession {
     if (this.working) throw new Error("The agent is already working.");
     // Skills added, removed or written since the agent started: it starts
     // again with them, resuming the conversation (ADR 0010).
-    if (this.q && this.skillsChanged()) this.close();
+    if (this.q && this.extensionsChanged()) this.close();
     this.start();
     this.working = true;
     this.stopping = false;
@@ -180,16 +197,30 @@ export class AgentSession {
     q?.close();
   }
 
-  /** Whether the skills changed since the agent started; restarts an idle agent with them. */
-  refreshSkills(): boolean {
-    if (!this.q || !this.skillsChanged()) return false;
+  /** Whether the skills or connectors changed since the agent started; restarts an idle agent with them. */
+  refreshExtensions(): boolean {
+    if (!this.q || !this.extensionsChanged()) return false;
     if (!this.working) this.restart();
     return true;
   }
 
-  private skillsChanged() {
-    const deps = this.deps.skills;
-    return !!deps && deps.fingerprint(this.project.path) !== this.skills?.fingerprint;
+  /** The maker's connectors as the agent's kit sees them now. */
+  async connectorStatus(): Promise<{ name: string; status: string; error?: string }[]> {
+    const q = this.q;
+    if (q && this.started) {
+      const live = await q.mcpServerStatus().catch(() => undefined);
+      if (live) this.serverStatus = live.map((s) => ({ name: s.name, status: s.status, error: s.error }));
+    }
+    return this.serverStatus.filter((s) => this.connectors?.names.includes(s.name));
+  }
+
+  private extensionsChanged() {
+    const skills = this.deps.skills;
+    const connectors = this.deps.connectorServers;
+    return (
+      (!!skills && skills.fingerprint(this.project.path) !== this.skills?.fingerprint) ||
+      (!!connectors && connectors.fingerprint(this.project) !== this.connectors?.fingerprint)
+    );
   }
 
   private assembleSkills(): AssembledSkills | undefined {
@@ -249,7 +280,12 @@ export class AgentSession {
         this.started = true;
         this.pending = undefined;
         this.saveSessionId(e.sessionId);
-        const problem = isolationProblem(e, this.deps.connectors, this.skills?.assembled);
+        this.serverStatus = e.mcpServers.map((s) => ({ name: s.name, status: s.status }));
+        const problem = isolationProblem(
+          e,
+          [...(this.deps.connectors ?? []), ...(this.connectors?.names ?? [])],
+          this.skills?.assembled,
+        );
         if (problem) {
           this.problems.push(problem);
           this.turnFailed = en.errors.notIsolated;

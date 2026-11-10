@@ -1,18 +1,21 @@
 import { Plus, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { ProjectInfo, SkillInfo } from "../../shared/ipc";
+import type { ConnectorInfo, ProjectInfo, SkillInfo } from "../../shared/ipc";
 import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
+import { ConnectorsSettings } from "./ConnectorsSettings";
 import { Button } from "./ui/button";
 
 /** The app's settings (decisions: skills and connectors are added from the settings). */
 export function SettingsDialog({
   project,
   skills,
+  connectors,
   onClose,
 }: {
   project: ProjectInfo | null;
   skills: SkillInfo[];
+  connectors: ConnectorInfo[];
   onClose: () => void;
 }) {
   useEffect(() => {
@@ -52,6 +55,8 @@ export function SettingsDialog({
           />
           <SkillGroup origin="app" title={t.skills.app} skills={skills.filter((s) => s.origin === "app")} />
           <SkillGroup origin="upstart" title={t.skills.upstart} skills={skills.filter((s) => s.origin === "upstart")} />
+          <div className="border-t" />
+          <ConnectorsSettings project={project} connectors={connectors} />
         </div>
       </div>
     </div>
