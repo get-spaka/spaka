@@ -1,0 +1,66 @@
+{
+  "name": "@upstart/desktop",
+  "productName": "Upstart",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Build websites by talking to an agent, on your own machine.",
+  "author": "Upstart",
+  "license": "MIT",
+  "type": "module",
+  "main": "out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite build && electron .",
+    "package": "electron-vite build && electron-builder --mac --arm64 --publish never",
+    "typecheck": "tsc -p tsconfig.node.json && tsc -p tsconfig.web.json"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "0.3.321"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.3.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.3.0",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "electron": "45.2.3",
+    "electron-builder": "26.18.0",
+    "electron-vite": "6.0.0",
+    "lucide-react": "1.71.0",
+    "radix-ui": "1.8.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "tailwind-merge": "3.7.0",
+    "tailwindcss": "4.3.5",
+    "tw-animate-css": "1.4.0",
+    "vite": "8.3.7"
+  },
+  "build": {
+    "appId": "gg.upstart.desktop",
+    "productName": "Upstart",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "out/**",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "node_modules/@anthropic-ai/claude-agent-sdk-*/**"
+    ],
+    "electronLanguages": [
+      "en",
+      "fr"
+    ],
+    "npmRebuild": false,
+    "mac": {
+      "target": [
+        "dir"
+      ],
+      "identity": null,
+      "category": "public.app-category.developer-tools"
+    }
+  }
+}
