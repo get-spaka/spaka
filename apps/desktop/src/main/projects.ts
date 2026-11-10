@@ -10,7 +10,7 @@ export const DEFAULT_MODEL = "claude-sonnet-5-5";
 export const DEFAULT_EFFORT: Effort = "medium";
 
 /** .upstart/project.json */
-export type ProjectFile = { id: string; name: string; model: string; effort: Effort };
+export type ProjectFile = { id: string; name: string; model: string; effort: Effort; siteUrl?: string };
 
 type Entry = { id: string; path: string; name: string; openedAt: number };
 
@@ -130,6 +130,7 @@ export function readProjectFile(folder: string): ProjectFile | undefined {
       name: typeof raw.name === "string" ? raw.name : basename(folder),
       model: typeof raw.model === "string" ? raw.model : DEFAULT_MODEL,
       effort: isEffort(raw.effort) ? raw.effort : DEFAULT_EFFORT,
+      ...(typeof raw.siteUrl === "string" && raw.siteUrl ? { siteUrl: raw.siteUrl } : {}),
     };
   } catch {
     return undefined;

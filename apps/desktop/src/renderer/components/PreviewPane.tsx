@@ -1,8 +1,9 @@
-import { ChevronDown, Globe, RotateCw } from "lucide-react";
-import { useLayoutEffect, useRef } from "react";
+import { ChevronDown, Globe, RotateCw, Upload } from "lucide-react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { PreviewState, ProjectInfo } from "../../shared/ipc";
 import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
+import { ExportDialog } from "./ExportDialog";
 import { Button } from "./ui/button";
 
 /**
@@ -12,18 +13,29 @@ import { Button } from "./ui/button";
 export function PreviewPane({
   project,
   state,
+  working,
   layoutKey,
 }: {
   project: ProjectInfo | null;
   state: PreviewState;
+  working: boolean;
   layoutKey: unknown;
 }) {
   const area = useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = useState(false);
+  const dialogOpen = exporting && project !== null;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new project closes the dialog
+  useLayoutEffect(() => setExporting(false), [project?.id]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: layoutKey says when the columns before the area changed
   useLayoutEffect(() => {
     const element = area.current;
     if (!element) return;
+    // The native page view would cover the dialog: it is hidden while the dialog is open.
+    if (dialogOpen) {
+      upstart.send("preview:bounds", null);
+      return;
+    }
     const send = () => {
       const r = element.getBoundingClientRect();
       upstart.send("preview:bounds", {
@@ -42,7 +54,7 @@ export function PreviewPane({
       window.removeEventListener("resize", send);
     };
     // The area also moves when the columns before it change width.
-  }, [layoutKey]);
+  }, [layoutKey, dialogOpen]);
 
   return (
     <main data-testid="preview" className="flex min-w-0 flex-1 flex-col bg-muted/40">
@@ -70,6 +82,18 @@ export function PreviewPane({
           </label>
         )}
         <div className="flex-1" />
+        {project && state.routes.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="no-drag h-7"
+            onClick={() => setExporting(true)}
+            data-testid="export-open"
+          >
+            <Upload />
+            {t.preview.publish}
+          </Button>
+        )}
         {project && (
           <Button
             variant="ghost"
@@ -87,6 +111,7 @@ export function PreviewPane({
         <p className="max-w-80 text-sm text-muted-foreground">
           {project ? t.preview.emptyText : t.preview.noProjectText}
         </p>
+        {dialogOpen && <ExportDialog project={project} working={working} onClose={() => setExporting(false)} />}
       </div>
     </main>
   );

@@ -18,8 +18,10 @@ export type Effort = "low" | "medium" | "high" | "xhigh" | "max";
 /** A project as the sidebar lists it. */
 export type ProjectSummary = { id: string; name: string; path: string };
 
-/** An open project. */
-export type ProjectInfo = ProjectSummary & { model: string; effort: Effort };
+/** An open project. `siteUrl` is where the maker put the exported site online. */
+export type ProjectInfo = ProjectSummary & { model: string; effort: Effort; siteUrl?: string };
+
+export type ExportResult = { folder: string; pages: string[]; files: number; warnings: string[] };
 
 export type Rect = { x: number; y: number; width: number; height: number };
 
@@ -90,6 +92,15 @@ export type Invokes = {
   "agent:set-api-key": (key: string | null) => AgentStatus;
   "agent:set-model": (model: string) => ProjectInfo;
   "agent:set-effort": (effort: Effort) => ProjectInfo;
+  /** Asks the maker for the folder to export into. Null when they cancel. */
+  "export:choose-folder": () => string | null;
+  /** Where the open project was last exported on this machine. */
+  "export:last": () => string | null;
+  "export:run": (folder: string) => ExportResult;
+  "export:reveal": (folder: string) => void;
+  /** Opens one of the hosting services the export guide names. */
+  "export:open-host": (host: "netlify" | "cloudflare" | "github") => void;
+  "projects:set-site-url": (url: string) => ProjectInfo;
   "history:list": () => HistoryEntry[];
   /** Puts the project back as a version had it (a new version is added). */
   "history:restore": (id: string) => HistoryEntry[];
@@ -142,6 +153,12 @@ export const channels = {
     "agent:set-api-key",
     "agent:set-model",
     "agent:set-effort",
+    "export:choose-folder",
+    "export:last",
+    "export:run",
+    "export:reveal",
+    "export:open-host",
+    "projects:set-site-url",
     "history:list",
     "history:restore",
     "history:undo",

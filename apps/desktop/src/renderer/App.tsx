@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { isWorking } from "../shared/conversation";
 import { Conversation } from "./components/Conversation";
 import { PreviewPane } from "./components/PreviewPane";
 import { Sidebar } from "./components/Sidebar";
@@ -31,7 +32,7 @@ export function App() {
         sidebarOpen={sidebarOpen}
         onExpandSidebar={() => setSidebarOpen(true)}
       />
-      <PreviewPane project={current} state={preview} layoutKey={sidebarOpen} />
+      <PreviewPane project={current} state={preview} working={isWorking(items)} layoutKey={sidebarOpen} />
     </div>
   );
 }

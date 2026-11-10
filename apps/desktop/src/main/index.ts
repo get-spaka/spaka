@@ -1,4 +1,5 @@
 // Entry point of the app's main process.
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { query } from "@anthropic-ai/claude-agent-sdk";
@@ -11,6 +12,7 @@ import { agentBinary, cleanEnv, nodeLauncher } from "./agent/confinement";
 import { LOOK_TOOL, UPSTART_SERVER, upstartServer } from "./agent/preview-tool";
 import { Recorder, replayQuery } from "./agent/replay";
 import { readEnvironment } from "./environment";
+import { exportProject } from "./export";
 import { History } from "./history/history";
 import { createIpc } from "./ipc";
 import { FileTap } from "./live/tap";
@@ -261,6 +263,49 @@ async function main() {
   });
   ipc.handle("conversation:stop", () => current && agent.stop(current.id));
   ipc.handle("conversation:start-over", () => current && agent.startOver(current));
+  // The static export (decisions): into a folder the maker picks, remembered per project on this machine.
+  const lastExportFile = () => current && join(projects.dataFor(current.id), "export.json");
+  ipc.handle("export:last", () => {
+    const file = lastExportFile();
+    try {
+      return file ? (JSON.parse(readFileSync(file, "utf8")).folder ?? null) : null;
+    } catch {
+      return null;
+    }
+  });
+  ipc.handle("export:choose-folder", async () => {
+    if (env.background) return null;
+    const answer = await dialog.showOpenDialog(win, {
+      title: "Export the website into a folder",
+      properties: ["openDirectory", "createDirectory"],
+    });
+    return answer.canceled ? null : (answer.filePaths[0] ?? null);
+  });
+  ipc.handle("export:run", async (folder) => {
+    if (!current) throw new Error("No project is open.");
+    if (agent.isWorking(current.id)) throw new Error("The agent is working: export once it is done.");
+    const result = await exportProject(current.path, folder);
+    writeFileSync(lastExportFile()!, JSON.stringify({ folder: result.folder }));
+    return result;
+  });
+  ipc.handle("export:reveal", (folder) => {
+    if (!env.background && existsSync(folder)) shell.showItemInFolder(folder);
+  });
+  const hosts = {
+    netlify: "https://app.netlify.com/drop",
+    cloudflare: "https://developers.cloudflare.com/pages/get-started/direct-upload/",
+    github: "https://docs.github.com/en/pages/getting-started-with-github-pages/creating-a-github-pages-site",
+  } as const;
+  ipc.handle("export:open-host", (host) => {
+    const url = hosts[host];
+    if (url && !env.background) void shell.openExternal(url);
+  });
+  ipc.handle("projects:set-site-url", (url) => {
+    if (!current) throw new Error("No project is open.");
+    const clean = url.trim();
+    if (clean && !/^https?:\/\/[^\s]+$/i.test(clean)) throw new Error("This is not a web address.");
+    return changed(projects.update(current.id, { siteUrl: clean || undefined }));
+  });
   ipc.handle("history:list", () => historyEntries());
   ipc.handle("history:restore", (id) => goBack(id));
   ipc.handle("history:undo", () => goBack(history?.store.undoTarget()?.id));

@@ -80,6 +80,39 @@ export const en = {
     reload: "Reload the page",
     pages: "Pages",
     loading: "Loading…",
+    publish: "Put online",
+  },
+  export: {
+    title: "Put your website online",
+    intro: "Upstart turns your website into plain files that any web host can serve, for free with the hosts below.",
+    close: "Close",
+    step1: "1. Export the website into a folder",
+    choose: "Choose a folder…",
+    again: "Export again",
+    running: "Exporting…",
+    agentWorking: "The agent is working. You can export once it is done.",
+    done: (pages: number) => `Exported ${pages} ${pages === 1 ? "page" : "pages"} into:`,
+    reveal: "Show in Finder",
+    step2: "2. Put the folder online",
+    hostsIntro: "Each of these hosts the folder for free. Pick one and follow its steps.",
+    hosts: {
+      netlify: {
+        name: "Netlify Drop",
+        how: "The quickest: drag the exported folder onto the page. Sign up to keep the site online.",
+      },
+      cloudflare: {
+        name: "Cloudflare Pages",
+        how: "Create a project with “Upload assets”, then drop the exported folder.",
+      },
+      github: {
+        name: "GitHub Pages",
+        how: "Put the exported files in a repository and turn on Pages in its settings.",
+      },
+    },
+    step3: "3. Note where your website is",
+    siteUrl: "Your website's address",
+    save: "Save",
+    siteUrlHelp: "Upstart keeps it with the project, so you find it again here.",
   },
 } as const;
 
