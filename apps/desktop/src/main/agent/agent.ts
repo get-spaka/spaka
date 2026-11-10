@@ -63,6 +63,11 @@ export class Agent {
     this.record(projectId, { type: "notice", id: `${Date.now().toString(36)}-n`, text, at: Date.now() });
   }
 
+  /** The skills may have changed: an idle agent starts again with them, a working one at its next message. */
+  refreshSkills() {
+    for (const session of this.sessions.values()) session.refreshSkills();
+  }
+
   isWorking(projectId: string) {
     return !!this.sessions.get(projectId)?.busy;
   }

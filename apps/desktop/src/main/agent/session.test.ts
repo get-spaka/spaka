@@ -1,11 +1,12 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, expect, test } from "vitest";
 import { applyEvent, type ConversationEvent, type ConversationItem } from "../../shared/conversation";
+import { Skills } from "../skills/skills";
 import { modelChoices, projectNameFrom } from "./agent";
 import { findSignInUrl, parseAuthStatus } from "./auth";
-import { AgentSession, activityLabel, DENY_MESSAGE, isolationProblem, TOOLS } from "./session";
+import { AgentSession, activityLabel, DENY_MESSAGE, isolationProblem, type SessionDeps, TOOLS } from "./session";
 
 // A stand-in for the SDK's query(): each message the session sends gets the
 // next scripted turn; the test sees the options the session passed.
@@ -86,7 +87,7 @@ afterEach(() => {
   rmSync(data, { recursive: true, force: true });
 });
 
-function session(turns: Turn[]) {
+function session(turns: Turn[], extra: Partial<SessionDeps> = {}) {
   const fake = fakeQuery(turns);
   const events: ConversationEvent[] = [];
   let items: ConversationItem[] = [];
@@ -94,7 +95,7 @@ function session(turns: Turn[]) {
   const s = new AgentSession(
     { id: "p1", name: "Bakery", path: dir, model: "claude-sonnet-5-5", effort: "medium" },
     data,
-    { binary: "/bin/claude", env: () => ({ PATH: "/usr/bin" }), readable: [], query: fake.query },
+    { binary: "/bin/claude", env: () => ({ PATH: "/usr/bin" }), readable: [], query: fake.query, ...extra },
     {
       onConversation: (e) => {
         events.push(e);
@@ -254,6 +255,7 @@ test("activity lines", () => {
   expect(activityLabel("Edit", { file_path: "/p/theme.css" }, "/p")).toBe("Editing theme.css");
   expect(activityLabel("Read", { file_path: "/etc/hosts" }, "/p")).toBe("Reading /etc/hosts");
   expect(activityLabel("Bash", { command: "ls -la\necho" }, "/p")).toBe("Running ls -la");
+  expect(activityLabel("Skill", { skill: "project:menu-format" }, "/p")).toBe("Following the skill menu-format");
   expect(activityLabel("Grep", {}, "/p")).toBe("Searching the project");
 });
 
@@ -305,4 +307,53 @@ test("the agent can be told more than the maker typed", async () => {
   await new Promise((r) => setTimeout(r, 10));
   expect(pushed).toEqual(["[Upstart: went back]\n\nMake it blue"]);
   expect(items[0]).toMatchObject({ kind: "maker", text: "Make it blue" });
+});
+
+test("the agent gets Upstart's skills only, read-only, and starts again when they change", async () => {
+  const bundled = join(data, "bundled", "upstart-help");
+  mkdirSync(bundled, { recursive: true });
+  writeFileSync(join(bundled, "SKILL.md"), "---\nname: upstart-help\ndescription: Help.\n---\n");
+  const skills = new Skills(join(data, "bundled"), join(data, "app"));
+  const { s, fake, turnEnd } = session(
+    [[init("s1", [...TOOLS, "Skill"]), ...writeTurn(dir).slice(1)], writeTurn(dir)],
+    {
+      skills,
+    },
+  );
+  s.start();
+  const assembled = realpathSync(join(data, "skills"));
+  // biome-ignore lint/suspicious/noExplicitAny: options as the kit receives them
+  const options = fake.runs[0]!.options as Record<string, any>;
+  expect(options.tools).toEqual([...TOOLS, "Skill"]);
+  expect(options.skills).toEqual(["upstart:upstart-help"]);
+  expect(options.plugins).toEqual([{ type: "local", path: join(assembled, "upstart"), skipMcpDiscovery: true }]);
+  expect(options.additionalDirectories).toContain(assembled);
+  expect(options.settings.permissions.deny).toEqual([`Edit(/${assembled}/**)`]);
+  expect(options.settings.sandbox.filesystem.denyWrite).toEqual([assembled]);
+  let ended = turnEnd();
+  s.send("First");
+  await ended;
+  expect(s.problems).toEqual([]);
+
+  // The agent wrote a skill into the project: the next message starts it again, resuming.
+  const own = join(dir, ".upstart/skills/menu-format");
+  mkdirSync(own, { recursive: true });
+  writeFileSync(join(own, "SKILL.md"), "---\nname: menu-format\ndescription: Menus.\n---\n");
+  ended = turnEnd();
+  s.send("Second");
+  await ended;
+  expect(fake.runs).toHaveLength(2);
+  expect(fake.runs[1]!.options.resume).toBe("s1");
+  expect(fake.runs[1]!.options.skills).toEqual(["upstart:upstart-help", "project:menu-format"]);
+});
+
+test("a plugin Upstart did not assemble is an isolation problem", () => {
+  const base = { kind: "init", sessionId: "", model: "", version: "", apiKeySource: "", skills: [], mcpServers: [] };
+  expect(
+    isolationProblem({ ...base, tools: TOOLS, plugins: [{ name: "cc-plugin-privacy", path: "builtin" }] } as never),
+  ).toBeUndefined();
+  expect(isolationProblem({ ...base, tools: TOOLS, plugins: [{ name: "x", path: "/somewhere" }] } as never)).toMatch(
+    /plugins: x/,
+  );
+  expect(isolationProblem({ ...base, tools: [...TOOLS, "Skill"], plugins: [] } as never)).toMatch(/tools: Skill/);
 });

@@ -13,6 +13,7 @@ export type AgentEvent =
       apiKeySource: string;
       tools: string[];
       skills: string[];
+      plugins: { name: string; path: string }[];
       mcpServers: { name: string; status: string }[];
     }
   | { kind: "request-start" }
@@ -114,6 +115,7 @@ export class StreamReader {
         apiKeySource: String(m.apiKeySource ?? ""),
         tools: Array.isArray(m.tools) ? m.tools : [],
         skills: Array.isArray(m.skills) ? m.skills : [],
+        plugins: Array.isArray(m.plugins) ? m.plugins : [],
         mcpServers: Array.isArray(m.mcp_servers) ? m.mcp_servers : [],
       });
     if (m.subtype === "permission_denied")

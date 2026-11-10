@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import type { ExportResult, ProjectInfo } from "../../shared/ipc";
 import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
+import { messageOf } from "./SettingsDialog";
 import { Button } from "./ui/button";
 
 type Host = "netlify" | "cloudflare" | "github";
@@ -170,10 +171,4 @@ export function ExportDialog({
       </div>
     </div>
   );
-}
-
-/** What the main process said, without Electron's "Error invoking remote method" prefix. */
-function messageOf(e: unknown): string {
-  const text = e instanceof Error ? e.message : String(e);
-  return text.replace(/^Error invoking remote method '[^']+': (Error: )?/, "");
 }

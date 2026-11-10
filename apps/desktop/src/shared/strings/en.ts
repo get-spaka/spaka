@@ -46,6 +46,7 @@ export const en = {
     read: (path?: string) => (path ? `Reading ${path}` : "Reading a file…"),
     search: "Searching the project",
     look: "Looking at the preview",
+    skill: (name?: string) => (name ? `Following the skill ${name}` : "Following a skill…"),
     run: (what?: string) => (what ? `Running ${what}` : "Running a command…"),
     other: (tool: string) => `Using ${tool}`,
   },
@@ -81,6 +82,23 @@ export const en = {
     pages: "Pages",
     loading: "Loading…",
     publish: "Put online",
+  },
+  settings: {
+    title: "Settings",
+    close: "Close",
+  },
+  skills: {
+    title: "Skills",
+    intro:
+      "A skill teaches the agent how to do something: a tone of voice, a page format, a checklist. Add a folder that holds a SKILL.md file. The agent can also write one into your website when you ask it to.",
+    project: (name: string) => `For ${name}`,
+    projectNone: "For the website you open",
+    app: "For all your websites",
+    upstart: "Built into Upstart",
+    add: "Add…",
+    remove: "Remove",
+    none: "None.",
+    noneYet: "None yet.",
   },
   export: {
     title: "Put your website online",

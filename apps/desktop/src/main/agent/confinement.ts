@@ -28,13 +28,18 @@ export type ConfinementInput = {
   projectDir: string;
   /** Folders the sandboxed shell may read although they are in a denied place (the `node` launcher, the app). */
   readable: string[];
+  /** The assembled skills (ADR 0010): readable by the agent and its shell, never written. */
+  skillsDir?: string;
 };
 
 /** The agent's options that confine it. */
-export function confinement({ projectDir, readable }: ConfinementInput) {
+export function confinement({ projectDir, readable, skillsDir }: ConfinementInput) {
+  const skills = skillsDir ? [skillsDir] : [];
   return {
     cwd: projectDir,
-    additionalDirectories: [systemTmp],
+    // The skills' folder is a working directory so that the agent can read the
+    // files a skill refers to; a deny rule below keeps it from writing there.
+    additionalDirectories: [systemTmp, ...skills],
     permissionMode: "auto" as const,
     // No user, project or local settings: nothing of the maker's own setup.
     settingSources: [] as [],
@@ -52,6 +57,7 @@ export function confinement({ projectDir, readable }: ConfinementInput) {
         blockWritesOutsideWorkingDirectories: true,
         blockReadsOutsideWorkingDirectories: true,
         denyInsteadOfPrompting: true,
+        deny: skills.map((dir) => `Edit(/${dir}/**)`),
       },
       sandbox: {
         enabled: true,
@@ -61,7 +67,8 @@ export function confinement({ projectDir, readable }: ConfinementInput) {
         filesystem: {
           allowWrite: [systemTmp],
           denyRead: ["/Users", "/Volumes"],
-          allowRead: [projectDir, ...readable],
+          allowRead: [projectDir, ...readable, ...skills],
+          denyWrite: skills,
         },
         network: { allowedDomains: ["*"] },
       },

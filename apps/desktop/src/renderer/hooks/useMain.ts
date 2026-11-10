@@ -7,6 +7,7 @@ import type {
   PreviewState,
   ProjectInfo,
   ProjectSummary,
+  SkillInfo,
 } from "../../shared/ipc";
 import { upstart } from "../lib/bridge";
 
@@ -78,4 +79,20 @@ export function usePreviewState() {
   const [state, setState] = useState<PreviewState>(EMPTY_PREVIEW);
   useEffect(() => upstart.on("preview:state", setState), []);
   return state;
+}
+
+/** The skills the open project's agent gets, kept in step with the main process. */
+export function useSkills(projectId: string | undefined) {
+  const [skills, setSkills] = useState<SkillInfo[]>([]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: another project has other skills
+  useEffect(() => {
+    let live = true;
+    void upstart.invoke("skills:list").then((list) => live && setSkills(list));
+    const off = upstart.on("skills:changed", setSkills);
+    return () => {
+      live = false;
+      off();
+    };
+  }, [projectId]);
+  return skills;
 }

@@ -9,6 +9,7 @@ import type { Query, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
 import type { ConversationEvent } from "../../shared/conversation";
 import type { Effort, ProjectInfo } from "../../shared/ipc";
 import { en } from "../../shared/strings/en";
+import type { AssembledSkills } from "../skills/skills";
 import { confinement } from "./confinement";
 import { UPSTART_INSTRUCTIONS } from "./instructions";
 import { LOOK_TOOL } from "./preview-tool";
@@ -33,6 +34,12 @@ export type SessionDeps = {
   extraOptions?: () => { mcpServers?: Record<string, unknown>; allowedTools?: string[] };
   /** The connectors the agent is given, by server name, for the isolation check. */
   connectors?: string[];
+  /** Builds the agent's skills for a project into `outDir` (ADR 0010). */
+  skills?: {
+    assemble(projectDir: string, outDir: string): AssembledSkills;
+    /** Changes when the skills the agent would get change. */
+    fingerprint(projectDir: string): string;
+  };
   /** Keeps the agent's stream, to play it back in checks (replay.ts). */
   recorder?: { turn(): void; message(m: unknown): void };
 };
@@ -58,6 +65,8 @@ export class AgentSession {
   private turnFailed: string | undefined;
   private readonly activities = new Map<string, { name: string; label: string }>();
   private stderr = "";
+  /** The skills the running agent was given, and their fingerprint at the time. */
+  private skills: { assembled: AssembledSkills; fingerprint: string } | undefined;
   readonly problems: string[] = [];
 
   constructor(
@@ -80,16 +89,20 @@ export class AgentSession {
     if (this.q) return;
     const inbox = new Inbox<SDKUserMessage>();
     const resume = this.sessionId();
+    const skills = this.assembleSkills();
     const q = this.deps.query({
       prompt: inbox,
       options: {
-        ...confinement({ projectDir: this.project.path, readable: this.deps.readable }),
+        ...confinement({ projectDir: this.project.path, readable: this.deps.readable, skillsDir: skills?.dir }),
         pathToClaudeCodeExecutable: this.deps.binary,
         env: this.deps.env(),
         model: this.project.model,
         effort: this.project.effort,
         systemPrompt: { type: "custom", prompt: UPSTART_INSTRUCTIONS, snapshot: false },
-        tools: TOOLS,
+        tools: skills?.enabled.length ? [...TOOLS, "Skill"] : TOOLS,
+        // Only Upstart's skills: the ones built into the binary stay hidden.
+        skills: skills?.enabled ?? [],
+        ...(skills?.plugins.length ? { plugins: skills.plugins } : {}),
         includePartialMessages: true,
         ...(resume ? { resume } : {}),
         ...this.deps.extraOptions?.(),
@@ -109,6 +122,9 @@ export class AgentSession {
   /** `forAgent` is what the agent receives, when it differs from what the maker typed. */
   send(text: string, forAgent = text) {
     if (this.working) throw new Error("The agent is already working.");
+    // Skills added, removed or written since the agent started: it starts
+    // again with them, resuming the conversation (ADR 0010).
+    if (this.q && this.skillsChanged()) this.close();
     this.start();
     this.working = true;
     this.stopping = false;
@@ -164,6 +180,34 @@ export class AgentSession {
     q?.close();
   }
 
+  /** Whether the skills changed since the agent started; restarts an idle agent with them. */
+  refreshSkills(): boolean {
+    if (!this.q || !this.skillsChanged()) return false;
+    if (!this.working) this.restart();
+    return true;
+  }
+
+  private skillsChanged() {
+    const deps = this.deps.skills;
+    return !!deps && deps.fingerprint(this.project.path) !== this.skills?.fingerprint;
+  }
+
+  private assembleSkills(): AssembledSkills | undefined {
+    const deps = this.deps.skills;
+    if (!deps) return undefined;
+    const fingerprint = deps.fingerprint(this.project.path);
+    const assembled = deps.assemble(this.project.path, join(this.dataDir, "skills"));
+    // The agent sees real paths (/private/var rather than /var on macOS).
+    const dir = realpathSync(assembled.dir);
+    const real = {
+      dir,
+      enabled: assembled.enabled,
+      plugins: assembled.plugins.map((p) => ({ ...p, path: p.path.replace(assembled.dir, dir) })),
+    };
+    this.skills = { assembled: real, fingerprint };
+    return real;
+  }
+
   private restart() {
     if (this.working) return;
     this.close();
@@ -205,7 +249,7 @@ export class AgentSession {
         this.started = true;
         this.pending = undefined;
         this.saveSessionId(e.sessionId);
-        const problem = isolationProblem(e, this.deps.connectors);
+        const problem = isolationProblem(e, this.deps.connectors, this.skills?.assembled);
         if (problem) {
           this.problems.push(problem);
           this.turnFailed = en.errors.notIsolated;
@@ -315,6 +359,9 @@ export function activityLabel(name: string, input: Record<string, unknown>, proj
     }
     case LOOK_TOOL:
       return en.activity.look;
+    case "Skill":
+      // "project:menu-format" is shown as "menu-format".
+      return en.activity.skill(typeof input.skill === "string" ? input.skill.replace(/^[\w-]+:/, "") : undefined);
     default:
       return en.activity.other(name);
   }
@@ -349,13 +396,19 @@ function realPath(path: string) {
 export function isolationProblem(
   init: Extract<AgentEvent, { kind: "init" }>,
   connectors: string[] = [],
+  skills?: AssembledSkills,
 ): string | undefined {
+  const tools = skills?.enabled.length ? [...TOOLS, "Skill"] : TOOLS;
   const extraTools = init.tools.filter(
-    (t) => !TOOLS.includes(t) && !connectors.some((c) => t.startsWith(`mcp__${c}__`)),
+    (t) => !tools.includes(t) && !connectors.some((c) => t.startsWith(`mcp__${c}__`)),
   );
   if (extraTools.length) return `unexpected tools: ${extraTools.join(", ")}`;
   const extraServers = init.mcpServers.filter((s) => !connectors.includes(s.name));
   if (extraServers.length) return `unexpected connectors: ${extraServers.map((s) => s.name).join(", ")}`;
+  // The binary's own plugins are built in; any other must be one Upstart assembled.
+  const ours = new Set(skills?.plugins.map((p) => p.path));
+  const extraPlugins = init.plugins.filter((p) => p.path !== "builtin" && !ours.has(p.path));
+  if (extraPlugins.length) return `unexpected plugins: ${extraPlugins.map((p) => p.name).join(", ")}`;
   return undefined;
 }
 

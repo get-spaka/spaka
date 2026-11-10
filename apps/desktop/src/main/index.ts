@@ -1,5 +1,5 @@
 // Entry point of the app's main process.
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, type FSWatcher, mkdirSync, readFileSync, watch, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { query } from "@anthropic-ai/claude-agent-sdk";
@@ -18,6 +18,7 @@ import { createIpc } from "./ipc";
 import { FileTap } from "./live/tap";
 import { Preview } from "./preview/preview";
 import { isEffort, Projects } from "./projects";
+import { Skills } from "./skills/skills";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
 const env = readEnvironment();
@@ -95,6 +96,11 @@ async function main() {
       CLAUDE_CONFIG_DIR: env.agentConfigDir ?? join(userData, "agent"),
     };
   };
+  // Skills (ADR 0010): shipped with the app, the maker's for every project, the project's own.
+  const skills = new Skills(
+    app.isPackaged ? join(process.resourcesPath, "skills") : join(here, "../../skills"),
+    join(userData, "skills"),
+  );
   let agent: Agent;
   const auth = new AgentAuth({
     binary,
@@ -116,6 +122,7 @@ async function main() {
         allowedTools: [LOOK_TOOL],
       }),
       connectors: [UPSTART_SERVER],
+      skills,
       query: (env.agentReplay ? replayQuery(env.agentReplay, env.agentReplaySpeed) : query) as never,
       recorder: env.agentRecord ? new Recorder(env.agentRecord) : undefined,
     },
@@ -177,8 +184,37 @@ async function main() {
   if (!env.agentReplay) void agent.checkSignIn();
 
   let current: ProjectInfo | undefined;
+  // A skill added, removed or written by the agent reaches the interface, and
+  // the agent with the maker's next message.
+  let skillWatchers: FSWatcher[] = [];
+  let skillsTimer: NodeJS.Timeout | undefined;
+  const skillsChanged = () => {
+    clearTimeout(skillsTimer);
+    skillsTimer = setTimeout(() => {
+      ipc.emit("skills:changed", skills.list(current?.path));
+      agent.refreshSkills();
+    }, 300);
+  };
+  const watchSkills = (project: ProjectInfo | undefined) => {
+    for (const watcher of skillWatchers) watcher.close();
+    skillWatchers = [];
+    const appSkills = join(userData, "skills");
+    mkdirSync(appSkills, { recursive: true });
+    const watched: [string, (name: string) => boolean][] = [[appSkills, () => true]];
+    if (project) watched.push([join(project.path, ".upstart"), (name) => name.startsWith("skills")]);
+    for (const [dir, relevant] of watched) {
+      try {
+        skillWatchers.push(
+          watch(dir, { recursive: true }, (_event, name) => relevant(String(name ?? "")) && skillsChanged()),
+        );
+      } catch {
+        // A folder that cannot be watched: changes are picked up at the next start.
+      }
+    }
+  };
   const opened = async (project: ProjectInfo) => {
     current = project;
+    watchSkills(project);
     agent.open(project);
     await preview.open(project);
     tap = tapFor(project);
@@ -212,6 +248,7 @@ async function main() {
   ipc.handle("projects:current", () => current ?? null);
   ipc.handle("projects:close", () => {
     current = undefined;
+    watchSkills(undefined);
     tap = undefined;
     history = undefined;
     agent.open(undefined);
@@ -305,6 +342,24 @@ async function main() {
     const clean = url.trim();
     if (clean && !/^https?:\/\/[^\s]+$/i.test(clean)) throw new Error("This is not a web address.");
     return changed(projects.update(current.id, { siteUrl: clean || undefined }));
+  });
+  ipc.handle("skills:list", () => skills.list(current?.path));
+  ipc.handle("skills:choose-folder", async () => {
+    if (env.background) return null;
+    const answer = await dialog.showOpenDialog(win, {
+      title: "Choose a skill's folder (it holds a SKILL.md file)",
+      properties: ["openDirectory"],
+    });
+    return answer.canceled ? null : (answer.filePaths[0] ?? null);
+  });
+  ipc.handle("skills:add", (origin, folder) => {
+    const added = skills.add(origin, folder, current?.path);
+    skillsChanged();
+    return added;
+  });
+  ipc.handle("skills:remove", (origin, name) => {
+    skills.remove(origin, name, current?.path);
+    skillsChanged();
   });
   ipc.handle("history:list", () => historyEntries());
   ipc.handle("history:restore", (id) => goBack(id));

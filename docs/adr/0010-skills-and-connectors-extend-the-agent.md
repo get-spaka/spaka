@@ -1,5 +1,5 @@
 ---
-status: accepted; nothing of it has been built or tried yet
+status: accepted; skills built and checked with the real agent on 2026-11-10, connectors not yet
 ---
 
 # Skills and connectors extend the agent; a connector that launches a local program runs outside the sandbox, by approval
@@ -23,5 +23,6 @@ A project received from someone else can carry skills and connectors, and the th
 - The approval is kept outside the project folder and tied to the exact command. The agent can write in the project folder; without this it could add or alter a connector and have it run.
 - For a maker who approves a local-program connector, ADR 0007's guarantee weakens: a misled agent can use that connector's tools with whatever access the program has.
 - A connector's secrets (a token, a key) go in the system keychain, never in the project's files. A received project arrives without them.
-- The agent can write a skill into the project when the maker asks for one.
+- The agent can write a skill into the project when the maker asks for one. It gets it with the maker's next message: the agent starts again with its skills, resuming the conversation.
+- The agent's kit loads skills only through plugin folders. Upstart assembles them in its own data, one per origin, from skill folders only (regular files, no links), and enables those skills by name. The agent can read that folder, its shell can run a skill's scripts inside the sandbox, and nothing can write there. The binary still lists its own built-in skills when it starts, but the agent is not offered them and launching one is refused (checked with the real agent).
 - How auto mode judges a call to a connector's tool has not been checked.

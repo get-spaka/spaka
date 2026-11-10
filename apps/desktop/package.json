@@ -68,6 +68,12 @@
       ],
       "identity": null,
       "category": "public.app-category.developer-tools"
-    }
+    },
+    "extraResources": [
+      {
+        "from": "skills",
+        "to": "skills"
+      }
+    ]
   }
 }

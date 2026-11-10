@@ -86,6 +86,7 @@ test("reports the start of a session, refusals and sign-in failures", () => {
       apiKeySource: "none",
       tools: ["Write"],
       skills: [],
+      plugins: [],
       mcpServers: [],
     },
     { kind: "permission-denied", id: "t2", name: "Bash", message: "no" },

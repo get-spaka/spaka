@@ -21,6 +21,10 @@ export type ProjectSummary = { id: string; name: string; path: string };
 /** An open project. `siteUrl` is where the maker put the exported site online. */
 export type ProjectInfo = ProjectSummary & { model: string; effort: Effort; siteUrl?: string };
 
+/** Where a skill comes from (ADR 0010): shipped with Upstart, the maker's for all projects, or the project's. */
+export type SkillOrigin = "upstart" | "app" | "project";
+export type SkillInfo = { origin: SkillOrigin; name: string; description: string; path: string };
+
 export type ExportResult = { folder: string; pages: string[]; files: number; warnings: string[] };
 
 export type Rect = { x: number; y: number; width: number; height: number };
@@ -101,6 +105,12 @@ export type Invokes = {
   /** Opens one of the hosting services the export guide names. */
   "export:open-host": (host: "netlify" | "cloudflare" | "github") => void;
   "projects:set-site-url": (url: string) => ProjectInfo;
+  /** The skills the open project's agent gets, from every origin. */
+  "skills:list": () => SkillInfo[];
+  /** Asks the maker for a skill's folder. Null when they cancel. */
+  "skills:choose-folder": () => string | null;
+  "skills:add": (origin: "app" | "project", folder: string) => SkillInfo;
+  "skills:remove": (origin: "app" | "project", name: string) => void;
   "history:list": () => HistoryEntry[];
   /** Puts the project back as a version had it (a new version is added). */
   "history:restore": (id: string) => HistoryEntry[];
@@ -124,6 +134,8 @@ export type Events = {
   "conversation:event": (message: { projectId: string; event: ConversationEvent }) => void;
   "agent:status": (status: AgentStatus) => void;
   "history:changed": (message: { projectId: string; entries: HistoryEntry[] }) => void;
+  /** The skills changed: added, removed, or written by the agent. */
+  "skills:changed": (skills: SkillInfo[]) => void;
 };
 
 export type InvokeChannel = keyof Invokes;
@@ -159,6 +171,10 @@ export const channels = {
     "export:reveal",
     "export:open-host",
     "projects:set-site-url",
+    "skills:list",
+    "skills:choose-folder",
+    "skills:add",
+    "skills:remove",
     "history:list",
     "history:restore",
     "history:undo",
@@ -171,6 +187,7 @@ export const channels = {
     "conversation:event",
     "agent:status",
     "history:changed",
+    "skills:changed",
   ],
 } as const satisfies {
   invoke: readonly InvokeChannel[];

@@ -10,11 +10,13 @@ export function Sidebar({
   current,
   onCollapse,
   onNew,
+  onSettings,
 }: {
   projects: ProjectSummary[];
   current: ProjectInfo | null;
   onCollapse: () => void;
   onNew: () => void;
+  onSettings: () => void;
 }) {
   return (
     <aside data-testid="sidebar" className="flex w-60 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
@@ -61,7 +63,13 @@ export function Sidebar({
         )}
       </nav>
       <div className="border-t p-2">
-        <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start text-muted-foreground"
+          onClick={onSettings}
+          data-testid="open-settings"
+        >
           <Settings />
           {t.sidebar.settings}
         </Button>

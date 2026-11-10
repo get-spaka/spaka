@@ -14,11 +14,14 @@ export function PreviewPane({
   project,
   state,
   working,
+  covered,
   layoutKey,
 }: {
   project: ProjectInfo | null;
   state: PreviewState;
   working: boolean;
+  /** Something is shown over the whole window: the native page view, which would stay on top, is hidden. */
+  covered: boolean;
   layoutKey: unknown;
 }) {
   const area = useRef<HTMLDivElement>(null);
@@ -32,7 +35,7 @@ export function PreviewPane({
     const element = area.current;
     if (!element) return;
     // The native page view would cover the dialog: it is hidden while the dialog is open.
-    if (dialogOpen) {
+    if (dialogOpen || covered) {
       upstart.send("preview:bounds", null);
       return;
     }
@@ -54,7 +57,7 @@ export function PreviewPane({
       window.removeEventListener("resize", send);
     };
     // The area also moves when the columns before it change width.
-  }, [layoutKey, dialogOpen]);
+  }, [layoutKey, dialogOpen, covered]);
 
   return (
     <main data-testid="preview" className="flex min-w-0 flex-1 flex-col bg-muted/40">

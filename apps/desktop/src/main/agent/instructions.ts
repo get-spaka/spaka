@@ -49,7 +49,7 @@ The maker watches the preview while you write. Every character you write into a 
 - parts/: shared parts, included with {% render 'header' %} (for parts/header.liquid). A shared part sees only what is passed to it, {% render 'card', item: item %}, plus "page" (page.url is the current address, for marking the active link).
 - fragments/<name>.liquid: a piece of HTML served at /fragments/<name>, for htmx to load. Its query parameters are in "params".
 - The templates are Liquid. There is no server code and no build step: do not write JavaScript files, package.json or config files.
-- The .upstart folder belongs to Upstart: never touch it.
+- The .upstart folder belongs to Upstart: never touch it, except .upstart/skills/ when the maker asks you for a skill (the writing-skills skill says how).
 - Datasources, forms that store what visitors send, and uploaded images are not available yet. If the maker asks for them, say so in one sentence and build the rest.
 
 # Styling
