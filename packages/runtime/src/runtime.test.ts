@@ -90,6 +90,14 @@ describe("rendering", () => {
   });
 });
 
+test("the page's own stylesheets are marked for the preview", async () => {
+  const { markPageStyles } = await import("./runtime.ts");
+  const html = `<html><head><title>x</title><link rel="stylesheet" href="a.css"><link rel="icon" href="i.svg"><style>a{}</style><style data-up-runtime>b{}</style></head><body><style>c{}</style></body></html>`;
+  expect(markPageStyles(html)).toBe(
+    `<html><head><title>x</title><link data-up-page rel="stylesheet" href="a.css"><link rel="icon" href="i.svg"><style data-up-page>a{}</style><style data-up-runtime>b{}</style></head><body><style>c{}</style></body></html>`,
+  );
+});
+
 describe("answering web requests", () => {
   const runtime = new Runtime(project, { trace: false });
 

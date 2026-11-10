@@ -7,8 +7,9 @@ export const en = {
   },
   sidebar: {
     projects: "Projects",
-    newProject: "New project",
-    noProjects: "No projects yet",
+    newProject: "New website",
+    openFolder: "Open a folder…",
+    noProjects: "Your websites will be listed here.",
     collapse: "Hide the sidebar",
     expand: "Show the sidebar",
     settings: "Settings",
@@ -22,6 +23,11 @@ export const en = {
   preview: {
     emptyTitle: "Your website appears here",
     emptyText: "As soon as the agent starts writing, you see the page take shape.",
+    noProjectTitle: "Start a new website",
+    noProjectText: "Describe it in the conversation, or open a folder you already have.",
+    reload: "Reload the page",
+    pages: "Pages",
+    loading: "Loading…",
   },
 } as const;
 

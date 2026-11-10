@@ -33,6 +33,12 @@ export type RuntimeOptions = {
   trace?: boolean;
   /** HTML put at the top of every page's <head>: styles and scripts the runtime provides. */
   head?: () => string;
+  /**
+   * Mark the page's own stylesheets in its head with data-up-page (the
+   * preview), so that they can be told apart from what the runtime or a
+   * library adds to the page while it runs.
+   */
+  markPageStyles?: boolean;
 };
 
 export class Runtime {
@@ -155,8 +161,9 @@ export class Runtime {
 
   /** Puts the runtime's head into a rendered page. */
   decorate(html: string): string {
+    const marked = this.options.markPageStyles ? markPageStyles(html) : html;
     const head = this.options.head?.() ?? "";
-    return head ? injectHead(html, head) : html;
+    return head ? injectHead(marked, head) : marked;
   }
 
   private render(file: string, scope: Record<string, unknown>): RenderResult {
@@ -225,6 +232,20 @@ export function injectHead(html: string, head: string): string {
   if (root)
     return `${html.slice(0, root.index + root[0].length)}<head>${head}</head>${html.slice(root.index + root[0].length)}`;
   return `<!doctype html><html><head>${head}</head><body>${html}</body></html>`;
+}
+
+/** Adds data-up-page to the <style> and <link rel="stylesheet"> elements of the page's head. */
+export function markPageStyles(html: string): string {
+  const end = html.search(/<\/head\s*>/i);
+  if (end < 0) return html;
+  const head = html
+    .slice(0, end)
+    .replace(/<(style|link)\b(?![^>]*\sdata-up-(?:page|runtime)\b)([^>]*)>/gi, (tag, name: string, rest: string) =>
+      name.toLowerCase() === "link" && !/\brel\s*=\s*["']?stylesheet/i.test(rest)
+        ? tag
+        : `<${name} data-up-page${rest}>`,
+    );
+  return head + html.slice(end);
 }
 
 function renderError(error: unknown): string {

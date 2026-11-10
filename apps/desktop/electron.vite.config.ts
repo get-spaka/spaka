@@ -6,6 +6,8 @@ import { defineConfig } from "electron-vite";
 export default defineConfig({
   main: {
     build: {
+      // The workspace's own packages are TypeScript sources: bundle them.
+      externalizeDeps: { exclude: ["@upstart/runtime"] },
       rollupOptions: { input: { index: resolve(__dirname, "src/main/index.ts") } },
     },
   },
@@ -15,7 +17,10 @@ export default defineConfig({
       isolatedEntries: true,
       externalizeDeps: false,
       rollupOptions: {
-        input: { app: resolve(__dirname, "src/preload/app.ts") },
+        input: {
+          app: resolve(__dirname, "src/preload/app.ts"),
+          preview: resolve(__dirname, "src/preload/preview.ts"),
+        },
         output: { format: "cjs", entryFileNames: "[name].cjs" },
       },
     },

@@ -1,0 +1,71 @@
+import { FolderOpen, PanelLeft, Plus, Settings } from "lucide-react";
+import type { ProjectInfo, ProjectSummary } from "../../shared/ipc";
+import { upstart } from "../lib/bridge";
+import { t } from "../lib/strings";
+import { cn } from "../lib/utils";
+import { Button } from "./ui/button";
+
+export function Sidebar({
+  projects,
+  current,
+  onCollapse,
+  onNew,
+}: {
+  projects: ProjectSummary[];
+  current: ProjectInfo | null;
+  onCollapse: () => void;
+  onNew: () => void;
+}) {
+  return (
+    <aside data-testid="sidebar" className="flex w-60 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
+      <div className="drag-region flex h-13 items-center justify-end px-2">
+        <Button variant="ghost" size="icon-sm" className="no-drag" onClick={onCollapse} title={t.sidebar.collapse}>
+          <PanelLeft />
+        </Button>
+      </div>
+      <div className="px-2">
+        <Button variant="ghost" size="sm" className="w-full justify-start" onClick={onNew}>
+          <Plus />
+          {t.sidebar.newProject}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start text-muted-foreground"
+          onClick={() => void upstart.invoke("projects:choose-folder")}
+        >
+          <FolderOpen />
+          {t.sidebar.openFolder}
+        </Button>
+      </div>
+      <div className="mt-4 px-4 pb-1 text-xs font-medium text-muted-foreground">{t.sidebar.projects}</div>
+      <nav className="flex-1 overflow-y-auto px-2 pb-2" aria-label={t.sidebar.projects}>
+        {projects.length === 0 ? (
+          <p className="px-2 py-1 text-sm text-muted-foreground">{t.sidebar.noProjects}</p>
+        ) : (
+          projects.map((project) => (
+            <button
+              type="button"
+              key={project.id}
+              title={project.path}
+              data-testid="project-item"
+              onClick={() => void upstart.invoke("projects:open", project.id)}
+              className={cn(
+                "flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-sidebar-accent",
+                current?.id === project.id && "bg-sidebar-accent font-medium",
+              )}
+            >
+              <span className="truncate">{project.name}</span>
+            </button>
+          ))
+        )}
+      </nav>
+      <div className="border-t p-2">
+        <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground">
+          <Settings />
+          {t.sidebar.settings}
+        </Button>
+      </div>
+    </aside>
+  );
+}

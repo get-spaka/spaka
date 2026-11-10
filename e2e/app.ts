@@ -48,7 +48,7 @@ export async function launchApp({ env = {}, packaged = false }: LaunchOptions = 
   const logs: string[] = [];
   app.process().stdout?.on("data", (d) => logs.push(String(d)));
   app.process().stderr?.on("data", (d) => logs.push(String(d)));
-  const window = await app.firstWindow();
+  const window = await interfacePage(app);
   await window.waitForLoadState("domcontentloaded");
   return {
     app,
@@ -67,6 +67,18 @@ export async function launchApp({ env = {}, packaged = false }: LaunchOptions = 
       rmSync(scratch, { recursive: true, force: true });
     },
   };
+}
+
+/** The interface's page: Playwright also lists the preview's view as a window. */
+async function interfacePage(app: ElectronApplication): Promise<Page> {
+  const started = Date.now();
+  for (;;) {
+    const found = app.windows().find((page) => /renderer\/index\.html|^http:\/\/localhost/.test(page.url()));
+    if (found) return found;
+    if (Date.now() - started > 20_000)
+      throw new Error(`no interface window among: ${app.windows().map((p) => p.url())}`);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
 }
 
 function cleanEnv() {

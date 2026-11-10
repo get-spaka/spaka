@@ -6,7 +6,7 @@ import { BRIDGE_CSS, TAILWIND_THEME } from "./theme.ts";
 /** The libraries the preview serves, by file name, with the package file each comes from. */
 export const VENDOR = {
   "daisyui.css": { module: "daisyui/daisyui.css", type: "text/css" },
-  "tailwind.js": { module: "@tailwindcss/browser/dist/index.global.js", type: "text/javascript" },
+  "tailwind.js": { module: "@tailwindcss/browser", type: "text/javascript" },
   "htmx.js": { module: "htmx.org/dist/htmx.js", type: "text/javascript" },
 } as const;
 

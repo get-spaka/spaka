@@ -1,9 +1,12 @@
 // Entry point of the app's main process.
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, dialog } from "electron";
+import type { ProjectInfo } from "../shared/ipc";
 import { readEnvironment } from "./environment";
 import { createIpc } from "./ipc";
+import { Preview } from "./preview/preview";
+import { Projects } from "./projects";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
 const env = readEnvironment();
@@ -29,7 +32,7 @@ process.on("uncaughtException", (error) => {
 app.setName("Upstart");
 
 async function main() {
-  if (!app.requestSingleInstanceLock() && !env.background) return app.quit();
+  if (!env.background && !app.requestSingleInstanceLock()) return app.quit();
   await app.whenReady();
 
   const win = new BrowserWindow({
@@ -61,6 +64,20 @@ async function main() {
   if (!env.background) win.once("ready-to-show", () => win.show());
 
   const ipc = createIpc(win);
+  const projects = new Projects(app.getPath("userData"), env.projectsDir);
+  const preview = new Preview(win, {
+    background: env.background,
+    onState: (state) => ipc.emit("preview:state", state),
+  });
+  await preview.start();
+
+  const opened = async (project: ProjectInfo) => {
+    await preview.open(project);
+    ipc.emit("project:opened", project);
+    ipc.emit("projects:changed", projects.list());
+    return project;
+  };
+
   ipc.handle("app:info", () => ({
     version: app.getVersion(),
     platform: process.platform,
@@ -72,6 +89,25 @@ async function main() {
     },
   }));
   ipc.on("app:ready", () => console.log("[upstart] interface ready"));
+  ipc.handle("projects:list", () => projects.list());
+  ipc.handle("projects:create", (name) => opened(projects.create(name)));
+  ipc.handle("projects:open", (id) => opened(projects.open(id)));
+  ipc.handle("projects:current", () => preview.project ?? null);
+  ipc.handle("projects:choose-folder", async () => {
+    if (env.background) return null;
+    const answer = await dialog.showOpenDialog(win, {
+      title: "Open a website folder",
+      properties: ["openDirectory", "createDirectory"],
+    });
+    const folder = answer.filePaths[0];
+    return answer.canceled || !folder ? null : opened(projects.openFolder(folder));
+  });
+  ipc.handle("preview:navigate", (route) => preview.navigate(route));
+  ipc.handle("preview:reload", () => preview.reload());
+  ipc.on("preview:bounds", (rect) => preview.setBounds(rect));
+
+  // For automated checks: the main process's objects, reachable from Playwright's evaluate().
+  if (env.background) Object.assign(globalThis, { upstart: { win, projects, preview } });
 
   const devUrl = process.env.ELECTRON_RENDERER_URL;
   if (devUrl) await win.loadURL(devUrl);

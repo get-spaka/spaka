@@ -1,0 +1,115 @@
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
+
+const page = (title: string, body: string) =>
+  `<!doctype html>\n<html lang="en">\n<head><title>${title}</title></head>\n<body>\n{% render 'header' %}\n${body}\n</body>\n</html>\n`;
+
+describe("a project folder in the preview", () => {
+  let launched: LaunchedApp;
+  let folder: string;
+
+  /** Runs code in the preview's page and returns its value. */
+  const inPage = (code: string) =>
+    launched.app.evaluate(
+      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+      (_electron, code) => (globalThis as any).upstart.preview.view.webContents.executeJavaScript(code),
+      code,
+    );
+  const until = async (code: string, timeout = 5000) => {
+    const started = Date.now();
+    for (;;) {
+      const value = await inPage(code).catch(() => undefined);
+      if (value) return value;
+      if (Date.now() - started > timeout) throw new Error(`timed out waiting for: ${code}`);
+      await new Promise((r) => setTimeout(r, 50));
+    }
+  };
+
+  beforeAll(async () => {
+    launched = await launchApp();
+    await launched.window.getByTestId("conversation").waitFor();
+    const project = await launched.window.evaluate(() =>
+      // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
+      (window as any).upstart.invoke("projects:create", "Chez Margot"),
+    );
+    folder = project.path;
+  });
+  afterAll(async () => {
+    await launched?.close();
+  });
+
+  test("a new project opens on an empty page", async () => {
+    await expect(launched.window.getByTestId("project-name").textContent()).resolves.toBe("Chez Margot");
+    await until("document.readyState === 'complete' && !!document.getElementById('up-theme')");
+    await expect(inPage("document.body.children.length")).resolves.toBe(0);
+  });
+
+  test("files written into the folder appear, styled, without a reload", async () => {
+    await inPage("window.__sameDocument = true");
+    writeFileSync(
+      join(folder, "theme.css"),
+      ":root { --theme-color-primary: #b45309; --theme-color-surface: #fffbeb; }\n",
+    );
+    mkdirSync(join(folder, "parts"));
+    mkdirSync(join(folder, "pages"));
+    writeFileSync(
+      join(folder, "parts/header.liquid"),
+      `<header class="navbar bg-base-200"><a href="/menu" class="btn btn-ghost">Menu</a></header>\n`,
+    );
+    writeFileSync(
+      join(folder, "pages/index.liquid"),
+      page(
+        "Chez Margot",
+        `<main><section class="hero"><h1 class="text-5xl font-bold text-primary">Bread since 1952</h1></section></main>`,
+      ),
+    );
+    await until("document.querySelector('h1')?.textContent === 'Bread since 1952'");
+    await expect(inPage("window.__sameDocument")).resolves.toBe(true);
+    await expect(inPage("document.querySelector('h1').dataset.upSrc")).resolves.toBe("pages/index.liquid:6");
+    await expect(inPage("document.title")).resolves.toBe("Chez Margot");
+    await until("getComputedStyle(document.querySelector('h1')).color === 'rgb(180, 83, 9)'");
+    // Tailwind's browser build styles what the morph added (text-5xl).
+    await until("getComputedStyle(document.querySelector('h1')).fontSize === '48px'");
+    mkdirSync(runsDir, { recursive: true });
+    const png = await launched.app.evaluate(async () =>
+      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+      ((await (globalThis as any).upstart.preview.capture()) as Buffer).toString("base64"),
+    );
+    writeFileSync(join(runsDir, "preview.png"), Buffer.from(png, "base64"));
+    const window = await launched.capture("preview-window");
+    expect(window).toMatch(/png$/);
+  });
+
+  test("the theme changes in place", async () => {
+    writeFileSync(join(folder, "theme.css"), ":root { --theme-color-primary: #1d4ed8; }\n");
+    await until("getComputedStyle(document.querySelector('h1')).color === 'rgb(29, 78, 216)'");
+    await expect(inPage("window.__sameDocument")).resolves.toBe(true);
+  });
+
+  test("the pages are listed and reachable, links included", async () => {
+    writeFileSync(join(folder, "pages/menu.liquid"), page("Menu", `<main><h1>Our breads</h1></main>`));
+    await expect
+      .poll(() => launched.window.getByTestId("page-select").locator("option").allTextContents())
+      .toEqual(["/", "/menu"]);
+    await inPage("document.querySelector('header a').click()");
+    await until("location.pathname === '/menu' && document.querySelector('h1')?.textContent === 'Our breads'");
+    await expect.poll(() => launched.window.getByTestId("page-select").inputValue()).toBe("/menu");
+    await launched.window.getByTestId("page-select").selectOption("/");
+    await until("location.pathname === '/' && document.querySelector('h1')?.textContent === 'Bread since 1952'");
+  });
+
+  test("a page cannot leave the preview, open windows or reach the app", async () => {
+    await inPage("window.open('https://example.com'); location.href = 'https://example.com'; 1");
+    await new Promise((r) => setTimeout(r, 500));
+    await expect(inPage("location.origin.startsWith('http://127.0.0.1')")).resolves.toBe(true);
+    await expect(inPage("typeof window.upstart + typeof window.require + typeof window.Idiomorph")).resolves.toBe(
+      "undefinedundefinedundefined",
+    );
+  });
+
+  test("the project is listed and reopens", async () => {
+    await expect(launched.window.getByTestId("project-item").allTextContents()).resolves.toEqual(["Chez Margot"]);
+  });
+});
