@@ -7,9 +7,11 @@ import type { ProjectInfo } from "../shared/ipc";
 import { Agent, projectNameFrom } from "./agent/agent";
 import { AgentAuth } from "./agent/auth";
 import { agentBinary, cleanEnv, nodeLauncher } from "./agent/confinement";
+import { LOOK_TOOL, UPSTART_SERVER, upstartServer } from "./agent/preview-tool";
 import { Recorder, replayQuery } from "./agent/replay";
 import { readEnvironment } from "./environment";
 import { createIpc } from "./ipc";
+import { FileTap } from "./live/tap";
 import { Preview } from "./preview/preview";
 import { isEffort, Projects } from "./projects";
 
@@ -105,12 +107,33 @@ async function main() {
     session: {
       binary,
       readable: launcher.readable,
-      query: (env.agentReplay ? replayQuery(env.agentReplay, 4) : query) as never,
+      extraOptions: () => ({
+        mcpServers: { [UPSTART_SERVER]: upstartServer(() => preview.look()) },
+        allowedTools: [LOOK_TOOL],
+      }),
+      connectors: [UPSTART_SERVER],
+      query: (env.agentReplay ? replayQuery(env.agentReplay, env.agentReplaySpeed) : query) as never,
       recorder: env.agentRecord ? new Recorder(env.agentRecord) : undefined,
     },
     dataFor: (id) => projects.dataFor(id),
     emitConversation: (projectId, event) => ipc.emit("conversation:event", { projectId, event }),
     emitStatus: (status) => ipc.emit("agent:status", status),
+    // What the agent writes reaches the preview before the disk (ADR 0009).
+    onAgentEvent: (projectId, event) => {
+      if (tap && tap.projectId === projectId) tap.tap.handle(event);
+    },
+  });
+  let tap: { projectId: string; tap: FileTap } | undefined;
+  const tapFor = (project: ProjectInfo) => ({
+    projectId: project.id,
+    tap: new FileTap({
+      root: project.path,
+      read: (rel) => preview.overlay?.read(rel),
+      set: (rel, content) =>
+        content === undefined ? preview.overlay?.delete(rel) : preview.overlay?.set(rel, content),
+      changed: (final) => preview.refresh(final),
+      follow: (rel) => preview.follow(rel),
+    }),
   });
   if (!env.agentReplay) void agent.checkSignIn();
 
@@ -119,6 +142,7 @@ async function main() {
     current = project;
     agent.open(project);
     await preview.open(project);
+    tap = tapFor(project);
     ipc.emit("project:opened", project);
     ipc.emit("projects:changed", projects.list());
     return project;
@@ -146,6 +170,7 @@ async function main() {
   ipc.handle("projects:current", () => current ?? null);
   ipc.handle("projects:close", () => {
     current = undefined;
+    tap = undefined;
     agent.open(undefined);
     preview.close();
     ipc.emit("project:opened", null);
@@ -159,7 +184,7 @@ async function main() {
     const folder = answer.filePaths[0];
     return answer.canceled || !folder ? null : opened(projects.openFolder(folder));
   });
-  ipc.handle("preview:navigate", (route) => preview.navigate(route));
+  ipc.handle("preview:navigate", (route) => preview.navigate(route, true));
   ipc.handle("preview:reload", () => preview.reload());
   ipc.on("preview:bounds", (rect) => preview.setBounds(rect));
 
@@ -178,6 +203,7 @@ async function main() {
       const effort = isEffort(settings?.effort) ? settings.effort : created.effort;
       project = await opened(projects.update(created.id, { model, effort }));
     }
+    preview.startFollowing();
     agent.send(project, message);
   });
   ipc.handle("conversation:stop", () => current && agent.stop(current.id));

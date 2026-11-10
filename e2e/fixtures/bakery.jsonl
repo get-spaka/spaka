@@ -46,23 +46,37 @@
 {"t": 921, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_stop", "index": 2}}}
 {"t": 922, "m": {"type": "assistant", "parent_tool_use_id": null, "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "w2", "name": "Write", "input": {"file_path": "/recorded/bakery/pages/index.liquid", "content": "<!doctype html>\n<html lang=\"en\">\n<head>\n<title>Chez Margot</title>\n<meta name=\"description\" content=\"Bread and pastries in Lyon\">\n</head>\n<body>\n<section class=\"hero min-h-96 bg-base-200\">\n<div class=\"hero-content text-center\">\n<div>\n<h1 class=\"text-5xl\">Chez Margot</h1>\n<p class=\"py-6\">Sourdough, croissants and tarts, baked every morning in the Croix-Rousse.</p>\n<a class=\"btn btn-primary\" href=\"#hours\">See our hours</a>\n</div>\n</div>\n</section>\n<section id=\"hours\" class=\"p-10\">\n<h2 class=\"text-3xl\">Hours</h2>\n<p>Tuesday to Sunday, 7am to 7pm.</p>\n</section>\n</body>\n</html>\n"}}]}}}
 {"t": 942, "m": {"type": "user", "parent_tool_use_id": null, "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "w2", "content": "ok"}]}}}
-{"t": 962, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "message_start", "message": {}}}}
-{"t": 982, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_start", "index": 0, "content_block": {"type": "text", "text": ""}}}}
-{"t": 1012, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "Your "}}}}
-{"t": 1042, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "bakery's "}}}}
-{"t": 1072, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "home "}}}}
-{"t": 1102, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "page "}}}}
-{"t": 1132, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "is "}}}}
-{"t": 1162, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "ready, "}}}}
-{"t": 1192, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "with "}}}}
-{"t": 1222, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "a "}}}}
-{"t": 1252, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "hero "}}}}
-{"t": 1282, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "and "}}}}
-{"t": 1312, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "the "}}}}
-{"t": 1342, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "opening "}}}}
-{"t": 1372, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "hours. "}}}}
-{"t": 1392, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_stop", "index": 0}}}
-{"t": 1412, "m": {"type": "result", "subtype": "success", "is_error": false, "result": "Your bakery's home page is ready.", "duration_ms": 1392, "total_cost_usd": 0}}
+{"t": 962, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_start", "index": 3, "content_block": {"type": "tool_use", "id": "w3", "name": "Write", "input": {}}}}}
+{"t": 977, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 3, "delta": {"type": "input_json_delta", "partial_json": "{\"file_path\": \"/recorded/bakery/pages/me"}}}}
+{"t": 992, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 3, "delta": {"type": "input_json_delta", "partial_json": "nu.liquid\", \"content\": \"<!doctype html>\\"}}}}
+{"t": 1007, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 3, "delta": {"type": "input_json_delta", "partial_json": "n<html lang=\\\"en\\\">\\n<head>\\n<title>Menu"}}}}
+{"t": 1022, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 3, "delta": {"type": "input_json_delta", "partial_json": " \\u00b7 Chez Margot</title>\\n</head>\\n<b"}}}}
+{"t": 1037, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 3, "delta": {"type": "input_json_delta", "partial_json": "ody>\\n<section class=\\\"p-10\\\">\\n<h1 clas"}}}}
+{"t": 1052, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 3, "delta": {"type": "input_json_delta", "partial_json": "s=\\\"text-4xl\\\">Chez Margot \\u00b7 Menu</"}}}}
+{"t": 1067, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 3, "delta": {"type": "input_json_delta", "partial_json": "h1>\\n<ul>\\n<li>Sourdough loaf, 5 \\u20ac<"}}}}
+{"t": 1082, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 3, "delta": {"type": "input_json_delta", "partial_json": "/li>\\n<li>Croissant, 1.40 \\u20ac</li>\\n<"}}}}
+{"t": 1097, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 3, "delta": {"type": "input_json_delta", "partial_json": "li>Lemon tart, 4 \\u20ac</li>\\n</ul>\\n</s"}}}}
+{"t": 1112, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 3, "delta": {"type": "input_json_delta", "partial_json": "ection>\\n</body>\\n</html>\\n\"}"}}}}
+{"t": 1132, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_stop", "index": 3}}}
+{"t": 1133, "m": {"type": "assistant", "parent_tool_use_id": null, "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "w3", "name": "Write", "input": {"file_path": "/recorded/bakery/pages/menu.liquid", "content": "<!doctype html>\n<html lang=\"en\">\n<head>\n<title>Menu \u00b7 Chez Margot</title>\n</head>\n<body>\n<section class=\"p-10\">\n<h1 class=\"text-4xl\">Chez Margot \u00b7 Menu</h1>\n<ul>\n<li>Sourdough loaf, 5 \u20ac</li>\n<li>Croissant, 1.40 \u20ac</li>\n<li>Lemon tart, 4 \u20ac</li>\n</ul>\n</section>\n</body>\n</html>\n"}}]}}}
+{"t": 1153, "m": {"type": "user", "parent_tool_use_id": null, "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "w3", "content": "ok"}]}}}
+{"t": 1173, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "message_start", "message": {}}}}
+{"t": 1193, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_start", "index": 0, "content_block": {"type": "text", "text": ""}}}}
+{"t": 1223, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "Your "}}}}
+{"t": 1253, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "bakery's "}}}}
+{"t": 1283, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "home "}}}}
+{"t": 1313, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "page "}}}}
+{"t": 1343, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "is "}}}}
+{"t": 1373, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "ready, "}}}}
+{"t": 1403, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "with "}}}}
+{"t": 1433, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "a "}}}}
+{"t": 1463, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "hero "}}}}
+{"t": 1493, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "and "}}}}
+{"t": 1523, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "the "}}}}
+{"t": 1553, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "opening "}}}}
+{"t": 1583, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "hours. "}}}}
+{"t": 1603, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_stop", "index": 0}}}
+{"t": 1623, "m": {"type": "result", "subtype": "success", "is_error": false, "result": "Your bakery's home page is ready.", "duration_ms": 1392, "total_cost_usd": 0}}
 {"t": 100, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "message_start", "message": {}}}}
 {"t": 120, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_start", "index": 0, "content_block": {"type": "tool_use", "id": "e1", "name": "Edit", "input": {}}}}}
 {"t": 135, "m": {"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 0, "delta": {"type": "input_json_delta", "partial_json": "{\"file_path\": \"/recorded/bakery/pages/in"}}}}

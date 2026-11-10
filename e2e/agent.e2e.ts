@@ -110,6 +110,30 @@ describe.skipIf(!real)("the real agent", () => {
     expect(text).toContain(`v=${version}`);
   }, 200_000);
 
+  test("the agent can look at the preview", async () => {
+    const project = await invoke("projects:current");
+    const h1 = /<h1[^>]*>([\s\S]*?)<\/h1>/.exec(readFileSync(join(project.path, "pages/index.liquid"), "utf8"))?.[1];
+    const item = await turn(
+      "Use the look_at_preview tool once, then answer with the exact main heading you see on the page, and nothing else.",
+      180_000,
+    );
+    expect(item.status).toBe("done");
+    const looked = item.parts.find(
+      (p: { kind: string; activity?: { label: string } }) => p.activity?.label === "Looking at the preview",
+    );
+    expect(looked?.activity.state).toBe("done");
+    const words = (h1 ?? "")
+      .replace(/<[^>]+>/g, " ")
+      .split(/\s+/)
+      .filter((w) => w.length > 3);
+    const text = item.parts
+      .filter((p: { kind: string }) => p.kind === "text")
+      .map((p: { text: string }) => p.text)
+      .join("");
+    expect(words.some((w) => text.includes(w))).toBe(true);
+    expect(await problems()).toEqual([]);
+  }, 200_000);
+
   test("an effort change during the conversation is applied", async () => {
     await invoke("agent:set-effort", "low");
     const item = await turn("Reply with the single word: ok", 120_000);

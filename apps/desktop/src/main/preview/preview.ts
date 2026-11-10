@@ -42,6 +42,8 @@ export class Preview {
   private pending: { final: boolean } | undefined;
   private timer: NodeJS.Timeout | undefined;
   private lastPush = 0;
+  /** Whether the preview moves to the page the agent writes; off once the maker navigates. */
+  private following = true;
   readonly errors: { message: string; source?: string; at: number }[] = [];
 
   constructor(
@@ -102,7 +104,13 @@ export class Preview {
     this.emit();
   }
 
-  async navigate(route: string) {
+  /** A new turn of the agent: the preview follows it again. */
+  startFollowing() {
+    this.following = true;
+  }
+
+  async navigate(route: string, byMaker = false) {
+    if (byMaker) this.following = false;
     this.loading = true;
     this.emit();
     await this.view.webContents.loadURL(new URL(route, this.origin).toString()).catch(() => {});
@@ -143,6 +151,7 @@ export class Preview {
 
   /** Points the preview at a page, when the agent starts writing it. */
   follow(file: string) {
+    if (!this.following) return;
     const route = this.site?.runtime.routeOf(file);
     if (route !== undefined && route !== this.route) {
       this.route = route;
@@ -160,6 +169,29 @@ export class Preview {
     return Buffer.from(data, "base64");
   }
 
+  /**
+   * What the agent sees when it looks at the preview: the page as shown, the
+   * errors the page reported and what the runtime had to repair or skip.
+   */
+  async look(): Promise<{ route: string | null; png?: Buffer; errors: string[]; notes: string[] }> {
+    const site = this.site;
+    const route = this.route;
+    const result = site && route !== null && site.runtime.resolve(route) ? site.runtime.renderRoute(route) : undefined;
+    const since = Date.now() - 60_000;
+    const png = this.shown ? await this.capture().catch(() => undefined) : undefined;
+    return {
+      route,
+      png,
+      errors: this.errors.filter((e) => e.at > since).map((e) => (e.source ? `${e.message} (${e.source})` : e.message)),
+      notes: result
+        ? [
+            ...(result.status !== 200 ? [`status ${result.status}`] : []),
+            ...result.notes.map((n) => `${n.file}: ${n.note}`),
+          ]
+        : [],
+    };
+  }
+
   state(): PreviewState {
     return {
       route: this.site ? this.route : null,
@@ -175,7 +207,14 @@ export class Preview {
     this.pending = undefined;
     if (!site || !pending) return;
     this.lastPush = Date.now();
-    this.send({ type: "theme", css: site.runtime.theme() });
+    const theme = site.runtime.theme();
+    this.send({ type: "theme", css: theme });
+    // A theme is the first thing the agent writes: the empty page in the
+    // site's colours is shown at once, before the first text (decisions).
+    if (!this.shown && /--theme-[\w-]+\s*:[^;]+;/.test(theme)) {
+      this.shown = true;
+      this.layout();
+    }
     const routes = site.runtime.routes();
     let result =
       this.route !== null && site.runtime.resolve(this.route) ? site.runtime.renderRoute(this.route) : undefined;
@@ -190,6 +229,9 @@ export class Preview {
     }
     // A rendering that failed is not shown: the last good one stays on screen.
     if (!result || result.status !== 200) return this.emit();
+    // Nor is a page whose body has not started yet (its head is still being
+    // written): the page shown so far stays rather than turning blank.
+    if (site.overlay.size > 0 && !hasVisibleBody(result.html)) return this.emit();
     this.send({ type: "render", html: result.html, final: pending.final && site.overlay.size === 0 });
     if (!this.shown) {
       this.shown = true;
@@ -234,6 +276,8 @@ export class Preview {
       return { action: "deny" };
     });
     contents.on("will-navigate", (details) => {
+      // A link the maker followed: the preview stays where they went.
+      this.following = false;
       if (!details.url.startsWith(`${this.origin}/`)) {
         details.preventDefault();
         this.openOutside(details.url);
@@ -286,4 +330,16 @@ export class Preview {
     if (this.options.background) return;
     if (/^https?:\/\//.test(url) || url.startsWith("mailto:")) void shell.openExternal(url);
   }
+}
+
+/** Whether a page's body shows anything yet: text, an image or a drawing. */
+export function hasVisibleBody(html: string): boolean {
+  const start = html.search(/<body[\s>]/i);
+  if (start < 0) return false;
+  const body = html
+    .slice(start)
+    .replace(/^<body[^>]*>/i, "")
+    .replace(/<(script|style|template)[\s\S]*?(<\/\1>|$)/gi, "");
+  if (/<(img|svg|video|canvas|picture|iframe)[\s>]/i.test(body)) return true;
+  return body.replace(/<[^>]*>/g, "").trim().length > 0;
 }

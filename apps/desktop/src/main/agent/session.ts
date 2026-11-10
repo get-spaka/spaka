@@ -11,6 +11,7 @@ import type { Effort, ProjectInfo } from "../../shared/ipc";
 import { en } from "../../shared/strings/en";
 import { confinement } from "./confinement";
 import { UPSTART_INSTRUCTIONS } from "./instructions";
+import { LOOK_TOOL } from "./preview-tool";
 import { type AgentEvent, StreamReader } from "./stream";
 
 /** The agent's tools. No MultiEdit: the live preview cannot follow it (ADR 0009). */
@@ -28,6 +29,10 @@ export type SessionDeps = {
   /** Folders the sandboxed shell may read although they sit in a denied place. */
   readable: string[];
   query: QueryFn;
+  /** Options added to each start: Upstart's own tool server. */
+  extraOptions?: () => { mcpServers?: Record<string, unknown>; allowedTools?: string[] };
+  /** The connectors the agent is given, by server name, for the isolation check. */
+  connectors?: string[];
   /** Keeps the agent's stream, to play it back in checks (replay.ts). */
   recorder?: { turn(): void; message(m: unknown): void };
 };
@@ -87,6 +92,7 @@ export class AgentSession {
         tools: TOOLS,
         includePartialMessages: true,
         ...(resume ? { resume } : {}),
+        ...this.deps.extraOptions?.(),
         stderr: (data: string) => {
           this.stderr = (this.stderr + data).slice(-4000);
         },
@@ -198,7 +204,7 @@ export class AgentSession {
         this.started = true;
         this.pending = undefined;
         this.saveSessionId(e.sessionId);
-        const problem = isolationProblem(e);
+        const problem = isolationProblem(e, this.deps.connectors);
         if (problem) {
           this.problems.push(problem);
           this.turnFailed = en.errors.notIsolated;
@@ -306,6 +312,8 @@ export function activityLabel(name: string, input: Record<string, unknown>, proj
             : "";
       return en.activity.run(what.length > 60 ? `${what.slice(0, 59)}…` : what || undefined);
     }
+    case LOOK_TOOL:
+      return en.activity.look;
     default:
       return en.activity.other(name);
   }

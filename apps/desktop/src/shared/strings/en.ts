@@ -34,6 +34,7 @@ export const en = {
     edit: (path?: string) => (path ? `Editing ${path}` : "Editing a file…"),
     read: (path?: string) => (path ? `Reading ${path}` : "Reading a file…"),
     search: "Searching the project",
+    look: "Looking at the preview",
     run: (what?: string) => (what ? `Running ${what}` : "Running a command…"),
     other: (tool: string) => `Using ${tool}`,
   },

@@ -53,9 +53,12 @@ describe("a conversation with the agent", () => {
     const w = launched.window;
     await until(() => w.locator('[data-testid="agent-message"][data-status="done"]').count());
     const lines = await w.getByTestId("activity").allTextContents();
-    expect(lines).toEqual(["Writing theme.css", "Writing pages/index.liquid"]);
+    expect(lines).toEqual(["Writing theme.css", "Writing pages/index.liquid", "Writing pages/menu.liquid"]);
     await expect(w.getByTestId("agent-message").textContent()).resolves.toContain("home page is ready");
-    await until(() => inPreview("document.querySelector('h1')?.textContent === 'Chez Margot'"));
+    // The preview followed the agent to the last page it wrote.
+    await until(() =>
+      inPreview("location.pathname === '/menu' && document.querySelector('h1')?.textContent === 'Chez Margot · Menu'"),
+    );
     await launched.capture("conversation-first-turn");
   });
 
@@ -66,7 +69,8 @@ describe("a conversation with the agent", () => {
     await w.getByTestId("message-input").fill("Close at 8pm");
     await w.getByTestId("send").click();
     await until(() => w.locator('[data-testid="agent-message"][data-status="done"]').nth(1).count());
-    await until(() => inPreview("document.body.textContent.includes('7am to 8pm')"));
+    // Back on the home page, which the agent edits.
+    await until(() => inPreview("location.pathname === '/' && document.body.textContent.includes('7am to 8pm')"));
     expect(await w.getByTestId("activity").allTextContents()).toContain("Editing pages/index.liquid");
   });
 

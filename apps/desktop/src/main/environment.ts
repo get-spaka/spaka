@@ -22,6 +22,8 @@ export type Environment = {
   agentConfigDir: string | undefined;
   /** A recorded agent stream to play back instead of running the agent. */
   agentReplay: string | undefined;
+  /** How much faster than recorded a playback runs. */
+  agentReplaySpeed: number;
   /** Where to record the agent's stream, to play it back in later checks. */
   agentRecord: string | undefined;
 };
@@ -33,6 +35,7 @@ export function readEnvironment(env: NodeJS.ProcessEnv = process.env): Environme
     projectsDir: env.UPSTART_PROJECTS_DIR || join(homedir(), "Documents", "Upstart"),
     agentConfigDir: env.UPSTART_AGENT_CONFIG_DIR || undefined,
     agentReplay: env.UPSTART_AGENT_REPLAY || undefined,
+    agentReplaySpeed: Number(env.UPSTART_AGENT_REPLAY_SPEED) || 4,
     agentRecord: env.UPSTART_AGENT_RECORD || undefined,
   };
 }
