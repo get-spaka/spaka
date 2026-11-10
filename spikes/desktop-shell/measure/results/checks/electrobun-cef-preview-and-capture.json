@@ -1,0 +1,75 @@
+{
+  "shell": "electrobun",
+  "versions": {
+    "electrobun": "2.0.6",
+    "bun": "1.4.4",
+    "renderer": "bundled Chromium (CEF)"
+  },
+  "loaded": {
+    "type": "loaded",
+    "at": 3998,
+    "loadAt": 3848,
+    "paint": {
+      "first-paint": 404,
+      "first-contentful-paint": 404
+    },
+    "pieces": 5,
+    "visibility": "visible",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+    "probes": {
+      "editorSeesPageGlobal": true,
+      "editorSeesPagePrototypePatch": true,
+      "pageSaid": "page script sees the editing script's global: true"
+    }
+  },
+  "pieces": [
+    {
+      "id": "hero",
+      "domAt": 294,
+      "frameAt": 303
+    },
+    {
+      "id": "features",
+      "domAt": 551,
+      "frameAt": 551
+    },
+    {
+      "id": "pricing",
+      "domAt": 1372,
+      "frameAt": 1372
+    },
+    {
+      "id": "voices",
+      "domAt": 2832,
+      "frameAt": 2834
+    },
+    {
+      "id": "join",
+      "domAt": 3470,
+      "frameAt": 3471
+    }
+  ],
+  "captures": {
+    "in-page": {
+      "ok": true,
+      "method": "drawn by the page itself (modern-screenshot: DOM → SVG foreignObject → canvas), because Electrobun has no capture API",
+      "dataUrl": "575826 chars",
+      "width": 1600,
+      "height": 1712,
+      "ms": 171,
+      "file": "/Users/me/dev/upstart/spikes/desktop-shell/measure/results/tmp/electrobun-cef-capture/electrobun-capture-in-page.png",
+      "bytes": 431851
+    },
+    "in-page-full": {
+      "ok": true,
+      "method": "drawn by the page itself (modern-screenshot: DOM → SVG foreignObject → canvas), because Electrobun has no capture API",
+      "dataUrl": "1379122 chars",
+      "width": 1600,
+      "height": 5852,
+      "ms": 224,
+      "file": "/Users/me/dev/upstart/spikes/desktop-shell/measure/results/tmp/electrobun-cef-capture/electrobun-capture-in-page-full.png",
+      "bytes": 1034324
+    }
+  },
+  "launchEnvPath": "/usr/bin:/bin:/usr/sbin:/sbin"
+}

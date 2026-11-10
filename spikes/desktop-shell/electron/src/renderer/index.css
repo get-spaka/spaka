@@ -1,0 +1,10 @@
+@import "tailwindcss";
+/* The interface is shared by both shells and lives outside this app. */
+@source "../../../shared/ui";
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}

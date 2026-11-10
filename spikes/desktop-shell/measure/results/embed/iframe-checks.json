@@ -1,0 +1,923 @@
+{
+  "embedding": "<iframe>",
+  "startedAt": "2026-11-10T06:10:01.060Z",
+  "frames": {
+    "interface": {
+      "url": "file:///Users/me/dev/upstart/spikes/desktop-shell/electron/out/renderer/index.html",
+      "origin": "file://",
+      "osProcessId": 40012,
+      "visibilityState": "visible"
+    },
+    "preview": {
+      "url": "http://127.0.0.1:4519/?delay=90",
+      "origin": "http://127.0.0.1:4519",
+      "osProcessId": 40016,
+      "visibilityState": "visible"
+    },
+    "previewRunsInAProcessOfItsOwn": true,
+    "framesInTheWindow": 2,
+    "preloadRanInSubFrames": [
+      {
+        "depth": 1,
+        "href": "http://127.0.0.1:4519/?delay=90",
+        "processIsMainFrame": false,
+        "contextIsolated": true,
+        "sandboxed": true,
+        "depthSeenByMain": 1
+      },
+      {
+        "depth": 1,
+        "href": "http://127.0.0.1:4519/?delay=0",
+        "processIsMainFrame": false,
+        "contextIsolated": true,
+        "sandboxed": true,
+        "depthSeenByMain": 1
+      },
+      {
+        "depth": 1,
+        "href": "http://127.0.0.1:4519/?delay=0",
+        "processIsMainFrame": false,
+        "contextIsolated": true,
+        "sandboxed": true,
+        "depthSeenByMain": 1
+      },
+      {
+        "depth": 1,
+        "href": "http://127.0.0.1:4519/?delay=0",
+        "processIsMainFrame": false,
+        "contextIsolated": true,
+        "sandboxed": true,
+        "depthSeenByMain": 1
+      },
+      {
+        "depth": 1,
+        "href": "http://127.0.0.1:4519/?delay=0",
+        "processIsMainFrame": false,
+        "contextIsolated": true,
+        "sandboxed": true,
+        "depthSeenByMain": 1
+      },
+      {
+        "depth": 1,
+        "href": "http://127.0.0.1:4519/?delay=0",
+        "processIsMainFrame": false,
+        "contextIsolated": true,
+        "sandboxed": true,
+        "depthSeenByMain": 1
+      },
+      {
+        "depth": 1,
+        "href": "http://127.0.0.1:4519/?delay=0",
+        "processIsMainFrame": false,
+        "contextIsolated": true,
+        "sandboxed": true,
+        "depthSeenByMain": 1
+      },
+      {
+        "depth": 1,
+        "href": "http://127.0.0.1:4519/?delay=0",
+        "processIsMainFrame": false,
+        "contextIsolated": true,
+        "sandboxed": true,
+        "depthSeenByMain": 1
+      },
+      {
+        "depth": 1,
+        "href": "http://127.0.0.1:4519/about",
+        "processIsMainFrame": false,
+        "contextIsolated": true,
+        "sandboxed": true,
+        "depthSeenByMain": 1
+      },
+      {
+        "depth": 1,
+        "href": "http://127.0.0.1:4519/?delay=0",
+        "processIsMainFrame": false,
+        "contextIsolated": true,
+        "sandboxed": true,
+        "depthSeenByMain": 1
+      },
+      {
+        "depth": 1,
+        "href": "http://127.0.0.1:4519/about",
+        "processIsMainFrame": false,
+        "contextIsolated": true,
+        "sandboxed": true,
+        "depthSeenByMain": 1
+      },
+      {
+        "depth": 1,
+        "href": "http://127.0.0.1:4519/?delay=0",
+        "processIsMainFrame": false,
+        "contextIsolated": true,
+        "sandboxed": true,
+        "depthSeenByMain": 1
+      },
+      {
+        "depth": 1,
+        "href": "http://127.0.0.1:4519/hostile",
+        "processIsMainFrame": false,
+        "contextIsolated": true,
+        "sandboxed": true,
+        "depthSeenByMain": 1
+      },
+      {
+        "depth": 2,
+        "href": "http://127.0.0.1:4519/nested",
+        "processIsMainFrame": false,
+        "contextIsolated": true,
+        "sandboxed": true,
+        "depthSeenByMain": 2
+      },
+      {
+        "depth": 1,
+        "href": "http://127.0.0.1:4519/hostile?alert=0",
+        "processIsMainFrame": false,
+        "contextIsolated": true,
+        "sandboxed": true,
+        "depthSeenByMain": 1
+      },
+      {
+        "depth": 2,
+        "href": "http://127.0.0.1:4519/nested",
+        "processIsMainFrame": false,
+        "contextIsolated": true,
+        "sandboxed": true,
+        "depthSeenByMain": 2
+      },
+      {
+        "depth": 1,
+        "href": "http://127.0.0.1:4519/?delay=0",
+        "processIsMainFrame": false,
+        "contextIsolated": true,
+        "sandboxed": true,
+        "depthSeenByMain": 1
+      },
+      {
+        "depth": 1,
+        "href": "http://127.0.0.1:4519/?delay=0",
+        "processIsMainFrame": false,
+        "contextIsolated": true,
+        "sandboxed": true,
+        "depthSeenByMain": 1
+      },
+      {
+        "depth": 1,
+        "href": "http://127.0.0.1:4519/?delay=0",
+        "processIsMainFrame": false,
+        "contextIsolated": true,
+        "sandboxed": true,
+        "depthSeenByMain": 1
+      },
+      {
+        "depth": 1,
+        "href": "http://127.0.0.1:4519/?delay=0",
+        "processIsMainFrame": false,
+        "contextIsolated": true,
+        "sandboxed": true,
+        "depthSeenByMain": 1
+      },
+      {
+        "depth": 1,
+        "href": "http://127.0.0.1:4519/?delay=0",
+        "processIsMainFrame": false,
+        "contextIsolated": true,
+        "sandboxed": true,
+        "depthSeenByMain": 1
+      },
+      {
+        "depth": 1,
+        "href": "http://127.0.0.1:4519/?delay=0",
+        "processIsMainFrame": false,
+        "contextIsolated": true,
+        "sandboxed": true,
+        "depthSeenByMain": 1
+      }
+    ]
+  },
+  "isolation": {
+    "editingScriptProbes": {
+      "editorSeesPageGlobal": false,
+      "editorSeesPagePrototypePatch": false,
+      "pageSaid": "page script sees the editing script's global: false"
+    },
+    "pageSees": {
+      "ancestorOrigins": "file://",
+      "editingScriptsGlobal": "undefined",
+      "localStorage": "v",
+      "nodeAndIpc": "undefined / undefined / undefined / undefined",
+      "pageIsFramed": true,
+      "readParentBridge": "SecurityError: Failed to read a named property 'electronIpc' from 'Window': Blocked a frame with origin \"http://127.0.0.1:4519\" from accessing a cross-origin frame.",
+      "readParentDocument": "SecurityError: Failed to read a named property 'document' from 'Window': Blocked a frame with origin \"http://127.0.0.1:4519\" from accessing a cross-origin frame.",
+      "readTopAddress": "SecurityError: Failed to read a named property 'href' from 'Location': Blocked a frame with origin \"http://127.0.0.1:4519\" from accessing a cross-origin frame."
+    },
+    "interfaceChannelAskedFromThePreviewFrame": {
+      "answered": false,
+      "refusal": "Error: Error invoking remote method 'shell:info': Error: refused: this channel is for the app's interface"
+    },
+    "messagesRefusedBecauseOfTheirSender": [
+      {
+        "channel": "shell:info",
+        "from": "http://127.0.0.1:4519/?delay=90"
+      },
+      {
+        "channel": "shell:info",
+        "from": "http://127.0.0.1:4519/?delay=0"
+      },
+      {
+        "channel": "shell:info",
+        "from": "http://127.0.0.1:4519/?delay=0"
+      },
+      {
+        "channel": "shell:info",
+        "from": "http://127.0.0.1:4519/?delay=0"
+      },
+      {
+        "channel": "shell:info",
+        "from": "http://127.0.0.1:4519/?delay=0"
+      },
+      {
+        "channel": "shell:info",
+        "from": "http://127.0.0.1:4519/?delay=0"
+      },
+      {
+        "channel": "shell:info",
+        "from": "http://127.0.0.1:4519/?delay=0"
+      },
+      {
+        "channel": "shell:info",
+        "from": "http://127.0.0.1:4519/?delay=0"
+      },
+      {
+        "channel": "shell:info",
+        "from": "http://127.0.0.1:4519/about"
+      },
+      {
+        "channel": "shell:info",
+        "from": "http://127.0.0.1:4519/?delay=0"
+      },
+      {
+        "channel": "shell:info",
+        "from": "http://127.0.0.1:4519/about"
+      },
+      {
+        "channel": "shell:info",
+        "from": "http://127.0.0.1:4519/?delay=0"
+      },
+      {
+        "channel": "shell:info",
+        "from": "http://127.0.0.1:4519/hostile"
+      },
+      {
+        "channel": "shell:info",
+        "from": "http://127.0.0.1:4519/hostile?alert=0"
+      },
+      {
+        "channel": "shell:info",
+        "from": "http://127.0.0.1:4519/?delay=0"
+      },
+      {
+        "channel": "shell:info",
+        "from": "http://127.0.0.1:4519/?delay=0"
+      },
+      {
+        "channel": "shell:info",
+        "from": "http://127.0.0.1:4519/?delay=0"
+      },
+      {
+        "channel": "shell:info",
+        "from": "http://127.0.0.1:4519/?delay=0"
+      },
+      {
+        "channel": "shell:info",
+        "from": "http://127.0.0.1:4519/?delay=0"
+      },
+      {
+        "channel": "shell:info",
+        "from": "http://127.0.0.1:4519/?delay=0"
+      }
+    ]
+  },
+  "cookies": {
+    "serverSet": "up_default, up_lax, up_strict, up_none (SameSite=None; Secure); the page set up_js",
+    "documentCookie": "up_none=1",
+    "sentBackToTheServer": "up_none=1",
+    "storedInTheSession": [
+      "up_none (no_restriction)"
+    ]
+  },
+  "editing": {
+    "inputInjectedWith": "the DevTools protocol's Input domain (Input.dispatchMouseEvent, Input.dispatchKeyEvent)",
+    "inputInjectedInto": "the window's webContents, at the iframe's place",
+    "aimedAt": {
+      "x": 1033,
+      "y": 456
+    },
+    "reported": [
+      {
+        "type": "hover",
+        "tag": "h2",
+        "highlightDrawn": true
+      },
+      {
+        "type": "click",
+        "tag": "h2"
+      },
+      {
+        "type": "click",
+        "tag": "h2"
+      },
+      {
+        "type": "text-edit-started",
+        "tag": "h2"
+      },
+      {
+        "type": "text-edited",
+        "tag": "h2",
+        "before": "Everything a trip needs, nothing it doesn't",
+        "after": "Everything a trip OK, nothing it doesn't"
+      }
+    ]
+  },
+  "overlay": {
+    "bubble": {
+      "x": 745,
+      "y": 380,
+      "width": 288,
+      "height": 128
+    },
+    "bubbleIsInsideThePreviewsPlace": true,
+    "pictureOfTheWindowsOwnWebContents": "electron-iframe-window-bubble-over-the-preview.png",
+    "pictureOfTheScreen": "electron-iframe-screen-bubble-over-the-preview.png (879755 bytes)",
+    "clickOnTheBubblesButton": {
+      "reachedTheInterface": true,
+      "reachedThePage": false
+    }
+  },
+  "responsive": {
+    "widths": {
+      "390": {
+        "innerWidth": 390,
+        "innerHeight": 824,
+        "mdBreakpoint": false,
+        "lgBreakpoint": false,
+        "devicePixelRatio": 2
+      },
+      "768": {
+        "innerWidth": 768,
+        "innerHeight": 824,
+        "mdBreakpoint": true,
+        "lgBreakpoint": false,
+        "devicePixelRatio": 2
+      },
+      "full": {
+        "innerWidth": 800,
+        "innerHeight": 824,
+        "mdBreakpoint": true,
+        "lgBreakpoint": false,
+        "devicePixelRatio": 2
+      },
+      "390 picture": "electron-iframe-capture-responsive-390.png"
+    },
+    "zoomedOutToHalf": {
+      "how": "CSS transform: scale(0.5) on the iframe",
+      "innerWidth": 1600,
+      "devicePixelRatio": 2,
+      "pointerAimedAtTheTitleHovered": "h1",
+      "picture": "electron-iframe-capture-zoomed-out.png"
+    }
+  },
+  "performance": {
+    "pageVisibility": "visible",
+    "roundTripInterfaceToEditingScriptAndBack": {
+      "count": 50,
+      "medianMs": 0.1,
+      "minMs": 0,
+      "maxMs": 0.4
+    },
+    "scrollingThePage": {
+      "frames": 92,
+      "ms": 1510,
+      "longestGapMs": 18
+    },
+    "scrollingWhileTheInterfaceIsBusyFor700ms": {
+      "frames": 91,
+      "ms": 1513,
+      "longestGapMs": 18
+    }
+  },
+  "navigation": {
+    "htmx": {
+      "voicesBeforeAndAfterTheButton": [
+        2,
+        4
+      ],
+      "formAnswer": "Thanks — an invitation will reach maker@example.com soon.",
+      "editingScriptStillAnswers": true
+    },
+    "toAnotherPage": {
+      "editingScriptInjectedAgainOn": "http://127.0.0.1:4519/about",
+      "linkClickedBackTo": "http://127.0.0.1:4519/?delay=0",
+      "historyEntries": {
+        "before": 1,
+        "afterMovingToAbout": 2,
+        "canGoBack": true
+      },
+      "historyBelongsTo": "the window (the interface and the preview share one history)",
+      "goBackLedTo": "http://127.0.0.1:4519/about",
+      "interfaceUntouched": true,
+      "frameNavigationsSeenByTheMainProcess": [
+        "http://127.0.0.1:4519/about",
+        "http://127.0.0.1:4519/?delay=0"
+      ]
+    }
+  },
+  "keyboard": {
+    "focus": "in the page's e-mail field, after a click on it",
+    "pressed": "meta+k",
+    "inputInjectedWith": "the DevTools protocol's Input domain (Input.dispatchMouseEvent, Input.dispatchKeyEvent)",
+    "beforeInputEventOnTheWindow": [
+      "meta+k"
+    ],
+    "beforeInputEventOnThePreviewView": "not applicable",
+    "keydownSeenByTheInterfacesDocument": [],
+    "keydownSeenByTheEditingScript": [
+      "meta+k"
+    ]
+  },
+  "hostilePage": {
+    "windowWasInFront": true,
+    "iframeSandboxAttribute": "allow-scripts allow-same-origin allow-forms",
+    "focusWhileTheMakerTypesInTheConversation": {
+      "interfaceActiveElement": "textarea",
+      "interfaceDocumentHasFocus": true,
+      "pageDocumentHasFocus": false
+    },
+    "focusAfterAnOrdinaryPageLoaded": {
+      "interfaceActiveElement": "textarea",
+      "interfaceDocumentHasFocus": true,
+      "pageDocumentHasFocus": false
+    },
+    "focusAfterThePageMovedToAnotherPage": {
+      "interfaceActiveElement": "textarea",
+      "interfaceDocumentHasFocus": true,
+      "pageDocumentHasFocus": false
+    },
+    "focusAfterThePageCalledFocusAgain": {
+      "interfaceActiveElement": "iframe",
+      "interfaceDocumentHasFocus": true,
+      "pageDocumentHasFocus": true
+    },
+    "onLoad": {
+      "node": "undefined / undefined / undefined / undefined",
+      "framed": true,
+      "readParentDocument": "SecurityError: Failed to read a named property 'document' from 'Window': Blocked a frame with origin \"http://127.0.0.1:4519\" from accessing a cross-origin frame.",
+      "readParentBridge": "SecurityError: Failed to read a named property 'electronIpc' from 'Window': Blocked a frame with origin \"http://127.0.0.1:4519\" from accessing a cross-origin frame.",
+      "readTopHref": "SecurityError: Failed to read a named property 'href' from 'Location': Blocked a frame with origin \"http://127.0.0.1:4519\" from accessing a cross-origin frame.",
+      "postMessageToParent": "no error",
+      "windowOpen": "null",
+      "alert": "returned after 0 ms",
+      "focus": "activeElement: , document.hasFocus(): false",
+      "navigateTop": "SecurityError: Failed to set a named property 'href' on 'Location': The current window does not have permission to navigate the target frame to 'http://127.0.0.1:4519/took-over?by=load'."
+    },
+    "focusAfterTheHostilePageLoaded": {
+      "interfaceActiveElement": "textarea",
+      "interfaceDocumentHasFocus": true,
+      "pageDocumentHasFocus": false
+    },
+    "typedWithoutClickingThePage": {
+      "interfaceDraftGotIt": true,
+      "pagesFieldGotIt": false
+    },
+    "onClick": {
+      "node": "undefined / undefined / undefined / undefined",
+      "framed": true,
+      "readParentDocument": "SecurityError: Failed to read a named property 'document' from 'Window': Blocked a frame with origin \"http://127.0.0.1:4519\" from accessing a cross-origin frame.",
+      "readParentBridge": "SecurityError: Failed to read a named property 'electronIpc' from 'Window': Blocked a frame with origin \"http://127.0.0.1:4519\" from accessing a cross-origin frame.",
+      "readTopHref": "SecurityError: Failed to read a named property 'href' from 'Location': Blocked a frame with origin \"http://127.0.0.1:4519\" from accessing a cross-origin frame.",
+      "postMessageToParent": "no error",
+      "windowOpen": "null",
+      "alert": "returned after 0 ms",
+      "focus": "activeElement: grab, document.hasFocus(): true",
+      "navigateTop": "SecurityError: Failed to set a named property 'href' on 'Location': The current window does not have permission to navigate the target frame to 'http://127.0.0.1:4519/took-over?by=click'."
+    },
+    "mainProcessSawAndStopped": {
+      "navigationsOfTheWindow": [],
+      "windowsThePageTriedToOpen": [],
+      "navigationsOfThePreviewItself": []
+    },
+    "windowStillShowsTheInterface": true,
+    "messagesTheInterfaceReceivedFromThePage": [
+      {
+        "origin": "http://127.0.0.1:4519",
+        "data": {
+          "type": "drop",
+          "forged": true,
+          "from": "page:click"
+        },
+        "fromThePreviewFrame": true
+      }
+    ],
+    "interfaceTimerWhileThePageWasBusy": {
+      "ticks": 190,
+      "longestGapMs": 11
+    },
+    "preloadRanInTheNestedFrame": [
+      {
+        "depth": 2,
+        "href": "http://127.0.0.1:4519/nested",
+        "processIsMainFrame": false,
+        "contextIsolated": true,
+        "sandboxed": true,
+        "depthSeenByMain": 2
+      }
+    ]
+  },
+  "hostilePageWithoutTheSandboxAttribute": {
+    "windowWasInFront": false,
+    "iframeSandboxAttribute": "none",
+    "onLoad": {
+      "node": "undefined / undefined / undefined / undefined",
+      "framed": true,
+      "readParentDocument": "SecurityError: Failed to read a named property 'document' from 'Window': Blocked a frame with origin \"http://127.0.0.1:4519\" from accessing a cross-origin frame.",
+      "readParentBridge": "SecurityError: Failed to read a named property 'electronIpc' from 'Window': Blocked a frame with origin \"http://127.0.0.1:4519\" from accessing a cross-origin frame.",
+      "readTopHref": "SecurityError: Failed to read a named property 'href' from 'Location': Blocked a frame with origin \"http://127.0.0.1:4519\" from accessing a cross-origin frame.",
+      "postMessageToParent": "no error",
+      "windowOpen": "null",
+      "focus": "activeElement: grab, document.hasFocus(): true",
+      "navigateTop": "SecurityError: Failed to set a named property 'href' on 'Location': The current window does not have permission to navigate the target frame to 'http://127.0.0.1:4519/took-over?by=load'."
+    },
+    "focusAfterLoad": {
+      "interfaceActiveElement": "iframe"
+    },
+    "typedWithoutClickingThePage": {
+      "interfaceDraftEndsWithIt": false,
+      "pagesFieldGotIt": true
+    },
+    "onClick": {
+      "node": "undefined / undefined / undefined / undefined",
+      "framed": true,
+      "readParentDocument": "SecurityError: Failed to read a named property 'document' from 'Window': Blocked a frame with origin \"http://127.0.0.1:4519\" from accessing a cross-origin frame.",
+      "readParentBridge": "SecurityError: Failed to read a named property 'electronIpc' from 'Window': Blocked a frame with origin \"http://127.0.0.1:4519\" from accessing a cross-origin frame.",
+      "readTopHref": "SecurityError: Failed to read a named property 'href' from 'Location': Blocked a frame with origin \"http://127.0.0.1:4519\" from accessing a cross-origin frame.",
+      "postMessageToParent": "no error",
+      "windowOpen": "null",
+      "focus": "activeElement: grab, document.hasFocus(): true",
+      "navigateTop": "no error"
+    },
+    "mainProcessSawAndStopped": {
+      "navigationsOfTheWindow": [
+        {
+          "url": "http://127.0.0.1:4519/took-over?by=click",
+          "initiator": "http://127.0.0.1:4519/hostile?alert=0",
+          "stopped": true
+        }
+      ],
+      "windowsThePageTriedToOpen": [
+        "http://127.0.0.1:4519/popup?by=load",
+        "http://127.0.0.1:4519/popup?by=click"
+      ],
+      "navigationsOfThePreviewItself": []
+    },
+    "windowStillShowsTheInterface": true,
+    "messagesTheInterfaceReceivedFromThePage": [
+      {
+        "origin": "http://127.0.0.1:4519",
+        "data": {
+          "type": "drop",
+          "forged": true,
+          "from": "page:load"
+        },
+        "fromThePreviewFrame": true
+      },
+      {
+        "origin": "http://127.0.0.1:4519",
+        "data": {
+          "type": "drop",
+          "forged": true,
+          "from": "page:click"
+        },
+        "fromThePreviewFrame": true
+      }
+    ],
+    "interfaceTimerWhileThePageWasBusy": {
+      "ticks": 142,
+      "longestGapMs": 329
+    },
+    "preloadRanInTheNestedFrame": [
+      {
+        "depth": 2,
+        "href": "http://127.0.0.1:4519/nested",
+        "processIsMainFrame": false,
+        "contextIsolated": true,
+        "sandboxed": true,
+        "depthSeenByMain": 2
+      },
+      {
+        "depth": 2,
+        "href": "http://127.0.0.1:4519/nested",
+        "processIsMainFrame": false,
+        "contextIsolated": true,
+        "sandboxed": true,
+        "depthSeenByMain": 2
+      }
+    ]
+  },
+  "hang": {
+    "interfaceTimerWhileThePageHung": {
+      "ticks": 299,
+      "longestGapMs": 11
+    },
+    "editingScriptAnsweredWhileHung": false,
+    "unresponsiveEventOn": [],
+    "recovered": {
+      "byLoadingThePageAgain": false,
+      "afterKillingItsProcess": true
+    }
+  },
+  "crash": {
+    "killedProcess": 41071,
+    "eventsSeenByTheMainProcess": [],
+    "interfaceAlive": true,
+    "recoveredByLoadingThePageAgain": true
+  },
+  "nativeDrag": {
+    "drivenBy": "pointer input alone, injected into the window: press on the block, move into the iframe, release",
+    "inputInjectedWith": "the DevTools protocol's Input domain (Input.dispatchMouseEvent, Input.dispatchKeyEvent)",
+    "reported": [
+      {
+        "type": "drag-entered",
+        "index": 0,
+        "types": [
+          "text/plain",
+          "application/x-upstart-block"
+        ]
+      },
+      {
+        "type": "drop",
+        "via": "native drag and drop",
+        "blockId": "cta-banner",
+        "index": 0,
+        "carriedAs": "application/x-upstart-block",
+        "types": [
+          "text/plain",
+          "application/x-upstart-block"
+        ]
+      },
+      {
+        "type": "inserted",
+        "blockId": "cta-banner",
+        "index": 0,
+        "sections": 6
+      }
+    ]
+  },
+  "pointerDrag": {
+    "inputInjectedWith": "the DevTools protocol's Input domain (Input.dispatchMouseEvent, Input.dispatchKeyEvent)",
+    "interfaceKeptReceivingThePointerOverThePreview": false,
+    "ghostDrawnByTheInterfaceOverThePreview": false,
+    "previewStartsAtX": 640,
+    "pointerSentToAndGhostFollowedTo": [
+      "137→no ghost",
+      "212→no ghost",
+      "287→no ghost",
+      "361→no ghost",
+      "436→no ghost",
+      "511→no ghost",
+      "586→no ghost",
+      "661→no ghost",
+      "736→no ghost",
+      "810→no ghost",
+      "885→no ghost",
+      "960→no ghost"
+    ],
+    "pageSawThePointer": 4,
+    "picture": "electron-iframe-window-pointer-drag-in-progress.png",
+    "drop": null,
+    "inserted": null
+  },
+  "finishedAt": "2026-11-10T06:10:20.957Z",
+  "capture": {
+    "displayed": {
+      "visibility": {
+        "interface": "visible",
+        "page": "visible"
+      },
+      "page": {
+        "ms": 103,
+        "picture": {
+          "pixels": "1600×1648",
+          "coloursSampled": 228,
+          "coloursInTheLowerThird": 114
+        },
+        "file": "electron-iframe-capture-displayed-page.png"
+      },
+      "devtools": {
+        "ms": 153,
+        "picture": {
+          "pixels": "1600×1648",
+          "coloursSampled": 228,
+          "coloursInTheLowerThird": 114
+        },
+        "file": "electron-iframe-capture-displayed-devtools.png"
+      },
+      "screen during devtools-full": "electron-iframe-screen-during-whole-page-capture.png (457013 bytes)",
+      "devtools-full": {
+        "ms": 792,
+        "picture": {
+          "pixels": "1600×5948",
+          "coloursSampled": 274,
+          "coloursInTheLowerThird": 65
+        },
+        "file": "electron-iframe-capture-displayed-devtools-full.png"
+      },
+      "devtools-full-unstretched": {
+        "ms": 750,
+        "picture": {
+          "pixels": "1600×5948",
+          "coloursSampled": 148,
+          "coloursInTheLowerThird": 1
+        },
+        "file": "electron-iframe-capture-displayed-devtools-full-unstretched.png"
+      },
+      "hidden-window-full": {
+        "ms": 709,
+        "picture": {
+          "pixels": "1570×5948",
+          "coloursSampled": 275,
+          "coloursInTheLowerThird": 65
+        },
+        "file": "electron-iframe-capture-displayed-hidden-window-full.png"
+      },
+      "devtools-frame": {
+        "failed": "devtools-frame failed (Error: Command can only be executed on top-level targets)",
+        "ms": 307
+      }
+    },
+    "covered by another window": {
+      "visibility": {
+        "interface": "hidden",
+        "page": "hidden"
+      },
+      "page": {
+        "ms": 100,
+        "picture": {
+          "pixels": "1600×1648",
+          "coloursSampled": 230,
+          "coloursInTheLowerThird": 116
+        },
+        "file": "electron-iframe-capture-covered-page.png"
+      },
+      "devtools": {
+        "ms": 129,
+        "picture": {
+          "pixels": "1600×1648",
+          "coloursSampled": 230,
+          "coloursInTheLowerThird": 116
+        },
+        "file": "electron-iframe-capture-covered-devtools.png"
+      },
+      "devtools-full": {
+        "ms": 805,
+        "picture": {
+          "pixels": "1600×5948",
+          "coloursSampled": 274,
+          "coloursInTheLowerThird": 65
+        },
+        "file": "electron-iframe-capture-covered-devtools-full.png"
+      },
+      "devtools-full-unstretched": {
+        "ms": 775,
+        "picture": {
+          "pixels": "1600×5948",
+          "coloursSampled": 148,
+          "coloursInTheLowerThird": 1
+        },
+        "file": "electron-iframe-capture-covered-devtools-full-unstretched.png"
+      },
+      "hidden-window-full": {
+        "ms": 733,
+        "picture": {
+          "pixels": "1570×5948",
+          "coloursSampled": 275,
+          "coloursInTheLowerThird": 65
+        },
+        "file": "electron-iframe-capture-covered-hidden-window-full.png"
+      },
+      "devtools-frame": {
+        "failed": "devtools-frame failed (Error: Command can only be executed on top-level targets)",
+        "ms": 0
+      }
+    },
+    "hidden (win.hide())": {
+      "visibility": {
+        "interface": "hidden",
+        "page": "hidden"
+      },
+      "page": {
+        "ms": 106,
+        "picture": {
+          "pixels": "1600×1648",
+          "coloursSampled": 230,
+          "coloursInTheLowerThird": 116
+        },
+        "file": "electron-iframe-capture-hidden-page.png"
+      },
+      "devtools": {
+        "ms": 117,
+        "picture": {
+          "pixels": "1600×1648",
+          "coloursSampled": 230,
+          "coloursInTheLowerThird": 116
+        },
+        "file": "electron-iframe-capture-hidden-devtools.png"
+      },
+      "devtools-full": {
+        "ms": 801,
+        "picture": {
+          "pixels": "1600×5948",
+          "coloursSampled": 274,
+          "coloursInTheLowerThird": 65
+        },
+        "file": "electron-iframe-capture-hidden-devtools-full.png"
+      },
+      "devtools-full-unstretched": {
+        "ms": 774,
+        "picture": {
+          "pixels": "1600×5948",
+          "coloursSampled": 148,
+          "coloursInTheLowerThird": 1
+        },
+        "file": "electron-iframe-capture-hidden-devtools-full-unstretched.png"
+      },
+      "hidden-window-full": {
+        "ms": 701,
+        "picture": {
+          "pixels": "1570×5948",
+          "coloursSampled": 275,
+          "coloursInTheLowerThird": 65
+        },
+        "file": "electron-iframe-capture-hidden-hidden-window-full.png"
+      },
+      "devtools-frame": {
+        "failed": "devtools-frame failed (Error: Command can only be executed on top-level targets)",
+        "ms": 0
+      }
+    },
+    "minimised": {
+      "visibility": {
+        "interface": "hidden",
+        "page": "hidden"
+      },
+      "page": {
+        "ms": 108,
+        "picture": {
+          "pixels": "1600×1648",
+          "coloursSampled": 230,
+          "coloursInTheLowerThird": 116
+        },
+        "file": "electron-iframe-capture-minimised-page.png"
+      },
+      "devtools": {
+        "ms": 133,
+        "picture": {
+          "pixels": "1600×1648",
+          "coloursSampled": 230,
+          "coloursInTheLowerThird": 116
+        },
+        "file": "electron-iframe-capture-minimised-devtools.png"
+      },
+      "devtools-full": {
+        "ms": 803,
+        "picture": {
+          "pixels": "1600×5948",
+          "coloursSampled": 274,
+          "coloursInTheLowerThird": 65
+        },
+        "file": "electron-iframe-capture-minimised-devtools-full.png"
+      },
+      "devtools-full-unstretched": {
+        "ms": 774,
+        "picture": {
+          "pixels": "1600×5948",
+          "coloursSampled": 148,
+          "coloursInTheLowerThird": 1
+        },
+        "file": "electron-iframe-capture-minimised-devtools-full-unstretched.png"
+      },
+      "hidden-window-full": {
+        "ms": 715,
+        "picture": {
+          "pixels": "1570×5948",
+          "coloursSampled": 275,
+          "coloursInTheLowerThird": 65
+        },
+        "file": "electron-iframe-capture-minimised-hidden-window-full.png"
+      },
+      "devtools-frame": {
+        "failed": "devtools-frame failed (Error: Command can only be executed on top-level targets)",
+        "ms": 0
+      }
+    }
+  }
+}

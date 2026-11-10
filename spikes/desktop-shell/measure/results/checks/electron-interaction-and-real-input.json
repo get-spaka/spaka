@@ -1,0 +1,188 @@
+{
+  "shell": "electron",
+  "versions": {
+    "electron": "45.2.3",
+    "chromium": "156.0.8078.80",
+    "node": "24.22.2"
+  },
+  "loaded": {
+    "type": "loaded",
+    "at": 4028,
+    "loadAt": 3877,
+    "paint": {
+      "first-paint": 1092,
+      "first-contentful-paint": 1092
+    },
+    "pieces": 5,
+    "visibility": "visible",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) UpstartSpikeElectron/0.0.1 Chrome/156.0.8078.80 Electron/45.2.3 Safari/537.36",
+    "probes": {
+      "editorSeesPageGlobal": false,
+      "editorSeesPagePrototypePatch": false,
+      "pageSaid": "page script sees the editing script's global: false"
+    }
+  },
+  "pieces": [
+    {
+      "id": "hero",
+      "domAt": 96,
+      "frameAt": 1018
+    },
+    {
+      "id": "features",
+      "domAt": 556,
+      "frameAt": 1018
+    },
+    {
+      "id": "pricing",
+      "domAt": 1379,
+      "frameAt": 1379
+    },
+    {
+      "id": "voices",
+      "domAt": 2851,
+      "frameAt": 2854
+    },
+    {
+      "id": "join",
+      "domAt": 3493,
+      "frameAt": 3493
+    },
+    {
+      "id": "block-stats",
+      "domAt": 4040,
+      "frameAt": 4045
+    },
+    {
+      "id": "block-faq",
+      "domAt": 5239,
+      "frameAt": 5255
+    },
+    {
+      "id": "block-cta-banner",
+      "domAt": 6722,
+      "frameAt": 6740
+    }
+  ],
+  "interact": [
+    {
+      "type": "hover",
+      "tag": "h1",
+      "highlightDrawn": true
+    },
+    {
+      "type": "click",
+      "tag": "h1"
+    },
+    {
+      "type": "text-edit-started",
+      "tag": "h1"
+    },
+    {
+      "type": "text-edited",
+      "tag": "h1",
+      "before": "Plan the trip.Close the forty tabs.",
+      "after": "Plan the trip.Close the forty tabs. (edited)"
+    },
+    {
+      "type": "drag-entered",
+      "index": 1
+    },
+    {
+      "type": "drop",
+      "via": "native drag and drop",
+      "blockId": "stats",
+      "index": 1,
+      "carriedAs": "application/x-upstart-block"
+    },
+    {
+      "type": "self-check-done",
+      "becameEditable": true,
+      "dragError": null
+    },
+    {
+      "type": "inserted",
+      "blockId": "stats",
+      "index": 1,
+      "sections": 6
+    },
+    {
+      "type": "drop",
+      "via": "pointer relayed by the app",
+      "blockId": "faq",
+      "index": 1
+    },
+    {
+      "type": "inserted",
+      "blockId": "faq",
+      "index": 1,
+      "sections": 7
+    }
+  ],
+  "protocolDrag": {
+    "draggedTypes": [
+      "application/x-upstart-block",
+      "text/plain"
+    ],
+    "reported": [
+      {
+        "type": "drag-entered",
+        "index": 1,
+        "types": [
+          "text/plain",
+          "application/x-upstart-block"
+        ]
+      },
+      {
+        "type": "drop",
+        "via": "native drag and drop",
+        "blockId": "cta-banner",
+        "index": 1,
+        "carriedAs": "application/x-upstart-block",
+        "types": [
+          "text/plain",
+          "application/x-upstart-block"
+        ]
+      },
+      {
+        "type": "inserted",
+        "blockId": "cta-banner",
+        "index": 1,
+        "sections": 8
+      }
+    ]
+  },
+  "realInput": {
+    "aimedAt": {
+      "x": 149,
+      "y": 376
+    },
+    "reported": [
+      {
+        "type": "hover",
+        "tag": "h2",
+        "highlightDrawn": true
+      },
+      {
+        "type": "click",
+        "tag": "h2"
+      },
+      {
+        "type": "click",
+        "tag": "h2"
+      },
+      {
+        "type": "text-edit-started",
+        "tag": "h2"
+      },
+      {
+        "type": "text-edited",
+        "tag": "h2",
+        "before": "Leaving next month?",
+        "after": "Leaving OK month?"
+      }
+    ]
+  },
+  "packaged": false,
+  "launchEnvPath": "/Users/me/.local/share/vite-plus/bin:/opt/homebrew/opt/ffmpeg-full/bin:/Users/me/bin:/Users/me/.local/bin:/opt/homebrew/opt/sqlite/bin:/Users/me/.antigravity/antigravity/bin:/Users/me/Library/pnpm/bin:/Users/me/Library/pnpm:/Users/me/google-cloud-sdk/bin:/opt/homebrew/opt/postgresql@15/bin:/Users/me/.asdf/shims:/opt/homebrew/opt/asdf/libexec/bin:/Users/me/.swiftly/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/Library/Apple/usr/bin:/Users/me/.cargo/bin:/Users/me/.lmstudio/bin:/Users/me/Library/Android/sdk/platform-tools:/Users/me/Library/Android/sdk/emulator:/Users/me/.bun/bin"
+}

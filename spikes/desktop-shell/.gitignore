@@ -1,0 +1,23 @@
+node_modules/
+.DS_Store
+*.log
+
+# build output
+electron/out/
+electron/dist/
+electrobun/dist-view/
+electrobun/build/
+electrobun/build-cef/
+electrobun/artifacts/
+electrobun/artifacts-cef/
+
+# Electrobun's toolchain, kept inside the spike instead of ~/.hutch
+electrobun/.hutch/
+electrobun/.hutch-home/
+electrobun/.cottontail-tmp/
+
+# copied from canned-server/node_modules by `npm run vendor`
+canned-server/vendor/
+
+# scratch output of the measuring script
+measure/results/tmp/

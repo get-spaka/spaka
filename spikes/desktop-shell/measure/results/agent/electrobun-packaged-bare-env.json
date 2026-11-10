@@ -1,0 +1,36 @@
+{
+  "ok": true,
+  "subtype": "success",
+  "text": "I created `hello.html` containing `<h1>Hello from electrobun</h1>` in the current directory and ran `ls -la`, which shows it as the only file there (30 bytes).",
+  "durationMs": 4420,
+  "firstTextMs": 3806,
+  "apiDurationMs": 3834,
+  "turns": 3,
+  "init": {
+    "model": "claude-fable-5-2",
+    "claudeCodeVersion": "2.1.321",
+    "apiKeySource": "none",
+    "permissionMode": "acceptEdits",
+    "cwd": "/private/var/folders/5g/cby91rn12870mw962rrbywm00000gn/T/upstart-spike/electrobun-project"
+  },
+  "tools": [
+    {
+      "name": "Write",
+      "input": {
+        "file_path": "/private/var/folders/5g/cby91rn12870mw962rrbywm00000gn/T/upstart-spike/electrobun-project/hello.html",
+        "content": "<h1>Hello from electrobun</h1>"
+      }
+    },
+    {
+      "name": "Bash",
+      "input": {
+        "command": "ls -la",
+        "description": "List files in current directory"
+      }
+    }
+  ],
+  "stderr": "",
+  "cwd": "/var/folders/5g/cby91rn12870mw962rrbywm00000gn/T/upstart-spike/electrobun-project",
+  "binary": "/Users/me/dev/upstart/spikes/desktop-shell/electrobun/build/stable-macos-arm64/Upstart Spike Electrobun.app/Contents/Resources/app/claude/claude",
+  "launchEnvPath": "/usr/bin:/bin:/usr/sbin:/sbin"
+}

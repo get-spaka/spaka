@@ -1,0 +1,15 @@
+{
+  "name": "upstart-spike-canned-server",
+  "private": true,
+  "type": "module",
+  "description": "Throwaway: serves a canned page piece by piece, standing in for spike 1's output.",
+  "scripts": {
+    "vendor": "node vendor.mjs",
+    "start": "node cli.mjs"
+  },
+  "devDependencies": {
+    "@tailwindcss/browser": "4.3.5",
+    "daisyui": "5.7.50",
+    "htmx.org": "4.0.1"
+  }
+}

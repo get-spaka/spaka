@@ -1,0 +1,72 @@
+{
+  "name": "upstart-spike-shell-electron",
+  "productName": "Upstart Spike Electron",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Throwaway: spike 2 (desktop shell), Electron side.",
+  "author": "Upstart",
+  "type": "module",
+  "main": "out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite build && electron .",
+    "start:iframe": "electron-vite build && SPIKE_EMBED=iframe electron .",
+    "dev:iframe": "SPIKE_EMBED=iframe electron-vite dev",
+    "package": "electron-vite build && electron-builder --mac --arm64 --publish never",
+    "app": "open -n 'dist/mac-arm64/Upstart Spike Electron.app'",
+    "app:iframe": "open -n --env SPIKE_EMBED=iframe 'dist/mac-arm64/Upstart Spike Electron.app'",
+    "app:overlay": "open -n --env SPIKE_OVERLAY=1 'dist/mac-arm64/Upstart Spike Electron.app'"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "0.3.321"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.3.5",
+    "@vitejs/plugin-react": "6.3.0",
+    "electron": "45.2.3",
+    "electron-builder": "26.18.0",
+    "electron-vite": "6.0.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "tailwindcss": "4.3.5",
+    "vite": "8.3.7"
+  },
+  "build": {
+    "appId": "dev.upstart.spike.electron",
+    "productName": "Upstart Spike Electron",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "out/**",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "node_modules/@anthropic-ai/claude-agent-sdk-darwin-arm64/**"
+    ],
+    "extraResources": [
+      {
+        "from": "../canned-server/vendor",
+        "to": "canned-vendor"
+      }
+    ],
+    "electronLanguages": [
+      "en",
+      "fr"
+    ],
+    "npmRebuild": false,
+    "mac": {
+      "target": [
+        "dir",
+        "zip",
+        "dmg"
+      ],
+      "identity": null,
+      "category": "public.app-category.developer-tools"
+    },
+    "dmg": {
+      "sign": false
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "shell": "electron",
+  "versions": {
+    "electron": "45.2.3",
+    "chromium": "156.0.8078.80",
+    "node": "24.22.2"
+  },
+  "loaded": {
+    "type": "loaded",
+    "at": 420,
+    "loadAt": 83,
+    "paint": {},
+    "pieces": 0,
+    "visibility": "hidden",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) UpstartSpikeElectron/0.0.1 Chrome/156.0.8078.80 Electron/45.2.3 Safari/537.36",
+    "probes": {
+      "editorSeesPageGlobal": false,
+      "editorSeesPagePrototypePatch": false,
+      "pageSaid": "page script sees the editing script's global: false"
+    }
+  },
+  "pieces": [
+    {
+      "id": "hero",
+      "domAt": 804,
+      "frameAt": 1018
+    },
+    {
+      "id": "features",
+      "domAt": 1526,
+      "frameAt": 1527
+    },
+    {
+      "id": "pricing",
+      "domAt": 2247,
+      "frameAt": 2249
+    },
+    {
+      "id": "voices",
+      "domAt": 2968,
+      "frameAt": 2969
+    },
+    {
+      "id": "join",
+      "domAt": 3692,
+      "frameAt": 3693
+    }
+  ],
+  "packaged": false,
+  "launchEnvPath": "/Users/me/.local/share/vite-plus/bin:/opt/homebrew/opt/ffmpeg-full/bin:/Users/me/bin:/Users/me/.local/bin:/opt/homebrew/opt/sqlite/bin:/Users/me/.antigravity/antigravity/bin:/Users/me/Library/pnpm/bin:/Users/me/Library/pnpm:/Users/me/google-cloud-sdk/bin:/opt/homebrew/opt/postgresql@15/bin:/Users/me/.asdf/shims:/opt/homebrew/opt/asdf/libexec/bin:/Users/me/.swiftly/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/Library/Apple/usr/bin:/Users/me/.cargo/bin:/Users/me/.lmstudio/bin:/Users/me/Library/Android/sdk/platform-tools:/Users/me/Library/Android/sdk/emulator:/Users/me/.bun/bin"
+}

@@ -1,0 +1,122 @@
+{
+  "measured_at": "2026-11-10 07:42:45 +0100",
+  "shell": "electron-overlay",
+  "screen": "unlocked",
+  "what": "milliseconds from `open` to each mark; warm starts",
+  "warm_up_run": {
+    "main-start": 168,
+    "app-ready": 252,
+    "window-loaded": 367,
+    "ui-mounted": 370,
+    "ui-painted": 386,
+    "preview-loaded": 4361
+  },
+  "runs": [
+    {
+      "main-start": 161,
+      "app-ready": 228,
+      "window-loaded": 324,
+      "ui-mounted": 327,
+      "ui-painted": 343,
+      "preview-loaded": 4320
+    },
+    {
+      "main-start": 186,
+      "app-ready": 259,
+      "window-loaded": 361,
+      "ui-mounted": 364,
+      "ui-painted": 378,
+      "preview-loaded": 4353
+    },
+    {
+      "main-start": 134,
+      "app-ready": 198,
+      "window-loaded": 301,
+      "ui-mounted": 305,
+      "ui-painted": 323,
+      "preview-loaded": 4294
+    },
+    {
+      "main-start": 198,
+      "app-ready": 275,
+      "window-loaded": 378,
+      "ui-mounted": 397,
+      "ui-painted": 397,
+      "preview-loaded": 4370
+    },
+    {
+      "main-start": 139,
+      "app-ready": 213,
+      "window-loaded": 318,
+      "ui-mounted": 321,
+      "ui-painted": 339,
+      "preview-loaded": 4317
+    },
+    {
+      "main-start": 157,
+      "app-ready": 228,
+      "window-loaded": 333,
+      "ui-mounted": 337,
+      "ui-painted": 355,
+      "preview-loaded": 4328
+    },
+    {
+      "main-start": 138,
+      "app-ready": 198,
+      "window-loaded": 321,
+      "ui-mounted": 324,
+      "ui-painted": 340,
+      "preview-loaded": 4311
+    },
+    {
+      "main-start": 158,
+      "app-ready": 229,
+      "window-loaded": 359,
+      "ui-mounted": 362,
+      "ui-painted": 376,
+      "preview-loaded": 4345
+    },
+    {
+      "main-start": 142,
+      "app-ready": 203,
+      "window-loaded": 303,
+      "ui-mounted": 306,
+      "ui-painted": 324,
+      "preview-loaded": 4295
+    },
+    {
+      "main-start": 157,
+      "app-ready": 219,
+      "window-loaded": 342,
+      "ui-mounted": 346,
+      "ui-painted": 358,
+      "preview-loaded": 4334
+    }
+  ],
+  "summary": {
+    "main-start": {
+      "median": 157,
+      "min": 134,
+      "max": 198,
+      "runs": 10
+    },
+    "ui-mounted": {
+      "median": 332,
+      "min": 305,
+      "max": 397,
+      "runs": 10
+    },
+    "ui-painted": {
+      "median": 349,
+      "min": 323,
+      "max": 397,
+      "runs": 10
+    },
+    "preview-loaded": {
+      "median": 4324,
+      "min": 4294,
+      "max": 4370,
+      "runs": 10
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "measured_at": "2026-11-09 23:35:36 +0100",
+  "unit": "MB (10^6 bytes)",
+  "shells": {
+    "electron": {
+      "app_on_disk": 592.2,
+      "of_which_agent_binary": 323.7,
+      "artifacts_as_built": {
+        "Upstart Spike Electron-0.0.1-arm64-mac.zip": 257.5,
+        "Upstart Spike Electron-0.0.1-arm64.dmg": 265.0
+      },
+      "same_compressor_zstd19": {
+        "whole_app": 201.6,
+        "without_agent_binary": 91.4
+      }
+    },
+    "electrobun": {
+      "app_on_disk": 422.9,
+      "of_which_agent_binary": 323.7,
+      "artifacts_as_built": {
+        "stable-macos-arm64-UpstartSpikeElectrobun.app.tar.zst": 144.6,
+        "macos-arm64-UpstartSpikeElectrobun.dmg": 148.8
+      },
+      "same_compressor_zstd19": {
+        "whole_app": 141.8,
+        "without_agent_binary": 31.6
+      }
+    },
+    "electrobun-cef": {
+      "app_on_disk": 769.3,
+      "of_which_agent_binary": 323.7,
+      "artifacts_as_built": {
+        "stable-macos-arm64-UpstartSpikeElectrobunCEF.app.tar.zst": 260.8,
+        "macos-arm64-UpstartSpikeElectrobunCEF.dmg": 266.3
+      },
+      "same_compressor_zstd19": {
+        "whole_app": 256.5,
+        "without_agent_binary": 146.2
+      }
+    }
+  }
+}

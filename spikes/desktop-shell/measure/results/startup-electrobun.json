@@ -1,0 +1,88 @@
+{
+  "measured_at": "2026-11-09 23:29:15 +0100",
+  "shell": "electrobun",
+  "screen": "locked",
+  "what": "milliseconds from `open` to each mark; warm starts",
+  "warm_up_run": {
+    "main-start": 9309,
+    "window-created": 9422,
+    "ui-mounted": 9565,
+    "preview-loaded": 14042
+  },
+  "runs": [
+    {
+      "main-start": 119,
+      "window-created": 192,
+      "ui-mounted": 352,
+      "preview-loaded": 4840
+    },
+    {
+      "main-start": 116,
+      "window-created": 226,
+      "ui-mounted": 349,
+      "preview-loaded": 4835
+    },
+    {
+      "main-start": 118,
+      "window-created": 226,
+      "ui-mounted": 348,
+      "preview-loaded": 4837
+    },
+    {
+      "main-start": 114,
+      "window-created": 226,
+      "ui-mounted": 348,
+      "preview-loaded": 4846
+    },
+    {
+      "main-start": 121,
+      "window-created": 190,
+      "ui-mounted": 370,
+      "preview-loaded": 4838
+    },
+    {
+      "main-start": 119,
+      "window-created": 231,
+      "ui-mounted": 355,
+      "preview-loaded": 4841
+    },
+    {
+      "main-start": 117,
+      "window-created": 185,
+      "ui-mounted": 360,
+      "preview-loaded": 4844
+    },
+    {
+      "main-start": 116,
+      "window-created": 224,
+      "ui-mounted": 348,
+      "preview-loaded": 4842
+    },
+    {
+      "main-start": 112,
+      "window-created": 220,
+      "ui-mounted": 342,
+      "preview-loaded": 4832
+    },
+    {
+      "main-start": 116,
+      "window-created": 183,
+      "ui-mounted": 343,
+      "preview-loaded": 4839
+    }
+  ],
+  "summary": {
+    "main-start": {
+      "median": 116,
+      "min": 112,
+      "max": 121,
+      "runs": 10
+    },
+    "ui-mounted": {
+      "median": 348,
+      "min": 342,
+      "max": 370,
+      "runs": 10
+    }
+  }
+}

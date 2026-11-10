@@ -1,0 +1,52 @@
+{
+  "measured_at": "2026-11-10 07:25:41 +0100",
+  "shell": "electron",
+  "screen": "unlocked",
+  "what": "memory 30 s after the preview finished loading, nothing touched",
+  "processes": [
+    {
+      "pid": 90390,
+      "process": "Upstart Spike Electron",
+      "attribution": "own",
+      "footprint_mb": 48.0,
+      "rss_mb": 170.4
+    },
+    {
+      "pid": 90393,
+      "process": "Upstart Spike Electron Helper [gpu-process]",
+      "attribution": "own",
+      "footprint_mb": 134.0,
+      "rss_mb": 84.5
+    },
+    {
+      "pid": 90394,
+      "process": "Upstart Spike Electron Helper [utility]",
+      "attribution": "own",
+      "footprint_mb": 10.0,
+      "rss_mb": 54.5
+    },
+    {
+      "pid": 90397,
+      "process": "Upstart Spike Electron Helper (Renderer) [renderer]",
+      "attribution": "own",
+      "footprint_mb": 28.0,
+      "rss_mb": 113.4
+    },
+    {
+      "pid": 90398,
+      "process": "SetStoreUpdateService",
+      "attribution": "held responsible for",
+      "footprint_mb": 2.3,
+      "rss_mb": 9.6
+    },
+    {
+      "pid": 90401,
+      "process": "Upstart Spike Electron Helper (Renderer) [renderer]",
+      "attribution": "own",
+      "footprint_mb": 49.0,
+      "rss_mb": 149.0
+    }
+  ],
+  "total_footprint_mb": 271.3,
+  "total_rss_mb": 581.4
+}

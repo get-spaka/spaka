@@ -1,0 +1,52 @@
+{
+  "measured_at": "2026-11-09 23:26:49 +0100",
+  "screen": "locked",
+  "what": "first start of the app as copied out of the DMG",
+  "runs": [
+    {
+      "wrapper_mb": 146.1,
+      "unpacked_mb": 422.9,
+      "main-start": 9439,
+      "window-created": 9505,
+      "ui-mounted": 9698,
+      "preview-loaded": 14167,
+      "completed": true,
+      "processes_left_after_quit": [
+        [
+          8514,
+          "-launch/Upstart Spike Electrobun.app/Contents/MacOS/launcher"
+        ]
+      ]
+    },
+    {
+      "wrapper_mb": 146.1,
+      "unpacked_mb": 422.9,
+      "main-start": 9188,
+      "window-created": 9298,
+      "ui-mounted": 9422,
+      "preview-loaded": 13915,
+      "completed": true,
+      "processes_left_after_quit": [
+        [
+          8881,
+          "-launch/Upstart Spike Electrobun.app/Contents/MacOS/launcher"
+        ]
+      ]
+    },
+    {
+      "wrapper_mb": 146.1,
+      "unpacked_mb": 422.9,
+      "main-start": 9194,
+      "window-created": 9302,
+      "ui-mounted": 9425,
+      "preview-loaded": 13908,
+      "completed": true,
+      "processes_left_after_quit": [
+        [
+          9254,
+          "-launch/Upstart Spike Electrobun.app/Contents/MacOS/launcher"
+        ]
+      ]
+    }
+  ]
+}
