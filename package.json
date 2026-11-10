@@ -12,7 +12,7 @@
     "check": "pnpm lint && pnpm typecheck && pnpm test",
     "lint": "biome check .",
     "format": "biome check --write .",
-    "typecheck": "pnpm -r --parallel typecheck",
+    "typecheck": "pnpm -r --parallel typecheck && tsc -p tsconfig.json",
     "test": "vitest run",
     "e2e": "pnpm --filter @upstart/desktop build && pnpm background-electron && vitest run --config e2e/vitest.config.ts",
     "background-electron": "node scripts/background-electron.ts",
