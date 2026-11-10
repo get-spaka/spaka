@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { applyEvent } from "../../shared/conversation";
-import type { AgentStatus, ConversationState, PreviewState, ProjectInfo, ProjectSummary } from "../../shared/ipc";
+import type {
+  AgentStatus,
+  ConversationState,
+  HistoryEntry,
+  PreviewState,
+  ProjectInfo,
+  ProjectSummary,
+} from "../../shared/ipc";
 import { upstart } from "../lib/bridge";
 
 /** The known projects and the open one, kept in step with the main process. */
@@ -37,6 +44,21 @@ export function useConversation(projectId: string | undefined) {
     };
   }, [projectId]);
   return state && state.projectId === projectId ? state.items : [];
+}
+
+/** The open project's versions, kept in step with the main process. */
+export function useHistory(projectId: string | undefined) {
+  const [state, setState] = useState<{ projectId: string; entries: HistoryEntry[] } | null>(null);
+  useEffect(() => {
+    let live = true;
+    const off = upstart.on("history:changed", (message) => setState(message));
+    if (projectId) void upstart.invoke("history:list").then((entries) => live && setState({ projectId, entries }));
+    return () => {
+      live = false;
+      off();
+    };
+  }, [projectId]);
+  return state && state.projectId === projectId ? state.entries : [];
 }
 
 const NO_STATUS: AgentStatus = { auth: "unknown", hasApiKey: false, models: [] };

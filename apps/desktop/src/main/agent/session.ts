@@ -106,17 +106,18 @@ export class AgentSession {
     void this.run(q, !!resume);
   }
 
-  send(text: string) {
+  /** `forAgent` is what the agent receives, when it differs from what the maker typed. */
+  send(text: string, forAgent = text) {
     if (this.working) throw new Error("The agent is already working.");
     this.start();
     this.working = true;
     this.stopping = false;
     this.turnFailed = undefined;
-    this.pending = text;
+    this.pending = forAgent;
     this.activities.clear();
     this.handlers.onConversation({ type: "turn-start", id: newId(), text, at: Date.now() });
     this.deps.recorder?.turn();
-    this.inbox!.push(userMessage(text));
+    this.inbox!.push(userMessage(forAgent));
   }
 
   async stop() {

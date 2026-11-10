@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Conversation } from "./components/Conversation";
 import { PreviewPane } from "./components/PreviewPane";
 import { Sidebar } from "./components/Sidebar";
-import { useAgentStatus, useConversation, usePreviewState, useProjects } from "./hooks/useMain";
+import { useAgentStatus, useConversation, useHistory, usePreviewState, useProjects } from "./hooks/useMain";
 import { upstart } from "./lib/bridge";
 
 export function App() {
@@ -10,6 +10,7 @@ export function App() {
   const { projects, current } = useProjects();
   const preview = usePreviewState();
   const items = useConversation(current?.id);
+  const history = useHistory(current?.id);
   const status = useAgentStatus();
 
   return (
@@ -25,6 +26,7 @@ export function App() {
       <Conversation
         project={current}
         items={items}
+        history={history}
         status={status}
         sidebarOpen={sidebarOpen}
         onExpandSidebar={() => setSidebarOpen(true)}

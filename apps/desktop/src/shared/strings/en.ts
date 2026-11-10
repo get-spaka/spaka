@@ -29,6 +29,17 @@ export const en = {
     effort: "Effort",
     efforts: { low: "Low", medium: "Medium", high: "High", xhigh: "Extra high", max: "Max" },
   },
+  history: {
+    title: "History",
+    undo: "Undo the last change",
+    restore: "Go back to this version",
+    current: "Current",
+    empty: "Each message to the agent adds a version here.",
+    start: "Before Upstart's first change",
+    outside: "Changes made outside Upstart",
+    restored: (label: string) => `Back to: ${label}`,
+    notice: (label: string) => `Went back to the version after: ${label}`,
+  },
   activity: {
     write: (path?: string) => (path ? `Writing ${path}` : "Writing a file…"),
     edit: (path?: string) => (path ? `Editing ${path}` : "Editing a file…"),

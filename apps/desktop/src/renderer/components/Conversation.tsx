@@ -1,22 +1,25 @@
-import { ArrowUp, Check, CircleSlash, Loader2, PanelLeft, RotateCcw, Square, X } from "lucide-react";
+import { ArrowUp, Check, CircleSlash, Eraser, Loader2, PanelLeft, Square, X } from "lucide-react";
 import { type KeyboardEvent, useLayoutEffect, useRef, useState } from "react";
 import { type Activity, type ConversationItem, isWorking } from "../../shared/conversation";
-import type { AgentStatus, Effort, ProjectInfo } from "../../shared/ipc";
+import type { AgentStatus, Effort, HistoryEntry, ProjectInfo } from "../../shared/ipc";
 import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
+import { HistoryControls } from "./HistoryPanel";
 import { SignInPanel } from "./SignInPanel";
 import { Button } from "./ui/button";
 
 export function Conversation({
   project,
   items,
+  history,
   status,
   sidebarOpen,
   onExpandSidebar,
 }: {
   project: ProjectInfo | null;
   items: ConversationItem[];
+  history: HistoryEntry[];
   status: AgentStatus;
   sidebarOpen: boolean;
   onExpandSidebar: () => void;
@@ -44,7 +47,7 @@ export function Conversation({
   };
 
   return (
-    <section data-testid="conversation" className="flex w-[420px] shrink-0 flex-col border-r bg-background">
+    <section data-testid="conversation" className="relative flex w-[420px] shrink-0 flex-col border-r bg-background">
       {/* Room for the window's buttons when the sidebar is hidden. */}
       <div className={cn("drag-region flex h-13 shrink-0 items-center gap-2", sidebarOpen ? "px-4" : "pr-4 pl-20")}>
         {!sidebarOpen && (
@@ -57,17 +60,19 @@ export function Conversation({
             {project.name}
           </span>
         )}
+        <div className="ml-auto" />
+        {project && <HistoryControls entries={history} disabled={working} />}
         {project && items.length > 0 && (
           <Button
             variant="ghost"
             size="icon-sm"
-            className="no-drag ml-auto text-muted-foreground"
+            className="no-drag text-muted-foreground"
             disabled={working}
             onClick={() => void upstart.invoke("conversation:start-over")}
             title={t.conversation.startOver}
             data-testid="start-over"
           >
-            <RotateCcw />
+            <Eraser />
           </Button>
         )}
       </div>

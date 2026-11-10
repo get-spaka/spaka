@@ -3,13 +3,15 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { app, BrowserWindow, dialog, safeStorage, shell } from "electron";
-import type { ProjectInfo } from "../shared/ipc";
+import type { HistoryEntry, ProjectInfo } from "../shared/ipc";
+import { en as t } from "../shared/strings/en";
 import { Agent, projectNameFrom } from "./agent/agent";
 import { AgentAuth } from "./agent/auth";
 import { agentBinary, cleanEnv, nodeLauncher } from "./agent/confinement";
 import { LOOK_TOOL, UPSTART_SERVER, upstartServer } from "./agent/preview-tool";
 import { Recorder, replayQuery } from "./agent/replay";
 import { readEnvironment } from "./environment";
+import { History } from "./history/history";
 import { createIpc } from "./ipc";
 import { FileTap } from "./live/tap";
 import { Preview } from "./preview/preview";
@@ -116,7 +118,14 @@ async function main() {
       recorder: env.agentRecord ? new Recorder(env.agentRecord) : undefined,
     },
     dataFor: (id) => projects.dataFor(id),
-    emitConversation: (projectId, event) => ipc.emit("conversation:event", { projectId, event }),
+    emitConversation: (projectId, event) => {
+      ipc.emit("conversation:event", { projectId, event });
+      // A version of the project after each turn of the agent (decisions: history).
+      if (event.type === "turn-end" && history?.projectId === projectId) {
+        history.store.snapshot("turn", history.lastMessage ?? "");
+        emitHistory();
+      }
+    },
     emitStatus: (status) => ipc.emit("agent:status", status),
     // What the agent writes reaches the preview before the disk (ADR 0009).
     onAgentEvent: (projectId, event) => {
@@ -124,6 +133,34 @@ async function main() {
     },
   });
   let tap: { projectId: string; tap: FileTap } | undefined;
+  let history: { projectId: string; store: History; lastMessage?: string; wentBack?: string } | undefined;
+  const historyEntries = (): HistoryEntry[] => {
+    if (!history) return [];
+    const list = history.store.list();
+    const now = history.store.scan();
+    const same = (files: Record<string, string>) =>
+      Object.keys(files).length === Object.keys(now).length && Object.entries(files).every(([k, v]) => now[k] === v);
+    return list.map((s, i) => ({
+      id: s.id,
+      at: s.at,
+      kind: s.kind,
+      label: s.label,
+      current: i === list.length - 1 && same(s.files),
+    }));
+  };
+  const emitHistory = () => {
+    if (history) ipc.emit("history:changed", { projectId: history.projectId, entries: historyEntries() });
+  };
+  const goBack = (id: string | undefined) => {
+    if (!history || !current) throw new Error("No project is open.");
+    if (agent.isWorking(current.id)) throw new Error("The agent is working: stop it first.");
+    if (!id) return historyEntries();
+    const snapshot = history.store.restore(id);
+    history.wentBack = snapshot.label;
+    agent.notice(current.id, t.history.notice(snapshot.label || t.history.start));
+    emitHistory();
+    return historyEntries();
+  };
   const tapFor = (project: ProjectInfo) => ({
     projectId: project.id,
     tap: new FileTap({
@@ -143,6 +180,9 @@ async function main() {
     agent.open(project);
     await preview.open(project);
     tap = tapFor(project);
+    history = { projectId: project.id, store: new History(projects.dataFor(project.id), project.path) };
+    history.store.snapshot("start", "");
+    emitHistory();
     ipc.emit("project:opened", project);
     ipc.emit("projects:changed", projects.list());
     return project;
@@ -171,6 +211,7 @@ async function main() {
   ipc.handle("projects:close", () => {
     current = undefined;
     tap = undefined;
+    history = undefined;
     agent.open(undefined);
     preview.close();
     ipc.emit("project:opened", null);
@@ -203,11 +244,26 @@ async function main() {
       const effort = isEffort(settings?.effort) ? settings.effort : created.effort;
       project = await opened(projects.update(created.id, { model, effort }));
     }
+    // What the maker changed by hand since the last version is kept apart.
+    if (history?.projectId === project.id) {
+      history.store.snapshot(history.store.list().length ? "outside" : "start", "");
+      history.lastMessage = message;
+    }
+    // After a return to an earlier version, the agent is told before the message.
+    const wentBack = history?.wentBack;
+    if (history) history.wentBack = undefined;
+    const forAgent =
+      wentBack !== undefined
+        ? `[Upstart: the maker took the project back to an earlier version (the one after "${wentBack}"). The files may differ from what you remember: read a file again before editing it.]\n\n${message}`
+        : message;
     preview.startFollowing();
-    agent.send(project, message);
+    agent.send(project, message, forAgent);
   });
   ipc.handle("conversation:stop", () => current && agent.stop(current.id));
   ipc.handle("conversation:start-over", () => current && agent.startOver(current));
+  ipc.handle("history:list", () => historyEntries());
+  ipc.handle("history:restore", (id) => goBack(id));
+  ipc.handle("history:undo", () => goBack(history?.store.undoTarget()?.id));
   ipc.handle("agent:status", () => agent.status());
   ipc.handle("agent:sign-in", (method) => {
     if (!env.background) agent.signIn(method);

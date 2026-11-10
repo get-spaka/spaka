@@ -49,6 +49,16 @@ export type AgentStatus = {
   models: ModelChoice[];
 };
 
+/** One version of the project in its history, most recent last. */
+export type HistoryEntry = {
+  id: string;
+  at: number;
+  kind: "start" | "turn" | "outside" | "restore";
+  label: string;
+  /** The project's files are as this version has them. */
+  current: boolean;
+};
+
 /** A project's conversation, as shown. */
 export type ConversationState = { projectId: string; items: ConversationItem[] };
 
@@ -80,6 +90,11 @@ export type Invokes = {
   "agent:set-api-key": (key: string | null) => AgentStatus;
   "agent:set-model": (model: string) => ProjectInfo;
   "agent:set-effort": (effort: Effort) => ProjectInfo;
+  "history:list": () => HistoryEntry[];
+  /** Puts the project back as a version had it (a new version is added). */
+  "history:restore": (id: string) => HistoryEntry[];
+  /** Goes back to the version before the last change. */
+  "history:undo": () => HistoryEntry[];
 };
 
 /** One-way messages from the interface to the main process. */
@@ -97,6 +112,7 @@ export type Events = {
   "preview:state": (state: PreviewState) => void;
   "conversation:event": (message: { projectId: string; event: ConversationEvent }) => void;
   "agent:status": (status: AgentStatus) => void;
+  "history:changed": (message: { projectId: string; entries: HistoryEntry[] }) => void;
 };
 
 export type InvokeChannel = keyof Invokes;
@@ -126,9 +142,19 @@ export const channels = {
     "agent:set-api-key",
     "agent:set-model",
     "agent:set-effort",
+    "history:list",
+    "history:restore",
+    "history:undo",
   ],
   send: ["app:ready", "preview:bounds"],
-  events: ["projects:changed", "project:opened", "preview:state", "conversation:event", "agent:status"],
+  events: [
+    "projects:changed",
+    "project:opened",
+    "preview:state",
+    "conversation:event",
+    "agent:status",
+    "history:changed",
+  ],
 } as const satisfies {
   invoke: readonly InvokeChannel[];
   send: readonly SendChannel[];

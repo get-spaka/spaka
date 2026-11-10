@@ -285,3 +285,24 @@ test("models, project names, sign-in output", () => {
     findSignInUrl("Browser didn't open? Use the url below to sign in\nhttps://claude.ai/oauth/authorize?x=1\n"),
   ).toBe("https://claude.ai/oauth/authorize?x=1");
 });
+
+test("the agent can be told more than the maker typed", async () => {
+  const pushed: unknown[] = [];
+  const query = (params: { prompt: AsyncIterable<{ message: { content: string } }> }) => {
+    void (async () => {
+      for await (const m of params.prompt) pushed.push(m.message.content);
+    })();
+    return Object.assign((async function* () {})(), { close() {}, interrupt: async () => {} });
+  };
+  let items: ConversationItem[] = [];
+  const s = new AgentSession(
+    { id: "p1", name: "B", path: dir, model: "m", effort: "medium" },
+    data,
+    { binary: "b", env: () => ({}), readable: [], query: query as never },
+    { onConversation: (e) => (items = applyEvent(items, e)) },
+  );
+  s.send("Make it blue", "[Upstart: went back]\n\nMake it blue");
+  await new Promise((r) => setTimeout(r, 10));
+  expect(pushed).toEqual(["[Upstart: went back]\n\nMake it blue"]);
+  expect(items[0]).toMatchObject({ kind: "maker", text: "Make it blue" });
+});

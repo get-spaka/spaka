@@ -74,10 +74,38 @@ describe("a conversation with the agent", () => {
     expect(await w.getByTestId("activity").allTextContents()).toContain("Editing pages/index.liquid");
   });
 
+  test("undo puts the page back as it was before the last message", async () => {
+    const w = launched.window;
+    await w.getByTestId("history").click();
+    // Newest first: the edit, the first build, the empty folder is not a version.
+    expect(await w.getByTestId("history-entry").allTextContents()).toEqual([
+      expect.stringContaining("Close at 8pm"),
+      expect.stringContaining("A bakery in Lyon"),
+    ]);
+    await launched.capture("history-panel");
+    await w.getByTestId("history").click();
+    await w.getByTestId("undo").click();
+    await until(() => inPreview("document.body.textContent.includes('7am to 7pm')"));
+    const { path } = await project();
+    expect(readFileSync(join(path, "pages/index.liquid"), "utf8")).toContain("7am to 7pm");
+    await expect(w.getByTestId("notice").last().textContent()).resolves.toContain(
+      "Went back to the version after: A bakery in Lyon",
+    );
+    const entries = await launched.window.evaluate(() =>
+      // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
+      (window as any).upstart.invoke("history:list"),
+    );
+    expect(entries.map((e: { kind: string; current: boolean }) => `${e.kind}${e.current ? "*" : ""}`)).toEqual([
+      "turn",
+      "turn",
+      "restore*",
+    ]);
+  });
+
   test("starting over keeps what is shown and says the agent forgot", async () => {
     const w = launched.window;
     await w.getByTestId("start-over").click();
-    await w.getByTestId("notice").waitFor();
+    await until(() => w.getByTestId("notice").nth(1).count());
     expect(await w.getByTestId("maker-message").count()).toBe(2);
     const { path, id } = await project();
     const data = await launched.app.evaluate(
@@ -86,7 +114,7 @@ describe("a conversation with the agent", () => {
       id,
     );
     const log = JSON.parse(readFileSync(join(data, "conversation.json"), "utf8"));
-    expect(log.map((i: { kind: string }) => i.kind)).toEqual(["maker", "agent", "maker", "agent", "notice"]);
+    expect(log.map((i: { kind: string }) => i.kind)).toEqual(["maker", "agent", "maker", "agent", "notice", "notice"]);
     expect(path).toContain(launched.projectsDir);
   });
 });

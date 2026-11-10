@@ -54,8 +54,17 @@ export class Agent {
     return items;
   }
 
-  send(project: ProjectInfo, text: string) {
-    this.session(project).send(text);
+  send(project: ProjectInfo, text: string, forAgent?: string) {
+    this.session(project).send(text, forAgent);
+  }
+
+  /** A line in the conversation from Upstart itself. */
+  notice(projectId: string, text: string) {
+    this.record(projectId, { type: "notice", id: `${Date.now().toString(36)}-n`, text, at: Date.now() });
+  }
+
+  isWorking(projectId: string) {
+    return !!this.sessions.get(projectId)?.busy;
   }
 
   async stop(projectId: string) {
