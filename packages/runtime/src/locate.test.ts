@@ -1,0 +1,99 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { test } from "vitest";
+import { decodeText, encodeText, locate, replaceTexts, sections, textRuns } from "./locate.ts";
+
+const at = (src: string, needle: string) => {
+  const i = src.indexOf(needle);
+  assert.ok(i >= 0, `${needle} not in source`);
+  return i;
+};
+
+test("locates an element, its content, and whether its text can be edited", () => {
+  const src = '<section>\n  <h1 class="t">Hello <b>you</b></h1>\n  <p>{{ site.name }}</p>\n</section>';
+  const h1 = locate(src, at(src, "<h1"))!;
+  assert.equal(src.slice(h1.outer.start, h1.outer.end), '<h1 class="t">Hello <b>you</b></h1>');
+  assert.equal(src.slice(h1.inner!.start, h1.inner!.end), "Hello <b>you</b>");
+  assert.equal(h1.notEditable, undefined);
+  assert.equal(locate(src, at(src, "<p>"))!.notEditable, "liquid");
+  const section = locate(src, 0)!;
+  assert.equal(section.outer.end, src.length);
+  assert.equal(section.notEditable, "markup");
+  assert.equal(section.whole, true);
+  assert.equal(locate(src, 3), undefined);
+});
+
+test("nested elements of the same name are matched", () => {
+  const src = "<div><div>a</div><div>b</div></div><div>c</div>";
+  assert.equal(locate(src, 0)!.outer.end, "<div><div>a</div><div>b</div></div>".length);
+});
+
+test("an element in a loop, or with unbalanced Liquid, is not whole to move", () => {
+  const src = "{% for p in ps %}<li>x</li>{% endfor %}<div>{% if a %}</div><div>{% endif %}</div>";
+  assert.equal(locate(src, at(src, "<li>"))!.inLoop, true);
+  assert.equal(locate(src, at(src, "<div>"))!.whole, false);
+});
+
+test("texts are replaced between the tags, keeping attributes and untouched entities", () => {
+  const src = '<h1 class="x">Bread &amp; <a href="/menu" class="link">butter</a> daily</h1>';
+  assert.deepEqual(textRuns(src, 0)!.tags, ["a", "/a"]);
+  const out = replaceTexts(src, 0, ["Bread & ", "jam", " daily"])!;
+  assert.equal(out, '<h1 class="x">Bread &amp; <a href="/menu" class="link">jam</a> daily</h1>');
+  assert.equal(replaceTexts(src, 0, ["only one"]), undefined);
+});
+
+test("a typed text is escaped for HTML and Liquid, and keeps the indentation around it", () => {
+  assert.equal(encodeText("a < b & {{ c }}"), "a &lt; b &amp; &#123;{ c }}");
+  assert.equal(encodeText("New title", "\n    Old title\n  "), "\n    New title\n  ");
+  assert.equal(encodeText("Hello ", "Hello "), "Hello ");
+  assert.equal(encodeText("a  b"), "a&nbsp;&nbsp;b");
+  assert.equal(decodeText("&lt;&#39;&#x41;&nbsp;"), "<'A ");
+  const src = "<p>\n  Some text\n</p>";
+  assert.equal(replaceTexts(src, 0, ["\n  Other text\n"]), "<p>\n  Other text\n</p>");
+});
+
+test("the sections of a page: children of main, else body, includes among them", () => {
+  const page =
+    "<!DOCTYPE html>\n<html>\n<head><title>x</title></head>\n<body>\n  {% render 'header' %}\n  <section>a</section>\n" +
+    "  {% if x %}<section>b</section>{% endif %}\n  <section><div>c</div></section>\n  {%- render 'footer' -%}\n</body>\n</html>";
+  const found = sections(page);
+  assert.deepEqual(
+    found.map((s) => [s.kind, s.name]),
+    [
+      ["include", "header"],
+      ["element", "section"],
+      ["element", "section"],
+      ["include", "footer"],
+    ],
+  );
+  assert.equal(page.slice(found[2]!.outer.start, found[2]!.outer.end), "<section><div>c</div></section>");
+  const withMain = "<body><header>h</header><main><section>1</section><section>2</section></main></body>";
+  assert.deepEqual(
+    sections(withMain).map((s) => withMain.slice(s.outer.start, s.outer.end)),
+    ["<section>1</section>", "<section>2</section>"],
+  );
+  assert.equal(sections("<section>a</section><footer>b</footer>").length, 2);
+});
+
+test("on a page the agent wrote: every heading and paragraph without Liquid can be edited", () => {
+  const dir = join(
+    import.meta.dirname,
+    "../../../spikes/live-generation/runs/A-business-5-live-2026-11-09T22-22-50/project/pages",
+  );
+  const src = readFileSync(join(dir, "index.liquid"), "utf8");
+  const found = sections(src);
+  assert.ok(found.length >= 5, `${found.length} sections`);
+  assert.equal(found[0]!.kind, "include");
+  for (const m of src.matchAll(/<(h[1-3]|p)\b/g)) {
+    const el = locate(src, m.index)!;
+    assert.ok(el.inner, `${m[0]} at ${m.index} has an end`);
+    const runs = textRuns(src, m.index);
+    if (!el.notEditable) {
+      assert.ok(runs);
+      // Writing the same texts back changes nothing.
+      const same = runs.texts.map((r) => decodeText(src.slice(r.start, r.end)));
+      assert.equal(replaceTexts(src, m.index, same), src);
+    }
+  }
+});

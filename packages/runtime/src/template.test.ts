@@ -103,25 +103,28 @@ test("injects the source of each element, and the record inside a loop", () => {
     { title: "Emma", __ref: "books/2" },
   ];
   const html = render(traced, { books });
-  assert.match(html, /<main data-up-src="pages\/index.liquid:1">/);
-  assert.match(html, /<ul data-up-src="pages\/index.liquid:2">/);
-  assert.match(html, /<li data-up-src="pages\/index.liquid:4" data-up-rec="books\/1" class="row">Dune<\/li>/);
-  assert.match(html, /<li data-up-src="pages\/index.liquid:4" data-up-rec="books\/2" class="row">Emma<\/li>/);
+  // file:line:offset, the offset being where the start tag begins.
+  const li = src.indexOf("<li");
+  assert.match(html, /<main data-up-src="pages\/index.liquid:1:0">/);
+  assert.match(html, /<ul data-up-src="pages\/index.liquid:2:9">/);
+  assert.ok(html.includes(`<li data-up-src="pages/index.liquid:4:${li}" data-up-rec="books/1" class="row">Dune</li>`));
+  assert.ok(html.includes(`<li data-up-src="pages/index.liquid:4:${li}" data-up-rec="books/2" class="row">Emma</li>`));
 });
 
 test("a range loop carries no record attribute", () => {
   const traced = injectTrace("{% for i in (1..2) %}<i>{{ i }}</i>{% endfor %}", "p.liquid");
-  assert.equal(render(traced), '<i data-up-src="p.liquid:1">1</i><i data-up-src="p.liquid:1">2</i>');
+  assert.equal(render(traced), '<i data-up-src="p.liquid:1:21">1</i><i data-up-src="p.liquid:1:21">2</i>');
 });
 
-test("a record is traced through a shared part and into a fragment", () => {
+test("a record is traced through a shared part and into a fragment; each include is marked", () => {
   const page = injectTrace(
     "<ul>{% for b in books %}{% render 'book', book: b %}{% endfor %}</ul>{%- render 'footer' -%}",
     "pages/index.liquid",
   );
   assert.equal(
     page,
-    `<ul data-up-src="pages/index.liquid:1">{% for b in books %}{% render 'book', book: b , __rec: b.__ref %}{% endfor %}</ul>{%- render 'footer' -%}`,
+    `<ul data-up-src="pages/index.liquid:1:0">{% for b in books %}<!--up-inc pages/index.liquid:24:52-->{% render 'book', book: b , __rec: b.__ref %}<!--/up-inc-->{% endfor %}</ul>` +
+      `<!--up-inc pages/index.liquid:69:92-->{%- render 'footer' -%}<!--/up-inc-->`,
   );
   const part = injectTrace("<li><b>{{ book.title }}</b>{% render 'stars', n: book.rating %}</li>", "parts/book.liquid");
   const stars = injectTrace("<i>{{ n }}</i>", "parts/stars.liquid");
@@ -131,12 +134,13 @@ test("a record is traced through a shared part and into a fragment", () => {
   const html = e.parseAndRenderSync(page, { books: [{ title: "Dune", rating: 5, __ref: "books/1" }] });
   assert.equal(
     html,
-    `<ul data-up-src="pages/index.liquid:1"><li data-up-src="parts/book.liquid:1" data-up-rec="books/1"><b data-up-src="parts/book.liquid:1" data-up-rec="books/1">Dune</b>` +
-      `<i data-up-src="parts/stars.liquid:1" data-up-rec="books/1">5</i></li></ul><footer data-up-src="parts/footer.liquid:1" data-up-rec="">f</footer>`,
+    `<ul data-up-src="pages/index.liquid:1:0"><!--up-inc pages/index.liquid:24:52--><li data-up-src="parts/book.liquid:1:0" data-up-rec="books/1"><b data-up-src="parts/book.liquid:1:4" data-up-rec="books/1">Dune</b>` +
+      `<!--up-inc parts/book.liquid:27:63--><i data-up-src="parts/stars.liquid:1:0" data-up-rec="books/1">5</i><!--/up-inc--></li><!--/up-inc--></ul>` +
+      `<!--up-inc pages/index.liquid:69:92--><footer data-up-src="parts/footer.liquid:1:0" data-up-rec="">f</footer><!--/up-inc-->`,
   );
   const fragment = injectTrace("<li>{{ record.title }}</li>", "fragments/books-created.liquid");
   assert.equal(
     render(fragment, { record: { title: "Emma", __ref: "books/2" } }),
-    '<li data-up-src="fragments/books-created.liquid:1" data-up-rec="books/2">Emma</li>',
+    '<li data-up-src="fragments/books-created.liquid:1:0" data-up-rec="books/2">Emma</li>',
   );
 });

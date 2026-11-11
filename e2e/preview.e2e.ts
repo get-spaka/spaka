@@ -67,7 +67,7 @@ describe("a project folder in the preview", () => {
     );
     await until("document.querySelector('h1')?.textContent === 'Bread since 1952'");
     await expect(inPage("window.__sameDocument")).resolves.toBe(true);
-    await expect(inPage("document.querySelector('h1').dataset.upSrc")).resolves.toBe("pages/index.liquid:6");
+    await expect(inPage("document.querySelector('h1').dataset.upSrc")).resolves.toMatch(/^pages\/index.liquid:6:\d+$/);
     await expect(inPage("document.title")).resolves.toBe("Chez Margot");
     await until("getComputedStyle(document.querySelector('h1')).color === 'rgb(180, 83, 9)'");
     // Tailwind's browser build styles what the morph added (text-5xl).

@@ -38,9 +38,11 @@ describe("rendering", () => {
     expect(result.status).toBe(200);
     expect(result.file).toBe("pages/index.liquid");
     expect(result.html).toContain(`<head><meta name="x" data-up-runtime><title>Home</title>`);
-    expect(result.html).toContain(`<header data-up-src="parts/header.liquid:1" data-up-rec="">`);
+    expect(result.html).toMatch(
+      /<!--up-inc pages\/index.liquid:\d+:\d+--><header data-up-src="parts\/header.liquid:1:0" data-up-rec="">/,
+    );
     expect(result.html).toContain(`class="active"`);
-    expect(result.html).toContain(`<h1 data-up-src="pages/index.liquid:6">Home</h1>`);
+    expect(result.html).toMatch(/<h1 data-up-src="pages\/index.liquid:6:\d+">Home<\/h1>/);
     expect(result.notes).toEqual([]);
   });
 

@@ -4,9 +4,11 @@
 // repairTemplate(): cut the unfinished tail (half a Liquid tag, half an HTML
 //   tag, an unfinished <script>/<style>), then close what is still open, so
 //   that LiquidJS can parse it and the browser gets a well-formed tree.
-// injectTrace(): add data-up-src="file:line" to every HTML start tag, and
-//   data-up-rec="{{ item.__ref }}" inside loops, before Liquid renders, so any
-//   previewed element can be traced back to its page, shared part or record.
+// injectTrace(): add data-up-src="file:line:offset" to every HTML start tag,
+//   data-up-rec="{{ item.__ref }}" inside loops, and HTML comments around each
+//   shared part a page includes, before Liquid renders, so any previewed
+//   element can be traced back to its page, shared part or record, and to the
+//   exact place the app writes to when the maker edits it.
 
 const VOID = new Set([
   "area",
@@ -271,6 +273,8 @@ export function injectTrace(src: string, file: string): string {
   const outer = file.startsWith("parts/") ? "__rec" : file.startsWith("fragments/") ? "record.__ref" : null;
   let line = 1;
   let pos = 0;
+  // Inside <title> or <textarea> a comment would show as text: no include markers there.
+  let inText: string | null = null;
   const lineAt = (offset: number) => {
     for (; pos < offset; pos++) if (src.charCodeAt(pos) === 10) line++;
     return line;
@@ -286,13 +290,23 @@ export function injectTrace(src: string, file: string): string {
         const m = /^([\w-]+)\s+in\s+([^\s(][^\s]*)/.exec(t.args);
         loops.push({ name: t.name, item: m ? m[1]! : null });
       } else if (t.name === "endfor" || t.name === "endtablerow") loops.pop();
-      else if ((t.name === "render" || t.name === "include") && record() && !/\b__rec\s*:/.test(t.args)) {
-        // Hand the current record down to the shared part: {% render 'card', book: book, __rec: book.__ref %}
-        const close = src.slice(t.start, t.end).search(/-?%\}$/);
-        if (close > 0) inserts.push({ at: t.start + close, text: `, __rec: ${record()} ` });
+      else if (t.name === "render" || t.name === "include") {
+        const marked = !inText;
+        if (marked) inserts.push({ at: t.start, text: `<!--up-inc ${file}:${t.start}:${t.end}-->` });
+        if (record() && !/\b__rec\s*:/.test(t.args)) {
+          // Hand the current record down to the shared part: {% render 'card', book: book, __rec: book.__ref %}
+          const close = src.slice(t.start, t.end).search(/-?%\}$/);
+          if (close > 0) inserts.push({ at: t.start + close, text: `, __rec: ${record()} ` });
+        }
+        if (marked) inserts.push({ at: t.end, text: "<!--/up-inc-->" });
       }
-    } else if (t.type === "htmlOpen" && !UNTRACED.has(t.name)) {
-      let text = ` data-up-src="${file}:${lineAt(t.start)}"`;
+    } else if (t.type === "htmlOpen" && (t.name === "title" || t.name === "textarea") && !t.selfClosing) {
+      inText = t.name;
+    } else if (t.type === "htmlClose" && t.name === inText) {
+      inText = null;
+    }
+    if (t.type === "htmlOpen" && !UNTRACED.has(t.name)) {
+      let text = ` data-up-src="${file}:${lineAt(t.start)}:${t.start}"`;
       const rec = record();
       if (rec) text += ` data-up-rec="{{ ${rec} }}"`;
       inserts.push({ at: t.nameEnd, text });

@@ -1,5 +1,17 @@
 export { previewHead, VENDOR } from "./head.ts";
 export {
+  decodeText,
+  encodeText,
+  INLINE,
+  type Located,
+  locate,
+  type Range,
+  replaceTexts,
+  type Section,
+  sections,
+  textRuns,
+} from "./locate.ts";
+export {
   escapeHtml,
   injectHead,
   type Note,
