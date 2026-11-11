@@ -51,6 +51,10 @@ export type PreviewOptions = {
   onThumb?: (route: string, action: ThumbnailAction) => void;
   /** A page's picture in the "All pages" view, new or taken again (Q141). */
   onPicture?: (route: string, url: string) => void;
+  /** The preview went to one page or to all of them, by the maker or on its own (Q131). */
+  onView?: (view: PreviewView) => void;
+  /** The agent began writing a website's second page, or a later one (Q131). */
+  onManyPages?: () => void;
 };
 
 export class Preview {
@@ -253,6 +257,7 @@ export class Preview {
   setView(view: PreviewView) {
     if (view === this.viewMode) return;
     this.viewMode = view;
+    this.options.onView?.(view);
     this.emit();
   }
 
@@ -275,6 +280,9 @@ export class Preview {
       this.writing = writing;
       this.grid.setWriting(writing);
       this.emit();
+      const routes = new Set(this.site?.runtime.routes().map((r) => r.route));
+      routes.add(writing);
+      if (routes.size >= 2) this.options.onManyPages?.();
     }
     if (!this.following) return;
     const route = this.site?.runtime.routeOf(file);

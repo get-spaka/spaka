@@ -8,6 +8,7 @@ import {
   type ConnectorInfo,
   type HistoryEntry,
   type PageComment,
+  type PreviewView,
   type ProjectInfo,
   type Rect,
   SETTINGS_PAGES,
@@ -24,6 +25,7 @@ import { AppSettingsStore, zoomFor } from "./app-settings";
 import { Connectors, type Vault } from "./connectors/connectors";
 import { Comments, commentsMessage } from "./editing/comments";
 import { Editor } from "./editing/editor";
+import { EditRefused } from "./editing/edits";
 import { AgentNotes } from "./editing/notes";
 import { readEnvironment } from "./environment";
 import { exportProject } from "./export";
@@ -172,6 +174,14 @@ async function main() {
       else if (action === "menu") pageMenu(route);
     },
     onPicture: (route, url) => ipc.emit("preview:picture", { route, url }),
+    onView: (view) => writeViewData({ ...viewData(), view }),
+    // Once per website, the preview goes to all its pages when the agent begins the second (Q131).
+    onManyPages: () => {
+      const data = viewData();
+      if (data.switched || !current) return;
+      writeViewData({ ...data, switched: true });
+      preview.setView("pages");
+    },
     invokes: {
       "preview:edit": (action) => editor.apply(action),
       "preview:edit-info": (file, at) => editor.info(file, at),
@@ -347,6 +357,21 @@ async function main() {
   if (!env.agentReplay) void agent.checkSignIn();
 
   let current: ProjectInfo | undefined;
+  // A website's view in the preview, and whether it already went to all its pages on its own (Q131).
+  type ViewData = { view?: PreviewView; switched?: boolean };
+  const viewFile = () => current && join(projects.dataFor(current.id), "preview.json");
+  const viewData = (): ViewData => {
+    const file = viewFile();
+    try {
+      return file && existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : {};
+    } catch {
+      return {};
+    }
+  };
+  const writeViewData = (data: ViewData) => {
+    const file = viewFile();
+    if (file) writeFileSync(file, JSON.stringify(data));
+  };
   // A skill added, removed or written by the agent reaches the interface, and
   // the agent with the maker's next message.
   let skillWatchers: FSWatcher[] = [];
@@ -422,6 +447,8 @@ async function main() {
     watchSkills(project);
     agent.open(project);
     preview.setPaused(agent.isWorking(project.id));
+    // The view the maker left this website in (Q131).
+    preview.setView(viewData().view ?? "page");
     await preview.open(project);
     commentsChanged(comments.list(project.id));
     tap = tapFor(project);
@@ -504,8 +531,68 @@ async function main() {
     preview.setBounds(scaled(rect), device);
     peek.setArea(scaled(rect && (area ?? rect)));
   });
-  // A thumbnail's right-click menu (Q136), built in the next slice.
-  const pageMenu = (_route: string) => {};
+  // A thumbnail's right-click menu (Q136). Duplicating and deleting are edits by hand:
+  // a version each, told to the agent at its next message, waiting while it works.
+  const pageItems = (route: string): Electron.MenuItemConstructorOptions[] => {
+    const project = current;
+    const file = preview.state().routes.find((r) => r.route === route)?.file;
+    if (!project || !file) return [];
+    const m = t.preview.pageMenu;
+    const busy = agent.isWorking(project.id);
+    const edit = (fn: () => unknown) => {
+      try {
+        fn();
+      } catch (error) {
+        if (!(error instanceof EditRefused)) throw error;
+        void dialog.showMessageBox(win, { type: "info", message: error.message });
+      }
+    };
+    return [
+      {
+        label: m.open,
+        click: () => {
+          preview.setView("page");
+          void preview.navigate(route, true);
+        },
+      },
+      { type: "separator" },
+      { label: m.duplicate, enabled: !busy, click: () => edit(() => editor.duplicatePage(file)) },
+      {
+        label: m.delete,
+        enabled: !busy && route !== "/",
+        click: () =>
+          edit(() => {
+            editor.deletePage(file, route === "/");
+            ipc.emit("preview:page-deleted", { route });
+          }),
+      },
+      { type: "separator" },
+      {
+        label: m.ask,
+        click: () => {
+          win.webContents.focus();
+          ipc.emit("conversation:prefill", t.preview.askAbout(route));
+        },
+      },
+      { type: "separator" },
+      {
+        label: m.browser,
+        click: () => {
+          if (!env.background) void shell.openExternal(new URL(route, preview.origin).toString());
+        },
+      },
+      {
+        label: m.finder,
+        click: () => {
+          if (!env.background) shell.showItemInFolder(join(project.path, file));
+        },
+      },
+    ];
+  };
+  const pageMenu = (route: string) => {
+    const items = pageItems(route);
+    if (items.length) Menu.buildFromTemplate(items).popup({ window: win });
+  };
   ipc.on("preview:grid", (cells, screen) => {
     preview.setGrid(cells?.map((c) => ({ ...c, rect: scaled(c.rect) })) ?? null, screen);
   });
@@ -726,7 +813,7 @@ async function main() {
   // For automated checks: the main process's objects, reachable from Playwright's evaluate().
   if (env.background)
     Object.assign(globalThis, {
-      upstart: { win, projects, preview, agent, peek, settings },
+      upstart: { win, projects, preview, agent, peek, settings, pageItems },
     });
 
   await (devUrl ? win.loadURL(devUrl) : win.loadFile(join(here, "../renderer/index.html")));

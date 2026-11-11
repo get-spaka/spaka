@@ -2,10 +2,11 @@
 // Q94): checks that the agent is not working, writes the file, takes a
 // snapshot for each action, and keeps a note of it for the agent's next
 // message. The text changes themselves are in edits.ts.
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { locate, sections } from "@upstart/runtime";
 import type { EditAction, EditInfo } from "../../shared/ipc";
+import { copyOfPage } from "../../shared/page-grid";
 import { en } from "../../shared/strings/en";
 import {
   copyName,
@@ -106,6 +107,39 @@ export class Editor {
     const change = { label, files: Object.keys(writes) };
     this.deps.changed(change);
     return change;
+  }
+
+  /**
+   * Copies a page beside it, at the next free address (/menu-2): nothing links
+   * to the copy yet (Q138). One version, told to the agent like any edit by hand.
+   */
+  duplicatePage(file: string): { label: string; files: string[]; file: string } {
+    this.ready();
+    const src = this.read(file);
+    if (!file.startsWith("pages/")) throw new EditRefused("Only a page can be duplicated.");
+    const copy = copyOfPage(file, Object.keys(this.templates()));
+    this.write(copy, src);
+    const change = { label: en.editing.labels.pageDuplicated, files: [copy] };
+    this.deps.changed(change);
+    return { ...change, file: copy };
+  }
+
+  /** Deletes a page's file, which the history can bring back (Q137); the home page is kept. */
+  deletePage(file: string, home: boolean): { label: string; files: string[] } {
+    if (home) throw new EditRefused(en.editing.homeKept);
+    this.ready();
+    if (!file.startsWith("pages/")) throw new EditRefused("Only a page can be deleted.");
+    this.read(file);
+    rmSync(this.abs(file));
+    const change = { label: en.editing.labels.pageDeleted, files: [file] };
+    this.deps.changed(change);
+    return change;
+  }
+
+  /** Editing waits for the agent's turn to end (Q91); what changed outside the app gets its own version first. */
+  private ready() {
+    if (this.deps.busy()) throw new EditRefused(en.editing.busy);
+    this.deps.before();
   }
 
   /**

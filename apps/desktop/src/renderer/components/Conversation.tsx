@@ -1,5 +1,5 @@
 import { ArrowUp, Check, ChevronRight, CircleSlash, Eraser, Loader2, PanelLeft, Square, X } from "lucide-react";
-import { type KeyboardEvent, useLayoutEffect, useRef, useState } from "react";
+import { type KeyboardEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { type Activity, type AgentPart, type ConversationItem, isWorking } from "../../shared/conversation";
 import type { AgentStatus, Effort, OutputStyle, PreviewState, ProjectInfo } from "../../shared/ipc";
 import { useAppSettings } from "../hooks/useMain";
@@ -37,6 +37,24 @@ export function Conversation({
   const newSettings = chosen ?? { model: defaults.newModel, effort: defaults.newEffort };
   const working = isWorking(items);
   const signedOut = status.auth === "signed-out" || status.auth === "signing-in";
+  const input = useRef<HTMLTextAreaElement>(null);
+  // "Ask the agent about it" (Q136): the page's address starts the message, the field takes the keyboard.
+  const [prefilled, setPrefilled] = useState(0);
+  useEffect(
+    () =>
+      upstart.on("conversation:prefill", (text) => {
+        setTab("conversation");
+        setDraft((d) => (d.trim() ? `${d.trimEnd()}\n${text}` : text));
+        setPrefilled((n) => n + 1);
+      }),
+    [],
+  );
+  useEffect(() => {
+    const el = input.current;
+    if (!prefilled || !el) return;
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
+  }, [prefilled]);
 
   const send = () => {
     const text = draft.trim();
@@ -142,6 +160,7 @@ export function Conversation({
             <div className="rounded-xl border bg-background p-2 shadow-xs focus-within:ring-[3px] focus-within:ring-ring/30">
               <textarea
                 data-testid="message-input"
+                ref={input}
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={onKeyDown}

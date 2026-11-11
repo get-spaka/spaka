@@ -92,7 +92,7 @@ export class PageGrid {
   /** The pages that follow the renderings: the one being written, when it is on screen. */
   live(): string[] {
     const live = this.current;
-    return live?.shown ? [live.route] : [];
+    return live?.loaded && this.cells.get(live.route)?.visible ? [live.route] : [];
   }
 
   /** A page's new rendering, sent to the live view if it shows that page. */
@@ -150,7 +150,7 @@ export class PageGrid {
     if (!live) {
       live = this.createLive(cell.route);
       this.current = live;
-    } else if (live.route !== cell.route) this.navigateLive(live, cell.route);
+    } else if (live.route !== cell.route) this.moveLive(live, cell.route);
     const scaled = live.view.getBounds().width !== cell.rect.width;
     live.view.setBounds(cell.rect);
     if (scaled || resized) this.emulate(live);
@@ -159,7 +159,8 @@ export class PageGrid {
       live.clip = clip;
       if (live.loaded) this.send(live, { type: "clip", top: clip });
     }
-    this.show(live, cell.visible && live.loaded);
+    // Shown once it has this page's rendering.
+    this.show(live, cell.visible && live.loaded && live.sent);
   }
 
   private createLive(route: string): Live {
@@ -202,14 +203,22 @@ export class PageGrid {
     return live;
   }
 
-  private navigateLive(live: Live, route: string) {
+  /**
+   * The live view moves to another page without loading it again, as the
+   * preview follows the agent (ADR 0009): the next page's rendering is morphed
+   * in. It is hidden until then, so the cell never shows the other page.
+   */
+  private moveLive(live: Live, route: string) {
     live.route = route;
-    live.ready = false;
-    live.loaded = false;
     live.html = undefined;
     live.sent = false;
     this.show(live, false);
-    this.load(live);
+    if (live.loaded) {
+      live.view.webContents
+        .executeJavaScript(`history.replaceState(null, "", ${JSON.stringify(route)})`)
+        .catch(() => {});
+      this.o.wantsRendering();
+    }
   }
 
   private load(live: Live) {
@@ -234,9 +243,11 @@ export class PageGrid {
   }
 
   private flush(live: Live) {
-    if (!live.shown || !live.loaded || live.sent || live.html === undefined) return;
+    if (!live.loaded || live.sent || live.html === undefined) return;
     live.sent = true;
     this.send(live, { type: "render", html: live.html, final: live.final ?? false });
+    // A page it has just moved to shows once its rendering is in.
+    if (!live.shown && this.cells.get(live.route)?.visible) this.show(live, true);
   }
 
   private send(live: Live, message: ToPreview) {

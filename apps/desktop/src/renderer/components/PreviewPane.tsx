@@ -14,7 +14,7 @@ import {
   Tablet,
   Upload,
 } from "lucide-react";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { DeviceView, HistoryEntry, PreviewState, ProjectInfo } from "../../shared/ipc";
 import { useComments } from "../hooks/useMain";
 import { upstart } from "../lib/bridge";
@@ -22,7 +22,7 @@ import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { ExportDialog } from "./ExportDialog";
 import { HistoryButtons, HistoryList } from "./HistoryPanel";
-import { PagesGrid } from "./PagesGrid";
+import { PagesGrid, pageName } from "./PagesGrid";
 import { Button } from "./ui/button";
 
 /**
@@ -87,6 +87,14 @@ export function PreviewPane({
   const [width, setWidth] = useState<Width>("desktop");
   const [landscape, setLandscape] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  // "Menu deleted · Undo" (Q137), for a few seconds after a page is deleted from its thumbnail.
+  const [deleted, setDeleted] = useState<{ route: string; at: number }>();
+  useEffect(() => upstart.on("preview:page-deleted", ({ route }) => setDeleted({ route, at: Date.now() })), []);
+  useEffect(() => {
+    if (!deleted) return;
+    const timer = setTimeout(() => setDeleted(undefined), 8000);
+    return () => clearTimeout(timer);
+  }, [deleted]);
   // Where the device's frame is drawn, under the native view, relative to the area.
   const [frame, setFrame] = useState<{ x: number; y: number; width: number; height: number; radius: number }>();
   const comments = useComments(project?.id);
@@ -175,6 +183,25 @@ export function PreviewPane({
           </label>
         )}
         <div className="flex-1" />
+        {deleted && (
+          <div
+            data-testid="page-deleted"
+            className="no-drag flex items-center gap-2 rounded-md bg-foreground py-1 pr-1 pl-2.5 text-xs text-background"
+          >
+            {t.preview.pageDeleted(pageName(deleted.route))}
+            <button
+              type="button"
+              data-testid="page-deleted-undo"
+              onClick={() => {
+                setDeleted(undefined);
+                void upstart.invoke("history:undo");
+              }}
+              className="rounded px-1.5 py-0.5 font-medium hover:bg-background/20"
+            >
+              {t.preview.undo}
+            </button>
+          </div>
+        )}
         {project && state.routes.length >= 2 && (
           <div className="no-drag flex items-center rounded-md border p-0.5" data-testid="preview-view">
             {(
