@@ -38,6 +38,25 @@ describe("editing in the preview", () => {
     ).toBe(true);
   });
 
+  test("the selection's outline follows its element as the page scrolls", async () => {
+    // The recorded page is short: room below it to scroll.
+    await page("document.body.insertAdjacentHTML('beforeend', '<div id=\"room\" style=\"height: 3000px\"></div>'), true");
+    await click("section:nth-of-type(2) p");
+    await until(() => drawn(".selected"));
+    const gap = () =>
+      page(`(() => {
+        const box = document.querySelector('upstart-editor').shadowRoot.querySelector('.selected').getBoundingClientRect();
+        const el = document.querySelector('section:nth-of-type(2) p').getBoundingClientRect();
+        return Math.abs(box.top - el.top) + Math.abs(box.left - el.left);
+      })()`);
+    expect(await gap()).toBeLessThan(4);
+    await page("window.scrollTo(0, 250), true");
+    await until(async () => (await page("window.scrollY")) > 200);
+    await until(async () => (await gap()) < 4);
+    await page("window.scrollTo(0, 0), document.getElementById('room').remove(), true");
+    await key("Escape");
+  });
+
   test("a text edited in place is written into the page's file", async () => {
     await click("h1", false, 2);
     await until(() => page("document.querySelector('h1').isContentEditable"));

@@ -4,13 +4,17 @@ Build websites by talking to an agent, on your own computer. Upstart is a deskto
 
 A website is a folder of plain files (Liquid templates, a theme, Tailwind and daisyUI classes, htmx 4) that Upstart serves in a live preview and exports as a static site any web host can serve.
 
-## What it does today (build step 1)
+## What it does today (build steps 1 and 2)
 
 - A conversation with the agent, which runs the official Claude binary, signed in with a Claude subscription through its own sign-in or with an API key. Model and effort can change at any time, per website.
 - A live preview that follows the file being written, before it is saved.
 - A history of every version, with undo.
 - Static export, with a guide to putting the folder online for free.
-- Skills (shipped with Upstart, yours, or the website's) and connectors (remote, or programs on your computer, which stay off in a received website until you turn them on).
+- Skills (shipped with Upstart, yours, or the website's) and connectors (remote, or programs on your computer, which stay off in a received website until you turn them on). A remote connector that asks you to sign in does so in your browser, through the agent's own sign-in.
+- Editing by hand in the preview: select an element, change a text in place or a link, duplicate, delete or reorder sections, with a visitor's view and phone and tablet widths. Every change is a version you can undo.
+- Comments on the page's elements, sent to the agent together as one message.
+- A gallery of thirty ready-made sections, dragged into a page; the agent starts new pages from it too.
+- A Theme tab: twelve palettes, each colour with a warning when text would be hard to read, the corner radius, and twenty open fonts copied into the website.
 
 The agent starts with nothing of your own Claude setup, writes only in the website's folder and the system's temporary folder, and runs its shell inside the operating system's sandbox. It never asks for permissions: what it may not do is refused.
 
