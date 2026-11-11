@@ -82,6 +82,18 @@ _Avoid_: Table, collection, database, CMS
 One entry of a datasource.
 _Avoid_: Row, item, entry
 
+**Definition**:
+The description of a datasource: its fields, the kind of each, which one is the record's long text, and the order its records are listed in.
+_Avoid_: Schema, model, type
+
+**Record page**:
+A page the project has once per record of a datasource, at an address made from the record's id, all drawn by the same page template.
+_Avoid_: Detail page, dynamic route, slug page
+
+**Stand-in record**:
+A record shown in the preview while a datasource has no complete record yet, so that the page's layout appears; it disappears when the real records arrive and is never written to the project.
+_Avoid_: Placeholder, sample data
+
 **Test record**:
 A record of a collected datasource that exists only in the preview, written by the agent or by trying a form there. Test records are never published.
 _Avoid_: Sample data, seed, fixture
@@ -89,6 +101,10 @@ _Avoid_: Sample data, seed, fixture
 **Media**:
 An image or other file that a project's pages display or link to.
 _Avoid_: Asset, upload
+
+**Credits**:
+The author, licence and source of a media file taken from an open collection, kept with the file and listed on the site when its licence asks for it.
+_Avoid_: Attribution, copyright notice
 
 **Theme**:
 The set of named design values (colours, fonts, radii, spacing…) that gives a project its look. A small core of values exists in every project, so palettes and blocks carry over from one project to another; beyond that core a project may declare as many values as it needs. Every styling choice in a project draws from the theme, so changing it restyles the whole project.
