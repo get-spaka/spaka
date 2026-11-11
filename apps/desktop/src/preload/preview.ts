@@ -84,6 +84,7 @@ window.addEventListener("DOMContentLoaded", () => {
   for (const script of document.querySelectorAll("script")) ran.add(script);
   editor?.attach();
   if (thumbnail) thumbStyle(clipped);
+  else hideScrollbar();
   send({ type: "loaded", path: location.pathname, title: document.title });
 });
 window.addEventListener("error", (event) => {
@@ -192,6 +193,19 @@ function thumbStyle(top: number) {
     document.head.append(style);
   }
   style.textContent = `html{overflow:hidden!important;scrollbar-width:none!important${top ? `;translate:0 ${-top}px` : ""}}`;
+}
+
+/**
+ * The page scrolls without drawing a scrollbar (Q143): it keeps its whole
+ * width, as its thumbnail has, and a zoom lands without a shift. In a style
+ * of its own in the head, which the renderings leave alone.
+ */
+function hideScrollbar() {
+  if (!document.head || document.getElementById("up-scroll")) return;
+  const style = document.createElement("style");
+  style.id = "up-scroll";
+  style.textContent = "html{scrollbar-width:none!important}";
+  document.head.append(style);
 }
 
 function setTheme(css: string) {

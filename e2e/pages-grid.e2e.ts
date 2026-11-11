@@ -165,6 +165,14 @@ describe("all pages as thumbnails", () => {
     const landing = await main((u) => u.preview.landings.at(-1));
     expect(landing).toMatchObject({ route: "/about", drawn: true, picture: true });
     expect(landing.ms).toBeLessThan(1000);
+    // The page scrolls without a scrollbar taking its width, as its thumbnail (Q143).
+    const widths = await main((u) =>
+      u.preview.view.webContents.executeJavaScript(
+        "[innerWidth, document.documentElement.clientWidth, document.documentElement.scrollHeight > innerHeight]",
+      ),
+    );
+    expect(widths[0]).toBe(widths[1]);
+    expect(widths[2]).toBe(true);
     // Back to the thumbnails: the page shrinks into its cell, the other thumbnails fade in.
     await w.getByTestId("view-pages").click();
     await zoom.waitFor({ timeout: 2000 });
