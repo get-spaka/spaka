@@ -1,3 +1,18 @@
+export {
+  type DataRecord,
+  type Datasource,
+  Datasources,
+  DEFINITION_FILE,
+  type Definition,
+  FIELD_KINDS,
+  type Field,
+  type FieldKind,
+  type RecordProblem,
+  recordFile,
+  recordOf,
+  splitRecord,
+  titleOf,
+} from "./data.ts";
 export { previewHead, VENDOR } from "./head.ts";
 export {
   decodeText,
@@ -11,6 +26,19 @@ export {
   sections,
   textRuns,
 } from "./locate.ts";
+export {
+  addCreditsLink,
+  CREDITS_ROUTE,
+  type Credit,
+  creditedMedia,
+  creditsPage,
+  fillAlts,
+  infoFile,
+  type MediaInfo,
+  mediaFiles,
+  mediaInfo,
+  needsCredit,
+} from "./media.ts";
 export {
   escapeHtml,
   injectHead,

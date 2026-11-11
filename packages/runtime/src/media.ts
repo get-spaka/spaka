@@ -1,0 +1,117 @@
+// Media (Q149-Q157): files in media/, each image with a file beside it holding
+// its alternative text and, for one taken from an open collection, its
+// credits (media/cafe.jpg and media/cafe.json, Q155). The runtime fills an
+// image's missing alt from it, and lists the images whose licence asks for a
+// credit on a /credits page, linked from the end of every footer (Q157).
+import { escapeHtml } from "./escape.ts";
+import type { ProjectSource } from "./source.ts";
+
+export type Credit = {
+  title?: string;
+  author?: string;
+  authorUrl?: string;
+  license: string;
+  licenseUrl?: string;
+  /** Where it was found: "Wikimedia Commons", "Openverse (Flickr)"… */
+  source?: string;
+  sourceUrl?: string;
+};
+
+export type MediaInfo = { alt?: string; credit?: Credit };
+
+export const CREDITS_ROUTE = "/credits";
+
+/** media/cafe.jpg gives media/cafe.json. */
+export function infoFile(path: string): string {
+  return path.replace(/\.[^./]+$/, "") + ".json";
+}
+
+/** Whether a licence asks for the author to be credited where the image is shown. */
+export function needsCredit(license: string | undefined): boolean {
+  return !!license && /^cc[\s-]*by\b/i.test(license.trim());
+}
+
+export function mediaInfo(source: ProjectSource, path: string): MediaInfo | undefined {
+  const text = source.read(infoFile(path.replace(/^\//, "")));
+  if (!text) return undefined;
+  try {
+    const value = JSON.parse(text) as MediaInfo;
+    return value && typeof value === "object" ? value : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** The media files that are not the files beside them. */
+export function mediaFiles(source: ProjectSource): string[] {
+  const all = source.list("media");
+  const stems = new Set(all.filter((f) => !f.endsWith(".json")).map((f) => f.replace(/\.[^./]+$/, "")));
+  return all.filter((f) => !(f.endsWith(".json") && stems.has(f.slice(0, -".json".length))));
+}
+
+/** The files a site is written in, where a media file can be used. */
+const USING = ["pages", "parts", "fragments", "data"];
+
+/** The images whose credits the site must show: credited by their licence, and used somewhere. */
+export function creditedMedia(source: ProjectSource): { path: string; credit: Credit }[] {
+  const credited: { path: string; credit: Credit }[] = [];
+  for (const path of mediaFiles(source)) {
+    const info = mediaInfo(source, path);
+    if (info?.credit && needsCredit(info.credit.license)) credited.push({ path, credit: info.credit });
+  }
+  if (!credited.length) return credited;
+  const texts = USING.flatMap((dir) => source.list(dir).map((f) => source.read(f) ?? ""));
+  return credited.filter(({ path }) => texts.some((t) => t.includes(path)));
+}
+
+/** Gives each <img> of a media file that has no alt attribute the alt text kept beside the file. */
+export function fillAlts(html: string, source: ProjectSource): string {
+  return html.replace(/<img\b[^>]*>/gi, (tag) => {
+    if (/\salt\s*=/i.test(tag)) return tag;
+    const src = /\ssrc\s*=\s*["']?\/?(media\/[^"'\s>]+)/i.exec(tag)?.[1];
+    if (!src) return tag;
+    const alt = mediaInfo(source, decodeURI(src))?.alt;
+    if (!alt) return tag;
+    return tag.replace(/^<img\b/i, `<img alt="${escapeHtml(alt)}"`);
+  });
+}
+
+/** The "Image credits" link, at the end of the page's last footer, or of its body without one. */
+export function addCreditsLink(html: string): string {
+  if (html.includes("data-up-credits")) return html;
+  const link = `<p data-up-credits style="margin:0.75rem 0 0;font-size:0.75rem;opacity:0.7"><a href="${CREDITS_ROUTE}" style="color:inherit">Image credits</a></p>`;
+  const footer = html.toLowerCase().lastIndexOf("</footer>");
+  if (footer >= 0) return html.slice(0, footer) + link + html.slice(footer);
+  const body = html.toLowerCase().lastIndexOf("</body>");
+  return body >= 0 ? html.slice(0, body) + link + html.slice(body) : html + link;
+}
+
+/** The /credits page: every credited image of the site, in the site's theme. */
+export function creditsPage(credited: { path: string; credit: Credit }[], title = "Image credits"): string {
+  const a = (text: string, url?: string) =>
+    url ? `<a class="link" href="${escapeHtml(url)}">${escapeHtml(text)}</a>` : escapeHtml(text);
+  const items = credited
+    .map(({ path, credit }) => {
+      const parts = [
+        credit.title ? `“${a(credit.title, credit.sourceUrl)}”` : "",
+        credit.author ? `by ${a(credit.author, credit.authorUrl)}` : "",
+        a(credit.license, credit.licenseUrl),
+        credit.source ? `via ${escapeHtml(credit.source)}` : "",
+      ].filter(Boolean);
+      return `<li class="flex items-center gap-4"><img src="/${escapeHtml(path)}" alt="" class="h-16 w-24 shrink-0 rounded object-cover"><span>${parts.join(", ")}</span></li>`;
+    })
+    .join("\n");
+  return `<!doctype html>
+<html lang="en">
+<head><title>${escapeHtml(title)}</title><meta name="robots" content="noindex"></head>
+<body class="bg-base-100 text-base-content">
+<main class="mx-auto max-w-3xl px-6 py-16">
+<p><a class="link" href="/">← Home</a></p>
+<h1 class="mt-6 mb-8 text-3xl font-bold">${escapeHtml(title)}</h1>
+<ul class="flex flex-col gap-4">
+${items}
+</ul>
+</main>
+</body>
+</html>`;
+}

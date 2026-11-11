@@ -6,6 +6,8 @@ export interface ProjectSource {
   read(path: string): string | undefined;
   /** Every file under `dir` (recursively), as project paths, sorted. */
   list(dir: string): string[];
+  /** Whether a file is being written, or, without one, whether any is (the preview's overlay, ADR 0009). */
+  writing?(path?: string): boolean;
 }
 
 /** A project held in memory, for tests and for runtimes without a disk. */
@@ -39,6 +41,9 @@ export class Overlay implements ProjectSource {
   }
   get size() {
     return this.files.size;
+  }
+  writing(path?: string) {
+    return path === undefined ? this.files.size > 0 : this.files.has(path);
   }
   paths() {
     return [...this.files.keys()];

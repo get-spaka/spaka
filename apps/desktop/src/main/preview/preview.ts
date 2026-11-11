@@ -156,6 +156,7 @@ export class Preview {
     const overlay = new Overlay(diskSource(project.path));
     const runtime: Runtime = new Runtime(overlay, {
       markPageStyles: true,
+      standIns: true,
       head: () => previewHead({ vendorBase: VENDOR_BASE, theme: runtime.theme() }),
     });
     const site: OpenSite = { project, root: project.path, overlay, runtime, watcher: undefined };

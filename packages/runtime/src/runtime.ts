@@ -6,6 +6,9 @@
 // Rendering is synchronous: a render reads only the source, and the notes it
 // collects belong to that render alone.
 import { Liquid } from "liquidjs";
+import { type Datasource, Datasources, recordOf, titleOf } from "./data.ts";
+import { escapeHtml } from "./escape.ts";
+import { addCreditsLink, CREDITS_ROUTE, creditedMedia, creditsPage, fillAlts } from "./media.ts";
 import type { ProjectSource } from "./source.ts";
 import { injectTrace, repairTemplate } from "./template.ts";
 import { repairCss } from "./theme.ts";
@@ -24,7 +27,16 @@ export type RenderResult = {
   ms: number;
 };
 
-export type Route = { route: string; file: string };
+export type Route = {
+  route: string;
+  file: string;
+  /** A record's page, from a page file named after its datasource in brackets (Q147). */
+  record?: { datasource: string; id: string };
+  /** The label of the datasource a record's page belongs to, for grouping (Q164). */
+  group?: string;
+  /** A page the runtime makes, with no file of the project's: the image credits (Q157). */
+  generated?: boolean;
+};
 
 export type RuntimeOptions = {
   /** Cut and close files that are still being written (the preview). Default true. */
@@ -39,6 +51,8 @@ export type RuntimeOptions = {
    * library adds to the page while it runs.
    */
   markPageStyles?: boolean;
+  /** Stand-in records while a datasource is being written (the preview, Q161). Default false. */
+  standIns?: boolean;
 };
 
 export class Runtime {
@@ -47,6 +61,9 @@ export class Runtime {
   private readonly trace: boolean;
   /** Notes of the render in progress. Renders are synchronous, so there is one at a time. */
   private notes: Note[] = [];
+  /** The datasources the render in progress read, so that their notes are added once. */
+  private read = new Set<string>();
+  readonly data: Datasources;
 
   constructor(
     readonly source: ProjectSource,
@@ -54,6 +71,7 @@ export class Runtime {
   ) {
     this.repair = options.repair ?? true;
     this.trace = options.trace ?? true;
+    this.data = new Datasources(source, { standIns: options.standIns ?? false });
     this.liquid = new Liquid({
       root: ["/pages", "/fragments"],
       partials: ["/parts"],
@@ -79,41 +97,87 @@ export class Runtime {
   // ---- routes --------------------------------------------------------------
 
   routes(): Route[] {
-    const routes: Route[] = [];
+    const pages: Route[] = [];
+    const records: Route[] = [];
     for (const file of this.source.list("pages")) {
       const ext = PAGE_EXTENSIONS.find((e) => file.endsWith(e));
       if (!ext) continue;
       let route = file.slice("pages/".length, -ext.length);
       if (route === "index") route = "";
       else if (route.endsWith("/index")) route = route.slice(0, -"/index".length);
-      routes.push({ route: `/${route}`, file });
+      const bracket = bracketOf(route);
+      if (!bracket) {
+        pages.push({ route: `/${route}`, file });
+        continue;
+      }
+      // pages/blog/[posts].liquid: a page per record, at its id (Q147).
+      const ds = this.datasource(bracket.name, false);
+      if (!ds || ds.standIns) continue;
+      for (const record of ds.records)
+        records.push({
+          route: `/${route.slice(0, bracket.at)}${record.id}${route.slice(bracket.end)}`.replace(/\/+$/, "") || "/",
+          file,
+          record: { datasource: bracket.name, id: record.id },
+          group: ds.definition?.label ?? titleOf(bracket.name),
+        });
     }
-    return routes.sort((a, b) => (a.route === "/" ? -1 : b.route === "/" ? 1 : a.route.localeCompare(b.route)));
+    pages.sort((a, b) => (a.route === "/" ? -1 : b.route === "/" ? 1 : a.route.localeCompare(b.route)));
+    const all = [...pages, ...records];
+    if (!all.some((r) => r.route === CREDITS_ROUTE) && creditedMedia(this.source).length)
+      all.push({ route: CREDITS_ROUTE, file: "media", generated: true });
+    return all;
+  }
+
+  /** The route serving an address, if any. */
+  route(pathname: string): Route | undefined {
+    const clean = `/${pathname.replace(/^\/+|\/+$/g, "")}`;
+    return this.routes().find((r) => r.route === clean);
   }
 
   /** The page file serving an address, if any. */
   resolve(pathname: string): string | undefined {
-    const clean = `/${pathname.replace(/^\/+|\/+$/g, "")}`;
-    return this.routes().find((r) => r.route === clean)?.file;
+    return this.route(pathname)?.file;
   }
 
+  /** The address of a page file, or of a record's page from the record's file. */
   routeOf(file: string): string | undefined {
-    return this.routes().find((r) => r.file === file)?.route;
+    const record = recordOf(file);
+    const routes = this.routes();
+    if (record)
+      return routes.find((r) => r.record?.datasource === record.datasource && r.record.id === record.id)?.route;
+    return routes.find((r) => r.file === file && !r.record)?.route ?? routes.find((r) => r.file === file)?.route;
   }
 
   // ---- rendering -------------------------------------------------------------
 
   /** The page at an address, with the runtime's head. 404 when there is no such page. */
   renderRoute(pathname: string, query: Record<string, string> = {}): RenderResult {
-    const file = this.resolve(pathname);
-    if (!file) return this.notFound(pathname);
-    return this.renderPage(file, pathname, query);
+    const route = this.route(pathname);
+    if (!route) return this.notFound(pathname);
+    if (route.generated) {
+      const started = performance.now();
+      const html = this.decorate(fillAlts(creditsPage(creditedMedia(this.source)), this.source));
+      return { status: 200, html, file: route.file, notes: [], ms: performance.now() - started };
+    }
+    return this.renderPage(route.file, route.route, query, route.record);
   }
 
-  /** A page file, rendered as if it were at `pathname`. */
-  renderPage(file: string, pathname = this.routeOf(file) ?? "/", query: Record<string, string> = {}): RenderResult {
-    const result = this.render(file, { page: { url: pathname, path: pathname }, params: query });
-    if (result.status === 200) result.html = this.decorate(result.html);
+  /** A page file, rendered as if it were at `pathname`; a record's page with its record. */
+  renderPage(
+    file: string,
+    pathname = this.routeOf(file) ?? "/",
+    query: Record<string, string> = {},
+    record?: { datasource: string; id: string },
+  ): RenderResult {
+    const scope: Record<string, unknown> = { page: { url: pathname, path: pathname }, params: query };
+    const bracket = bracketOf(file.replace(/^pages\//, ""));
+    if (bracket) {
+      const ds = this.datasource(bracket.name, false);
+      const chosen = record ?? this.route(pathname)?.record;
+      scope.record = ds?.records.find((r) => r.id === chosen?.id) ?? ds?.records[0];
+    }
+    const result = this.render(file, scope);
+    if (result.status === 200) result.html = this.finish(this.decorate(result.html));
     return result;
   }
 
@@ -123,7 +187,7 @@ export class Runtime {
    */
   renderLoose(file: string): RenderResult {
     const result = this.render(file, { page: { url: "/", path: "/" }, params: {} });
-    if (result.status === 200) result.html = this.decorate(result.html);
+    if (result.status === 200) result.html = this.finish(this.decorate(result.html));
     return result;
   }
 
@@ -132,7 +196,9 @@ export class Runtime {
     const file = `fragments/${name}.liquid`;
     if (this.source.read(file) === undefined)
       return { status: 404, html: "", file, notes: [{ file, note: "no such fragment" }], ms: 0 };
-    return this.render(file, scope);
+    const result = this.render(file, scope);
+    if (result.status === 200) result.html = fillAlts(result.html, this.source);
+    return result;
   }
 
   /** theme.css, repaired if it is still being written. */
@@ -166,9 +232,40 @@ export class Runtime {
     return head ? injectHead(marked, head) : marked;
   }
 
+  /** A datasource's records as templates see them, its notes added to the render's once. */
+  private datasource(name: string, noted: boolean): Datasource | undefined {
+    if (!/^[a-z0-9][\w-]*$/i.test(name)) return undefined;
+    const ds = this.data.names().includes(name) ? this.data.get(name) : this.data.missing(name);
+    if (noted && !this.read.has(name)) {
+      this.read.add(name);
+      this.notes.push(...ds.notes);
+    }
+    return ds;
+  }
+
+  /** `data.posts`: each datasource read only when a template asks for it. */
+  private dataScope(): Record<string, unknown> {
+    return new Proxy(
+      {},
+      {
+        get: (_target, key) =>
+          typeof key === "string" && !LIQUID_PROBES.has(key) ? this.datasource(key, true)?.records : undefined,
+        has: (_target, key) => typeof key === "string" && !LIQUID_PROBES.has(key) && /^[a-z0-9][\w-]*$/i.test(key),
+      },
+    );
+  }
+
+  /** What every page gets once rendered: alt texts kept beside images, and the credits' link (Q155, Q157). */
+  private finish(html: string): string {
+    const filled = fillAlts(html, this.source);
+    return creditedMedia(this.source).length ? addCreditsLink(filled) : filled;
+  }
+
   private render(file: string, scope: Record<string, unknown>): RenderResult {
     const started = performance.now();
     this.notes = [];
+    this.read = new Set();
+    scope.data = this.dataScope();
     const raw = this.source.read(file);
     if (raw === undefined) {
       return { status: 404, html: "", file, notes: [{ file, note: "no such file" }], ms: 0 };
@@ -253,6 +350,24 @@ function renderError(error: unknown): string {
   return `<!doctype html><html><head><title>Render error</title></head><body><pre style="padding:2rem;white-space:pre-wrap">${escapeHtml(message)}</pre></body></html>`;
 }
 
-export function escapeHtml(text: string): string {
-  return text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+export { escapeHtml };
+
+/** Names Liquid itself asks an object for, which are not datasources. */
+const LIQUID_PROBES = new Set([
+  "toLiquid",
+  "liquidMethodMissing",
+  "size",
+  "first",
+  "last",
+  "then",
+  "constructor",
+  "toJSON",
+  "valueOf",
+  "toString",
+]);
+
+/** The datasource named in brackets in a page's path ("blog/[posts]"), and where. */
+function bracketOf(path: string): { name: string; at: number; end: number } | undefined {
+  const m = /\[([a-z0-9][\w-]*)\]/i.exec(path);
+  return m ? { name: m[1]!, at: m.index, end: m.index + m[0].length } : undefined;
 }

@@ -270,7 +270,12 @@ export function injectTrace(src: string, file: string): string {
   const loops: { name: string; item: string | null }[] = [];
   // Outside a loop, an element of a shared part belongs to the record its caller was looping over
   // (handed down as __rec), and an element of a fragment to the record it was rendered for.
-  const outer = file.startsWith("parts/") ? "__rec" : file.startsWith("fragments/") ? "record.__ref" : null;
+  // So does an element of a record's page, named after its datasource in brackets (Q147).
+  const outer = file.startsWith("parts/")
+    ? "__rec"
+    : file.startsWith("fragments/") || (file.startsWith("pages/") && /\[[\w-]+\]/.test(file))
+      ? "record.__ref"
+      : null;
   let line = 1;
   let pos = 0;
   // Inside <title> or <textarea> a comment would show as text: no include markers there.
