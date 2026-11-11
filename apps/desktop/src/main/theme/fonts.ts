@@ -89,6 +89,13 @@ export class Fonts {
     return first ? this.all().find((f) => f.family.toLowerCase() === first.toLowerCase()) : undefined;
   }
 
+  /** Where a shipped font's file is, from "<id>/normal.woff2". */
+  path(file: string): string | undefined {
+    const [id, name] = file.split("/");
+    const f = this.all().find((x) => x.id === id);
+    return f && name && Object.values(f.files).includes(name) ? join(this.dir, id!, name) : undefined;
+  }
+
   /** The files of these fonts, as the project keeps them: fonts/<id>/normal.woff2 → contents. */
   files(ids: string[]): Record<string, Buffer> {
     const out: Record<string, Buffer> = {};
@@ -98,8 +105,12 @@ export class Fonts {
     return out;
   }
 
-  /** theme.css with the region of @font-face rules for exactly these fonts (none: no region). */
-  withFaces(css: string, ids: string[]): string {
+  /**
+   * theme.css with the region of @font-face rules for exactly these fonts (none:
+   * no region). `base` is where the files are: the project's /fonts, or the
+   * app's own while the theme is only shown.
+   */
+  withFaces(css: string, ids: string[], base = "/fonts"): string {
     const faces = this.all()
       .filter((f) => ids.includes(f.id))
       .flatMap((f) =>
@@ -107,7 +118,7 @@ export class Fonts {
           .filter((style) => f.files[style])
           .map(
             (style) =>
-              `@font-face { font-family: "${f.family}"; font-style: ${style}; font-weight: ${f.weight}; font-display: swap; src: url("/fonts/${f.id}/${f.files[style]}") format("woff2"); }`,
+              `@font-face { font-family: "${f.family}"; font-style: ${style}; font-weight: ${f.weight}; font-display: swap; src: url("${base}/${f.id}/${f.files[style]}") format("woff2"); }`,
           ),
       );
     return setRegion(css, faces.length ? `${START}\n${faces.join("\n")}\n${END}\n` : "");

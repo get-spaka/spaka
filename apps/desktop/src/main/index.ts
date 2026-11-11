@@ -26,6 +26,8 @@ import { FileTap } from "./live/tap";
 import { Preview } from "./preview/preview";
 import { isEffort, Projects } from "./projects";
 import { Skills } from "./skills/skills";
+import { Fonts } from "./theme/fonts";
+import { readTheme, writeTheme } from "./theme/theme-file";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
 const env = readEnvironment();
@@ -91,8 +93,11 @@ async function main() {
     index ??= new BlockIndex(gallery.list());
     return index;
   };
+  // The open fonts the Theme tab offers (Q93), shipped the same way.
+  const fonts = new Fonts(app.isPackaged ? join(process.resourcesPath, "fonts") : join(here, "../../fonts"));
   const preview = new Preview(win, {
     block: (id) => gallery.get(id)?.source,
+    font: (path) => fonts.path(path),
     background: env.background,
     onState: (state) => ipc.emit("preview:state", state),
     invokes: {
@@ -508,6 +513,24 @@ async function main() {
     const theme = preview.runtime?.theme();
     if (!block || theme === undefined) throw new Error("No such block, or no project open.");
     return thumbnails.get(id, block.source, theme);
+  });
+  // The Theme tab (Q93): values shown while a gesture lasts, written at its end.
+  const themed = (values: Record<string, string>, base?: string) => {
+    const css = writeTheme(preview.runtime?.theme() ?? "", values);
+    const all = readTheme(css);
+    const ids = [all["--theme-font-heading"], all["--theme-font-body"]]
+      .map((v) => fonts.usedBy(v)?.id)
+      .filter((id): id is string => !!id);
+    return { css: fonts.withFaces(css, [...new Set(ids)], base), ids: [...new Set(ids)] };
+  };
+  ipc.handle("theme:get", () => ({
+    values: readTheme(preview.runtime?.theme() ?? "") as Record<string, string>,
+    fonts: fonts.list(),
+  }));
+  ipc.handle("theme:show", (values) => preview.showTheme(themed(values, "/__up/fonts").css));
+  ipc.handle("theme:apply", (values) => {
+    const { css, ids } = themed(values);
+    return editor.writeTheme(css, fonts.files(ids));
   });
   ipc.handle("gallery:add", (id) => {
     const route = preview.state().route;

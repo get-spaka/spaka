@@ -41,6 +41,8 @@ export type PreviewOptions = {
   invokes?: Partial<PreviewInvokes>;
   /** A gallery block's template, for its thumbnail (Q92). */
   block?: (id: string) => string | undefined;
+  /** A shipped font's file, from its path under /__up/fonts/, for a theme shown before it is written. */
+  font?: (path: string) => string | undefined;
 };
 
 export class Preview {
@@ -71,6 +73,7 @@ export class Preview {
     this.server = new PreviewServer(
       () => this.site && { root: this.site.root, runtime: this.site.runtime },
       options.block,
+      options.font,
     );
     this.view = new WebContentsView({
       webPreferences: {
@@ -206,6 +209,11 @@ export class Preview {
   private comments: PageComment[] = [];
 
   /** The maker's comments, drawn by the page on the elements they are about (Q95). */
+  /** A theme being set in the Theme tab, shown before it is written (Q93). */
+  showTheme(css: string) {
+    if (this.site) this.send({ type: "theme", css });
+  }
+
   setComments(comments: PageComment[]) {
     this.comments = comments;
     this.send({ type: "comments", comments });

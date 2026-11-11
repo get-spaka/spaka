@@ -46,6 +46,7 @@ export class PreviewServer {
   constructor(
     private readonly site: () => Site | undefined,
     private readonly block: (id: string) => string | undefined = () => undefined,
+    private readonly font: (path: string) => string | undefined = () => undefined,
   ) {}
 
   get origin() {
@@ -78,6 +79,16 @@ export class PreviewServer {
       if (!vendor) return notFound(res);
       const file = nodeRequire.resolve(vendor.module);
       res.writeHead(200, { "content-type": vendor.type, "cache-control": "max-age=3600" });
+      createReadStream(file).pipe(res);
+      return;
+    }
+
+    // A shipped font, for a theme the Theme tab shows before writing it.
+    const font = /^\/__up\/fonts\/([a-z0-9-]+\/(?:normal|italic)\.woff2)$/.exec(url.pathname);
+    if (font) {
+      const file = this.font(font[1]!);
+      if (!file || !isFile(file)) return notFound(res);
+      res.writeHead(200, { "content-type": "font/woff2", "cache-control": "max-age=3600" });
       createReadStream(file).pipe(res);
       return;
     }

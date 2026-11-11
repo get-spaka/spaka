@@ -1,0 +1,276 @@
+// The Theme tab (Q93): ready-made palettes, each colour, the roundness and
+// the fonts. The page follows while a gesture lasts (a colour dragged in the
+// picker, the slider moved); theme.css is written once, at its end, as one
+// version. Only the theme's core values change; the rest of the file stays.
+import { AlertTriangle, Moon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import type { FontChoice, ThemeValues } from "../../shared/ipc";
+import { contrast, PALETTES, type PaletteColors, parseColor, READ_TOGETHER } from "../../shared/palettes";
+import { upstart } from "../lib/bridge";
+import { t } from "../lib/strings";
+import { cn } from "../lib/utils";
+import { messageOf } from "./SettingsDialog";
+import { Button } from "./ui/button";
+
+const COLORS = Object.keys(PALETTES[0]!.colors) as (keyof PaletteColors)[];
+
+export function ThemeTab({ theme, working, onAskDark }: { theme: string; working: boolean; onAskDark: () => void }) {
+  const [values, setValues] = useState<ThemeValues>({});
+  const [fonts, setFonts] = useState<FontChoice[]>([]);
+  const [error, setError] = useState<string>();
+  // While the maker is in a gesture, the theme read back from the disk does not overwrite what is shown.
+  const gesture = useRef(false);
+  useEffect(() => {
+    if (gesture.current || !theme) return;
+    void upstart.invoke("theme:get").then((got) => {
+      if (gesture.current) return;
+      setValues(got.values);
+      setFonts(got.fonts);
+    });
+  }, [theme]);
+
+  const show = (next: ThemeValues) => {
+    gesture.current = true;
+    setValues((v) => ({ ...v, ...next }));
+    void upstart.invoke("theme:show", next);
+  };
+  const apply = (next: ThemeValues) => {
+    gesture.current = false;
+    setError(undefined);
+    setValues((v) => ({ ...v, ...next }));
+    void upstart.invoke("theme:apply", next).catch((e) => setError(messageOf(e)));
+  };
+
+  if (!theme) return <p className="px-4 py-3 text-xs text-muted-foreground">{t.theme.noProject}</p>;
+  const radius = Number.parseFloat(values["--theme-radius"] ?? "0.75") || 0;
+
+  return (
+    <fieldset data-testid="theme" disabled={working} className="flex-1 space-y-6 overflow-y-auto px-4 py-3">
+      {working && <p className="text-xs text-muted-foreground">{t.theme.busy}</p>}
+      {error && <p className="text-xs text-destructive">{error}</p>}
+
+      <Group title={t.theme.palettes}>
+        <div className="grid grid-cols-3 gap-2">
+          {PALETTES.map((p) => {
+            const current = COLORS.every((c) => same(values[c], p.colors[c]));
+            return (
+              <button
+                key={p.id}
+                type="button"
+                data-testid={`palette-${p.id}`}
+                aria-pressed={current}
+                onClick={() => apply({ ...p.colors })}
+                className={cn(
+                  "overflow-hidden rounded-md border text-left text-[11px] disabled:opacity-50",
+                  current ? "ring-2 ring-foreground" : "hover:border-foreground/40",
+                )}
+              >
+                <div className="flex h-8" style={{ background: p.colors["--theme-color-surface"] }}>
+                  {(
+                    [
+                      "--theme-color-primary",
+                      "--theme-color-secondary",
+                      "--theme-color-accent",
+                      "--theme-color-neutral",
+                    ] as const
+                  ).map((c) => (
+                    <span key={c} className="m-1 flex-1 rounded-sm" style={{ background: p.colors[c] }} />
+                  ))}
+                </div>
+                <div className="px-1.5 py-1">{p.name}</div>
+              </button>
+            );
+          })}
+        </div>
+        <Button variant="outline" size="sm" className="mt-2 w-full" onClick={onAskDark} data-testid="ask-dark">
+          <Moon /> {t.theme.askDark}
+        </Button>
+      </Group>
+
+      <Group title={t.theme.colors}>
+        <div className="space-y-1.5">
+          {COLORS.map((name) => (
+            <ColorRow
+              key={name}
+              name={name}
+              value={values[name] ?? ""}
+              warning={warningFor(name, values)}
+              onShow={(v) => show({ [name]: v })}
+              onApply={(v) => apply({ [name]: v })}
+            />
+          ))}
+        </div>
+      </Group>
+
+      <Group title={t.theme.shape}>
+        <div className="flex items-center gap-3 text-xs">
+          <span className="w-24 shrink-0">{t.theme.radius}</span>
+          <Gesture
+            render={(ref) => (
+              <input
+                ref={ref}
+                type="range"
+                min={0}
+                max={2}
+                step={0.125}
+                value={radius}
+                data-testid="radius"
+                aria-label={t.theme.radius}
+                onChange={(e) => show({ "--theme-radius": `${e.target.value}rem` })}
+                className="flex-1"
+              />
+            )}
+            onEnd={(el) => apply({ "--theme-radius": `${(el as HTMLInputElement).value}rem` })}
+          />
+          <span className="w-12 text-right tabular-nums text-muted-foreground">{radius}rem</span>
+        </div>
+      </Group>
+
+      <Group title={t.theme.fonts}>
+        {(["--theme-font-heading", "--theme-font-body"] as const).map((name) => (
+          <label key={name} className="flex items-center gap-3 text-xs">
+            <span className="w-24 shrink-0">{name.endsWith("heading") ? t.theme.heading : t.theme.body}</span>
+            <select
+              data-testid={`font-${name.endsWith("heading") ? "heading" : "body"}`}
+              className="h-8 flex-1 rounded-md border bg-background px-2"
+              value={fonts.find((f) => same(f.stack, values[name]))?.id ?? ""}
+              onChange={(e) => {
+                const font = fonts.find((f) => f.id === e.target.value);
+                if (font) apply({ [name]: font.stack });
+              }}
+            >
+              {!fonts.some((f) => same(f.stack, values[name])) && <option value="">{values[name] || "—"}</option>}
+              <optgroup label={t.theme.system}>
+                {fonts
+                  .filter((f) => !f.shipped)
+                  .map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name}
+                    </option>
+                  ))}
+              </optgroup>
+              <optgroup label={t.theme.shipped}>
+                {fonts
+                  .filter((f) => f.shipped)
+                  .map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name}
+                    </option>
+                  ))}
+              </optgroup>
+            </select>
+          </label>
+        ))}
+      </Group>
+    </fieldset>
+  );
+}
+
+function Group({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="space-y-2">
+      <h2 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{title}</h2>
+      {children}
+    </section>
+  );
+}
+
+/** An element whose native "change" event ends a gesture (React's onChange fires on every move). */
+function Gesture({
+  render,
+  onEnd,
+}: {
+  render: (ref: (el: HTMLElement | null) => void) => React.ReactNode;
+  onEnd: (el: HTMLElement) => void;
+}) {
+  const end = useRef(onEnd);
+  end.current = onEnd;
+  const attached = useRef<HTMLElement | null>(null);
+  const listener = useRef((e: Event) => end.current(e.target as HTMLElement));
+  return render((el) => {
+    attached.current?.removeEventListener("change", listener.current);
+    attached.current = el;
+    el?.addEventListener("change", listener.current);
+  });
+}
+
+function ColorRow({
+  name,
+  value,
+  warning,
+  onShow,
+  onApply,
+}: {
+  name: string;
+  value: string;
+  warning?: string;
+  onShow: (value: string) => void;
+  onApply: (value: string) => void;
+}) {
+  const hex = toHex(value);
+  const [text, setText] = useState(value);
+  useEffect(() => setText(value), [value]);
+  const commit = () => {
+    if (text.trim() && text.trim() !== value) onApply(text.trim());
+  };
+  return (
+    <div data-testid="theme-color" data-name={name}>
+      <div className="flex items-center gap-2 text-xs">
+        <Gesture
+          render={(ref) => (
+            <input
+              ref={ref}
+              type="color"
+              value={hex ?? "#000000"}
+              disabled={!hex}
+              aria-label={t.theme.names[name]}
+              onChange={(e) => onShow(e.target.value)}
+              className="h-6 w-8 shrink-0 cursor-pointer rounded border bg-transparent p-0"
+            />
+          )}
+          onEnd={(el) => onApply((el as HTMLInputElement).value)}
+        />
+        <span className="flex-1 truncate">{t.theme.names[name]}</span>
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => e.key === "Enter" && commit()}
+          spellCheck={false}
+          className="h-6 w-24 rounded border bg-background px-1.5 font-mono text-[11px]"
+        />
+      </div>
+      {warning && (
+        <p data-testid="contrast-warning" className="mt-0.5 flex items-center gap-1 pl-10 text-[11px] text-amber-600">
+          <AlertTriangle className="size-3" /> {warning}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** A warning under a text colour that reads poorly on its background (below WCAG's 4.5:1). */
+function warningFor(name: string, values: ThemeValues): string | undefined {
+  const pair = READ_TOGETHER.filter(([, text]) => text === name);
+  for (const [bg, text] of pair) {
+    const a = toHex(values[bg] ?? "");
+    const b = toHex(values[text] ?? "");
+    if (!a || !b) continue;
+    const ratio = contrast(a, b);
+    if (ratio < 4.5) return t.theme.hardToRead(ratio.toFixed(1));
+  }
+  return undefined;
+}
+
+function toHex(value: string): string | undefined {
+  const c = parseColor(value);
+  if (!c) return undefined;
+  return `#${c
+    .slice(0, 3)
+    .map((n) => Math.round(n).toString(16).padStart(2, "0"))
+    .join("")}`;
+}
+
+function same(a: string | undefined, b: string | undefined): boolean {
+  return !!a && !!b && a.replace(/\s+/g, " ").trim().toLowerCase() === b.replace(/\s+/g, " ").trim().toLowerCase();
+}

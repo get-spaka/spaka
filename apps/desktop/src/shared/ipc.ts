@@ -41,6 +41,8 @@ export type GalleryBlock = {
   synonyms: string[];
 };
 
+/** Values of the theme's core variables, by name ("--theme-color-primary" → "#9a3412"). */
+export type ThemeValues = Record<string, string>;
 /** A font the Theme tab offers (Q93): the system's own, or one shipped with Upstart and copied into the project. */
 export type FontChoice = { id: string; name: string; category: string; stack: string; shipped: boolean };
 
@@ -219,6 +221,12 @@ export type Invokes = {
   "gallery:thumbnail": (id: string) => string;
   /** Puts a block into the page shown, where a block of its kind usually goes. */
   "gallery:add": (id: string) => { label: string; files: string[] };
+  /** The theme's core values as theme.css sets them, and the fonts the Theme tab offers. */
+  "theme:get": () => { values: ThemeValues; fonts: FontChoice[] };
+  /** Shows these values in the preview, during a gesture, without writing them. */
+  "theme:show": (values: ThemeValues) => void;
+  /** Writes these values into theme.css, at the end of a gesture: one version (Q93). */
+  "theme:apply": (values: ThemeValues) => { label: string; files: string[] };
 };
 
 /** One-way messages from the interface to the main process. */
@@ -296,6 +304,9 @@ export const channels = {
     "gallery:list",
     "gallery:thumbnail",
     "gallery:add",
+    "theme:get",
+    "theme:show",
+    "theme:apply",
   ],
   send: ["app:ready", "preview:bounds"],
   events: [
