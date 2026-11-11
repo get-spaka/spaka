@@ -195,6 +195,98 @@ export const en = {
   settings: {
     title: "Settings",
     close: "Close",
+    search: "Search",
+    searchLabel: "Search the settings",
+    noMatch: (query: string) => `No setting matches “${query}”.`,
+    pages: {
+      general: "General",
+      agent: "Agent",
+      skills: "Skills",
+      connectors: "Connectors",
+      privacy: "Privacy",
+      about: "About Upstart",
+    },
+    account: {
+      name: "Claude",
+      checking: "Checking…",
+      signedOut: "Not signed in",
+      signingIn: "Signing in…",
+      method: (method?: string) =>
+        method === "api_key"
+          ? "API key"
+          : method === "console"
+            ? "Claude Console"
+            : method
+              ? "Claude subscription"
+              : "Signed in",
+    },
+    general: {
+      websites: "Websites",
+      folder: "Folder",
+      folderHelp: "Where new websites go. A website opened from another folder stays where it is.",
+      reveal: "Show in Finder",
+    },
+    agent: {
+      intro:
+        "Upstart's agent is Claude. It works only on your websites, apart from anything else installed on this computer.",
+      account: "Account",
+      signedInAs: (how: string) => `Signed in with ${how === "API key" ? "an API key" : `your ${how}`}`,
+      passwordNote: "Upstart never sees your password.",
+      signedOut: "Not signed in",
+      signedOutHelp: "Sign in from Upstart's window to start building.",
+      apiKey: "API key",
+      apiKeyKept: "A key from the Claude Console is kept, encrypted by the system.",
+      apiKeyNone: "Use a key from the Claude Console instead of signing in.",
+      useKey: "Use a key…",
+      removeKey: "Remove",
+      keyPlaceholder: "Paste the key",
+      saveKey: "Save",
+      cancel: "Cancel",
+      forNew: "For new websites",
+      model: "Model",
+      effort: "Effort",
+      forNewHelp: "Each website keeps its own model and effort; change them from its conversation or its settings.",
+    },
+    skills: {
+      app: "For all your websites",
+      upstart: "Built into Upstart",
+      siteHelp: "A website's own skills are in its settings: the button on its row in the websites list.",
+      add: "Add a skill",
+      remove: "Remove the chosen skill",
+      choose: (name: string) => `Choose ${name}`,
+    },
+    connectors: {
+      app: "For all your websites",
+      siteHelp: "A website's own connectors are in its settings: the button on its row in the websites list.",
+      add: "Add a connector",
+      remove: "Remove the chosen connector",
+    },
+    privacy: {
+      statistics: "Share anonymous usage statistics",
+      statisticsHelp:
+        "The app's version, the system, the day's launch, the features used and the type of an error. Never a message, a website's content, a file name or an address.",
+      notYet: "Nothing is sent yet: this version of Upstart has no statistics service.",
+    },
+    about: {
+      tagline: "Websites made with an agent, on your computer.",
+      version: (version: string) => `Version ${version}`,
+      licence: "Free software, under the MIT licence.",
+      built: (electron: string, chromium: string, node: string) =>
+        `Electron ${electron} · Chromium ${chromium} · Node ${node}`,
+    },
+  },
+  site: {
+    open: (name: string) => `Settings of ${name}`,
+    kept: "Kept in its folder: these settings go with it.",
+    agent: "Agent",
+    ownSkills: "Its own skills",
+    ownConnectors: "Its own connectors",
+    alsoUsed: (names: string) => `Also used here, for all your websites: ${names}.`,
+    noneShared: "No connector is set for all your websites.",
+    fromSettings: "Open Settings › Connectors",
+    addSkill: "Add a skill to this website",
+    addConnector: "Add a connector to this website",
+    done: "Done",
   },
   skills: {
     title: "Skills",

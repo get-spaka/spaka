@@ -1,4 +1,4 @@
-import { FolderOpen, PanelLeft, Plus, Settings } from "lucide-react";
+import { FolderOpen, PanelLeft, Plus, Settings, SlidersHorizontal } from "lucide-react";
 import type { ProjectInfo, ProjectSummary } from "../../shared/ipc";
 import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
@@ -11,12 +11,15 @@ export function Sidebar({
   onCollapse,
   onNew,
   onSettings,
+  onSiteSettings,
 }: {
   projects: ProjectSummary[];
   current: ProjectInfo | null;
   onCollapse: () => void;
   onNew: () => void;
   onSettings: () => void;
+  /** Opens a website's own settings (Q118). */
+  onSiteSettings: (id: string) => void;
 }) {
   return (
     <aside data-testid="sidebar" className="flex w-60 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
@@ -46,19 +49,36 @@ export function Sidebar({
           <p className="px-2 py-1 text-sm text-muted-foreground">{t.sidebar.noProjects}</p>
         ) : (
           projects.map((project) => (
-            <button
-              type="button"
+            <div
               key={project.id}
-              title={project.path}
-              data-testid="project-item"
-              onClick={() => void upstart.invoke("projects:open", project.id)}
               className={cn(
-                "flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-sidebar-accent",
+                "group flex items-center rounded-md transition-colors hover:bg-sidebar-accent",
                 current?.id === project.id && "bg-sidebar-accent font-medium",
               )}
             >
-              <span className="truncate">{project.name}</span>
-            </button>
+              <button
+                type="button"
+                title={project.path}
+                data-testid="project-item"
+                onClick={() => void upstart.invoke("projects:open", project.id)}
+                className="min-w-0 flex-1 px-2 py-1.5 text-left text-sm"
+              >
+                <span className="block truncate">{project.name}</span>
+              </button>
+              <button
+                type="button"
+                data-testid="project-settings"
+                aria-label={t.site.open(project.name)}
+                title={t.site.open(project.name)}
+                onClick={() => onSiteSettings(project.id)}
+                className={cn(
+                  "mr-1 rounded p-1 text-muted-foreground opacity-0 hover:bg-background hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100",
+                  current?.id === project.id && "opacity-100",
+                )}
+              >
+                <SlidersHorizontal className="size-3.5" />
+              </button>
+            </div>
           ))
         )}
       </nav>

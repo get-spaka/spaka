@@ -1,12 +1,14 @@
 // Main-process side of the IPC contract. A channel answers only messages that
-// come from the interface's own main frame: a page loaded anywhere else in
-// the app (the preview, later) cannot call it.
+// come from the main frame of one of the interface's own windows (the app's
+// window, the settings window): a page loaded anywhere else in the app (the
+// preview) cannot call it. Events go to every one of those windows.
 import { type BrowserWindow, type IpcMainEvent, type IpcMainInvokeEvent, ipcMain } from "electron";
 import type { EventChannel, Events, InvokeChannel, Invokes, SendChannel, Sends } from "../shared/ipc";
 
-export function createIpc(win: BrowserWindow) {
+export function createIpc(windows: () => BrowserWindow[]) {
+  const open = () => windows().filter((w) => !w.isDestroyed());
   const fromInterface = (event: IpcMainEvent | IpcMainInvokeEvent) =>
-    event.sender === win.webContents && event.senderFrame === win.webContents.mainFrame;
+    open().some((w) => event.sender === w.webContents && event.senderFrame === w.webContents.mainFrame);
 
   return {
     handle<C extends InvokeChannel>(
@@ -24,7 +26,7 @@ export function createIpc(win: BrowserWindow) {
       });
     },
     emit<C extends EventChannel>(channel: C, ...args: Parameters<Events[C]>) {
-      if (!win.isDestroyed()) win.webContents.send(channel, ...args);
+      for (const w of open()) w.webContents.send(channel, ...args);
     },
   };
 }

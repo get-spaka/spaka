@@ -3,7 +3,8 @@
 // itself, in English or French, accents and case aside.
 import type { GalleryBlock } from "./ipc";
 
-const fold = (text: string) =>
+/** The words of a text, lower case and without accents. */
+export const foldWords = (text: string) =>
   text
     .toLowerCase()
     .normalize("NFD")
@@ -13,9 +14,9 @@ const fold = (text: string) =>
 
 /** Whether a block answers the words typed; `also` holds other names for it, such as its kind's label. */
 export function matchesBlock(block: GalleryBlock, query: string, also: string[] = []): boolean {
-  const wanted = fold(query);
+  const wanted = foldWords(query);
   if (!wanted.length) return true;
-  const own = fold(
+  const own = foldWords(
     [block.kind, block.name, block.description, ...block.tags, ...block.synonyms, ...block.mood, ...also].join(" "),
   );
   return wanted.every((w) => own.some((o) => o.startsWith(w)));

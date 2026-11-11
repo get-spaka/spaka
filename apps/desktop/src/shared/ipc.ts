@@ -10,6 +10,8 @@ export type AppInfo = {
   version: string;
   platform: string;
   background: boolean;
+  /** The folder new websites go into. */
+  projectsDir: string;
   versions: { electron: string; chromium: string; node: string };
 };
 
@@ -164,9 +166,33 @@ export type EditInfo = {
 /** A project's conversation, as shown. */
 export type ConversationState = { projectId: string; items: ConversationItem[] };
 
+/** The categories of the settings window (Q117), in the order of its sidebar. */
+export const SETTINGS_PAGES = ["general", "agent", "skills", "connectors", "privacy", "about"] as const;
+export type SettingsPage = (typeof SETTINGS_PAGES)[number];
+
+/** The app's own settings, for every website, kept on this computer. */
+export type AppSettings = {
+  /** The model and effort a new website starts with. */
+  newModel: string;
+  newEffort: Effort;
+  /** Anonymous usage statistics (decisions: on by default; nothing is sent before the polish step). */
+  statistics: boolean;
+};
+export const DEFAULT_APP_SETTINGS: AppSettings = {
+  newModel: "claude-sonnet-5-5",
+  newEffort: "medium",
+  statistics: true,
+};
+
 /** Calls from the interface that get an answer: channel → (args) → answer. */
 export type Invokes = {
   "app:info": () => AppInfo;
+  /** Opens the settings window (Q116), at a page; brings it forward if it is open. */
+  "settings:open": (page?: SettingsPage) => void;
+  "settings:get": () => AppSettings;
+  "settings:set": (change: Partial<AppSettings>) => AppSettings;
+  /** Shows the websites' folder in the Finder. */
+  "settings:reveal-projects": () => void;
   "projects:list": () => ProjectSummary[];
   "projects:create": (name: string) => ProjectInfo;
   "projects:open": (id: string) => ProjectInfo;
@@ -264,6 +290,9 @@ export type Events = {
   "skills:changed": (skills: SkillInfo[]) => void;
   "connectors:changed": (connectors: ConnectorInfo[]) => void;
   "comments:changed": (comments: PageComment[]) => void;
+  "settings:changed": (settings: AppSettings) => void;
+  /** The settings window, already open, is asked to show a page. */
+  "settings:page": (page: SettingsPage) => void;
 };
 
 export type InvokeChannel = keyof Invokes;
@@ -274,6 +303,10 @@ export type EventChannel = keyof Events;
 export const channels = {
   invoke: [
     "app:info",
+    "settings:open",
+    "settings:get",
+    "settings:set",
+    "settings:reveal-projects",
     "projects:list",
     "projects:create",
     "projects:open",
@@ -335,6 +368,8 @@ export const channels = {
     "skills:changed",
     "connectors:changed",
     "comments:changed",
+    "settings:changed",
+    "settings:page",
   ],
 } as const satisfies {
   invoke: readonly InvokeChannel[];

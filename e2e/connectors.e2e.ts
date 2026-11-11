@@ -1,10 +1,12 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import type { Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp } from "./app.ts";
+import { type LaunchedApp, launchApp, settingsPage } from "./app.ts";
 
-// Connectors (ADR 0010), with the recorded agent: added from the settings
-// without their secrets in any file in clear, a received project's program
+// Connectors (ADR 0010), with the recorded agent: added in the settings window
+// for every website (Q116) without their secrets in any file in clear, a
+// received project's program shown in the website's own settings (Q118) and
 // kept off until turned on, and what is on given to the agent.
 describe("connectors", () => {
   let launched: LaunchedApp;
@@ -35,7 +37,9 @@ describe("connectors", () => {
     const { id } = await invoke("projects:current");
     return main((u, id) => u.agent.sessions.get(id)?.connectors?.names ?? [], id) as Promise<string[]>;
   };
-  const row = (name: string) => launched.window.locator(`[data-testid="connector"][data-name="${name}"]`);
+  let settings: Page;
+  const row = (name: string, page: Page = settings) => page.locator(`[data-testid="connector"][data-name="${name}"]`);
+  const sheetRow = (name: string) => row(name, launched.window);
 
   beforeAll(async () => {
     launched = await launchApp();
@@ -43,15 +47,16 @@ describe("connectors", () => {
     await invoke("conversation:send", "A bakery in Lyon. Warm colours please.");
     await until(() => launched.window.locator('[data-testid="agent-message"][data-status="done"]').count(), 30_000);
     await launched.window.getByTestId("open-settings").click();
+    settings = await settingsPage(launched.app);
+    await settings.getByTestId("settings-page-connectors").click();
   }, 60_000);
   afterAll(async () => {
     await launched?.close();
   });
 
   test("a remote connector added for all websites keeps its token out of every file in clear", async () => {
-    const w = launched.window;
-    await w.getByTestId("connector-new").click();
-    await w.getByTestId("connector-scope").selectOption("app");
+    const w = settings;
+    await w.getByTestId("connectors-app-add").click();
     await w.getByTestId("connector-name").fill("docs");
     await w.getByTestId("connector-target").fill("https://mcp.example.invalid/mcp");
     await w.getByTestId("connector-secret-name").fill("Authorization");
@@ -71,13 +76,17 @@ describe("connectors", () => {
       join(path, ".upstart/connectors.json"),
       JSON.stringify({ connectors: [{ name: "notes", kind: "local", command: "node", args: ["notes-server.js"] }] }),
     );
-    await until(() => row("notes").count());
-    expect(await row("notes").getAttribute("data-state")).toBe("needs-approval");
-    await expect(row("notes").locator("code").textContent()).resolves.toBe("node notes-server.js");
+    await launched.window.getByTestId("project-settings").first().click();
+    await until(() => sheetRow("notes").count());
+    expect(await sheetRow("notes").getAttribute("data-state")).toBe("needs-approval");
+    await expect(sheetRow("notes").locator("code").textContent()).resolves.toBe("node notes-server.js");
     expect(await given()).not.toContain("notes");
-    await launched.capture("settings-connectors");
-    await row("notes").getByTestId("connector-approve").click();
-    await until(async () => (await row("notes").getAttribute("data-state")) === "on");
+    // The website's settings say which connectors it also gets from the settings for all.
+    await expect(launched.window.getByTestId("site-shared-connectors").textContent()).resolves.toContain("docs");
+    expect(await row("notes").count()).toBe(0);
+    await launched.capture("site-settings-connectors");
+    await sheetRow("notes").getByTestId("connector-approve").click();
+    await until(async () => (await sheetRow("notes").getAttribute("data-state")) === "on");
     await until(async () => (await given()).includes("notes"));
 
     // The agent (or anyone) changes the command: it is off again.
@@ -85,18 +94,22 @@ describe("connectors", () => {
       join(path, ".upstart/connectors.json"),
       JSON.stringify({ connectors: [{ name: "notes", kind: "local", command: "node", args: ["other.js"] }] }),
     );
-    await until(async () => (await row("notes").getAttribute("data-state")) === "needs-approval");
+    await until(async () => (await sheetRow("notes").getAttribute("data-state")) === "needs-approval");
     await until(async () => !(await given()).includes("notes"));
+    await launched.window.getByTestId("site-settings-done").click();
   });
 
   test("a form error is said; removing a connector takes it from the agent", async () => {
-    const w = launched.window;
-    await w.getByTestId("connector-new").click();
+    const w = settings;
+    await w.getByTestId("connectors-app-add").click();
     await w.getByTestId("connector-name").fill("upstart");
     await w.getByTestId("connector-target").fill("https://example.com/mcp");
     await w.getByTestId("connector-add").click();
     await expect(w.getByTestId("connector-error").textContent()).resolves.toContain("taken by Upstart");
-    await row("docs").getByTestId("connector-remove").click();
+    await settings.screenshot({ path: join(import.meta.dirname, ".runs/settings-connectors.png") });
+    // Chosen, then removed with −.
+    await row("docs").locator("button").first().click();
+    await w.getByTestId("connectors-app-remove").click();
     await until(async () => (await row("docs").count()) === 0);
     await until(async () => !(await given()).includes("docs"));
   });

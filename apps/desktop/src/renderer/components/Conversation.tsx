@@ -2,6 +2,7 @@ import { ArrowUp, Check, CircleSlash, Eraser, Loader2, PanelLeft, Square, X } fr
 import { type KeyboardEvent, useLayoutEffect, useRef, useState } from "react";
 import { type Activity, type ConversationItem, isWorking } from "../../shared/conversation";
 import type { AgentStatus, Effort, PreviewState, ProjectInfo } from "../../shared/ipc";
+import { useAppSettings } from "../hooks/useMain";
 import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
@@ -30,10 +31,10 @@ export function Conversation({
   const [tab, setTab] = useState<"conversation" | "blocks" | "theme">("conversation");
   const shownTab = project ? tab : "conversation";
   // Before the first message there is no project yet: the choice waits for it.
-  const [newSettings, setNewSettings] = useState<{ model: string; effort: Effort }>({
-    model: "claude-sonnet-5-5",
-    effort: "medium",
-  });
+  // It starts from the settings' model and effort for new websites (Q117).
+  const defaults = useAppSettings();
+  const [chosen, setNewSettings] = useState<{ model: string; effort: Effort }>();
+  const newSettings = chosen ?? { model: defaults.newModel, effort: defaults.newEffort };
   const working = isWorking(items);
   const signedOut = status.auth === "signed-out" || status.auth === "signing-in";
 

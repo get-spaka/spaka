@@ -3,14 +3,22 @@ import { existsSync, type FSWatcher, mkdirSync, readFileSync, watch, writeFileSy
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { query } from "@anthropic-ai/claude-agent-sdk";
-import { app, BrowserWindow, dialog, safeStorage, shell } from "electron";
-import type { ConnectorInfo, HistoryEntry, PageComment, ProjectInfo } from "../shared/ipc";
+import { app, BrowserWindow, dialog, Menu, safeStorage, shell } from "electron";
+import {
+  type ConnectorInfo,
+  type HistoryEntry,
+  type PageComment,
+  type ProjectInfo,
+  SETTINGS_PAGES,
+  type SettingsPage,
+} from "../shared/ipc";
 import { en as t } from "../shared/strings/en";
 import { Agent, projectNameFrom } from "./agent/agent";
 import { AgentAuth } from "./agent/auth";
 import { agentBinary, cleanEnv, nodeLauncher } from "./agent/confinement";
 import { FIND_BLOCKS_TOOL, LOOK_TOOL, UPSTART_SERVER, upstartServer } from "./agent/preview-tool";
 import { Recorder, replayQuery } from "./agent/replay";
+import { AppSettingsStore } from "./app-settings";
 import { Connectors, type Vault } from "./connectors/connectors";
 import { Comments, commentsMessage } from "./editing/comments";
 import { Editor } from "./editing/editor";
@@ -85,7 +93,85 @@ async function main() {
   });
   if (!env.background) win.once("ready-to-show", () => win.show());
 
-  const ipc = createIpc(win);
+  // The settings, in a window of their own (Q116), opened with ⌘, or from the sidebar.
+  let settingsWin: BrowserWindow | undefined;
+  const ipc = createIpc(() => (settingsWin ? [win, settingsWin] : [win]));
+  const devUrl = process.env.ELECTRON_RENDERER_URL;
+  const loadInterface = (w: BrowserWindow, hash?: string) =>
+    devUrl
+      ? w.loadURL(hash ? `${devUrl}#${hash}` : devUrl)
+      : w.loadFile(join(here, "../renderer/index.html"), { hash });
+  const openSettings = (page?: SettingsPage) => {
+    const wanted = page && SETTINGS_PAGES.includes(page) ? page : undefined;
+    if (settingsWin && !settingsWin.isDestroyed()) {
+      if (wanted) ipc.emit("settings:page", wanted);
+      if (!env.background) settingsWin.focus();
+      return;
+    }
+    const w = new BrowserWindow({
+      width: 900,
+      height: 640,
+      minWidth: 760,
+      minHeight: 480,
+      show: false,
+      title: t.settings.title,
+      titleBarStyle: "hiddenInset",
+      trafficLightPosition: { x: 18, y: 18 },
+      backgroundColor: "#f2f2f3",
+      fullscreenable: false,
+      webPreferences: {
+        preload: join(here, "../preload/app.cjs"),
+        contextIsolation: true,
+        sandbox: true,
+        backgroundThrottling: !env.background,
+      },
+    });
+    w.webContents.on("will-navigate", (details) => {
+      if (details.url !== w.webContents.getURL()) details.preventDefault();
+    });
+    w.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+    if (!env.background) w.once("ready-to-show", () => w.show());
+    w.on("closed", () => {
+      if (settingsWin === w) settingsWin = undefined;
+    });
+    settingsWin = w;
+    void loadInterface(w, `settings/${wanted ?? "general"}`);
+  };
+  // A native dialog belongs to the window it was asked from.
+  const dialogParent = () => {
+    const focused = BrowserWindow.getFocusedWindow();
+    return focused && (focused === win || focused === settingsWin) ? focused : win;
+  };
+  const settings = new AppSettingsStore(join(app.getPath("userData"), "settings.json"));
+  // The app's menu: macOS's usual one, with Settings… (⌘,) in the app's menu.
+  Menu.setApplicationMenu(
+    Menu.buildFromTemplate([
+      {
+        label: app.name,
+        submenu: [
+          { role: "about" },
+          { type: "separator" },
+          { label: `${t.settings.title}…`, accelerator: "CommandOrControl+,", click: () => openSettings() },
+          { type: "separator" },
+          { role: "services" },
+          { type: "separator" },
+          { role: "hide" },
+          { role: "hideOthers" },
+          { role: "unhide" },
+          { type: "separator" },
+          { role: "quit" },
+        ],
+      },
+      { role: "fileMenu" },
+      { role: "editMenu" },
+      { role: "viewMenu" },
+      { role: "windowMenu" },
+    ]),
+  );
+  // Closing the app's window closes its settings too.
+  win.on("closed", () => {
+    if (settingsWin && !settingsWin.isDestroyed()) settingsWin.close();
+  });
   const projects = new Projects(app.getPath("userData"), env.projectsDir);
   // The gallery's blocks (Q92), shipped beside the app like its skills.
   const gallery = new Gallery(app.isPackaged ? join(process.resourcesPath, "gallery") : join(here, "../../gallery"));
@@ -364,10 +450,22 @@ async function main() {
     return project;
   };
 
+  ipc.handle("settings:open", (page) => openSettings(page));
+  ipc.handle("settings:get", () => settings.get());
+  ipc.handle("settings:set", (change) => {
+    const next = settings.set(change);
+    ipc.emit("settings:changed", next);
+    return next;
+  });
+  ipc.handle("settings:reveal-projects", () => {
+    mkdirSync(env.projectsDir, { recursive: true });
+    if (!env.background) void shell.openPath(env.projectsDir);
+  });
   ipc.handle("app:info", () => ({
     version: app.getVersion(),
     platform: process.platform,
     background: env.background,
+    projectsDir: env.projectsDir,
     versions: {
       electron: process.versions.electron,
       chromium: process.versions.chrome,
@@ -391,7 +489,7 @@ async function main() {
   });
   ipc.handle("projects:choose-folder", async () => {
     if (env.background) return null;
-    const answer = await dialog.showOpenDialog(win, {
+    const answer = await dialog.showOpenDialog(dialogParent(), {
       title: "Open a website folder",
       properties: ["openDirectory", "createDirectory"],
     });
@@ -448,7 +546,7 @@ async function main() {
   });
   ipc.handle("export:choose-folder", async () => {
     if (env.background) return null;
-    const answer = await dialog.showOpenDialog(win, {
+    const answer = await dialog.showOpenDialog(dialogParent(), {
       title: "Export the website into a folder",
       properties: ["openDirectory", "createDirectory"],
     });
@@ -482,7 +580,7 @@ async function main() {
   ipc.handle("skills:list", () => skills.list(current?.path));
   ipc.handle("skills:choose-folder", async () => {
     if (env.background) return null;
-    const answer = await dialog.showOpenDialog(win, {
+    const answer = await dialog.showOpenDialog(dialogParent(), {
       title: "Choose a skill's folder (it holds a SKILL.md file)",
       properties: ["openDirectory"],
     });
@@ -616,11 +714,12 @@ async function main() {
   });
 
   // For automated checks: the main process's objects, reachable from Playwright's evaluate().
-  if (env.background) Object.assign(globalThis, { upstart: { win, projects, preview, agent, peek } });
+  if (env.background)
+    Object.assign(globalThis, {
+      upstart: { win, projects, preview, agent, peek, settingsWindow: () => settingsWin },
+    });
 
-  const devUrl = process.env.ELECTRON_RENDERER_URL;
-  if (devUrl) await win.loadURL(devUrl);
-  else await win.loadFile(join(here, "../renderer/index.html"));
+  await loadInterface(win);
 
   app.on("window-all-closed", () => app.quit());
   app.on("before-quit", () => {

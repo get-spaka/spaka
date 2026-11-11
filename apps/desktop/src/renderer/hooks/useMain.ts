@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
 import { applyEvent } from "../../shared/conversation";
-import type {
-  AgentStatus,
-  ConnectorInfo,
-  ConversationState,
-  HistoryEntry,
-  PageComment,
-  PreviewState,
-  ProjectInfo,
-  ProjectSummary,
-  SkillInfo,
+import {
+  type AgentStatus,
+  type AppInfo,
+  type AppSettings,
+  type ConnectorInfo,
+  type ConversationState,
+  DEFAULT_APP_SETTINGS,
+  type HistoryEntry,
+  type PageComment,
+  type PreviewState,
+  type ProjectInfo,
+  type ProjectSummary,
+  type SkillInfo,
 } from "../../shared/ipc";
 import { upstart } from "../lib/bridge";
 
@@ -129,4 +132,28 @@ export function useConnectors(projectId: string | undefined) {
     };
   }, [projectId]);
   return connectors;
+}
+
+/** The app's own settings (Q117), kept in step across the app's windows. */
+export function useAppSettings() {
+  const [settings, setSettings] = useState<AppSettings>(DEFAULT_APP_SETTINGS);
+  useEffect(() => {
+    let live = true;
+    void upstart.invoke("settings:get").then((s) => live && setSettings(s));
+    const off = upstart.on("settings:changed", setSettings);
+    return () => {
+      live = false;
+      off();
+    };
+  }, []);
+  return settings;
+}
+
+/** What the main process's app:info says, once. */
+export function useAppInfo() {
+  const [info, setInfo] = useState<AppInfo>();
+  useEffect(() => {
+    void upstart.invoke("app:info").then(setInfo);
+  }, []);
+  return info;
 }

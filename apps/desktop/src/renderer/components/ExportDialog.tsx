@@ -2,8 +2,8 @@ import { FolderOpen, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ExportResult, ProjectInfo } from "../../shared/ipc";
 import { upstart } from "../lib/bridge";
+import { messageOf } from "../lib/errors";
 import { t } from "../lib/strings";
-import { messageOf } from "./SettingsDialog";
 import { Button } from "./ui/button";
 
 type Host = "netlify" | "cloudflare" | "github";

@@ -7,9 +7,9 @@ import { useEffect, useRef, useState } from "react";
 import type { FontChoice, ThemeValues } from "../../shared/ipc";
 import { contrast, PALETTES, type PaletteColors, parseColor, READ_TOGETHER } from "../../shared/palettes";
 import { upstart } from "../lib/bridge";
+import { messageOf } from "../lib/errors";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
-import { messageOf } from "./SettingsDialog";
 import { Button } from "./ui/button";
 
 const COLORS = Object.keys(PALETTES[0]!.colors) as (keyof PaletteColors)[];

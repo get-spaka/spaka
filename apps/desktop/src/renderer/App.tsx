@@ -2,8 +2,8 @@ import { useState } from "react";
 import { isWorking } from "../shared/conversation";
 import { Conversation } from "./components/Conversation";
 import { PreviewPane } from "./components/PreviewPane";
-import { SettingsDialog } from "./components/SettingsDialog";
 import { Sidebar } from "./components/Sidebar";
+import { SiteSettings } from "./components/SiteSettings";
 import {
   useAgentStatus,
   useConnectors,
@@ -24,7 +24,9 @@ export function App() {
   const status = useAgentStatus();
   const skills = useSkills(current?.id);
   const connectors = useConnectors(current?.id);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  // A website's own settings (Q118), over the window; the app's settings have a window of their own (Q116).
+  const [siteOpen, setSiteOpen] = useState(false);
+  const siteShown = siteOpen && !!current;
 
   return (
     <div className="relative flex h-full">
@@ -34,7 +36,11 @@ export function App() {
           current={current}
           onCollapse={() => setSidebarOpen(false)}
           onNew={() => void upstart.invoke("projects:close")}
-          onSettings={() => setSettingsOpen(true)}
+          onSettings={() => void upstart.invoke("settings:open")}
+          onSiteSettings={async (id) => {
+            if (current?.id !== id) await upstart.invoke("projects:open", id);
+            setSiteOpen(true);
+          }}
         />
       )}
       <Conversation
@@ -49,16 +55,17 @@ export function App() {
         project={current}
         state={preview}
         working={isWorking(items)}
-        covered={settingsOpen}
+        covered={siteShown}
         layoutKey={sidebarOpen}
         history={history}
       />
-      {settingsOpen && (
-        <SettingsDialog
+      {siteShown && current && (
+        <SiteSettings
           project={current}
+          status={status}
           skills={skills}
           connectors={connectors}
-          onClose={() => setSettingsOpen(false)}
+          onClose={() => setSiteOpen(false)}
         />
       )}
     </div>

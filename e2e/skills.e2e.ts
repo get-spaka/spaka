@@ -1,12 +1,14 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp } from "./app.ts";
+import { type LaunchedApp, launchApp, settingsPage } from "./app.ts";
 
-// Skills (ADR 0010), with the recorded agent: the settings list the three
-// origins, a skill added there or written into the project reaches the agent's
-// assembled plugins without restarting the app.
+// Skills (ADR 0010), with the recorded agent: the settings window lists
+// Upstart's and the maker's skills for every website (Q116), a website's own
+// are in its settings (Q118); a skill added there or written into the project
+// reaches the agent's assembled plugins without restarting the app.
 describe("skills", () => {
   let launched: LaunchedApp;
   // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
@@ -51,44 +53,52 @@ describe("skills", () => {
     await launched?.close();
   });
 
-  test("the settings list Upstart's skills and hide the page meanwhile", async () => {
-    const w = launched.window;
-    await w.getByTestId("open-settings").click();
-    await w.getByTestId("settings").waitFor();
-    await until(async () => !(await main((u) => u.preview.view.getVisible())));
-    expect(await w.getByTestId("skills-upstart").getByTestId("skill").allTextContents()).toEqual([
+  let settings: Page;
+
+  test("the settings window lists Upstart's skills; the page stays shown", async () => {
+    await launched.window.getByTestId("open-settings").click();
+    settings = await settingsPage(launched.app);
+    await settings.getByTestId("settings-page-skills").click();
+    await until(async () => (await settings.getByTestId("skills-upstart").getByTestId("skill").count()) === 4);
+    expect(await settings.getByTestId("skills-upstart").getByTestId("skill").allTextContents()).toEqual([
       expect.stringContaining("gallery"),
       expect.stringContaining("htmx-patterns"),
       expect.stringContaining("upstart-help"),
       expect.stringContaining("writing-skills"),
     ]);
+    expect(await main((u) => u.preview.view.getVisible())).toBe(true);
     // The agent got them from the start, as plugins Upstart assembled.
     expect(existsSync(join(await assembled(), "upstart/skills/upstart-help/SKILL.md"))).toBe(true);
   });
 
   test("a skill added for all websites is shown, copied, and given to the agent", async () => {
-    const w = launched.window;
     const source = skill(mkdtempSync(join(tmpdir(), "skill-")), "brand-voice", "How Chez Margot speaks.");
     await invoke("skills:add", "app", source);
-    await until(() => w.getByTestId("skills-app").getByText("brand-voice").count());
+    await until(() => settings.getByTestId("skills-app").getByText("brand-voice").count());
     expect(existsSync(join(launched.dataDir, "skills/brand-voice/SKILL.md"))).toBe(true);
     await until(() => assembledHas("app/skills/brand-voice/SKILL.md"));
     await expect(invoke("skills:add", "app", tmpdir())).rejects.toThrow(/SKILL.md/);
+    await settings.screenshot({ path: join(import.meta.dirname, ".runs/settings-skills.png") });
   });
 
-  test("a skill written into the project appears and reaches the agent without restarting", async () => {
+  test("a skill written into the project appears in its own settings and reaches the agent", async () => {
     const w = launched.window;
     const { path } = await invoke("projects:current");
     skill(join(path, ".upstart/skills"), "menu-format", "How this bakery's menu is written.");
-    await until(() => w.getByTestId("skills-project").getByText("menu-format").count());
+    await w.getByTestId("project-settings").first().click();
+    const sheet = w.getByTestId("site-settings");
+    await until(() => sheet.getByTestId("skills-project").getByText("menu-format").count());
     await until(() => assembledHas("project/skills/menu-format/SKILL.md"));
-    await launched.capture("settings-skills");
-    // Removing it from the settings takes it out of the project and from the agent.
-    await w.getByTestId("skills-project").getByTestId("skill-remove").click();
-    await until(async () => (await w.getByTestId("skills-project").getByTestId("skill").count()) === 0);
+    // The page is hidden while the sheet covers it.
+    await until(async () => !(await main((u) => u.preview.view.getVisible())));
+    await launched.capture("site-settings-skills");
+    // Chosen, then removed with −: out of the project and out of the agent's.
+    await sheet.getByTestId("skills-project").getByTestId("skill").click();
+    await sheet.getByTestId("skills-project-remove").click();
+    await until(async () => (await sheet.getByTestId("skills-project").getByTestId("skill").count()) === 0);
     expect(existsSync(join(path, ".upstart/skills/menu-format"))).toBe(false);
     await until(async () => !(await assembledHas("project/skills/menu-format/SKILL.md")));
-    await w.getByTestId("settings-close").click();
+    await sheet.getByTestId("site-settings-done").click();
     await until(() => main((u) => u.preview.view.getVisible()));
   });
 

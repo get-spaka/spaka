@@ -1,0 +1,29 @@
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, expect, test } from "vitest";
+import { AppSettingsStore, DEFAULT_SETTINGS, settingsFrom } from "./app-settings";
+
+let dir: string | undefined;
+afterEach(() => dir && rmSync(dir, { recursive: true, force: true }));
+
+test("each value is checked; a wrong or missing one is its default", () => {
+  expect(settingsFrom(undefined)).toEqual(DEFAULT_SETTINGS);
+  expect(settingsFrom({ newModel: "", newEffort: "huge", statistics: "no" })).toEqual(DEFAULT_SETTINGS);
+  expect(settingsFrom({ newModel: "claude-opus-5-5", newEffort: "high", statistics: false })).toEqual({
+    newModel: "claude-opus-5-5",
+    newEffort: "high",
+    statistics: false,
+  });
+});
+
+test("the settings are kept in their file, and an unreadable file gives the defaults", () => {
+  dir = mkdtempSync(join(tmpdir(), "upstart-settings-"));
+  const file = join(dir, "settings.json");
+  writeFileSync(file, "{ not json");
+  const store = new AppSettingsStore(file);
+  expect(store.get()).toEqual(DEFAULT_SETTINGS);
+  expect(store.set({ statistics: false }).statistics).toBe(false);
+  expect(JSON.parse(readFileSync(file, "utf8")).statistics).toBe(false);
+  expect(new AppSettingsStore(file).get()).toMatchObject({ statistics: false, newEffort: "medium" });
+});
