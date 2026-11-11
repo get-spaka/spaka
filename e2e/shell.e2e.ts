@@ -64,7 +64,10 @@ describe("the app's shell, launched in the background", () => {
       frontBefore.filter((s) => s.startsWith("front:")),
     );
     // The app under test was seen, and never as an app of the foreground.
-    expect(seen.some((s) => s.startsWith("electron:")), seen.join(", ")).toBe(true);
+    expect(
+      seen.some((s) => s.startsWith("electron:")),
+      seen.join(", "),
+    ).toBe(true);
     expect(seen).not.toContain("electron:Foreground");
   });
 });

@@ -99,6 +99,13 @@ export async function useFoundImage(
   const image = finder.found(id);
   if (!image)
     return `No image with the id ${id} was found by find_images in this session: search again, then use one of the ids it gives.`;
+  // The same image used again: the file already in media/, its alt text replaced.
+  const existing = image.credit.sourceUrl ? sameSource(root, image.credit.sourceUrl) : undefined;
+  if (existing) {
+    const info = JSON.parse(readFileSync(join(root, infoFile(existing)), "utf8"));
+    writeFileSync(join(root, infoFile(existing)), `${JSON.stringify({ ...info, alt }, null, 2)}\n`);
+    return `This image is already in the project as /${existing}: its alternative text is now the one you gave. Use that address; nothing was added.`;
+  }
   let bytes: Buffer;
   try {
     bytes = await finder.download(image);
@@ -108,6 +115,23 @@ export async function useFoundImage(
   const added = await addImage(root, name, bytes, { alt, credit: image.credit });
   const size = added.width ? ` (${added.width}×${added.height})` : "";
   return `Added as /${added.path}${size}. Write <img src="/${added.path}" …> in a page, part or record without an alt attribute: Upstart takes its alternative text from ${infoFile(added.path)}, where the maker can change it, and lists its credits on the site's /credits page when its licence asks for them.`;
+}
+
+/** The media file that came from this source, if one did. */
+function sameSource(root: string, source: string): string | undefined {
+  const dir = join(root, "media");
+  if (!existsSync(dir)) return undefined;
+  for (const name of readdirSync(dir)) {
+    if (!name.endsWith(".json")) continue;
+    try {
+      if (JSON.parse(readFileSync(join(dir, name), "utf8")).credit?.sourceUrl !== source) continue;
+    } catch {
+      continue;
+    }
+    const file = readdirSync(dir).find((f) => f !== name && infoFile(`media/${f}`) === `media/${name}`);
+    if (file) return `media/${file}`;
+  }
+  return undefined;
 }
 
 /** The kinds of file the library takes (Q169): images, and documents to link to; no video or audio. */

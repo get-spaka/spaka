@@ -175,12 +175,15 @@ export class Runtime {
   ): RenderResult {
     const scope: Record<string, unknown> = { page: { url: pathname, path: pathname }, params: query };
     const bracket = bracketOf(file.replace(/^pages\//, ""));
+    const ds = bracket ? this.datasource(bracket.name, false) : undefined;
     if (bracket) {
-      const ds = this.datasource(bracket.name, false);
       const chosen = record ?? this.route(pathname)?.record;
       scope.record = ds?.records.find((r) => r.id === chosen?.id) ?? ds?.records[0];
     }
     const result = this.render(file, scope);
+    // Its datasource's notes are the page's: a record left out is said where its page is looked at.
+    for (const note of ds?.notes ?? [])
+      if (!result.notes.some((n) => n.file === note.file && n.note === note.note)) result.notes.push(note);
     if (result.status === 200) result.html = this.finish(this.decorate(result.html));
     return result;
   }
@@ -359,6 +362,8 @@ export { escapeHtml };
 /** Names Liquid itself asks an object for, which are not datasources. */
 const LIQUID_PROBES = new Set([
   "toLiquid",
+  // Asked of a value to tell whether it is an iterator.
+  "next",
   "liquidMethodMissing",
   "size",
   "first",

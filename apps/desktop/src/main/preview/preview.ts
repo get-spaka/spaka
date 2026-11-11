@@ -432,12 +432,18 @@ export class Preview {
       route,
       png,
       errors: this.errors.filter((e) => e.at > since).map((e) => (e.source ? `${e.message} (${e.source})` : e.message)),
-      notes: result
-        ? [
-            ...(result.status !== 200 ? [`status ${result.status}`] : []),
-            ...result.notes.map((n) => `${n.file}: ${n.note}`),
-          ]
-        : [],
+      notes: [
+        ...new Set([
+          ...(result
+            ? [
+                ...(result.status !== 200 ? [`status ${result.status}`] : []),
+                ...result.notes.map((n) => `${n.file}: ${n.note}`),
+              ]
+            : []),
+          // Every datasource's problems, whichever page is shown: a record left out is said (Q166).
+          ...(site ? dataNotes(site.runtime) : []),
+        ]),
+      ],
     };
   }
 
@@ -638,4 +644,13 @@ export function hasVisibleBody(html: string): boolean {
     .replace(/<(script|style|template)[\s\S]*?(<\/\1>|$)/gi, "");
   if (/<(img|svg|video|canvas|picture|iframe)[\s>]/i.test(body)) return true;
   return body.replace(/<[^>]*>/g, "").trim().length > 0;
+}
+
+/** The notes of every datasource of the site: records left out, values that do not read. */
+function dataNotes(runtime: Runtime): string[] {
+  try {
+    return runtime.data.names().flatMap((name) => runtime.data.get(name).notes.map((n) => `${n.file}: ${n.note}`));
+  } catch {
+    return [];
+  }
 }

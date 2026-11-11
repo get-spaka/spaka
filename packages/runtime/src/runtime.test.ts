@@ -131,3 +131,33 @@ describe("the overlay", () => {
     expect(source.read("pages/index.liquid")).toContain("Home");
   });
 });
+
+test("a record page says which records of its datasource were left out (Q166)", () => {
+  const rt = new Runtime(
+    memorySource({
+      "pages/blog/[posts].liquid": page("<h1>{{ record.title }}</h1>"),
+      "data/posts/_datasource.yaml": "fields:\n  - name: title\n    kind: text\n  - name: summary\n    kind: text\n",
+      "data/posts/opening.md": "---\ntitle: Opening\n---\n",
+      "data/posts/noel.md": "---\ntitle: Noël\nsummary: Stollen et bûches : à réserver\n---\n",
+    }),
+  );
+  expect(rt.routes().map((r) => r.route)).toEqual(["/blog/opening"]);
+  const notes = rt.renderRoute("/blog/opening").notes.map((n) => `${n.file}: ${n.note}`);
+  expect(notes).toEqual([expect.stringMatching(/^data\/posts\/noel\.md: left out: /)]);
+});
+
+test("Liquid asking data whether it is an iterator is not a datasource looked for", () => {
+  const rt = new Runtime(
+    memorySource({
+      "pages/index.liquid": page(
+        "{% render 'header', page: page %}{% for post in data.posts %}<h2>{{ post.title }}</h2>{% endfor %}{% render 'footer' %}",
+      ),
+      "parts/header.liquid": "<header>{{ page.url }}</header>",
+      "parts/footer.liquid": "<footer></footer>",
+      "data/posts/_datasource.yaml": "fields:\n  - name: title\n    kind: text\n",
+      "data/posts/a.md": "---\ntitle: A\n---\n",
+    }),
+    { repair: false, trace: false },
+  );
+  expect(rt.renderRoute("/").notes).toEqual([]);
+});

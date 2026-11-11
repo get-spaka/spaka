@@ -25,6 +25,7 @@ import { en as t } from "../shared/strings/en";
 import { Agent, projectNameFrom } from "./agent/agent";
 import { AgentAuth } from "./agent/auth";
 import { agentBinary, cleanEnv, nodeLauncher } from "./agent/confinement";
+import { dataProblemsAfter } from "./agent/data-check";
 import { instructionsFor } from "./agent/instructions";
 import {
   FIND_BLOCKS_TOOL,
@@ -274,6 +275,22 @@ async function main() {
           }),
         },
         allowedTools: [LOOK_TOOL, FIND_BLOCKS_TOOL, FIND_IMAGES_TOOL, USE_IMAGE_TOOL],
+        // A record that does not read is said to the agent at once, with the tool's answer (Q170).
+        hooks: {
+          PostToolUse: [
+            {
+              matcher: "Write|Edit|Bash",
+              hooks: [
+                async (input: { tool_name?: string; tool_input?: unknown }) => {
+                  const note = dataProblemsAfter(project.path, input.tool_name ?? "", input.tool_input);
+                  return note
+                    ? { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: note } }
+                    : { continue: true };
+                },
+              ],
+            },
+          ],
+        },
       }),
       connectors: [UPSTART_SERVER],
       skills,

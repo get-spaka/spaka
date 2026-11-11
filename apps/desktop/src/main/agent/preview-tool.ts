@@ -119,7 +119,11 @@ export function upstartServer({ look, findBlocks, findImages, useImage }: Upstar
         {
           id: z.string().describe("The id find_images gave"),
           name: z.string().describe('A short file name for it, without extension, e.g. "croissants"'),
-          alt: z.string().describe("What the image shows, for those who cannot see it, in the site's language"),
+          alt: z
+            .string()
+            .describe(
+              "What the image shows, for those who cannot see it, in the language of the maker's message (the site's)",
+            ),
         },
         async ({ id, name, alt }) => ({
           content: [{ type: "text" as const, text: await useImage(id, name, alt) }],

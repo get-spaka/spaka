@@ -34,6 +34,8 @@ export type SessionDeps = {
   extraOptions?: (project: { id: string; path: string }) => {
     mcpServers?: Record<string, unknown>;
     allowedTools?: string[];
+    /** Hooks of the SDK's: what the agent is told after a tool call (Q170). */
+    hooks?: Record<string, unknown>;
   };
   /** The connectors the agent is given, by server name, for the isolation check. */
   connectors?: string[];

@@ -80,8 +80,23 @@ Sourdough loaves, viennoiseries, and coffee from a local roaster.
 
 - The id is the file's name: lowercase words with dashes, made from the title (`opening-day.md`). It is the record page's address, so keep it short.
 - Write believable records, three to six unless asked otherwise, each complete: every required field, a real text.
-- A value of the wrong kind shows empty, and a file whose fields do not read as YAML is left out: quote a text that holds a colon (`title: "Bread: our way"`).
+- A value of the wrong kind shows empty, and a file whose fields do not read as YAML is left out of the site. Upstart says so right after you write it: fix it at once.
 - Images: find them with find_images and add them with use_image, then write the address it gives (`/media/…`) in the field. Never an external address.
+
+## YAML that does not read
+
+A record's fields, like a definition, are YAML, which reads a plain text strictly. Put a text in double quotes as soon as it holds or starts with one of these, and write a `"` inside it as `\"`:
+
+| In the text | Read as | Write |
+|---|---|---|
+| a colon and a space, French spacing included | a field inside the field | `summary: "Loaves: the menu is here"`, `summary: "Du pain : notre façon"` |
+| a space and `#` | a comment, the rest lost | `title: "Room #4 opens"` |
+| a start with `-`, `*`, `&`, `!`, `%`, `@`, `` ` ``, `>`, `\|`, `[`, `{`, `'` or `"` | a list, a reference, a block | `summary: "* New: our rye"` |
+| `yes`, `no`, `on`, `off`, `true`, `false`, `null` alone | a yes or no, or nothing | `answer: "Yes"` |
+| a number or a date meant as text | a number or a date | `code: "007"`, `version: "1.10"` |
+| a list item holding a comma | two items | `tags: ["salt, pepper", bread]` |
+
+Indent with spaces, never tabs. A long text goes below the `---` as the record's text, or after `|` on lines indented by two spaces.
 
 ## In a page
 

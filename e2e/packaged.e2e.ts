@@ -1,10 +1,11 @@
-import { existsSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { extname, join, normalize } from "node:path";
 import { describe, expect, test } from "vitest";
 import { PALETTES } from "../apps/desktop/src/shared/palettes.ts";
 import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
+import { buildBlog } from "./blog-check.ts";
 import { previewDriver } from "./preview-driver.ts";
 
 const built = existsSync(join(import.meta.dirname, "../apps/desktop/dist/mac-arm64/Upstart.app"));
@@ -306,5 +307,161 @@ describe.runIf(built && process.platform === "darwin")("the packaged app", () =>
       }
     },
     900_000,
+  );
+
+  // The whole of build step 3 with the real agent, in the packaged app: the
+  // blog (blog-check.ts), a record changed in the Content tab, a record's
+  // text edited in the preview and an image replaced through the picker when
+  // the agent's templates allow it, then exported with its record pages,
+  // credits and WebP copies, served.
+  test.runIf(real)(
+    "with the real agent: blog, Content tab, editing in place, Replace…, export and serve",
+    async () => {
+      const dataDir = join(import.meta.dirname, "../.cache/packaged-step3-data");
+      rmSync(dataDir, { recursive: true, force: true });
+      const record = join(runsDir, "packaged-step3.jsonl");
+      rmSync(record, { force: true });
+      const launched = await launchApp({
+        packaged: true,
+        env: {
+          UPSTART_AGENT_REPLAY: "",
+          UPSTART_AGENT_CONFIG_DIR: configDir,
+          UPSTART_AGENT_RECORD: record,
+          UPSTART_DATA_DIR: dataDir,
+        },
+      });
+      const { page, click, typeText, key } = previewDriver(() => launched);
+      const log = (line: string) => process.stdout.write(`[step3] ${line}\n`);
+      const w = launched.window;
+      try {
+        const invoke = invokeIn(launched);
+        await w.getByTestId("conversation").waitFor();
+        await until(async () => (await invoke("agent:status")).auth === "signed-in", 30_000);
+        const report = await buildBlog(launched, record);
+        writeFileSync(join(runsDir, "packaged-step3.json"), JSON.stringify(report, null, 2));
+        log(`blog: ${JSON.stringify(report)}`);
+        const { path } = await invoke("projects:current");
+        const ds = report.datasource!;
+        const last = async () => (await invoke("history:list")).at(-1)?.label as string;
+
+        // A record's first text field changed in the Content tab: one version on leaving.
+        const definition = readFileSync(join(path, "data", ds, "_datasource.yaml"), "utf8");
+        const field = /-\s*name:\s*(\w+)\s*\n\s*kind:\s*text\b/.exec(definition)?.[1] ?? "title";
+        const id = report.records[0]!.replace(/\.md$/, "");
+        await w.getByTestId("tab-content").click();
+        await w.locator(`[data-testid="datasource"][data-name="${ds}"]`).click();
+        await w.locator(`[data-testid="record"][data-id="${id}"] button`).first().click();
+        const input = w.getByTestId(`field-${field}`);
+        await input.fill("Edited by hand");
+        await until(
+          async () => readFileSync(join(path, "data", ds, `${id}.md`), "utf8").includes("Edited by hand"),
+          5_000,
+        );
+        await w.getByTestId("content-back").click();
+        await until(async () => (await last()) === "Edited Edited by hand", 5_000);
+        log("a record's field changed in the Content tab");
+        await w
+          .getByTestId("tab-conversation")
+          .click()
+          .catch(() => undefined);
+
+        // In the preview, on a record's page: its text edited in place when a lone field shows it.
+        const editor = (file: string, at: number) =>
+          launched.app.evaluate(
+            // biome-ignore lint/suspicious/noExplicitAny: the main process's objects, set for checks
+            (_electron, [file, at]) => (globalThis as any).upstart.editor.info(file, at),
+            [file, at] as const,
+          );
+        const traced = async (selector: string) =>
+          (await page(
+            `[...document.querySelectorAll(${JSON.stringify(selector)})].map((e, i) => { e.setAttribute("data-check", String(i)); return e.getAttribute("data-up-src"); })`,
+          )) as string[];
+        const route = report.recordRoutes[1] ?? report.recordRoutes[0]!;
+        await invoke("preview:navigate", route);
+        await until(
+          () => page(`location.pathname === ${JSON.stringify(route)} && !!document.querySelector("[data-up-src]")`),
+          10_000,
+        );
+        let editedInPlace = false;
+        const texts = await traced("h1, h2, h3");
+        for (const [i, src] of texts.entries()) {
+          const [file, , at] = src.split(":");
+          const info = await editor(file!, Number(at));
+          if (!info.field) continue;
+          await click(`[data-check="${i}"]`, false, 2);
+          await until(() => page(`document.querySelector('[data-check="${i}"]').isContentEditable`), 5_000);
+          await key("End");
+          await typeText(" today");
+          await key("Enter");
+          await until(async () => (await last())?.startsWith("Edited "), 10_000);
+          editedInPlace = true;
+          break;
+        }
+        log(
+          editedInPlace
+            ? "a record's text edited in place"
+            : "no heading shows a lone record field: not edited in place",
+        );
+
+        // Replace… on an image of the page, through the picker.
+        let replaced = false;
+        const images = await traced("img");
+        for (const [i, src] of images.entries()) {
+          const [file, , at] = src.split(":");
+          const info = await editor(file!, Number(at));
+          if (!info.image) continue;
+          const current = await page(`document.querySelector('[data-check="${i}"]').getAttribute("src")`);
+          const other = report.media.find((m) => `/${m.path}` !== current);
+          if (!other) break;
+          await click(`[data-check="${i}"]`);
+          await until(
+            () =>
+              page(
+                `!!document.querySelector('upstart-editor').shadowRoot.querySelector('[data-testid="editor-replace"]')`,
+              ),
+            5_000,
+          );
+          await click('[data-testid="editor-replace"]', true);
+          await w.getByTestId("media-picker").waitFor();
+          await w.locator(`[data-testid="picker-item"][data-path="${other.path}"]`).click();
+          await w.getByTestId("media-picker").waitFor({ state: "detached" });
+          await until(async () => (await last()) === "Image replaced", 10_000);
+          replaced = true;
+          break;
+        }
+        log(replaced ? "an image replaced through the picker" : "no replaceable image on the record's page");
+
+        // Exported with sharp inside the packaged app, served.
+        const out = join(runsDir, "packaged-step3-export");
+        rmSync(out, { recursive: true, force: true });
+        const result = await invoke("export:run", out);
+        log(`exported ${result.pages.join(", ")}; warnings: ${result.warnings.join(" | ")}`);
+        for (const r of report.recordRoutes) expect(result.pages).toContain(r);
+        if (report.credits) expect(result.pages).toContain("/credits");
+        expect(existsSync(join(out, "data"))).toBe(false);
+        const copies = readdirSync(join(out, "media")).filter((f) => /-\d+w\.webp$/.test(f));
+        log(`WebP copies: ${copies.join(", ")}`);
+        expect(copies.length).toBeGreaterThan(0);
+        const site = await serve(out);
+        try {
+          const served = await load(launched, `${site.origin}${report.recordRoutes[0]}`);
+          expect(served.styled).toBe(true);
+          expect(served.text.length).toBeGreaterThan(40);
+        } finally {
+          site.close();
+        }
+        const problems = await launched.app.evaluate(() =>
+          [
+            ...(
+              globalThis as { upstart?: { agent: { sessions: Map<string, { problems: string[] }> } } }
+            ).upstart!.agent.sessions.values(),
+          ].flatMap((s) => s.problems),
+        );
+        expect(problems).toEqual([]);
+      } finally {
+        await launched.close();
+      }
+    },
+    1_200_000,
   );
 });

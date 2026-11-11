@@ -255,6 +255,11 @@ describe("the media library", () => {
     expect(text).toContain("media/croissants.json");
     expect(JSON.parse(readFileSync(join(root, "media/croissants.json"), "utf8")).credit.author).toBe("Jane Doe");
     expect(await useFoundImage(finder, root, "commons:9", "x", "y")).toContain("No image with the id commons:9");
+    // The same image again: the file kept, its alt text replaced, nothing added.
+    const again = await useFoundImage(finder, root, "commons:2", "croissants-again", "Fresh croissants");
+    expect(again).toContain("already in the project as /media/croissants.jpg");
+    expect(readdirSync(join(root, "media")).sort()).toEqual(["croissants.jpg", "croissants.json"]);
+    expect(JSON.parse(readFileSync(join(root, "media/croissants.json"), "utf8")).alt).toBe("Fresh croissants");
   });
 });
 
