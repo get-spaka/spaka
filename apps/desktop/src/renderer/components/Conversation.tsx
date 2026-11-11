@@ -1,10 +1,11 @@
 import { ArrowUp, Check, CircleSlash, Eraser, Loader2, PanelLeft, Square, X } from "lucide-react";
 import { type KeyboardEvent, useLayoutEffect, useRef, useState } from "react";
 import { type Activity, type ConversationItem, isWorking } from "../../shared/conversation";
-import type { AgentStatus, Effort, HistoryEntry, ProjectInfo } from "../../shared/ipc";
+import type { AgentStatus, Effort, HistoryEntry, PreviewState, ProjectInfo } from "../../shared/ipc";
 import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
+import { BlocksTab } from "./BlocksTab";
 import { HistoryControls } from "./HistoryPanel";
 import { SignInPanel } from "./SignInPanel";
 import { Button } from "./ui/button";
@@ -16,6 +17,7 @@ export function Conversation({
   status,
   sidebarOpen,
   onExpandSidebar,
+  preview,
 }: {
   project: ProjectInfo | null;
   items: ConversationItem[];
@@ -23,8 +25,12 @@ export function Conversation({
   status: AgentStatus;
   sidebarOpen: boolean;
   onExpandSidebar: () => void;
+  preview: PreviewState;
 }) {
   const [draft, setDraft] = useState("");
+  // The middle column's tabs (Q100): the conversation, the gallery's blocks.
+  const [tab, setTab] = useState<"conversation" | "blocks">("conversation");
+  const shownTab = project ? tab : "conversation";
   // Before the first message there is no project yet: the choice waits for it.
   const [newSettings, setNewSettings] = useState<{ model: string; effort: Effort }>({
     model: "claude-sonnet-5-5",
@@ -77,63 +83,101 @@ export function Conversation({
         )}
       </div>
 
-      {items.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 px-8 text-center">
-          <h1 className="text-lg font-semibold tracking-tight">{t.conversation.emptyTitle}</h1>
-          <p className="max-w-72 text-sm text-muted-foreground">{t.conversation.emptyText}</p>
+      {project && (
+        <div role="tablist" className="flex shrink-0 gap-1 border-b px-3">
+          {(["conversation", "blocks"] as const).map((name) => (
+            <button
+              key={name}
+              type="button"
+              role="tab"
+              aria-selected={shownTab === name}
+              data-testid={`tab-${name}`}
+              onClick={() => setTab(name)}
+              className={cn(
+                "-mb-px border-b-2 px-2 py-1.5 text-xs font-medium",
+                shownTab === name
+                  ? "border-foreground text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {t.tabs[name]}
+            </button>
+          ))}
         </div>
-      ) : (
-        <Messages items={items} />
       )}
 
-      {signedOut && <SignInPanel status={status} />}
-
-      <form
-        className="p-3"
-        onSubmit={(event) => {
-          event.preventDefault();
-          send();
-        }}
-      >
-        <div className="rounded-xl border bg-background p-2 shadow-xs focus-within:ring-[3px] focus-within:ring-ring/30">
-          <textarea
-            data-testid="message-input"
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            onKeyDown={onKeyDown}
-            placeholder={items.length ? t.conversation.placeholderFollowUp : t.conversation.placeholder}
-            rows={3}
-            className="max-h-48 w-full resize-none bg-transparent px-1 py-1 text-sm outline-none placeholder:text-muted-foreground"
-          />
-          <div className="flex items-center gap-1">
-            <ModelControls project={project} status={status} newSettings={newSettings} onNewSettings={setNewSettings} />
-            <div className="ml-auto">
-              {working ? (
-                <Button
-                  type="button"
-                  size="icon-sm"
-                  variant="secondary"
-                  data-testid="stop"
-                  onClick={() => void upstart.invoke("conversation:stop")}
-                  title={t.conversation.stop}
-                >
-                  <Square className="size-3 fill-current" />
-                </Button>
-              ) : (
-                <Button
-                  type="submit"
-                  size="icon-sm"
-                  data-testid="send"
-                  disabled={!draft.trim() || signedOut}
-                  title={t.conversation.send}
-                >
-                  <ArrowUp />
-                </Button>
-              )}
+      {shownTab === "blocks" ? (
+        <BlocksTab
+          theme={preview.theme}
+          hasPage={preview.route !== null && preview.routes.length > 0}
+          working={working}
+        />
+      ) : (
+        <>
+          {items.length === 0 ? (
+            <div className="flex flex-1 flex-col items-center justify-center gap-2 px-8 text-center">
+              <h1 className="text-lg font-semibold tracking-tight">{t.conversation.emptyTitle}</h1>
+              <p className="max-w-72 text-sm text-muted-foreground">{t.conversation.emptyText}</p>
             </div>
-          </div>
-        </div>
-      </form>
+          ) : (
+            <Messages items={items} />
+          )}
+
+          {signedOut && <SignInPanel status={status} />}
+
+          <form
+            className="p-3"
+            onSubmit={(event) => {
+              event.preventDefault();
+              send();
+            }}
+          >
+            <div className="rounded-xl border bg-background p-2 shadow-xs focus-within:ring-[3px] focus-within:ring-ring/30">
+              <textarea
+                data-testid="message-input"
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={onKeyDown}
+                placeholder={items.length ? t.conversation.placeholderFollowUp : t.conversation.placeholder}
+                rows={3}
+                className="max-h-48 w-full resize-none bg-transparent px-1 py-1 text-sm outline-none placeholder:text-muted-foreground"
+              />
+              <div className="flex items-center gap-1">
+                <ModelControls
+                  project={project}
+                  status={status}
+                  newSettings={newSettings}
+                  onNewSettings={setNewSettings}
+                />
+                <div className="ml-auto">
+                  {working ? (
+                    <Button
+                      type="button"
+                      size="icon-sm"
+                      variant="secondary"
+                      data-testid="stop"
+                      onClick={() => void upstart.invoke("conversation:stop")}
+                      title={t.conversation.stop}
+                    >
+                      <Square className="size-3 fill-current" />
+                    </Button>
+                  ) : (
+                    <Button
+                      type="submit"
+                      size="icon-sm"
+                      data-testid="send"
+                      disabled={!draft.trim() || signedOut}
+                      title={t.conversation.send}
+                    >
+                      <ArrowUp />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </form>
+        </>
+      )}
     </section>
   );
 }

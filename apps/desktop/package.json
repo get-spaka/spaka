@@ -73,6 +73,14 @@
       {
         "from": "skills",
         "to": "skills"
+      },
+      {
+        "from": "gallery",
+        "to": "gallery"
+      },
+      {
+        "from": "fonts",
+        "to": "fonts"
       }
     ]
   }

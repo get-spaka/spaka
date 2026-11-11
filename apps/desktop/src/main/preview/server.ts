@@ -38,8 +38,15 @@ export class PreviewServer {
   private server: Server | undefined;
   private port = 0;
 
-  /** `site()` gives what is served now: the open project, or nothing. */
-  constructor(private readonly site: () => Site | undefined) {}
+  /**
+   * `site()` gives what is served now: the open project, or nothing. `block(id)`
+   * gives a gallery block's template, shown alone with the project's theme at
+   * /__up/block/<id>, for its thumbnail.
+   */
+  constructor(
+    private readonly site: () => Site | undefined,
+    private readonly block: (id: string) => string | undefined = () => undefined,
+  ) {}
 
   get origin() {
     return `http://127.0.0.1:${this.port}`;
@@ -77,6 +84,15 @@ export class PreviewServer {
 
     const site = this.site();
     if (!site) return notFound(res);
+
+    const block = /^\/__up\/block\/([a-z0-9-]+)$/.exec(url.pathname);
+    if (block) {
+      const source = this.block(block[1]!);
+      if (source === undefined) return notFound(res);
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+      res.end(site.runtime.decorate(`<!doctype html><html><head><title></title></head><body>${source}</body></html>`));
+      return;
+    }
 
     // A file of the project that is not a template: an image, a font, a script.
     const ext = extname(url.pathname).toLowerCase();

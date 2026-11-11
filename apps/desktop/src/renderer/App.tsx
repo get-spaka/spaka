@@ -44,6 +44,7 @@ export function App() {
         status={status}
         sidebarOpen={sidebarOpen}
         onExpandSidebar={() => setSidebarOpen(true)}
+        preview={preview}
       />
       <PreviewPane
         project={current}

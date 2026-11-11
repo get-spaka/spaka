@@ -1,0 +1,19 @@
+{
+  "name": "Simple header",
+  "kind": "header",
+  "description": "A light navigation bar with the logo on the left, links in the middle and two buttons on the right; links fold into a dropdown menu on mobile.",
+  "tags": ["logo", "links", "buttons", "dropdown", "mobile menu"],
+  "mood": ["minimal", "friendly"],
+  "synonyms": [
+    "navbar",
+    "nav bar",
+    "menu",
+    "navigation",
+    "top bar",
+    "site header",
+    "barre de navigation",
+    "en-tête",
+    "menu principal",
+    "bandeau du haut"
+  ]
+}

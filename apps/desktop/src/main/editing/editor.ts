@@ -16,6 +16,7 @@ import {
   insertBefore,
   moveSection,
   pagesUsing,
+  placeFor,
   removeRange,
   renameInclude,
   setLink,
@@ -43,6 +44,8 @@ export type EditorDeps = {
   before: () => void;
   /** Called once a change is on the disk, with what it was, for the history and the agent. */
   changed: (change: { label: string; files: string[] }) => void;
+  /** A gallery block's kind and template (Q92). */
+  block: (id: string) => { kind: string; source: string } | undefined;
 };
 
 export class Editor {
@@ -85,15 +88,44 @@ export class Editor {
         label = t.moved;
         break;
       case "insert": {
-        // A gallery block, already copied as a shared part (Q101).
-        if (!existsSync(this.abs(`parts/${action.part}.liquid`))) throw new EditRefused("This block is missing.");
-        writes[action.file] = insertBefore(src, sectionIndex(src, action.before), `{% render '${action.part}' %}`);
+        // A gallery block becomes a shared part of its own, included where it was dropped (Q101).
+        const block = this.deps.block(action.block);
+        if (!block) throw new EditRefused("This block is not in the gallery.");
+        const taken = (n: string) => existsSync(this.abs(`parts/${n}.liquid`));
+        const name = taken(action.block) ? copyName(action.block, taken) : action.block;
+        // A second copy names its ids and radio groups after itself, so that two on one page stay apart.
+        const source = name === action.block ? block.source : block.source.replaceAll(action.block, name);
+        writes[`parts/${name}.liquid`] = source.endsWith("\n") ? source : `${source}\n`;
+        const index = action.before === "auto" ? placeFor(src, block.kind) : sectionIndex(src, action.before);
+        writes[action.file] = insertBefore(src, index, `{% render '${name}' %}`);
         label = t.inserted;
         break;
       }
     }
     for (const [file, content] of Object.entries(writes)) this.write(file, content);
     const change = { label, files: Object.keys(writes) };
+    this.deps.changed(change);
+    return change;
+  }
+
+  /**
+   * Writes theme.css as the Theme tab set it (Q93), and any font files it now
+   * uses: one version, told to the agent like any edit by hand.
+   */
+  writeTheme(css: string, fonts: Record<string, Buffer> = {}): { label: string; files: string[] } {
+    if (this.deps.busy()) throw new EditRefused(en.editing.busy);
+    const root = this.deps.root();
+    if (!root) throw new EditRefused("No project is open.");
+    this.deps.before();
+    const files: string[] = [];
+    for (const [file, data] of Object.entries(fonts)) {
+      if (!/^fonts\/[\w-]+\/[\w.-]+\.woff2$/.test(file)) throw new EditRefused("This font cannot be added.");
+      if (existsSync(join(root, file))) continue;
+      atomicWrite(join(root, file), data);
+      files.push(file);
+    }
+    atomicWrite(join(root, "theme.css"), css);
+    const change = { label: en.editing.labels.theme, files: ["theme.css", ...files] };
     this.deps.changed(change);
     return change;
   }
@@ -148,12 +180,15 @@ export class Editor {
     }
   }
 
-  /** Atomic: the preview and the agent never see half a file. The temporary file is hidden, so nothing follows it. */
   private write(file: string, content: string) {
-    const abs = this.abs(file);
-    mkdirSync(dirname(abs), { recursive: true });
-    const tmp = join(dirname(abs), `.${basename(abs)}.upstart-tmp`);
-    writeFileSync(tmp, content);
-    renameSync(tmp, abs);
+    atomicWrite(this.abs(file), content);
   }
+}
+
+/** Atomic: the preview and the agent never see half a file. The temporary file is hidden, so nothing follows it. */
+function atomicWrite(abs: string, content: string | Buffer) {
+  mkdirSync(dirname(abs), { recursive: true });
+  const tmp = join(dirname(abs), `.${basename(abs)}.upstart-tmp`);
+  writeFileSync(tmp, content);
+  renameSync(tmp, abs);
 }

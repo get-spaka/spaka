@@ -1,0 +1,22 @@
+{
+  "name": "Header with announcement bar",
+  "kind": "header",
+  "description": "A thin coloured announcement strip with a short message and link above a navigation bar with logo, links and a call-to-action button.",
+  "tags": ["announcement", "banner strip", "logo", "links", "button", "mobile menu"],
+  "mood": ["bold", "friendly"],
+  "synonyms": [
+    "navbar",
+    "nav bar",
+    "menu",
+    "navigation",
+    "top bar",
+    "site header",
+    "barre de navigation",
+    "en-tête",
+    "menu principal",
+    "bandeau du haut",
+    "announcement bar",
+    "promo bar",
+    "bandeau d’annonce"
+  ]
+}

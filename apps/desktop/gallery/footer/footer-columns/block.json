@@ -1,0 +1,18 @@
+{
+  "name": "Footer with link columns",
+  "kind": "footer",
+  "description": "A soft footer with the logo, a short description and social icons, three columns of links, and a bottom bar with copyright and legal links.",
+  "tags": ["columns", "logo", "links", "social links", "legal links", "copyright"],
+  "mood": ["corporate", "minimal"],
+  "synonyms": [
+    "bottom",
+    "site footer",
+    "footer links",
+    "legal",
+    "copyright",
+    "pied de page",
+    "bas de page",
+    "mentions légales",
+    "liens du bas"
+  ]
+}

@@ -25,6 +25,25 @@ export type ProjectInfo = ProjectSummary & { model: string; effort: Effort; site
 export type SkillOrigin = "upstart" | "app" | "project";
 export type SkillInfo = { origin: SkillOrigin; name: string; description: string; path: string };
 
+/** The kinds of the gallery's blocks (Q92), in the order a page usually has them. */
+export const BLOCK_KINDS = ["header", "hero", "features", "testimonials", "pricing", "faq", "cta", "footer"] as const;
+export type BlockKind = (typeof BLOCK_KINDS)[number];
+/** The type of the data a block dragged from the Blocks tab carries: its id. */
+export const BLOCK_DRAG_TYPE = "application/x-upstart-block";
+/** A block of the gallery, as described in its block.json. */
+export type GalleryBlock = {
+  id: string;
+  kind: BlockKind;
+  name: string;
+  description: string;
+  tags: string[];
+  mood: string[];
+  synonyms: string[];
+};
+
+/** A font the Theme tab offers (Q93): the system's own, or one shipped with Upstart and copied into the project. */
+export type FontChoice = { id: string; name: string; category: string; stack: string; shipped: boolean };
+
 /** Where a connector is kept (ADR 0010): the app's data, or the project's folder. */
 export type ConnectorScope = "app" | "project";
 /**
@@ -68,6 +87,8 @@ export type PreviewState = {
   routes: { route: string; file: string }[];
   loading: boolean;
   mode: PreviewMode;
+  /** A short hash of the project's theme: the gallery's thumbnails are drawn again when it changes. */
+  theme: string;
 };
 
 /** A model the maker can pick, with the effort levels it accepts. */
@@ -110,8 +131,12 @@ export type EditAction =
   | { type: "delete"; file: string; at: number }
   /** Moves the section starting at `at` to just before the one starting at `before` (null: after the last one). */
   | { type: "move"; file: string; at: number; before: number | null }
-  /** Puts an include of an existing shared part before the section starting at `before` (null: after the last one). */
-  | { type: "insert"; file: string; before: number | null; part: string };
+  /**
+   * Puts a gallery block into the page as a shared part of its own (Q101), before
+   * the section starting at `before` (null: after the last one; "auto": where a
+   * block of its kind usually goes).
+   */
+  | { type: "insert"; file: string; before: number | null | "auto"; block: string };
 
 /** What the preview needs to know before the maker edits an element. */
 export type EditInfo = {
@@ -189,6 +214,11 @@ export type Invokes = {
   "history:undo": () => HistoryEntry[];
   /** An edit by hand; throws with the reason when it cannot be made. */
   "editing:apply": (action: EditAction) => { label: string; files: string[] };
+  "gallery:list": () => GalleryBlock[];
+  /** A block drawn with the open project's theme, as a PNG data URL. */
+  "gallery:thumbnail": (id: string) => string;
+  /** Puts a block into the page shown, where a block of its kind usually goes. */
+  "gallery:add": (id: string) => { label: string; files: string[] };
 };
 
 /** One-way messages from the interface to the main process. */
@@ -263,6 +293,9 @@ export const channels = {
     "history:restore",
     "history:undo",
     "editing:apply",
+    "gallery:list",
+    "gallery:thumbnail",
+    "gallery:add",
   ],
   send: ["app:ready", "preview:bounds"],
   events: [

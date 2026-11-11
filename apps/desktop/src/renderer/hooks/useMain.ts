@@ -75,7 +75,7 @@ export function useAgentStatus() {
   return status;
 }
 
-const EMPTY_PREVIEW: PreviewState = { route: null, title: "", routes: [], loading: false, mode: "edit" };
+const EMPTY_PREVIEW: PreviewState = { route: null, title: "", routes: [], loading: false, mode: "edit", theme: "" };
 
 export function usePreviewState() {
   const [state, setState] = useState<PreviewState>(EMPTY_PREVIEW);

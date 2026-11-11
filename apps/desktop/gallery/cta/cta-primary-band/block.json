@@ -1,0 +1,19 @@
+{
+  "name": "Coloured call-to-action band",
+  "kind": "cta",
+  "description": "A full-width band in the primary colour with a bold heading and sentence on the left and two buttons on the right; stacks and centres on mobile.",
+  "tags": ["band", "coloured background", "buttons", "inline", "full width"],
+  "mood": ["bold", "colorful"],
+  "synonyms": [
+    "call to action",
+    "signup",
+    "sign up",
+    "get started",
+    "conversion",
+    "promo",
+    "appel à l’action",
+    "inscription",
+    "incitation",
+    "passer à l’action"
+  ]
+}

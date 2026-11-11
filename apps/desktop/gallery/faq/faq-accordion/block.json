@@ -1,0 +1,19 @@
+{
+  "name": "FAQ accordion",
+  "kind": "faq",
+  "description": "A centred heading above a narrow accordion of questions in soft panels, where opening one answer closes the others.",
+  "tags": ["accordion", "questions", "centered", "collapse", "one open"],
+  "mood": ["minimal", "friendly"],
+  "synonyms": [
+    "questions",
+    "help",
+    "frequently asked questions",
+    "q&a",
+    "support",
+    "accordion",
+    "foire aux questions",
+    "questions fréquentes",
+    "aide",
+    "questions-réponses"
+  ]
+}

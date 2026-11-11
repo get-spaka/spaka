@@ -1,0 +1,21 @@
+{
+  "name": "Hero with badge and stats",
+  "kind": "hero",
+  "description": "A small badge above a centred headline and subtitle with two buttons, followed by a row of three key figures.",
+  "tags": ["badge", "headline", "buttons", "stats", "numbers", "centered"],
+  "mood": ["bold", "corporate"],
+  "synonyms": [
+    "banner",
+    "intro",
+    "jumbotron",
+    "landing",
+    "above the fold",
+    "headline",
+    "bannière",
+    "accroche",
+    "en-tête de page",
+    "introduction",
+    "key figures",
+    "chiffres clés"
+  ]
+}

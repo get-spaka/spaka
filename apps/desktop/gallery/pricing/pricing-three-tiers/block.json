@@ -1,0 +1,21 @@
+{
+  "name": "Three pricing tiers",
+  "kind": "pricing",
+  "description": "Three pricing cards on a soft background, each with a name, short description, price, button and feature list; the middle one stands out with a “Most popular” badge.",
+  "tags": ["three plans", "cards", "badge", "monthly", "checklist", "grid"],
+  "mood": ["corporate", "bold"],
+  "synonyms": [
+    "plans",
+    "prices",
+    "rates",
+    "packages",
+    "subscriptions",
+    "costs",
+    "tarifs",
+    "prix",
+    "offres",
+    "abonnements",
+    "formules",
+    "grille tarifaire"
+  ]
+}

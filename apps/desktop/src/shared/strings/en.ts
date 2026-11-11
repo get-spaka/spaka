@@ -50,6 +50,7 @@ export const en = {
       duplicated: "Duplicated",
       moved: "Section moved",
       inserted: "Block added",
+      theme: "Theme changed",
     },
   },
   activity: {
@@ -130,6 +131,28 @@ export const en = {
     waitForAgent: "The agent is working: send once it is done",
     count: (n: number) => (n === 1 ? "1 comment" : `${n} comments`),
     sendShort: (n: number) => (n === 1 ? "Send 1 comment" : `Send ${n} comments`),
+  },
+  tabs: {
+    conversation: "Conversation",
+    blocks: "Blocks",
+  },
+  gallery: {
+    intro: "Drag a block into the page, or add it. It becomes a shared part you can edit in place.",
+    kinds: {
+      header: "Headers",
+      hero: "Heroes",
+      features: "Features",
+      testimonials: "Testimonials",
+      pricing: "Pricing",
+      faq: "Questions",
+      cta: "Calls to action",
+      footer: "Footers",
+    },
+    add: "Add",
+    addTitle: (name: string) => `Add “${name}” to the page`,
+    drawing: "Drawing…",
+    noPage: "Open a page of the website to add blocks to it.",
+    busy: "The agent is working: blocks can be added once it is done.",
   },
   settings: {
     title: "Settings",

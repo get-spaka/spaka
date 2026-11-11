@@ -1,0 +1,23 @@
+{
+  "name": "Star reviews with summary",
+  "kind": "testimonials",
+  "description": "An average star rating and review count on the left, and a stacked list of customer reviews with stars, a title, text and author on the right.",
+  "tags": ["stars", "rating", "reviews", "list", "two columns", "summary"],
+  "mood": ["friendly", "warm"],
+  "synonyms": [
+    "reviews",
+    "quotes",
+    "customer stories",
+    "social proof",
+    "feedback",
+    "ratings",
+    "avis",
+    "témoignages",
+    "avis clients",
+    "retours clients",
+    "ils nous font confiance",
+    "star rating",
+    "notes",
+    "étoiles"
+  ]
+}

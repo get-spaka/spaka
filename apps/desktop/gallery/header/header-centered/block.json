@@ -1,0 +1,19 @@
+{
+  "name": "Centred header",
+  "kind": "header",
+  "description": "A two-row header on a soft background: the logo centred on top and the links centred below it, with a simple disclosure menu on mobile.",
+  "tags": ["logo", "centered", "links", "two rows", "mobile menu"],
+  "mood": ["elegant", "minimal"],
+  "synonyms": [
+    "navbar",
+    "nav bar",
+    "menu",
+    "navigation",
+    "top bar",
+    "site header",
+    "barre de navigation",
+    "en-tête",
+    "menu principal",
+    "bandeau du haut"
+  ]
+}

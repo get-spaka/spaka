@@ -57,6 +57,7 @@ describe("skills", () => {
     await w.getByTestId("settings").waitFor();
     await until(async () => !(await main((u) => u.preview.view.getVisible())));
     expect(await w.getByTestId("skills-upstart").getByTestId("skill").allTextContents()).toEqual([
+      expect.stringContaining("gallery"),
       expect.stringContaining("htmx-patterns"),
       expect.stringContaining("upstart-help"),
       expect.stringContaining("writing-skills"),

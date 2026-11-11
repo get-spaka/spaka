@@ -1,0 +1,22 @@
+{
+  "name": "Call to action with image grid",
+  "kind": "cta",
+  "description": "A tinted card with a centred heading, paragraph and button beside a grid of two picture placeholders.",
+  "tags": ["images", "grid", "card", "button", "two columns", "gallery"],
+  "mood": ["elegant", "warm"],
+  "synonyms": [
+    "call to action",
+    "signup",
+    "sign up",
+    "get started",
+    "conversion",
+    "promo",
+    "appel à l’action",
+    "inscription",
+    "incitation",
+    "passer à l’action",
+    "visit us",
+    "book now",
+    "réserver"
+  ]
+}

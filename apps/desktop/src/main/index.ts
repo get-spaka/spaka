@@ -9,7 +9,7 @@ import { en as t } from "../shared/strings/en";
 import { Agent, projectNameFrom } from "./agent/agent";
 import { AgentAuth } from "./agent/auth";
 import { agentBinary, cleanEnv, nodeLauncher } from "./agent/confinement";
-import { LOOK_TOOL, UPSTART_SERVER, upstartServer } from "./agent/preview-tool";
+import { FIND_BLOCKS_TOOL, LOOK_TOOL, UPSTART_SERVER, upstartServer } from "./agent/preview-tool";
 import { Recorder, replayQuery } from "./agent/replay";
 import { Connectors, type Vault } from "./connectors/connectors";
 import { Comments, commentsMessage } from "./editing/comments";
@@ -17,6 +17,9 @@ import { Editor } from "./editing/editor";
 import { AgentNotes } from "./editing/notes";
 import { readEnvironment } from "./environment";
 import { exportProject } from "./export";
+import { described, Gallery } from "./gallery/catalogue";
+import { BlockIndex } from "./gallery/search";
+import { Thumbnails } from "./gallery/thumbnails";
 import { History } from "./history/history";
 import { createIpc } from "./ipc";
 import { FileTap } from "./live/tap";
@@ -81,7 +84,15 @@ async function main() {
 
   const ipc = createIpc(win);
   const projects = new Projects(app.getPath("userData"), env.projectsDir);
+  // The gallery's blocks (Q92), shipped beside the app like its skills.
+  const gallery = new Gallery(app.isPackaged ? join(process.resourcesPath, "gallery") : join(here, "../../gallery"));
+  let index: BlockIndex | undefined;
+  const blockIndex = () => {
+    index ??= new BlockIndex(gallery.list());
+    return index;
+  };
   const preview = new Preview(win, {
+    block: (id) => gallery.get(id)?.source,
     background: env.background,
     onState: (state) => ipc.emit("preview:state", state),
     invokes: {
@@ -139,8 +150,13 @@ async function main() {
       binary,
       readable: launcher.readable,
       extraOptions: () => ({
-        mcpServers: { [UPSTART_SERVER]: upstartServer(() => preview.look()) },
-        allowedTools: [LOOK_TOOL],
+        mcpServers: {
+          [UPSTART_SERVER]: upstartServer(
+            () => preview.look(),
+            (query, kind) => blockIndex().find(query, { kind }),
+          ),
+        },
+        allowedTools: [LOOK_TOOL, FIND_BLOCKS_TOOL],
       }),
       connectors: [UPSTART_SERVER],
       skills,
@@ -200,6 +216,7 @@ async function main() {
   // The maker's edits by hand, written by the app (Q90), each a snapshot of its own (Q94).
   const editor = new Editor({
     root: () => current?.path,
+    block: (id) => gallery.get(id),
     busy: () => !!current && agent.isWorking(current.id),
     before: () => history?.store.snapshot("outside", ""),
     changed: (change) => {
@@ -482,6 +499,22 @@ async function main() {
   ipc.handle("history:restore", (id) => goBack(id));
   ipc.handle("history:undo", () => goBack(history?.store.undoTarget()?.id));
   ipc.handle("editing:apply", (action) => editor.apply(action));
+  const thumbnails = new Thumbnails(join(userData, "gallery-thumbnails"), () => preview.origin);
+  // Its hidden window must not keep the app open once the maker's window is closed.
+  win.on("closed", () => thumbnails.close());
+  ipc.handle("gallery:list", () => gallery.list().map(described));
+  ipc.handle("gallery:thumbnail", (id) => {
+    const block = gallery.get(id);
+    const theme = preview.runtime?.theme();
+    if (!block || theme === undefined) throw new Error("No such block, or no project open.");
+    return thumbnails.get(id, block.source, theme);
+  });
+  ipc.handle("gallery:add", (id) => {
+    const route = preview.state().route;
+    const file = route !== null ? preview.runtime?.resolve(route) : undefined;
+    if (!file) throw new Error("Open a page first.");
+    return editor.apply({ type: "insert", file, before: "auto", block: id });
+  });
   ipc.handle("comments:list", () => (current ? comments.list(current.id) : []));
   ipc.handle("comments:send", () => sendComments());
   ipc.handle("comments:discard", () => void discardComments());
@@ -521,7 +554,10 @@ async function main() {
   else await win.loadFile(join(here, "../renderer/index.html"));
 
   app.on("window-all-closed", () => app.quit());
-  app.on("before-quit", () => agent.close());
+  app.on("before-quit", () => {
+    agent.close();
+    thumbnails.close();
+  });
 }
 
 main().catch((error) => {

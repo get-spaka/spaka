@@ -1,0 +1,18 @@
+{
+  "name": "Simple centred footer",
+  "kind": "footer",
+  "description": "A light centred footer with the logo, a short sentence, a row of links, social icons and the copyright line.",
+  "tags": ["centered", "logo", "links", "social links", "copyright"],
+  "mood": ["minimal", "friendly"],
+  "synonyms": [
+    "bottom",
+    "site footer",
+    "footer links",
+    "legal",
+    "copyright",
+    "pied de page",
+    "bas de page",
+    "mentions légales",
+    "liens du bas"
+  ]
+}

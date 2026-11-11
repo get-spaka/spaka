@@ -1,0 +1,20 @@
+{
+  "name": "Testimonial cards grid",
+  "kind": "testimonials",
+  "description": "A centred heading above three cards of customer quotes, each with an initials avatar, name and company at the bottom.",
+  "tags": ["cards", "grid", "three columns", "quotes", "avatars"],
+  "mood": ["friendly", "minimal"],
+  "synonyms": [
+    "reviews",
+    "quotes",
+    "customer stories",
+    "social proof",
+    "feedback",
+    "ratings",
+    "avis",
+    "témoignages",
+    "avis clients",
+    "retours clients",
+    "ils nous font confiance"
+  ]
+}

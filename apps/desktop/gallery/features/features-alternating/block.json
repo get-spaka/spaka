@@ -1,0 +1,23 @@
+{
+  "name": "Alternating features with images",
+  "kind": "features",
+  "description": "Two feature rows that alternate a picture placeholder and a block of text with a title, paragraph and checklist, left then right.",
+  "tags": ["image", "alternating", "two columns", "checklist", "zigzag"],
+  "mood": ["elegant", "corporate"],
+  "synonyms": [
+    "benefits",
+    "services",
+    "advantages",
+    "highlights",
+    "what we do",
+    "why us",
+    "avantages",
+    "atouts",
+    "fonctionnalités",
+    "points forts",
+    "nos services",
+    "zigzag",
+    "image and text",
+    "image et texte"
+  ]
+}

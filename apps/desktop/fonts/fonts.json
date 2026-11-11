@@ -1,0 +1,217 @@
+[
+  {
+    "id": "dm-serif-display",
+    "family": "DM Serif Display",
+    "category": "serif",
+    "files": {
+      "normal": "normal.woff2",
+      "italic": "italic.woff2"
+    },
+    "weight": "400",
+    "license": "OFL-1.1"
+  },
+  {
+    "id": "bricolage-grotesque",
+    "family": "Bricolage Grotesque",
+    "category": "sans-serif",
+    "files": {
+      "normal": "normal.woff2"
+    },
+    "weight": "200 800",
+    "license": "OFL-1.1"
+  },
+  {
+    "id": "caveat",
+    "family": "Caveat",
+    "category": "handwriting",
+    "files": {
+      "normal": "normal.woff2"
+    },
+    "weight": "400 700",
+    "license": "OFL-1.1"
+  },
+  {
+    "id": "cormorant-garamond",
+    "family": "Cormorant Garamond",
+    "category": "serif",
+    "files": {
+      "normal": "normal.woff2",
+      "italic": "italic.woff2"
+    },
+    "weight": "300 700",
+    "license": "OFL-1.1"
+  },
+  {
+    "id": "dm-sans",
+    "family": "DM Sans",
+    "category": "sans-serif",
+    "files": {
+      "normal": "normal.woff2",
+      "italic": "italic.woff2"
+    },
+    "weight": "100 1000",
+    "license": "OFL-1.1"
+  },
+  {
+    "id": "fraunces",
+    "family": "Fraunces",
+    "category": "serif",
+    "files": {
+      "normal": "normal.woff2",
+      "italic": "italic.woff2"
+    },
+    "weight": "100 900",
+    "license": "OFL-1.1"
+  },
+  {
+    "id": "ibm-plex-sans",
+    "family": "IBM Plex Sans",
+    "category": "sans-serif",
+    "files": {
+      "normal": "normal.woff2",
+      "italic": "italic.woff2"
+    },
+    "weight": "100 700",
+    "license": "OFL-1.1"
+  },
+  {
+    "id": "inter",
+    "family": "Inter",
+    "category": "sans-serif",
+    "files": {
+      "normal": "normal.woff2",
+      "italic": "italic.woff2"
+    },
+    "weight": "100 900",
+    "license": "OFL-1.1"
+  },
+  {
+    "id": "libre-baskerville",
+    "family": "Libre Baskerville",
+    "category": "serif",
+    "files": {
+      "normal": "normal.woff2",
+      "italic": "italic.woff2"
+    },
+    "weight": "400 700",
+    "license": "OFL-1.1"
+  },
+  {
+    "id": "lora",
+    "family": "Lora",
+    "category": "serif",
+    "files": {
+      "normal": "normal.woff2",
+      "italic": "italic.woff2"
+    },
+    "weight": "400 700",
+    "license": "OFL-1.1"
+  },
+  {
+    "id": "manrope",
+    "family": "Manrope",
+    "category": "sans-serif",
+    "files": {
+      "normal": "normal.woff2"
+    },
+    "weight": "200 800",
+    "license": "OFL-1.1"
+  },
+  {
+    "id": "merriweather",
+    "family": "Merriweather",
+    "category": "serif",
+    "files": {
+      "normal": "normal.woff2",
+      "italic": "italic.woff2"
+    },
+    "weight": "300 900",
+    "license": "OFL-1.1"
+  },
+  {
+    "id": "montserrat",
+    "family": "Montserrat",
+    "category": "sans-serif",
+    "files": {
+      "normal": "normal.woff2",
+      "italic": "italic.woff2"
+    },
+    "weight": "100 900",
+    "license": "OFL-1.1"
+  },
+  {
+    "id": "nunito",
+    "family": "Nunito",
+    "category": "sans-serif",
+    "files": {
+      "normal": "normal.woff2",
+      "italic": "italic.woff2"
+    },
+    "weight": "200 1000",
+    "license": "OFL-1.1"
+  },
+  {
+    "id": "outfit",
+    "family": "Outfit",
+    "category": "sans-serif",
+    "files": {
+      "normal": "normal.woff2"
+    },
+    "weight": "100 900",
+    "license": "OFL-1.1"
+  },
+  {
+    "id": "playfair-display",
+    "family": "Playfair Display",
+    "category": "serif",
+    "files": {
+      "normal": "normal.woff2",
+      "italic": "italic.woff2"
+    },
+    "weight": "400 900",
+    "license": "OFL-1.1"
+  },
+  {
+    "id": "raleway",
+    "family": "Raleway",
+    "category": "sans-serif",
+    "files": {
+      "normal": "normal.woff2",
+      "italic": "italic.woff2"
+    },
+    "weight": "100 900",
+    "license": "OFL-1.1"
+  },
+  {
+    "id": "source-sans-3",
+    "family": "Source Sans 3",
+    "category": "sans-serif",
+    "files": {
+      "normal": "normal.woff2",
+      "italic": "italic.woff2"
+    },
+    "weight": "200 900",
+    "license": "OFL-1.1"
+  },
+  {
+    "id": "space-grotesk",
+    "family": "Space Grotesk",
+    "category": "sans-serif",
+    "files": {
+      "normal": "normal.woff2"
+    },
+    "weight": "300 700",
+    "license": "OFL-1.1"
+  },
+  {
+    "id": "work-sans",
+    "family": "Work Sans",
+    "category": "sans-serif",
+    "files": {
+      "normal": "normal.woff2",
+      "italic": "italic.woff2"
+    },
+    "weight": "100 900",
+    "license": "OFL-1.1"
+  }
+]

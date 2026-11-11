@@ -1,0 +1,20 @@
+{
+  "name": "Feature cards grid",
+  "kind": "features",
+  "description": "A centred heading and intro above three bordered cards, each with an icon in a tinted square, a short title and a sentence.",
+  "tags": ["grid", "cards", "icons", "three columns", "centered heading"],
+  "mood": ["minimal", "friendly"],
+  "synonyms": [
+    "benefits",
+    "services",
+    "advantages",
+    "highlights",
+    "what we do",
+    "why us",
+    "avantages",
+    "atouts",
+    "fonctionnalités",
+    "points forts",
+    "nos services"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "name": "Dark footer with newsletter",
+  "kind": "footer",
+  "description": "A dark footer opening with a newsletter heading and email signup, then contact details and link columns, and a copyright line with social icons.",
+  "tags": ["dark background", "newsletter", "email", "columns", "contact details", "social links"],
+  "mood": ["dark", "elegant"],
+  "synonyms": [
+    "bottom",
+    "site footer",
+    "footer links",
+    "legal",
+    "copyright",
+    "pied de page",
+    "bas de page",
+    "mentions légales",
+    "liens du bas",
+    "newsletter",
+    "lettre d’information"
+  ]
+}

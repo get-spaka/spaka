@@ -1,0 +1,24 @@
+{
+  "name": "Newsletter signup",
+  "kind": "cta",
+  "description": "A centred heading and sentence above an email field joined to a subscribe button, with a short privacy note underneath.",
+  "tags": ["newsletter", "email", "form", "centered", "subscribe"],
+  "mood": ["minimal", "friendly"],
+  "synonyms": [
+    "call to action",
+    "signup",
+    "sign up",
+    "get started",
+    "conversion",
+    "promo",
+    "appel à l’action",
+    "inscription",
+    "incitation",
+    "passer à l’action",
+    "newsletter",
+    "mailing list",
+    "subscribe",
+    "lettre d’information",
+    "abonnement"
+  ]
+}

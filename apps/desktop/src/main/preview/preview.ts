@@ -1,6 +1,7 @@
 // The preview: a native view laid over the window's preview column (ADR 0008),
 // showing the open project as served by the runtime. When the project's files
 // change, the page is rendered again and morphed in place, never reloaded.
+import { createHash } from "node:crypto";
 import { type FSWatcher, watch } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -38,6 +39,8 @@ export type PreviewOptions = {
   onPageEvent?: (event: FromPreview) => void;
   /** What the preview's script may ask for: the maker's edits and comments (Q90, Q95). */
   invokes?: Partial<PreviewInvokes>;
+  /** A gallery block's template, for its thumbnail (Q92). */
+  block?: (id: string) => string | undefined;
 };
 
 export class Preview {
@@ -65,7 +68,10 @@ export class Preview {
     private readonly win: BrowserWindow,
     private readonly options: PreviewOptions,
   ) {
-    this.server = new PreviewServer(() => this.site && { root: this.site.root, runtime: this.site.runtime });
+    this.server = new PreviewServer(
+      () => this.site && { root: this.site.root, runtime: this.site.runtime },
+      options.block,
+    );
     this.view = new WebContentsView({
       webPreferences: {
         preload: join(here, "../preload/preview.cjs"),
@@ -263,6 +269,7 @@ export class Preview {
       routes: this.site?.runtime.routes() ?? [],
       loading: this.loading,
       mode: this.mode,
+      theme: this.site ? createHash("sha256").update(this.site.runtime.theme()).digest("hex").slice(0, 12) : "",
     };
   }
 

@@ -8,6 +8,7 @@ import {
   insertBefore,
   moveSection,
   pagesUsing,
+  placeFor,
   removeRange,
   renameInclude,
   setLink,
@@ -89,6 +90,15 @@ test("a block goes in before a section, or after the last one", () => {
   );
   expect(insertBefore(page, 4, "{% render 'x' %}")).toContain("2026 -%}\n  {% render 'x' %}\n</body>");
   expect(insertBefore("<body>\n</body>", 0, "{% render 'x' %}")).toBe("<body>\n{% render 'x' %}\n</body>");
+});
+
+test("a block added without a place goes where its kind usually is", () => {
+  expect(placeFor(page, "header")).toBe(0);
+  expect(placeFor(page, "pricing")).toBe(3);
+  expect(placeFor(page, "footer")).toBe(4);
+  expect(placeFor('<body><section id="a"></section></body>', "cta")).toBe(1);
+  // With a <main>, sections are its children: the footer outside it is not one.
+  expect(placeFor("<body><main></main><footer>f</footer></body>", "cta")).toBe(0);
 });
 
 test("the pages using a shared part, through other parts too", () => {

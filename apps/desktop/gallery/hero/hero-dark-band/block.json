@@ -1,0 +1,21 @@
+{
+  "name": "Dark hero band",
+  "kind": "hero",
+  "description": "A bold dark band with a large left-aligned headline, a short subtitle, an email signup field with a button and a line of reassurance.",
+  "tags": ["headline", "dark background", "email", "signup", "form"],
+  "mood": ["dark", "bold"],
+  "synonyms": [
+    "banner",
+    "intro",
+    "jumbotron",
+    "landing",
+    "above the fold",
+    "headline",
+    "bannière",
+    "accroche",
+    "en-tête de page",
+    "introduction",
+    "dark banner",
+    "bannière sombre"
+  ]
+}

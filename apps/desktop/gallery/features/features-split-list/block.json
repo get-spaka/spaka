@@ -1,0 +1,20 @@
+{
+  "name": "Features list beside heading",
+  "kind": "features",
+  "description": "Two columns: a heading, intro and link on the left, and a stacked list of three features with icons, titles and descriptions on the right.",
+  "tags": ["two columns", "list", "icons", "heading left", "link"],
+  "mood": ["corporate", "minimal"],
+  "synonyms": [
+    "benefits",
+    "services",
+    "advantages",
+    "highlights",
+    "what we do",
+    "why us",
+    "avantages",
+    "atouts",
+    "fonctionnalités",
+    "points forts",
+    "nos services"
+  ]
+}

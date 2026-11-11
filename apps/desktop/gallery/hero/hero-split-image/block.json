@@ -1,0 +1,19 @@
+{
+  "name": "Split hero with image",
+  "kind": "hero",
+  "description": "A left-aligned headline, subtitle and two buttons on one side and a large picture placeholder on the other; stacks on mobile.",
+  "tags": ["headline", "image", "two columns", "buttons", "split"],
+  "mood": ["friendly", "corporate"],
+  "synonyms": [
+    "banner",
+    "intro",
+    "jumbotron",
+    "landing",
+    "above the fold",
+    "headline",
+    "bannière",
+    "accroche",
+    "en-tête de page",
+    "introduction"
+  ]
+}

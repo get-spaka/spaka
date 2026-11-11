@@ -103,6 +103,19 @@ function insertSection(src: string, list: ReturnType<typeof sections>, index: nu
     : `${src.slice(0, anchor.outer.end)}${text}${src.slice(anchor.outer.end)}`;
 }
 
+/**
+ * Where a block of a kind goes when the maker adds it without saying where: a
+ * header first, a footer last, anything else before the page's footer, if it
+ * ends with one. A section index, as insertBefore takes.
+ */
+export function placeFor(src: string, kind: string): number {
+  const list = sections(src);
+  if (kind === "header") return 0;
+  const last = list.at(-1);
+  const isFooter = last && (last.kind === "element" ? last.name === "footer" : /footer/.test(last.name));
+  return kind !== "footer" && isFooter ? list.length - 1 : list.length;
+}
+
 /** A free name for a copy of a shared part: hero → hero-2, hero-2 → hero-3. */
 export function copyName(name: string, taken: (name: string) => boolean): string {
   const base = name.replace(/-\d+$/, "");

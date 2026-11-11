@@ -11,7 +11,13 @@
 //
 // The edits are written by the main process (main/editing); this script only
 // says what the maker did, where, as the trace gives it.
-import type { EditAction, EditInfo, PageComment, PreviewMode } from "../../shared/ipc";
+import {
+  BLOCK_DRAG_TYPE as BLOCK_TYPE,
+  type EditAction,
+  type EditInfo,
+  type PageComment,
+  type PreviewMode,
+} from "../../shared/ipc";
 import { en } from "../../shared/strings/en";
 import { COMMENT_STYLE, CommentLayer, type CommentsBridge } from "./comments";
 import { insertionPoint, type Origin, originOf, sectionList, sectionTarget, textsOf, tracedFrom } from "./trace";
@@ -262,6 +268,7 @@ export class Editor {
       },
       { capture: true },
     );
+    this.listenForBlocks();
     const follow = () => {
       cancelAnimationFrame(this.frame);
       this.frame = requestAnimationFrame(() => this.place());
@@ -383,6 +390,58 @@ export class Editor {
       handle.addEventListener("pointermove", move);
       handle.addEventListener("pointerup", up);
     });
+  }
+
+  /**
+   * A gallery block dragged from the Blocks tab into the page (Q101): the line
+   * shows where it will go among the page's sections, and the drop puts it there.
+   */
+  private listenForBlocks() {
+    const isBlock = (e: DragEvent) => !!e.dataTransfer?.types.includes(BLOCK_TYPE);
+    let point: ReturnType<typeof insertionPoint>;
+    window.addEventListener(
+      "dragover",
+      (e) => {
+        if (!isBlock(e) || !this.active) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        e.dataTransfer!.dropEffect = "copy";
+        point = insertionPoint(e.clientY);
+        this.showLine(point?.top);
+      },
+      { capture: true },
+    );
+    window.addEventListener(
+      "dragenter",
+      (e) => {
+        if (isBlock(e) && this.mode === "edit" && this.paused) this.toast(t.paused);
+      },
+      { capture: true },
+    );
+    window.addEventListener(
+      "dragleave",
+      (e) => {
+        // Leaving the page itself, not one of its elements.
+        if (isBlock(e) && !e.relatedTarget) this.showLine(undefined);
+      },
+      { capture: true },
+    );
+    window.addEventListener(
+      "drop",
+      (e) => {
+        if (!isBlock(e) || !this.active) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        this.showLine(undefined);
+        const block = e.dataTransfer!.getData(BLOCK_TYPE);
+        const at = point ?? insertionPoint(e.clientY);
+        if (!block || !at) return;
+        this.select(undefined);
+        void this.run({ type: "insert", file: at.file, before: at.before?.at ?? null, block });
+      },
+      { capture: true },
+    );
+    window.addEventListener("dragend", () => this.showLine(undefined), { capture: true });
   }
 
   /** The insertion line, at a height in the window, or hidden. */
