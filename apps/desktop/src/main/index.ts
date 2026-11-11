@@ -28,7 +28,7 @@ import { Preview } from "./preview/preview";
 import { isEffort, Projects } from "./projects";
 import { Skills } from "./skills/skills";
 import { Fonts } from "./theme/fonts";
-import { readTheme, writeTheme } from "./theme/theme-file";
+import { readTheme, type ThemeValues, themeColors, writeTheme } from "./theme/theme-file";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
 const env = readEnvironment();
@@ -552,14 +552,31 @@ async function main() {
       .filter((id): id is string => !!id);
     return { css: fonts.withFaces(css, [...new Set(ids)], base), ids: [...new Set(ids)] };
   };
+  // The "Site's own" palette: the agent's first colours (Q113), then as the maker edits it (Q114), kept on this machine.
+  const ownFile = () => current && join(projects.dataFor(current.id), "own-palette.json");
+  const ownPalette = (): ThemeValues | undefined => {
+    const file = ownFile();
+    try {
+      if (file && existsSync(file)) return JSON.parse(readFileSync(file, "utf8"));
+    } catch {}
+    return themeColors(history?.store.firstByAgent("theme.css"));
+  };
   ipc.handle("theme:get", () => ({
     values: readTheme(preview.runtime?.theme() ?? "") as Record<string, string>,
     fonts: fonts.list(),
+    own: ownPalette() as Record<string, string> | undefined,
   }));
   ipc.handle("theme:show", (values) => preview.showTheme(themed(values, "/__up/fonts").css));
-  ipc.handle("theme:apply", (values) => {
+  ipc.handle("theme:apply", (values, own) => {
     const { css, ids } = themed(values);
-    return editor.writeTheme(css, fonts.files(ids));
+    const change = editor.writeTheme(css, fonts.files(ids));
+    const file = ownFile();
+    const colors = themeColors(css);
+    if (own && file && colors) {
+      mkdirSync(join(file, ".."), { recursive: true });
+      writeFileSync(file, JSON.stringify({ ...ownPalette(), ...colors }));
+    }
+    return change;
   });
   ipc.handle("gallery:add", (id) => {
     const route = preview.state().route;

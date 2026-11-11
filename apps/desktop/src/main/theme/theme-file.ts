@@ -42,6 +42,15 @@ function rootBlock(css: string): { open: number; close: number; declarations: De
 }
 
 /** The theme's core values as theme.css sets them; the last declaration of a name wins. */
+/** The colours of a theme (its fonts and roundness aside), for the "Site's own" palette (Q113). */
+export function themeColors(css: string | undefined): ThemeValues | undefined {
+  if (!css) return undefined;
+  const colors = Object.fromEntries(
+    Object.entries(readTheme(css)).filter(([name]) => name.startsWith("--theme-color-")),
+  ) as ThemeValues;
+  return Object.keys(colors).length ? colors : undefined;
+}
+
 export function readTheme(css: string): ThemeValues {
   const out: ThemeValues = {};
   for (const d of rootBlock(css)?.declarations ?? []) if (CORE.has(d.name)) out[d.name as ThemeVariable] = d.value;

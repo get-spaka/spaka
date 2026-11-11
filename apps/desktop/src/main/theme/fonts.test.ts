@@ -45,3 +45,25 @@ test("the @font-face region goes after the imports, is replaced, and goes away",
   expect(setRegion(":root{}", "")).toBe(":root{}");
   expect(setRegion(":root{}", "/* r */\n")).toBe("/* r */\n:root{}");
 });
+
+// The agent's Google Fonts import has semicolons inside its address.
+const GOOGLE =
+  "@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');";
+
+test("the region goes after an import whose address holds semicolons", () => {
+  const css = `${GOOGLE}\n\n:root { --theme-radius: 1rem; }\n`;
+  const one = fonts.withFaces(css, ["manrope"]);
+  expect(one.startsWith(`${GOOGLE}\n`)).toBe(true);
+  expect(one).toMatch(/End of the fonts chosen in Upstart's Theme tab \*\/\n\n?:root/);
+  expect(fonts.withFaces(fonts.withFaces(one, ["fraunces"]), ["fraunces"])).toBe(fonts.withFaces(one, ["fraunces"]));
+});
+
+test("a region once written inside such an address is moved out, and the address made whole again", () => {
+  const [head, tail] = [GOOGLE.slice(0, GOOGLE.indexOf("500;") + 4), GOOGLE.slice(GOOGLE.indexOf("500;") + 4)];
+  const broken = `${head}\n\n/* Fonts chosen in Upstart's Theme tab (kept by Upstart) */\n@font-face { font-family: "Inter"; }\n/* End of the fonts chosen in Upstart's Theme tab */\n${tail}\n\n:root { --theme-radius: 1rem; }\n`;
+  const fixed = fonts.withFaces(broken, ["manrope"]);
+  expect(fixed.startsWith(`${GOOGLE}\n`)).toBe(true);
+  expect(fixed).toContain("Manrope");
+  expect(fixed).not.toContain('"Inter"');
+  expect(fonts.withFaces(broken, [])).toBe(`${GOOGLE}\n\n:root { --theme-radius: 1rem; }\n`);
+});

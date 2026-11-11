@@ -73,13 +73,7 @@ export function BlocksTab({ theme, hasPage, working }: { theme: string; hasPage:
               </h2>
               <div className="grid grid-cols-2 gap-2">
                 {list.map((block) => (
-                  <BlockCard
-                    key={block.id}
-                    block={block}
-                    theme={settled}
-                    disabled={disabled}
-                    onAdd={() => add(block)}
-                  />
+                  <BlockCard key={block.id} block={block} theme={settled} disabled={disabled} />
                 ))}
               </div>
             </section>

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vitest";
-import { readTheme, writeTheme } from "./theme-file";
+import { readTheme, themeColors, writeTheme } from "./theme-file";
 
 const agentTheme = `@import url("https://fonts.googleapis.com/css2?family=Fraunces&display=swap");
 
@@ -70,4 +70,12 @@ test("on a theme the agent wrote in a real run, reading and writing round-trips"
   const changed = writeTheme(css, { "--theme-color-primary": "#123456" });
   expect(readTheme(changed)).toEqual({ ...values, "--theme-color-primary": "#123456" });
   expect(changed.length - css.length).toBe("#123456".length - values["--theme-color-primary"]!.length);
+});
+
+test("a theme's colours alone, or nothing when it has none", () => {
+  const colors = themeColors(agentTheme)!;
+  expect(Object.keys(colors).length).toBeGreaterThan(0);
+  expect(Object.keys(colors).every((n) => n.startsWith("--theme-color-"))).toBe(true);
+  expect(themeColors(":root { --theme-radius: 1rem; }")).toBeUndefined();
+  expect(themeColors(undefined)).toBeUndefined();
 });

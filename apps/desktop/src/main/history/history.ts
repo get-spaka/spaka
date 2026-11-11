@@ -121,6 +121,17 @@ export class History {
     return snapshot;
   }
 
+  /** A file as it was after the first turn of the agent that wrote it. */
+  firstByAgent(path: string): string | undefined {
+    const hash = this.list().find((s) => s.kind === "turn" && path in s.files)?.files[path];
+    if (!hash) return undefined;
+    try {
+      return readFileSync(join(this.objects, hash), "utf8");
+    } catch {
+      return undefined;
+    }
+  }
+
   /** The snapshot an "undo" goes back to: the one before the last change. */
   undoTarget(): Snapshot | undefined {
     const list = this.list();

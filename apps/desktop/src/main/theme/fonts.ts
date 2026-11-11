@@ -130,12 +130,25 @@ export function setRegion(css: string, region: string): string {
   const start = css.indexOf(START);
   const end = css.indexOf(END);
   if (start >= 0 && end > start) {
-    const after = css.slice(end + END.length).replace(/^\n/, "");
-    return css.slice(0, start) + region + after;
+    const before = css.slice(0, start);
+    const after = css.slice(end + END.length);
+    const joined = before.trimEnd() + after.trimStart();
+    // Written inside an @import by an earlier version (its address had a ";"): taken out, then put back after it.
+    if (leadOf(joined).length > before.trimEnd().length) return setRegion(joined, region);
+    return before + region + after.replace(/^\n/, "");
   }
   if (!region) return css;
-  const lead = /^(?:\s*(?:@charset|@import)[^;]*;[^\S\n]*\n?)*/.exec(css)?.[0] ?? "";
+  const lead = leadOf(css);
   const rest = css.slice(lead.length);
   const gap = lead && !lead.endsWith("\n") ? "\n" : "";
   return `${lead}${gap}${lead ? "\n" : ""}${region}${rest && !region.endsWith("\n") ? "\n" : ""}${rest}`;
+}
+
+/** The @charset and @import statements at the top, whose quoted or url() addresses may hold ";". */
+function leadOf(css: string): string {
+  return (
+    /^(?:\s*@(?:charset|import)\b(?:"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|url\([^)]*\)|[^;"'])*;[^\S\n]*\n?)*/.exec(
+      css,
+    )?.[0] ?? ""
+  );
 }

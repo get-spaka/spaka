@@ -141,6 +141,8 @@ export const en = {
   },
   theme: {
     palettes: "Palettes",
+    own: "Site's own",
+    ownTitle: "The colours the agent first chose for this website",
     colors: "Colours",
     shape: "Corners",
     fonts: "Fonts",

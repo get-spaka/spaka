@@ -71,3 +71,17 @@ test("changes made by hand are kept before going back", () => {
   expect(tracked("node_modules/x.js")).toBe(false);
   expect(tracked(".git/HEAD")).toBe(false);
 });
+
+test("a file as the agent first wrote it, whatever came after", () => {
+  const history = new History(data, project);
+  write("pages/index.liquid", "<h1>A</h1>");
+  history.snapshot("turn", "A bakery");
+  expect(history.firstByAgent("theme.css")).toBeUndefined();
+  write("theme.css", ":root{--a:1}");
+  history.snapshot("turn", "Colours");
+  write("theme.css", ":root{--a:2}");
+  history.snapshot("hand", "Theme changed");
+  write("theme.css", ":root{--a:3}");
+  history.snapshot("turn", "Darker");
+  expect(history.firstByAgent("theme.css")).toBe(":root{--a:1}");
+});

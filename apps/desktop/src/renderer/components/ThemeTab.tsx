@@ -17,6 +17,8 @@ const COLORS = Object.keys(PALETTES[0]!.colors) as (keyof PaletteColors)[];
 export function ThemeTab({ theme, working, onAskDark }: { theme: string; working: boolean; onAskDark: () => void }) {
   const [values, setValues] = useState<ThemeValues>({});
   const [fonts, setFonts] = useState<FontChoice[]>([]);
+  // The colours of the agent's first design, offered first among the palettes (Q113).
+  const [own, setOwn] = useState<ThemeValues>();
   const [error, setError] = useState<string>();
   // While the maker is in a gesture, the theme read back from the disk does not overwrite what is shown.
   const gesture = useRef(false);
@@ -26,23 +28,35 @@ export function ThemeTab({ theme, working, onAskDark }: { theme: string; working
       if (gesture.current) return;
       setValues(got.values);
       setFonts(got.fonts);
+      setOwn(got.own);
     });
   }, [theme]);
 
+  // A colour edited while "Site's own" is the palette shown edits that palette too (Q114).
+  const isOwn = (v: ThemeValues) => !!own && COLORS.filter((c) => own[c]).every((c) => same(v[c], own[c]));
+  const editingOwn = useRef(false);
   const show = (next: ThemeValues) => {
+    if (!gesture.current) editingOwn.current = isOwn(values);
     gesture.current = true;
     setValues((v) => ({ ...v, ...next }));
+    if (editingOwn.current) setOwn((o) => ({ ...o, ...next }));
     void upstart.invoke("theme:show", next);
   };
-  const apply = (next: ThemeValues) => {
+  const apply = (next: ThemeValues, ownToo = false) => {
     gesture.current = false;
     setError(undefined);
     setValues((v) => ({ ...v, ...next }));
-    void upstart.invoke("theme:apply", next).catch((e) => setError(messageOf(e)));
+    if (ownToo) setOwn((o) => ({ ...o, ...next }));
+    void upstart.invoke("theme:apply", next, ownToo).catch((e) => setError(messageOf(e)));
   };
+  const applyColor = (next: ThemeValues) => apply(next, gesture.current ? editingOwn.current : isOwn(values));
 
   if (!theme) return <p className="px-4 py-3 text-xs text-muted-foreground">{t.theme.noProject}</p>;
   const radius = Number.parseFloat(values["--theme-radius"] ?? "0.75") || 0;
+  const tiles: { id: string; name: string; title?: string; colors: ThemeValues }[] = [
+    ...(own ? [{ id: "own", name: t.theme.own, title: t.theme.ownTitle, colors: own }] : []),
+    ...PALETTES,
+  ];
 
   return (
     <fieldset data-testid="theme" disabled={working} className="flex-1 space-y-6 overflow-y-auto px-4 py-3">
@@ -51,15 +65,17 @@ export function ThemeTab({ theme, working, onAskDark }: { theme: string; working
 
       <Group title={t.theme.palettes}>
         <div className="grid grid-cols-3 gap-2">
-          {PALETTES.map((p) => {
-            const current = COLORS.every((c) => same(values[c], p.colors[c]));
+          {tiles.map((p) => {
+            const set = COLORS.filter((c) => p.colors[c]);
+            const current = set.every((c) => same(values[c], p.colors[c]));
             return (
               <button
                 key={p.id}
                 type="button"
                 data-testid={`palette-${p.id}`}
                 aria-pressed={current}
-                onClick={() => apply({ ...p.colors })}
+                title={p.title}
+                onClick={() => apply(Object.fromEntries(set.map((c) => [c, p.colors[c]!])))}
                 className={cn(
                   "overflow-hidden rounded-md border text-left text-[11px] disabled:opacity-50",
                   current ? "ring-2 ring-foreground" : "hover:border-foreground/40",
@@ -96,7 +112,7 @@ export function ThemeTab({ theme, working, onAskDark }: { theme: string; working
               value={values[name] ?? ""}
               warning={warningFor(name, values)}
               onShow={(v) => show({ [name]: v })}
-              onApply={(v) => apply({ [name]: v })}
+              onApply={(v) => applyColor({ [name]: v })}
             />
           ))}
         </div>

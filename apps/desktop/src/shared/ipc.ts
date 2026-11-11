@@ -233,11 +233,12 @@ export type Invokes = {
   /** Puts a block into the page shown, where a block of its kind usually goes. */
   "gallery:add": (id: string) => { label: string; files: string[] };
   /** The theme's core values as theme.css sets them, and the fonts the Theme tab offers. */
-  "theme:get": () => { values: ThemeValues; fonts: FontChoice[] };
+  "theme:get": () => { values: ThemeValues; fonts: FontChoice[]; own?: ThemeValues };
   /** Shows these values in the preview, during a gesture, without writing them. */
   "theme:show": (values: ThemeValues) => void;
   /** Writes these values into theme.css, at the end of a gesture: one version (Q93). */
-  "theme:apply": (values: ThemeValues) => { label: string; files: string[] };
+  /** `own`: the colours also become the project's "Site's own" palette (Q114). */
+  "theme:apply": (values: ThemeValues, own?: boolean) => { label: string; files: string[] };
 };
 
 /** One-way messages from the interface to the main process. */
