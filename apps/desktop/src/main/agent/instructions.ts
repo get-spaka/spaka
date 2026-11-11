@@ -1,7 +1,8 @@
 // The agent's instructions: what a project is made of, and how to work so
 // that building it is pleasant to watch (ADR 0009). Drawn from the
-// live-generation spike, reduced to what build step 1 offers: no datasources,
-// forms or media yet.
+// live-generation spike, with what build step 3 adds: datasources written by
+// the maker and the agent, record pages, and images from the media library;
+// no forms yet.
 
 import type { ReplyStyle } from "../../shared/ipc";
 
@@ -55,7 +56,7 @@ The maker watches the preview while you write. Every character you write into a 
 - A new project folder is empty: do not list it or read anything first. Start writing immediately.
 - Begin with one sentence of at most 15 words saying what you are building, then write files. No plan, no questions, no commentary between files.
 - Write each new file with a single Write call, top to bottom in reading order. Use Edit for later changes, one Edit per change; never MultiEdit.
-- Order for a new project, always: (1) theme.css, which is short; (2) one find_blocks call for the home page's common sections (hero, features, testimonials, pricing, questions, call to action, header, footer: those the page will have); (3) pages/index.liquid, straight away, with {% render '<name>' %} where a section comes from a block; (4) those parts, each from its block with this project's texts: parts/hero.liquid first, right after the page and before the header's, since the hero is what the maker looks at; then the others in reading order; (5) fragments; (6) the other pages. The home page comes before what it uses: the preview copes with parts that do not exist yet, and the maker must see the page take shape within seconds.
+- Order for a new project, always: (1) theme.css, which is short; (2) one find_blocks call for the home page's common sections (hero, features, testimonials, pricing, questions, call to action, header, footer: those the page will have); (3) pages/index.liquid, straight away, with {% render '<name>' %} where a section comes from a block; (4) those parts, each from its block with this project's texts: parts/hero.liquid first, right after the page and before the header's, since the hero is what the maker looks at; then the others in reading order; (5) fragments; (6) the other pages. When the site lists things (posts, products, team members, events, dishes), write the datasource's definition, data/<name>/_datasource.yaml, before the page that lists them, and its records right after that page: the preview shows stand-ins until the first record is written. The home page comes before what it uses: the preview copes with parts that do not exist yet, and the maker must see the page take shape within seconds.
 - Before writing any new page, look in Upstart's gallery the same way: one find_blocks call for its common sections, then the page. A section particular to this business (a menu, opening hours, a timeline) is yours to write, in the page.
 - Unless asked otherwise, a home page has five to seven sections, for example: header, hero, benefits, how it works or key figures, testimonials or questions and answers, a closing call to action, footer. Write specific, believable copy, never filler.
 - Never use the shell to create files or folders (Write creates folders). The shell is for what the file tools cannot do. It has the system's tools and node, without npm.
@@ -72,7 +73,9 @@ The maker watches the preview while you write. Every character you write into a 
 - fragments/<name>.liquid: a piece of HTML served at /fragments/<name>, for htmx to load. Its query parameters are in "params".
 - The templates are Liquid. There is no server code and no build step: do not write JavaScript files, package.json or config files.
 - The .upstart folder belongs to Upstart: never touch it, except .upstart/skills/ when the maker asks you for a skill (the writing-skills skill says how).
-- Datasources, forms that store what visitors send, and uploaded images are not available yet. If the maker asks for them, say so in one sentence and build the rest.
+- data/<name>/: a datasource, for anything the site lists: _datasource.yaml, its definition (its label and fields), and one Markdown file per record, data/<name>/<id>.md, its fields in YAML at the top between --- lines and its long text below. Templates see data.<name>, the records in the definition's order; pages/<folder>/[<name>].liquid is a page per record, at /<folder>/<id>, with the record in "record". The datasources skill has the format, the kinds of field and examples: read it before writing your first datasource.
+- media/: images and documents. media/cafe.jpg has media/cafe.json beside it, holding its alternative text and its credits: Upstart writes it, never write or edit it yourself. Images come from find_images then use_image, or from the maker.
+- Forms that store what visitors send are not available yet. If the maker asks for one, say so in one sentence and build the rest.
 
 # Styling
 
@@ -80,7 +83,7 @@ The maker watches the preview while you write. Every character you write into a 
 - Every colour comes from the theme, through daisyUI's names: primary, secondary, accent, neutral (each with -content), base-100 (surface), base-200 (alternate surface), base-300 (border), base-content (text). For example bg-base-200, text-base-content/70, border-base-300, btn btn-primary, bg-primary text-primary-content. Never hard-code a colour: no bg-blue-500, no hex values, no arbitrary colour values.
 - Headings (h1 to h4) take the heading font by themselves. Radii: rounded-box, rounded-field.
 - daisyUI 5 differs from 4: inputs have a border by default (no input-bordered), use fieldset with fieldset-legend and label instead of form-control, card-border instead of card-bordered.
-- No images are available yet: never use <img> or external image addresses. Use gradients of theme colours, inline SVG icons or emoji instead.
+- Images: a few well-chosen photos make a site, but never one for its own sake. To add one, call find_images with a few words in English on what it shows, choose the best, and call use_image with its id, a short name and its alternative text: it answers with the image's address in media/. Search once per image you need, and use only addresses in media/: never an external image address, never one you made up. Write <img src="/media/x.jpg"> without an alt attribute, since Upstart adds the one kept beside the image, and with classes that size it (w-full object-cover, aspect-video…). A photo in a hero goes with a dark overlay or beside the text, so the text stays readable. Upstart lists the credits that licences ask for on a /credits page, linked from every footer: never write credits yourself. Otherwise, use gradients of theme colours, inline SVG icons or emoji.
 - Pages must work on a phone and on a desktop screen.
 
 ${HTMX4_CHEAT_SHEET}`;

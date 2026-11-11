@@ -20,7 +20,14 @@ import { Agent, projectNameFrom } from "./agent/agent";
 import { AgentAuth } from "./agent/auth";
 import { agentBinary, cleanEnv, nodeLauncher } from "./agent/confinement";
 import { instructionsFor } from "./agent/instructions";
-import { FIND_BLOCKS_TOOL, LOOK_TOOL, UPSTART_SERVER, upstartServer } from "./agent/preview-tool";
+import {
+  FIND_BLOCKS_TOOL,
+  FIND_IMAGES_TOOL,
+  LOOK_TOOL,
+  UPSTART_SERVER,
+  USE_IMAGE_TOOL,
+  upstartServer,
+} from "./agent/preview-tool";
 import { Recorder, replayQuery } from "./agent/replay";
 import { AppSettingsStore, zoomFor } from "./app-settings";
 import { Connectors, type Vault } from "./connectors/connectors";
@@ -37,6 +44,8 @@ import { Thumbnails } from "./gallery/thumbnails";
 import { History } from "./history/history";
 import { createIpc } from "./ipc";
 import { FileTap } from "./live/tap";
+import { useFoundImage } from "./media/library";
+import { FixtureImages, type ImageFinder, ImageSearch, imagesAnswer } from "./media/search";
 import { Preview } from "./preview/preview";
 import { isEffort, Projects } from "./projects";
 import { Skills } from "./skills/skills";
@@ -225,6 +234,8 @@ async function main() {
         decrypt: (data) => safeStorage.decryptString(data),
       };
   const connectors = new Connectors(userData, vault);
+  // Free images for the agent and the maker (Q150); a folder of made-up ones for the checks.
+  const images: ImageFinder = env.imagesFixture ? new FixtureImages(env.imagesFixture) : new ImageSearch();
   let agent: Agent;
   const auth = new AgentAuth({
     binary,
@@ -239,14 +250,16 @@ async function main() {
       binary,
       readable: launcher.readable,
       instructions: () => instructionsFor(settings.get().replyStyle),
-      extraOptions: () => ({
+      extraOptions: (project) => ({
         mcpServers: {
-          [UPSTART_SERVER]: upstartServer(
-            () => preview.look(),
-            (query, kind, limit) => blockIndex().find(query, { kind, limit }),
-          ),
+          [UPSTART_SERVER]: upstartServer({
+            look: () => preview.look(),
+            findBlocks: (query, kind, limit) => blockIndex().find(query, { kind, limit }),
+            findImages: async (query, count) => imagesAnswer(query, await images.search(query, count)),
+            useImage: (id, name, alt) => useFoundImage(images, project.path, id, name, alt),
+          }),
         },
-        allowedTools: [LOOK_TOOL, FIND_BLOCKS_TOOL],
+        allowedTools: [LOOK_TOOL, FIND_BLOCKS_TOOL, FIND_IMAGES_TOOL, USE_IMAGE_TOOL],
       }),
       connectors: [UPSTART_SERVER],
       skills,
@@ -830,7 +843,7 @@ async function main() {
   // For automated checks: the main process's objects, reachable from Playwright's evaluate().
   if (env.background)
     Object.assign(globalThis, {
-      upstart: { win, projects, preview, agent, peek, settings, pageItems },
+      upstart: { win, projects, preview, agent, peek, settings, pageItems, images },
     });
 
   await (devUrl ? win.loadURL(devUrl) : win.loadFile(join(here, "../renderer/index.html")));

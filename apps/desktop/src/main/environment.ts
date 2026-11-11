@@ -24,6 +24,8 @@ export type Environment = {
   agentReplay: string | undefined;
   /** How much faster than recorded a playback runs. */
   agentReplaySpeed: number;
+  /** A folder of made-up images the image search answers with, for the checks. */
+  imagesFixture: string | undefined;
   /** Where to record the agent's stream, to play it back in later checks. */
   agentRecord: string | undefined;
 };
@@ -36,6 +38,7 @@ export function readEnvironment(env: NodeJS.ProcessEnv = process.env): Environme
     agentConfigDir: env.UPSTART_AGENT_CONFIG_DIR || undefined,
     agentReplay: env.UPSTART_AGENT_REPLAY || undefined,
     agentReplaySpeed: Number(env.UPSTART_AGENT_REPLAY_SPEED) || 4,
+    imagesFixture: env.UPSTART_IMAGES_FIXTURE || undefined,
     agentRecord: env.UPSTART_AGENT_RECORD || undefined,
   };
 }

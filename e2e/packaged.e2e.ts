@@ -80,6 +80,7 @@ describe.runIf(built && process.platform === "darwin")("the packaged app", () =>
       await done(launched, 1, 30_000);
       // The skills shipped outside the archive, assembled for the agent.
       expect((await invoke("skills:list")).map((s: { name: string }) => s.name)).toEqual([
+        "datasources",
         "gallery",
         "htmx-patterns",
         "upstart-help",

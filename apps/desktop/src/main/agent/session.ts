@@ -31,7 +31,10 @@ export type SessionDeps = {
   readable: string[];
   query: QueryFn;
   /** Options added to each start: Upstart's own tool server. */
-  extraOptions?: () => { mcpServers?: Record<string, unknown>; allowedTools?: string[] };
+  extraOptions?: (project: { id: string; path: string }) => {
+    mcpServers?: Record<string, unknown>;
+    allowedTools?: string[];
+  };
   /** The connectors the agent is given, by server name, for the isolation check. */
   connectors?: string[];
   /** The maker's connectors that are on for a project (ADR 0010), as the kit takes them. */
@@ -107,7 +110,7 @@ export class AgentSession {
     const inbox = new Inbox<SDKUserMessage>();
     const resume = this.sessionId();
     const skills = this.assembleSkills();
-    const extra = this.deps.extraOptions?.() ?? {};
+    const extra = this.deps.extraOptions?.(this.project) ?? {};
     const servers = this.deps.connectorServers?.servers(this.project) ?? {};
     this.connectors = {
       names: Object.keys(servers),
