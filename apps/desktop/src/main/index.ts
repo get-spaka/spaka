@@ -158,7 +158,7 @@ async function main() {
         mcpServers: {
           [UPSTART_SERVER]: upstartServer(
             () => preview.look(),
-            (query, kind) => blockIndex().find(query, { kind }),
+            (query, kind, limit) => blockIndex().find(query, { kind, limit }),
           ),
         },
         allowedTools: [LOOK_TOOL, FIND_BLOCKS_TOOL],

@@ -11,17 +11,58 @@ export const LOOK_TOOL = `mcp__${UPSTART_SERVER}__look_at_preview`;
 export const FIND_BLOCKS_TOOL = `mcp__${UPSTART_SERVER}__find_blocks`;
 
 export type Look = () => Promise<{ route: string | null; png?: Buffer; errors: string[]; notes: string[] }>;
-export type FindBlocks = (query: string, kind?: string) => Block[];
+export type FindBlocks = (query: string, kind: string | undefined, limit: number) => Block[];
+export type Wanted = { kind?: string; query: string };
 
-/** What find_blocks answers: each block found, described, with its template. */
-export function blocksAnswer(found: Block[], query: string, kind?: string): string {
-  if (!found.length)
-    return `No block of the gallery matches "${query}"${kind ? ` among the ${kind} blocks` : ""}. Write the section yourself.`;
+/**
+ * What find_blocks answers: for each section asked for, the blocks found,
+ * described, with their templates; a block found twice is shown once.
+ */
+/**
+ * Past about 25,000 tokens the agent's kit puts a tool's answer in a file,
+ * which the agent then reads in pieces: the templates in one answer stay
+ * under this many characters, beyond the best block of each section.
+ */
+export const ANSWER_BUDGET = 24_000;
+
+export function blocksAnswer(wanted: Wanted[], find: FindBlocks, budget = ANSWER_BUDGET): string {
+  const limit = wanted.length > 1 ? 2 : 4;
+  const found = wanted.map(({ kind, query }) => find(query, kind, limit));
+  // Which templates are shown: each section's best first, then the others while the budget lasts.
+  const shown = new Set<string>();
+  let used = 0;
+  for (const rank of [0, 1, 2, 3])
+    for (const blocks of found) {
+      const b = blocks[rank];
+      if (!b || shown.has(b.id)) continue;
+      if (rank > 0 && used + b.source.length > budget) continue;
+      shown.add(b.id);
+      used += b.source.length;
+    }
+  const written = new Set<string>();
+  const parts = wanted.map(({ kind, query }, i) => {
+    const title = `# ${kind ? `${kind}: ` : ""}"${query}"`;
+    const blocks = found[i]!;
+    if (!blocks.length)
+      return `${title}
+No block of the gallery fits: write this section yourself.`;
+    return [
+      title,
+      ...blocks.map((b) => {
+        const head = `## ${b.name} (${b.kind}, id ${b.id})`;
+        if (written.has(b.id))
+          return `${head}
+Shown above.`;
+        if (!shown.has(b.id))
+          return `${head}\n${b.description}\nIts template is left out to keep this answer short; ask for this section alone to see it.`;
+        written.add(b.id);
+        return `${head}\n${b.description}\n\n\`\`\`liquid\n${b.source.trim()}\n\`\`\``;
+      }),
+    ].join("\n\n");
+  });
   return [
-    `${found.length} block${found.length > 1 ? "s" : ""} of the gallery. To use one, write it as a shared part, parts/<name>.liquid, with this project's texts in place of the examples, and include it in the page with {% render '<name>' %}.`,
-    ...found.map(
-      (b) => `## ${b.name} (${b.kind}, id ${b.id})\n${b.description}\n\n\`\`\`liquid\n${b.source.trim()}\n\`\`\``,
-    ),
+    "Blocks of Upstart's gallery. To use one, write it as a shared part, parts/<name>.liquid, keeping its structure and classes, with this project's texts in place of the examples, and include it in the page with {% render '<name>' %}.",
+    ...parts,
   ].join("\n\n");
 }
 
@@ -33,13 +74,22 @@ export function upstartServer(look: Look, findBlocks: FindBlocks) {
     tools: [
       tool(
         "find_blocks",
-        "Searches Upstart's gallery of ready-made sections (headers, heroes, features, testimonials, pricing, questions, calls to action, footers), styled with daisyUI and the theme. Give a few words in any language: what the section holds and how it looks. Answers with up to four blocks and their templates.",
+        "Searches Upstart's gallery of ready-made sections (headers, heroes, features, testimonials, pricing, questions, calls to action, footers), styled with daisyUI and the theme. Ask for every section you want in one call: for each, a few words in any language on what it holds and how it looks. Answers with the best blocks for each, with their templates.",
         {
-          query: z.string().describe('What you look for, e.g. "three pricing plans, middle one highlighted"'),
-          kind: z.enum(BLOCK_KINDS).optional().describe("Only blocks of this kind"),
+          sections: z
+            .array(
+              z.object({
+                kind: z.enum(BLOCK_KINDS).optional().describe("Only blocks of this kind"),
+                query: z
+                  .string()
+                  .describe('What the section holds and how it looks, e.g. "three plans, middle one highlighted"'),
+              }),
+            )
+            .min(1)
+            .max(BLOCK_KINDS.length),
         },
-        async ({ query, kind }) => ({
-          content: [{ type: "text" as const, text: blocksAnswer(findBlocks(query, kind), query, kind) }],
+        async ({ sections }) => ({
+          content: [{ type: "text" as const, text: blocksAnswer(sections, findBlocks) }],
         }),
         { annotations: { readOnlyHint: true } },
       ),
