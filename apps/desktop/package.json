@@ -10,6 +10,7 @@
   "main": "out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
+    "dev:live": "UPSTART_SHOW_INACTIVE=1 electron-vite dev --watch",
     "build": "electron-vite build",
     "start": "electron-vite build && electron .",
     "package": "electron-vite build && electron-builder --mac --arm64 --publish never",

@@ -10,6 +10,11 @@ export type Environment = {
    * never activates it, even for the instant before the Dock icon is hidden.
    */
   background: boolean;
+  /**
+   * The window shown without taking the focus: the development run restarts
+   * the app at each change of the main process, behind what the maker is doing.
+   */
+  showInactive: boolean;
   /** Where the app keeps its own data. Overridden by checks, to stay away from the maker's. */
   dataDir: string | undefined;
   /** Where new projects are created. */
@@ -33,6 +38,7 @@ export type Environment = {
 export function readEnvironment(env: NodeJS.ProcessEnv = process.env): Environment {
   return {
     background: env.UPSTART_BACKGROUND === "1",
+    showInactive: env.UPSTART_SHOW_INACTIVE === "1",
     dataDir: env.UPSTART_DATA_DIR || undefined,
     projectsDir: env.UPSTART_PROJECTS_DIR || join(homedir(), "Documents", "Upstart"),
     agentConfigDir: env.UPSTART_AGENT_CONFIG_DIR || undefined,

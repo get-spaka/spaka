@@ -111,7 +111,7 @@ async function main() {
   win.webContents.on("render-process-gone", (_event, details) => {
     console.error("[upstart] interface process gone:", details.reason);
   });
-  if (!env.background) win.once("ready-to-show", () => win.show());
+  if (!env.background) win.once("ready-to-show", () => (env.showInactive ? win.showInactive() : win.show()));
 
   const ipc = createIpc(() => [win]);
   const devUrl = process.env.ELECTRON_RENDERER_URL;
