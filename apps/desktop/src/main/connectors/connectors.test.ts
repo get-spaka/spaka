@@ -121,3 +121,47 @@ test("a command line splits on spaces, keeping quoted parts whole", () => {
   expect(splitCommand(`npx -y "@scope/server" 'a b' c\\ d`)).toEqual(["npx", "-y", "@scope/server", "a b", "c d"]);
   expect(splitCommand("  ")).toEqual([]);
 });
+
+test("a remote connector may sign in as an app declared with its service (Q108); empty settings are left out", () => {
+  connectors.add("app", {
+    name: "slack",
+    kind: "remote",
+    target: "https://mcp.slack.example/mcp",
+    oauth: { clientId: " 1234.5678 ", callbackPort: "3118", authServerMetadataUrl: "" },
+  });
+  connectors.add("app", {
+    name: "notion",
+    kind: "remote",
+    target: "https://mcp.notion.example/mcp",
+    oauth: { clientId: "", callbackPort: "", authServerMetadataUrl: "" },
+  });
+  expect(connectors.servers(project)).toEqual({
+    slack: { type: "http", url: "https://mcp.slack.example/mcp", oauth: { clientId: "1234.5678", callbackPort: 3118 } },
+    notion: { type: "http", url: "https://mcp.notion.example/mcp" },
+  });
+  expect(connectors.list(project)[0]).toMatchObject({ oauth: { clientId: "1234.5678", callbackPort: 3118 } });
+  const bad = (oauth: { clientId?: string; callbackPort?: string; authServerMetadataUrl?: string }) => () =>
+    connectors.add("app", { name: "x", kind: "remote", target: "https://a.example", oauth });
+  expect(bad({ callbackPort: "80" })).toThrow(/port/);
+  expect(bad({ clientId: "has spaces" })).toThrow(/identifier/);
+  expect(bad({ authServerMetadataUrl: "http://a.example" })).toThrow(/https/);
+
+  // From a received project: settings that do not hold make the entry ignored.
+  mkdirSync(join(project.path, ".upstart"), { recursive: true });
+  writeFileSync(
+    join(project.path, PROJECT_CONNECTORS),
+    JSON.stringify({
+      connectors: [
+        { name: "good", kind: "remote", url: "https://g.example", oauth: { clientId: "abc", callbackPort: 4000 } },
+        { name: "port", kind: "remote", url: "https://p.example", oauth: { callbackPort: 22 } },
+        { name: "extra", kind: "remote", url: "https://e.example", oauth: { clientSecret: "x" } },
+      ],
+    }),
+  );
+  expect(
+    connectors
+      .list(project)
+      .filter((c) => c.scope === "project")
+      .map((c) => c.name),
+  ).toEqual(["good"]);
+});

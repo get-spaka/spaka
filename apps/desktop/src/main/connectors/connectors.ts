@@ -21,13 +21,22 @@ const RESERVED = new Set(["upstart"]);
 const NAME = /^[a-z0-9]+([_-][a-z0-9]+)*$/;
 const KEY = /^[A-Za-z][\w-]*$/;
 
+/**
+ * How the official program signs in to a remote connector that asks for it
+ * (Q108): by default on its own (a return to this computer, the app
+ * registered on the fly); for a service that wants an app declared with it,
+ * that app's identifier, the fixed port it returns to, and where the
+ * service's sign-in is described.
+ */
+export type SignIn = { clientId?: string; callbackPort?: number; authServerMetadataUrl?: string };
+
 /** A connector as written in connectors.json: no secret values, only their names. */
 export type ConnectorDef =
-  | { name: string; kind: "remote"; url: string; transport?: "http" | "sse"; headers?: string[] }
+  | { name: string; kind: "remote"; url: string; transport?: "http" | "sse"; headers?: string[]; oauth?: SignIn }
   | { name: string; kind: "local"; command: string; args?: string[]; env?: string[] };
 
 export type McpConfig =
-  | { type: "http" | "sse"; url: string; headers?: Record<string, string> }
+  | { type: "http" | "sse"; url: string; headers?: Record<string, string>; oauth?: SignIn }
   | { type: "stdio"; command: string; args: string[]; env?: Record<string, string> };
 
 export type Vault = { encrypt(text: string): Buffer; decrypt(data: Buffer): string };
@@ -66,6 +75,7 @@ export class Connectors {
         name: def.name,
         kind: def.kind,
         target: def.kind === "remote" ? def.url : commandLine(def),
+        ...(def.kind === "remote" && def.oauth ? { oauth: def.oauth } : {}),
         secrets: needed.map((n) => ({ name: n, set: !missing.includes(n) })),
         state: shadowed ? "replaced" : !approved ? "needs-approval" : missing.length ? "needs-secret" : "on",
       };
@@ -93,6 +103,7 @@ export class Connectors {
                 type: def.transport ?? "http",
                 url: def.url,
                 ...(def.headers?.length ? { headers: pick(def.headers) } : {}),
+                ...(def.oauth ? { oauth: def.oauth } : {}),
               }
             : {
                 type: "stdio",
@@ -129,12 +140,14 @@ export class Connectors {
       }
       if (url.protocol !== "https:" && !(url.protocol === "http:" && /^(localhost|127\.0\.0\.1)$/.test(url.hostname)))
         throw new Error("A remote connector's address starts with https://.");
+      const oauth = signInFrom(draft.oauth);
       def = {
         name,
         kind: "remote",
         url: url.toString(),
         ...(draft.transport === "sse" ? { transport: "sse" as const } : {}),
         ...(secretPairs.length ? { headers: secretPairs.map((s) => s.name.trim()) } : {}),
+        ...(oauth ? { oauth } : {}),
       };
     } else {
       const [command, ...args] = splitCommand(draft.target);
@@ -242,10 +255,45 @@ function isDef(value: unknown): value is ConnectorDef {
       typeof d.url === "string" &&
       /^https?:\/\//.test(d.url) &&
       strings(d.headers) &&
-      [undefined, "http", "sse"].includes(d.transport as string)
+      [undefined, "http", "sse"].includes(d.transport as string) &&
+      (d.oauth === undefined || isSignIn(d.oauth))
     );
   if (d.kind === "local") return typeof d.command === "string" && !!d.command && strings(d.args) && strings(d.env);
   return false;
+}
+
+const CLIENT_ID = /^[\w.:@/-]{1,200}$/;
+const isPort = (v: unknown) => Number.isInteger(v) && (v as number) >= 1024 && (v as number) <= 65535;
+const isHttps = (v: unknown) => typeof v === "string" && /^https:\/\/[^\s]+$/.test(v) && v.length <= 2000;
+
+function isSignIn(value: unknown): value is SignIn {
+  const o = value as Record<string, unknown>;
+  if (!o || typeof o !== "object" || Array.isArray(o)) return false;
+  if (Object.keys(o).some((k) => !["clientId", "callbackPort", "authServerMetadataUrl"].includes(k))) return false;
+  return (
+    (o.clientId === undefined || (typeof o.clientId === "string" && CLIENT_ID.test(o.clientId))) &&
+    (o.callbackPort === undefined || isPort(o.callbackPort)) &&
+    (o.authServerMetadataUrl === undefined || isHttps(o.authServerMetadataUrl))
+  );
+}
+
+/** The sign-in settings the maker typed, checked; none when all are empty. */
+function signInFrom(draft: ConnectorDraft["oauth"]): SignIn | undefined {
+  if (!draft) return undefined;
+  const clientId = draft.clientId?.trim() || undefined;
+  const port = draft.callbackPort?.trim() || undefined;
+  const metadata = draft.authServerMetadataUrl?.trim() || undefined;
+  if (clientId && !CLIENT_ID.test(clientId)) throw new Error("This is not an app identifier.");
+  const callbackPort = port === undefined ? undefined : Number(port);
+  if (callbackPort !== undefined && !isPort(callbackPort))
+    throw new Error("The return port is a number from 1024 to 65535.");
+  if (metadata && !isHttps(metadata)) throw new Error("The sign-in description's address starts with https://.");
+  const out: SignIn = {
+    ...(clientId ? { clientId } : {}),
+    ...(callbackPort !== undefined ? { callbackPort } : {}),
+    ...(metadata ? { authServerMetadataUrl: metadata } : {}),
+  };
+  return Object.keys(out).length ? out : undefined;
 }
 
 function secretNames(def: ConnectorDef): string[] {

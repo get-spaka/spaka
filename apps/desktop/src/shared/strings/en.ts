@@ -228,6 +228,13 @@ export const en = {
     save: "Save",
     approve: "Turn it on",
     signIn: "Sign in…",
+    signInSettings: "Sign-in settings",
+    signInSettingsHelp:
+      "Usually not needed: the agent registers itself with the service when you sign in. Some services want an app you declared with them first; enter its details here.",
+    clientId: "App identifier (client ID)",
+    callbackPort: "Return port",
+    metadataUrl: "Sign-in description address (optional)",
+    registeredApp: (id: string, port?: number) => `Signs in as app ${id}${port ? `, returning on port ${port}` : ""}`,
     signInWaiting: "Sign in in the page that opened in your browser. Upstart never sees your password.",
     signInNotReady: "The agent is still starting; try again in a moment.",
     signInUnknown: "This connector is not on for this website.",

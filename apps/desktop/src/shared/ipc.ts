@@ -66,6 +66,8 @@ export type ConnectorInfo = {
   /** As the agent's kit reports it, once the agent started with it. */
   status?: "connected" | "failed" | "needs-auth" | "pending" | "disabled";
   error?: string;
+  /** A remote connector's sign-in settings, when not the default (Q108). */
+  oauth?: { clientId?: string; callbackPort?: number; authServerMetadataUrl?: string };
 };
 export type ConnectorDraft = {
   name: string;
@@ -75,6 +77,8 @@ export type ConnectorDraft = {
   transport?: "http" | "sse";
   /** Header values (remote) or environment variables (local), kept encrypted by the app. */
   secrets?: { name: string; value: string }[];
+  /** For a remote connector whose service wants an app declared with it (Q108); empty fields are left out. */
+  oauth?: { clientId?: string; callbackPort?: string; authServerMetadataUrl?: string };
 };
 
 export type ExportResult = { folder: string; pages: string[]; files: number; warnings: string[] };

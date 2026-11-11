@@ -92,6 +92,11 @@ function ConnectorRow({ connector: c }: { connector: ConnectorInfo }) {
           <div className="mt-0.5 truncate font-mono text-xs text-muted-foreground" title={c.target}>
             {c.target}
           </div>
+          {c.oauth?.clientId && (
+            <div className="mt-0.5 truncate text-xs text-muted-foreground" data-testid="connector-app">
+              {t.connectors.registeredApp(c.oauth.clientId, c.oauth.callbackPort)}
+            </div>
+          )}
         </div>
         <span data-testid="connector-state" className={cn("shrink-0 text-xs", stateTone(c))}>
           {stateLabel(c)}
@@ -200,6 +205,7 @@ function AddConnector({ hasProject }: { hasProject: boolean }) {
   const [target, setTarget] = useState("");
   const [secretName, setSecretName] = useState("");
   const [secretValue, setSecretValue] = useState("");
+  const [oauth, setOauth] = useState({ clientId: "", callbackPort: "", authServerMetadataUrl: "" });
   const [error, setError] = useState<string | null>(null);
 
   if (!open)
@@ -220,12 +226,14 @@ function AddConnector({ hasProject }: { hasProject: boolean }) {
         kind,
         target,
         secrets: secretName.trim() ? [{ name: secretName, value: secretValue }] : [],
+        ...(kind === "remote" ? { oauth } : {}),
       });
       setOpen(false);
       setName("");
       setTarget("");
       setSecretName("");
       setSecretValue("");
+      setOauth({ clientId: "", callbackPort: "", authServerMetadataUrl: "" });
     } catch (e) {
       setError(messageOf(e));
     }
@@ -299,6 +307,32 @@ function AddConnector({ hasProject }: { hasProject: boolean }) {
         />
       </div>
       <p className="text-xs text-muted-foreground">{t.connectors.secretHelp}</p>
+      {kind === "remote" && (
+        <details className="text-xs" data-testid="connector-sign-in-settings">
+          <summary className="cursor-pointer text-muted-foreground">{t.connectors.signInSettings}</summary>
+          <div className="mt-2 flex flex-col gap-2">
+            <p className="text-muted-foreground">{t.connectors.signInSettingsHelp}</p>
+            {(
+              [
+                ["clientId", t.connectors.clientId, "w-full"],
+                ["callbackPort", t.connectors.callbackPort, "w-32"],
+                ["authServerMetadataUrl", t.connectors.metadataUrl, "w-full"],
+              ] as const
+            ).map(([key, label, width]) => (
+              <input
+                key={key}
+                aria-label={label}
+                placeholder={label}
+                value={oauth[key]}
+                inputMode={key === "callbackPort" ? "numeric" : undefined}
+                onChange={(event) => setOauth((o) => ({ ...o, [key]: event.target.value }))}
+                className={cn(field, width, "font-mono")}
+                data-testid={`connector-oauth-${key}`}
+              />
+            ))}
+          </div>
+        </details>
+      )}
       {error && (
         <p className="text-sm text-destructive" data-testid="connector-error">
           {error}
