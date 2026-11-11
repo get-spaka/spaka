@@ -14,7 +14,7 @@ import {
   Tablet,
   Upload,
 } from "lucide-react";
-import { type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type {
   DeviceView,
   HistoryEntry,
@@ -111,7 +111,7 @@ export function PreviewPane({
   useLayoutEffect(() => {
     seen.current = { rects: {}, pictures: {} };
   }, [project?.id]);
-  // The page zoomed to is drawn, out of sight: the zoom may land, crossfading into its picture (Q142).
+  // The page zoomed to is drawn, out of sight: the zoom may land (Q142).
   const pendingReady = useRef<PreviewZoomReady>(undefined);
   useEffect(() => {
     const offs = [
@@ -121,7 +121,7 @@ export function PreviewPane({
       }),
       upstart.on("preview:zoom-ready", (r) => {
         pendingReady.current = r;
-        setZoom((z) => (z && !z.toGrid && z.route === r.route ? { ...z, ready: true, shot: r.url } : z));
+        setZoom((z) => (z && !z.toGrid && z.route === r.route ? { ...z, ready: true } : z));
       }),
       // The page view is in place, over the zoom's picture: two frames later the picture goes.
       upstart.on("preview:placed", () =>
@@ -139,7 +139,7 @@ export function PreviewPane({
     const timer = setTimeout(() => setZoom((z) => (z?.landed ? undefined : z)), 400);
     return () => clearTimeout(timer);
   }, [landed]);
-  // The preview's own size, for thumbnails pictured at it (Q142, being tried); not followed while it is being resized.
+  // The preview's own size, which thumbnails are pictured at (Q142); not followed while it is being resized.
   const [panel, setPanel] = useState<{ width: number; height: number }>();
   useLayoutEffect(() => {
     const element = area.current;
@@ -277,9 +277,8 @@ export function PreviewPane({
     } else if (!pagesView && z.to === "page") {
       const cell = seen.current.rects[z.route];
       const thumb = seen.current.pictures[z.route];
-      const ready = pendingReady.current?.route === z.route ? pendingReady.current : undefined;
-      if (cell && thumb)
-        setZoom({ route: z.route, toGrid: false, page, cell, thumb, shot: ready?.url, ready: !!ready });
+      const ready = pendingReady.current?.route === z.route;
+      if (cell && thumb) setZoom({ route: z.route, toGrid: false, page, cell, thumb, ready });
     }
   }, [pagesView]);
 
@@ -493,7 +492,7 @@ export function PreviewPane({
               layoutKey={`${String(layoutKey)}-${historyOpen}`}
               seen={seen}
               landing={zoom?.landing}
-              panel={state.zoomTrial !== "crossfade" ? panel : undefined}
+              panel={panel}
             />
           ) : zoom ? null : (
             <>
@@ -522,8 +521,8 @@ export function PreviewPane({
 
 /**
  * A zoom between the page and a thumbnail (Q133): `page` is where the page is
- * shown, `cell` its thumbnail; `shot` a picture of the page at its size, `thumb`
- * the thumbnail's picture. To a page, it lands once the page is `ready` (Q142).
+ * shown, `cell` its thumbnail; `shot` a picture of the page as it was shown
+ * (going to the thumbnails), `thumb` the thumbnail's picture. To a page, it lands once the page is `ready` (Q142).
  */
 type Zoom = {
   route: string;
@@ -566,18 +565,16 @@ const ZOOM_EASING = "cubic-bezier(0.2, 0, 0, 1)";
 /**
  * Pictures of the page moved from where it was to where it goes in 300 ms
  * (Q133), by transforms only, which the compositor plays even while the
- * interface is busy. The picture it starts from crossfades into the one it
- * ends on: to the thumbnails, the thumbnail's; to a page, the page's own,
- * drawn at its size out of sight (Q142). To a page, it lands once that page is drawn.
+ * interface is busy. To the thumbnails, the picture of the page crossfades
+ * into the thumbnail's. To a page, the thumbnail's picture, taken at the
+ * preview's size (Q142), grows to it, and lands once the page is drawn.
  */
 function ZoomPicture({ zoom, onDone }: { zoom: Zoom; onDone: () => void }) {
   const box = useRef<HTMLDivElement>(null);
   const thumb = useRef<HTMLImageElement>(null);
-  const top = useRef<HTMLImageElement>(null);
   const [moved, setMoved] = useState(false);
   const [faded, setFaded] = useState(false);
-  // The picture on top, faded in: the thumbnail's going to the grid, the page's going to a page.
-  const topSrc = zoom.toGrid ? zoom.thumb : zoom.shot;
+  const fades = zoom.toGrid && !!zoom.thumb;
   // biome-ignore lint/correctness/useExhaustiveDependencies: one movement per zoom
   useLayoutEffect(() => {
     const element = box.current;
@@ -594,8 +591,21 @@ function ZoomPicture({ zoom, onDone }: { zoom: Zoom; onDone: () => void }) {
         timing,
       ),
     ];
-    if (thumb.current)
-      animations.push(thumb.current.animate([{ transform: from.thumb }, { transform: to.thumb }], timing));
+    const picture = thumb.current;
+    if (picture) {
+      animations.push(picture.animate([{ transform: from.thumb }, { transform: to.thumb }], timing));
+      // To the thumbnails, the page's picture crossfades into the thumbnail's.
+      if (fades) {
+        const fade = picture.animate([{ opacity: 0 }, { opacity: 1 }], {
+          duration: 200,
+          delay: 100,
+          easing: "ease-out",
+          fill: "both",
+        });
+        fade.onfinish = () => setFaded(true);
+        animations.push(fade);
+      }
+    }
     const first = animations[0];
     if (first) first.onfinish = () => setMoved(true);
     return () => {
@@ -605,51 +615,14 @@ function ZoomPicture({ zoom, onDone }: { zoom: Zoom; onDone: () => void }) {
       }
     };
   }, [zoom.route, zoom.toGrid]);
-  // The crossfade: during the movement going to the grid; once the page's picture is there going to a page.
-  useLayoutEffect(() => {
-    const element = top.current;
-    if (!element || !topSrc) return;
-    const animation = element.animate([{ opacity: 0 }, { opacity: 1 }], {
-      duration: zoom.toGrid ? 200 : 150,
-      delay: zoom.toGrid ? 100 : 0,
-      easing: "ease-out",
-      fill: "both",
-    });
-    animation.onfinish = () => setFaded(true);
-    return () => {
-      animation.onfinish = null;
-      animation.cancel();
-    };
-  }, [topSrc, zoom.toGrid]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: onDone is new at each rendering of the pane
   useEffect(() => {
     if (!moved || zoom.landed) return;
-    if (zoom.ready && (!topSrc || faded)) return onDone();
+    if (zoom.ready && (!fades || faded)) return onDone();
     // A page that never says it is drawn is shown all the same.
     const timer = setTimeout(onDone, 1500);
     return () => clearTimeout(timer);
-  }, [moved, faded, zoom.ready, zoom.landed, topSrc]);
-  const thumbPicture = zoom.thumb && (
-    <img
-      ref={thumb}
-      src={zoom.thumb}
-      alt=""
-      draggable={false}
-      className="absolute top-0 left-0 max-w-none origin-top-left"
-      style={{ width: zoom.page.width, height: (zoom.page.width * zoom.cell.height) / zoom.cell.width }}
-    />
-  );
-  const shotPicture = (src: string | undefined, ref?: RefObject<HTMLImageElement | null>) =>
-    src && (
-      <img
-        ref={ref}
-        data-testid="preview-zoom-shot"
-        src={src}
-        alt=""
-        draggable={false}
-        className="absolute inset-0 h-full w-full max-w-none"
-      />
-    );
+  }, [moved, faded, zoom.ready, zoom.landed, fades]);
   return (
     <div
       ref={box}
@@ -659,28 +632,18 @@ function ZoomPicture({ zoom, onDone }: { zoom: Zoom; onDone: () => void }) {
       className="pointer-events-none fixed z-40 origin-top-left overflow-hidden bg-white will-change-transform"
       style={{ left: zoom.page.x, top: zoom.page.y, width: zoom.page.width, height: zoom.page.height }}
     >
-      {zoom.toGrid ? (
-        <>
-          {shotPicture(zoom.shot)}
-          {zoom.thumb && (
-            <img
-              ref={(el) => {
-                thumb.current = el;
-                top.current = el;
-              }}
-              src={zoom.thumb}
-              alt=""
-              draggable={false}
-              className="absolute top-0 left-0 max-w-none origin-top-left"
-              style={{ width: zoom.page.width, height: (zoom.page.width * zoom.cell.height) / zoom.cell.width }}
-            />
-          )}
-        </>
-      ) : (
-        <>
-          {thumbPicture}
-          {shotPicture(zoom.shot, top)}
-        </>
+      {zoom.toGrid && zoom.shot && (
+        <img src={zoom.shot} alt="" draggable={false} className="absolute inset-0 h-full w-full max-w-none" />
+      )}
+      {zoom.thumb && (
+        <img
+          ref={thumb}
+          src={zoom.thumb}
+          alt=""
+          draggable={false}
+          className="absolute top-0 left-0 max-w-none origin-top-left"
+          style={{ width: zoom.page.width, height: (zoom.page.width * zoom.cell.height) / zoom.cell.width }}
+        />
       )}
     </div>
   );

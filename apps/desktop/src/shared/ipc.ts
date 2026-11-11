@@ -106,16 +106,7 @@ export type PreviewState = {
   view: PreviewView;
   /** The page the agent is writing, while it is (Q134). */
   writing: string | null;
-  /** Which landing of the zoom is being tried (Q142, until the maker chooses). */
-  zoomTrial: ZoomTrial;
 };
-
-/**
- * The zoom from a thumbnail to its page, two ways to land it without a jump
- * (Q142, being tried): crossfaded into a picture of the real page at its
- * size; with thumbnails pictured at the preview's own size; or both.
- */
-export type ZoomTrial = "crossfade" | "panel" | "both";
 
 export type PreviewView = "page" | "pages";
 
@@ -125,11 +116,8 @@ export type PreviewView = "page" | "pages";
  */
 export type PreviewZoom = { to: PreviewView; route: string; url?: string };
 
-/**
- * The page a zoom goes to is loaded and drawn at its size, out of sight: the
- * zoom may land (Q142). With `url`, a picture of it, to crossfade into.
- */
-export type PreviewZoomReady = { route: string; url?: string };
+/** The page a zoom goes to is loaded and drawn at its size, out of sight: the zoom may land (Q142). */
+export type PreviewZoomReady = { route: string };
 
 /** A page's thumbnail in the "All pages" view: where it goes, and whether it is on screen (Q130). */
 export type GridCell = {
@@ -341,7 +329,7 @@ export type Sends = {
    * The thumbnails of the "All pages" view, in CSS pixels, and the screen their
    * pages are laid out on (Q129); null hides them.
    */
-  /** `panel`: the screen is the preview's own size, in CSS pixels (Q142, being tried). */
+  /** `panel`: the screen is the preview's own size, in CSS pixels (Q142). */
   "preview:grid": (
     cells: GridCell[] | null,
     screen?: { width: number; height: number; mobile: boolean; panel?: boolean },

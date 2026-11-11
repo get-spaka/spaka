@@ -24,8 +24,9 @@ export function thumbnailWidth(width: number): number {
 }
 
 /**
- * The screen a page is laid out on before being drawn small (Q129): a laptop's
- * first screen, or the chosen device's, sideways when it is.
+ * The screen a page is laid out on before being drawn small (Q129): the
+ * chosen device's, sideways when it is; with a laptop's screen, the preview's
+ * own size once it is known (Q142), a laptop's first screen until then.
  */
 export function thumbnailScreen(
   device: { width: number; height: number } | undefined,

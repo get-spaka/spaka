@@ -157,13 +157,12 @@ describe("all pages as thumbnails", () => {
     await until(async () => (await w.locator('[data-testid="page-thumb"] img').count()) === 4);
     await w.locator('[data-testid="page-thumb"][data-route="/about"] button').click();
     await zoom.waitFor({ timeout: 2000 });
-    // The page is loaded and drawn out of sight meanwhile; the zoom crossfades into its picture (Q142).
-    await w.getByTestId("preview-zoom-shot").waitFor({ timeout: 2000 });
     await zoom.waitFor({ state: "detached", timeout: 2000 });
     expect(await main((u) => u.preview.currentView)).toBe("page");
     await until(async () => (await main((u) => u.preview.state())).route === "/about");
     const landing = await main((u) => u.preview.landings.at(-1));
-    expect(landing).toMatchObject({ route: "/about", drawn: true, picture: true });
+    // The page was loaded and drawn out of sight meanwhile (Q142).
+    expect(landing).toMatchObject({ route: "/about", drawn: true });
     expect(landing.ms).toBeLessThan(1000);
     // The page scrolls without a scrollbar taking its width, as its thumbnail (Q143).
     const widths = await main((u) =>
@@ -182,10 +181,9 @@ describe("all pages as thumbnails", () => {
     await until(async () => (await thumbs().count()) === 4);
   });
 
-  test("tried instead: thumbnails pictured at the preview's size, the zoom without a picture of the page", async () => {
+  test("thumbnails are pictured at the preview's size; the zoom lands under the page view", async () => {
     const w = launched.window;
-    await main((u) => u.preview.setZoomTrial("panel"));
-    // The cells take the preview's shape, and the pictures are taken again at its size.
+    // The cells have the preview's shape, and the pictures are taken at its size (Q142).
     const area = await w.getByTestId("pages-grid").evaluate((el) => {
       const r = (el.parentElement as HTMLElement).getBoundingClientRect();
       return r.width / r.height;
@@ -213,9 +211,8 @@ describe("all pages as thumbnails", () => {
       }
       if (Date.now() - started > 2000) throw new Error("The zoom did not land.");
     }
-    expect(await main((u) => u.preview.landings.at(-1))).toMatchObject({ route: "/about", picture: false });
+    expect(await main((u) => u.preview.landings.at(-1))).toMatchObject({ route: "/about", drawn: true });
     await invoke("preview:set-view", "pages");
-    await main((u) => u.preview.setZoomTrial("crossfade"));
     await until(async () => (await thumbs().count()) === 4);
   });
 

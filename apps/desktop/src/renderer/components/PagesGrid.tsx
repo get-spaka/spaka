@@ -34,7 +34,7 @@ export function PagesGrid({
   seen: RefObject<{ rects: Record<string, Rect>; pictures: Record<string, string> }>;
   /** The page the zoom from the page view lands on: its cell waits, the others fade in. */
   landing?: string;
-  /** The preview's own size: with a laptop's screen, pages are pictured at it instead (Q142, being tried). */
+  /** The preview's own size: with a laptop's screen, pages are pictured at it, so the zoom to a page is a pure enlargement (Q142). */
   panel?: { width: number; height: number };
 }) {
   const scroller = useRef<HTMLDivElement>(null);

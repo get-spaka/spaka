@@ -22,7 +22,6 @@ import type {
   ProjectInfo,
   Rect,
   ToPreview,
-  ZoomTrial,
 } from "../../shared/ipc";
 import { PageGrid, pictureKey, type ThumbnailAction, type ThumbnailScreen } from "./grid";
 import { PreviewServer, VENDOR_BASE } from "./server";
@@ -71,10 +70,8 @@ export class Preview {
   private bounds: Rect | null = null;
   /** Not shown but kept drawn at its place's size, out of sight, so that a zoom lands on a page already drawn (Q142). */
   private parked = false;
-  /** Which landing of the zoom is being tried (Q142). */
-  private zoomTrial: ZoomTrial = "crossfade";
   /** For checks: how each zoom to a page landed, whether the page drew a frame out of sight, and how soon. */
-  readonly landings: { route: string; drawn: boolean; ms: number; picture: boolean }[] = [];
+  readonly landings: { route: string; drawn: boolean; ms: number }[] = [];
   private device: DeviceView | undefined;
   private route: string | null = null;
   private title = "";
@@ -294,16 +291,10 @@ export class Preview {
     return this.viewMode;
   }
 
-  setZoomTrial(trial: ZoomTrial) {
-    this.zoomTrial = trial;
-    this.emit();
-  }
-
   /**
    * Opens a page from its thumbnail (Q132). From the thumbnails, the interface
    * zooms meanwhile (Q133): the page is loaded out of sight at its size, and
-   * once it has drawn, the zoom is told it may land; with the crossfade being
-   * tried, it is also given a picture of the page to fade into (Q142).
+   * once it has drawn, the zoom is told it may land (Q142).
    */
   async openPage(route: string) {
     const zooming = this.viewMode === "pages";
@@ -312,15 +303,9 @@ export class Preview {
     await this.navigate(route, true);
     if (!zooming) return;
     const drawn = await this.drawn();
-    const picture =
-      this.zoomTrial !== "panel" && this.bounds
-        ? await this.view.webContents.capturePage().catch(() => undefined)
-        : undefined;
-    const url =
-      picture && !picture.isEmpty() ? `data:image/jpeg;base64,${picture.toJPEG(90).toString("base64")}` : undefined;
-    this.landings.push({ route, drawn, ms: Date.now() - started, picture: !!url });
+    this.landings.push({ route, drawn, ms: Date.now() - started });
     if (this.landings.length > 20) this.landings.shift();
-    this.options.onZoomReady?.({ route, url });
+    this.options.onZoomReady?.({ route });
   }
 
   /** Whether the page drew two frames, within a short time: a page out of sight draws none. */
@@ -454,7 +439,6 @@ export class Preview {
       theme: this.site ? createHash("sha256").update(this.site.runtime.theme()).digest("hex").slice(0, 12) : "",
       view: this.viewMode,
       writing: this.site ? this.writing : null,
-      zoomTrial: this.zoomTrial,
     };
   }
 

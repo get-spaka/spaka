@@ -13,7 +13,6 @@ import {
   type Rect,
   SETTINGS_PAGES,
   type SettingsPage,
-  type ZoomTrial,
 } from "../shared/ipc";
 import { en as t } from "../shared/strings/en";
 import { Agent, projectNameFrom } from "./agent/agent";
@@ -121,22 +120,6 @@ async function main() {
   // The interface's text size (Q125): the whole interface is drawn larger or smaller; the website is not.
   const applyTextSize = () => win.webContents.setZoomFactor(zoomFor(settings.get().textSize));
   win.webContents.on("did-finish-load", applyTextSize);
-  // The zoom's landing being tried (Q142), kept until the maker chooses.
-  const trialFile = join(app.getPath("userData"), "zoom-trial.json");
-  const trials: { id: ZoomTrial; label: string }[] = [
-    { id: "crossfade", label: "Zoom: Crossfade into the Real Page" },
-    { id: "panel", label: "Zoom: Thumbnails at the Preview's Size" },
-    { id: "both", label: "Zoom: Both" },
-  ];
-  const readTrial = (): ZoomTrial => {
-    try {
-      const id = JSON.parse(readFileSync(trialFile, "utf8")).trial;
-      return trials.some((x) => x.id === id) ? id : "crossfade";
-    } catch {
-      return "crossfade";
-    }
-  };
-  const trial = readTrial();
   // The app's menu: macOS's usual one, with Settings… (⌘,) in the app's menu.
   Menu.setApplicationMenu(
     Menu.buildFromTemplate([
@@ -163,18 +146,6 @@ async function main() {
       { role: "fileMenu" },
       { role: "editMenu" },
       { role: "viewMenu" },
-      {
-        label: "Trial",
-        submenu: trials.map((x) => ({
-          label: x.label,
-          type: "radio" as const,
-          checked: x.id === trial,
-          click: () => {
-            writeFileSync(trialFile, JSON.stringify({ trial: x.id }));
-            preview.setZoomTrial(x.id);
-          },
-        })),
-      },
       { role: "windowMenu" },
     ]),
   );
@@ -220,7 +191,6 @@ async function main() {
       "preview:comments-discard": () => void discardComments(),
     },
   });
-  preview.setZoomTrial(trial);
   const peek = new BlockPeek(win, () => preview.origin);
   await preview.start();
 
