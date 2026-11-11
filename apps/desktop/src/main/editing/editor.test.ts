@@ -100,3 +100,85 @@ test("records reordered and renamed, the manual order kept", () => {
   expect(() => editor.renameRecord("data/posts/hello.md", "second")).toThrow("Another record already has this id.");
   expect(() => editor.renameRecord("data/posts/hello.md", "_draft")).toThrow(EditRefused);
 });
+
+function withBlog() {
+  const p = withPosts();
+  writeFileSync(
+    join(p.root, "data/posts/_datasource.yaml"),
+    "label: Posts\nfields:\n  - name: title\n    kind: text\n  - name: date\n    kind: date\n  - name: cover\n    kind: image\n  - name: body\n    kind: markdown\nbody: body\n",
+  );
+  mkdirSync(join(p.root, "pages/blog"), { recursive: true });
+  const list = `<ul>{% for post in data.posts %}<li><h2>{{ post.title }}</h2><p>{{ post.date }}</p><img src="{{ post.cover }}" alt=""></li>{% endfor %}</ul><img src="/media/old.jpg" alt="The old shop">`;
+  writeFileSync(join(p.root, "pages/blog/index.liquid"), list);
+  writeFileSync(join(p.root, "pages/blog/[posts].liquid"), "<h1>{{ record.title }}</h1>{{ record.body }}");
+  mkdirSync(join(p.root, "media"));
+  writeFileSync(join(p.root, "media/new.json"), '{ "alt": "The new shop" }\n');
+  return { ...p, list, at: (needle: string, from = 0) => list.indexOf(needle, from) };
+}
+
+test("a record's text field shown alone is edited in place, in its record (Q148)", () => {
+  const { root, editor, changes, at } = withBlog();
+  const h2 = at("<h2>");
+  expect(editor.info("pages/blog/index.liquid", h2)).toMatchObject({ text: true, computed: false, field: "title" });
+  // A date is changed in the Content tab.
+  expect(editor.info("pages/blog/index.liquid", at("<p>"))).toMatchObject({ text: false, fromRecord: true });
+  editor.apply({
+    type: "record-text",
+    file: "pages/blog/index.liquid",
+    at: h2,
+    record: "posts/first",
+    text: " First\n of all ",
+  });
+  expect(readFileSync(join(root, "data/posts/first.md"), "utf8")).toBe("---\ntitle: First of all\n---\nHello.\n");
+  expect(changes.at(-1)).toEqual({ label: "Edited First of all", files: ["data/posts/first.md"] });
+  // On a record page, the datasource is the page's.
+  expect(editor.info("pages/blog/[posts].liquid", 0)).toMatchObject({ field: "title" });
+  const refuse = (record: string, at2 = h2) =>
+    expect(() =>
+      editor.apply({ type: "record-text", file: "pages/blog/index.liquid", at: at2, record, text: "x" }),
+    ).toThrow(EditRefused);
+  refuse("team/adam");
+  refuse("posts/first", at("<p>"));
+});
+
+test("an image replaced: its address in the template with the new alt text, or the record's field (Q159)", () => {
+  const { root, editor, changes, list, at } = withBlog();
+  const fixed = at('<img src="/media');
+  expect(editor.info("pages/blog/index.liquid", fixed).image).toEqual({});
+  expect(editor.info("pages/blog/index.liquid", at("<img")).image).toEqual({ field: "cover" });
+  expect(editor.info("pages/blog/index.liquid", at("<h2>")).image).toBeUndefined();
+  editor.apply({ type: "image", file: "pages/blog/index.liquid", at: fixed, src: "/media/new.jpg" });
+  expect(readFileSync(join(root, "pages/blog/index.liquid"), "utf8")).toBe(
+    list.replace('<img src="/media/old.jpg" alt="The old shop">', '<img src="/media/new.jpg" alt="The new shop">'),
+  );
+  expect(changes.at(-1)).toEqual({ label: "Image replaced", files: ["pages/blog/index.liquid"] });
+  editor.apply({
+    type: "image",
+    file: "pages/blog/index.liquid",
+    at: at("<img"),
+    src: "/media/new.jpg",
+    record: "posts/second",
+  });
+  expect(readFileSync(join(root, "data/posts/second.md"), "utf8")).toBe(
+    "---\ntitle: Second post\ncover: /media/new.jpg\n---\n",
+  );
+  expect(() =>
+    editor.apply({ type: "image", file: "pages/blog/index.liquid", at: at("<img"), src: "/media/new.jpg" }),
+  ).toThrow("This image's address is computed: ask the agent to change it.");
+});
+
+test("an image file dropped onto an image is added and used, one version; another file is refused", async () => {
+  const { root, editor, changes, at } = withBlog();
+  const from = join(root, "..", `${Date.now()}-shop.svg`);
+  writeFileSync(from, '<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"/>');
+  const fixed = at('<img src="/media');
+  await editor.edit({ type: "image", file: "pages/blog/index.liquid", at: fixed, src: "", from });
+  const added = changes.at(-1)!;
+  expect(added.label).toBe("Image replaced");
+  const path = added.files.find((f) => f.endsWith(".svg"))!;
+  expect(existsSync(join(root, path))).toBe(true);
+  expect(readFileSync(join(root, "pages/blog/index.liquid"), "utf8")).toContain(`<img src="/${path}"`);
+  await expect(
+    editor.edit({ type: "image", file: "pages/blog/index.liquid", at: fixed, src: "", from: "/tmp/menu.pdf" }),
+  ).rejects.toThrow("menu.pdf is not an image.");
+});

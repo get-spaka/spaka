@@ -21,6 +21,8 @@ export {
   type Located,
   locate,
   type Range,
+  type RecordField,
+  recordFieldAt,
   replaceTexts,
   type Section,
   sections,

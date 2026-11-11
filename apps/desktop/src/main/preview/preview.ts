@@ -46,7 +46,11 @@ export type PreviewOptions = {
   onFileChanged?: (path: string) => void;
   onPageEvent?: (event: FromPreview) => void;
   /** What the preview's script may ask for: the maker's edits and comments (Q90, Q95). */
-  invokes?: Partial<PreviewInvokes>;
+  invokes?: Partial<{
+    [C in keyof PreviewInvokes]: (
+      ...args: Parameters<PreviewInvokes[C]>
+    ) => ReturnType<PreviewInvokes[C]> | Promise<ReturnType<PreviewInvokes[C]>>;
+  }>;
   /** A gallery block's template, for its thumbnail (Q92). */
   block?: (id: string) => string | undefined;
   /** A shipped font's file, from its path under /__up/fonts/, for a theme shown before it is written. */

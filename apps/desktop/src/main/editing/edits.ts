@@ -3,6 +3,7 @@
 // returns the new text, or throws with a reason the maker can read. Nothing
 // here touches the disk.
 import { locate, type Range, replaceTexts, sections, textRuns } from "@upstart/runtime";
+import { en } from "../../shared/strings/en";
 
 export class EditRefused extends Error {}
 
@@ -47,6 +48,32 @@ export function setLink(src: string, at: number, href: string): string {
   const next = attr
     ? `${tag.slice(0, attr.index)}${attr[1]}"${value}"${tag.slice(attr.index + attr[0].length)}`
     : `<a href="${value}"${tag.slice(2)}`;
+  return src.slice(0, el.outer.start) + next + src.slice(el.outer.start + tag.length);
+}
+
+/** Sets an attribute of the tag starting at `at`, adding it after the tag's name when it has none. */
+function setAttribute(tag: string, name: string, value: string): string {
+  const escaped = value.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+  const attr = new RegExp(`(\\s${name}\\s*=\\s*)("[^"]*"|'[^']*'|[^\\s>]+)`, "i").exec(tag);
+  if (attr) return `${tag.slice(0, attr.index)}${attr[1]}"${escaped}"${tag.slice(attr.index + attr[0].length)}`;
+  const nameEnd = /^<[\w-]+/.exec(tag)![0].length;
+  return `${tag.slice(0, nameEnd)} ${name}="${escaped}"${tag.slice(nameEnd)}`;
+}
+
+/**
+ * An image's address replaced in the template (Q159), and its alt text with
+ * the new image's when it has one, so that it says what the image now shows.
+ */
+export function setImageSource(src: string, at: number, address: string, alt?: string): string {
+  const el = locate(src, at);
+  if (el?.name !== "img") throw new EditRefused("This is not an image.");
+  const tag = src.slice(el.outer.start, src.indexOf(">", el.outer.start) + 1);
+  if (/\{[{%]/.test(address)) throw new EditRefused("An address cannot hold Liquid.");
+  const current = /\ssrc\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/i.exec(tag)?.[1];
+  if (current && /\{[{%]/.test(current)) throw new EditRefused(en.editor.notReplaceable);
+  let next = setAttribute(tag, "src", address.trim());
+  const currentAlt = /\salt\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/i.exec(tag)?.[1];
+  if (alt?.trim() && !(currentAlt && /\{[{%]/.test(currentAlt))) next = setAttribute(next, "alt", alt.trim());
   return src.slice(0, el.outer.start) + next + src.slice(el.outer.start + tag.length);
 }
 

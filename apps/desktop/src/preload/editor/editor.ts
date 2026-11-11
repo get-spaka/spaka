@@ -27,7 +27,16 @@ const t = en.editor;
 export type EditorBridge = CommentsBridge & {
   edit(action: EditAction): Promise<unknown>;
   info(file: string, at: number): Promise<EditInfo>;
+  /** Opens the app's media picker (Q159): the chosen image's address, or null. */
+  pickImage(): Promise<string | null>;
+  /** A dropped file's path on the disk, or "" when it has none. */
+  pathOf(file: File): string;
 };
+
+/** The record the trace names for an element: its own, or the one around it. */
+function recordOf(el: Element): string | undefined {
+  return el.closest("[data-up-rec]")?.getAttribute("data-up-rec") || undefined;
+}
 
 const ICONS = {
   drag: '<circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/>',
@@ -39,6 +48,8 @@ const ICONS = {
     '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
   text: '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>',
   parent: '<path d="M14 9 9 4 4 9"/><path d="M20 20h-7a4 4 0 0 1-4-4V4"/>',
+  image:
+    '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>',
   link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
 };
 
@@ -89,7 +100,7 @@ export class Editor {
   private readonly line: HTMLElement;
   private hovered: HTMLElement | undefined;
   private selected: Selected | undefined;
-  private editing: { el: HTMLElement; before: string; origin: Origin } | undefined;
+  private editing: { el: HTMLElement; before: string; origin: Origin; field?: string } | undefined;
   private toastTimer: ReturnType<typeof setTimeout> | undefined;
   private frame = 0;
   private observed = false;
@@ -269,6 +280,7 @@ export class Editor {
       { capture: true },
     );
     this.listenForBlocks();
+    this.listenForFiles();
     const follow = () => {
       cancelAnimationFrame(this.frame);
       this.frame = requestAnimationFrame(() => this.place());
@@ -354,6 +366,7 @@ export class Editor {
     button("delete", "delete", t.delete, movable);
     if (s.info?.text) button("text", "text", t.editText);
     if (s.el.localName === "a") button("link", "link", t.link);
+    if (s.info?.image) button("replace", "image", t.replace);
     const shared = s.info?.sharedBy ?? 0;
     if (shared > 0) buttons.push(`<span class="chip" data-testid="editor-shared">${t.shared(shared)}</span>`);
     this.bar.innerHTML = buttons.join("");
@@ -444,6 +457,60 @@ export class Editor {
     window.addEventListener("dragend", () => this.showLine(undefined), { capture: true });
   }
 
+  /**
+   * An image file dragged from the Finder onto an image of the page (Q159):
+   * the image is outlined, and the drop replaces it. Other files are refused.
+   */
+  private listenForFiles() {
+    const isFiles = (e: DragEvent) => !!e.dataTransfer?.types.includes("Files");
+    const imageAt = (e: DragEvent) =>
+      document
+        .elementsFromPoint(e.clientX, e.clientY)
+        .find((el): el is HTMLElement => el.localName === "img" && el.hasAttribute("data-up-src"));
+    window.addEventListener(
+      "dragover",
+      (e) => {
+        if (!isFiles(e)) return;
+        // Never the browser's own drop, which would open the file.
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        const image = this.active ? imageAt(e) : undefined;
+        e.dataTransfer!.dropEffect = image ? "copy" : "none";
+        this.setHover(image);
+      },
+      { capture: true },
+    );
+    window.addEventListener(
+      "drop",
+      (e) => {
+        if (!isFiles(e)) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        this.setHover(undefined);
+        if (this.mode !== "edit") return;
+        if (this.paused) return this.toast(t.paused);
+        const image = imageAt(e);
+        const file = e.dataTransfer?.files[0];
+        if (!image || !file) return this.toast(t.dropOnImage);
+        void this.replaceImage(image, { from: this.bridge.pathOf(file) });
+      },
+      { capture: true },
+    );
+  }
+
+  /** Replaces an image: chosen in the app's picker, or a file dropped from the disk (Q159). */
+  private async replaceImage(el: HTMLElement, chosen?: { from: string }) {
+    const origin = originOf(el);
+    if (!origin) return;
+    const info = await this.bridge.info(origin.file, origin.at).catch(() => undefined);
+    if (!info?.image) return this.toast(t.notReplaceable);
+    const record = info.image.field ? recordOf(el) : undefined;
+    if (info.image.field && !record) return this.toast(t.notReplaceable);
+    const src = chosen ? "" : await this.bridge.pickImage();
+    if (src === null) return;
+    await this.run({ type: "image", file: origin.file, at: origin.at, src, record, from: chosen?.from });
+  }
+
   /** The insertion line, at a height in the window, or hidden. */
   showLine(top: number | undefined) {
     this.line.style.display = top === undefined ? "none" : "block";
@@ -457,6 +524,7 @@ export class Editor {
     if (act === "text") return this.startEdit(s.el);
     if (act === "parent") return this.select(tracedFrom(s.el.parentElement));
     if (act === "link") return this.openPop();
+    if (act === "replace") return this.replaceImage(s.el);
     if (act === "up" || act === "down") {
       const sections = sectionList();
       const i = sections.findIndex((x) => x.target.file === target.file && x.target.at === target.at);
@@ -489,11 +557,11 @@ export class Editor {
     const info = await this.bridge.info(origin.file, origin.at).catch(() => undefined);
     // A text the app cannot write: a comment for the agent opens on it instead.
     if (!info?.text) {
-      this.toast(info?.computed ? t.computed : t.notText);
+      this.toast(info?.fromRecord ? t.fromRecord : info?.computed ? t.computed : t.notText);
       return this.comments.openOn(el);
     }
     await this.select(el);
-    this.editing = { el, before: el.innerHTML, origin };
+    this.editing = { el, before: el.innerHTML, origin, field: info.field };
     el.setAttribute("contenteditable", "plaintext-only");
     el.setAttribute("spellcheck", "true");
     el.focus();
@@ -520,8 +588,13 @@ export class Editor {
   private commitEdit() {
     const editing = this.stopEditing();
     if (!editing || editing.el.innerHTML === editing.before) return;
-    const { tags, texts } = textsOf(editing.el);
-    void this.run({ type: "text", file: editing.origin.file, at: editing.origin.at, texts, tags }).then((ok) => {
+    const { file, at } = editing.origin;
+    // A record's text field is written in the record (Q148).
+    const record = editing.field ? recordOf(editing.el) : undefined;
+    const action: EditAction = record
+      ? { type: "record-text", file, at, record, text: editing.el.textContent ?? "" }
+      : { type: "text", file, at, ...textsOf(editing.el) };
+    void this.run(action).then((ok) => {
       if (!ok) editing.el.innerHTML = editing.before;
     });
   }

@@ -12,6 +12,7 @@ import {
   newRecordText,
   RecordWriteRefused,
   readRecordFile,
+  recordFieldAt,
   recordFile,
   recordIdFrom,
   recordOf,
@@ -26,7 +27,7 @@ import { diskSource } from "@upstart/runtime/node";
 import type { EditAction, EditInfo } from "../../shared/ipc";
 import { copyOfPage } from "../../shared/page-grid";
 import { en } from "../../shared/strings/en";
-import { addFile, addImage, replaceUses, slug, usesLabel, usesOf, usingFiles } from "../media/library";
+import { addFile, addImage, mediaKind, replaceUses, slug, usesLabel, usesOf, usingFiles } from "../media/library";
 import type { ImageFinder } from "../media/search";
 import {
   copyName,
@@ -40,6 +41,7 @@ import {
   placeFor,
   removeRange,
   renameInclude,
+  setImageSource,
   setLink,
   targetAt,
 } from "./edits";
@@ -296,8 +298,31 @@ export class Editor {
     return new Datasources(diskSource(root));
   }
 
+  /**
+   * An edit from the preview. An image file dropped onto an image is added
+   * to media/ first, and the image replaced with it: one version (Q159).
+   */
+  async edit(action: EditAction): Promise<{ label: string; files: string[] }> {
+    if (action.type !== "image" || !action.from) return this.apply(action);
+    if (mediaKind(action.from) !== "image") throw new EditRefused(en.editing.notAnImage(basename(action.from)));
+    this.ready();
+    const added = await addFile(this.root(), action.from);
+    const files = [added.path, infoFile(added.path)].filter((f) => existsSync(join(this.root(), f)));
+    try {
+      return this.applyNow({ ...action, from: undefined, src: `/${added.path}` }, files);
+    } catch (error) {
+      // The file stays in the library, with its own version.
+      this.deps.changed({ label: en.editing.labels.mediaAdded(1), files });
+      throw error;
+    }
+  }
+
   apply(action: EditAction): { label: string; files: string[] } {
     this.ready();
+    return this.applyNow(action, []);
+  }
+
+  private applyNow(action: EditAction, added: string[]): { label: string; files: string[] } {
     const t = en.editing.labels;
     const src = this.read(action.file);
     const writes: Record<string, string> = {};
@@ -345,9 +370,28 @@ export class Editor {
         label = t.inserted;
         break;
       }
+      case "record-text": {
+        // The record's field the element shows alone (Q148).
+        const file = this.recordFileFor(action.file, src, action.at, action.record, undefined, en.editor.computed);
+        if (file.kind !== "text") throw new EditRefused(en.editing.fieldNotText);
+        const text = action.text.replace(/\s+/g, " ").trim();
+        writes[file.path] = this.recordValue(file.path, file.field, text);
+        label = "";
+        break;
+      }
+      case "image":
+        if (action.record) {
+          const file = this.recordFileFor(action.file, src, action.at, action.record, "src", en.editing.notRecordImage);
+          if (file.kind !== "image") throw new EditRefused(en.editing.notRecordImage);
+          writes[file.path] = this.recordValue(file.path, file.field, action.src);
+        } else writes[action.file] = setImageSource(src, action.at, action.src, this.altOf(action.src));
+        label = t.imageReplaced;
+        break;
     }
     for (const [file, content] of Object.entries(writes)) this.write(file, content);
-    const change = { label, files: Object.keys(writes) };
+    // A record's title may be the text just written.
+    if (action.type === "record-text") label = t.recordEdited(this.recordName(Object.keys(writes)[0]!));
+    const change = { label, files: [...added, ...Object.keys(writes)] };
     this.deps.changed(change);
     return change;
   }
@@ -441,12 +485,79 @@ export class Editor {
     const include = includeAt(src, at);
     const el = include ? undefined : locate(src, at);
     const part = /^parts\/(.+)\.liquid$/.exec(file)?.[1];
+    const shown = el?.notEditable === "liquid" ? this.recordField(file, src, at) : undefined;
+    const field = shown?.kind === "text" ? shown.field : undefined;
     return {
-      text: el ? !el.notEditable : false,
-      computed: el?.notEditable === "liquid",
+      text: el ? !el.notEditable || !!field : false,
+      computed: el?.notEditable === "liquid" && !field,
       movable: include ? true : !!el && !el.inLoop && el.whole,
       sharedBy: part ? pagesUsing(part, this.templates()) : 0,
+      ...(field ? { field } : shown?.kind ? { fromRecord: true } : {}),
+      ...(el?.name === "img" ? this.imageInfo(file, src, at) : {}),
     };
+  }
+
+  /** Whether an image can be replaced: its address written in the template, or a record's image field (Q159). */
+  private imageInfo(file: string, src: string, at: number): Pick<EditInfo, "image"> {
+    const tag = src.slice(at, src.indexOf(">", at) + 1);
+    const address = /\ssrc\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/i.exec(tag)?.[1];
+    if (!address || !/\{[{%]/.test(address)) return { image: {} };
+    const shown = this.recordField(file, src, at, "src");
+    return shown?.kind === "image" ? { image: { field: shown.field } } : {};
+  }
+
+  /**
+   * The record's field an element shows alone, in its text or an attribute,
+   * with its kind: the datasource is the loop's, or a record page's own.
+   */
+  private recordField(file: string, src: string, at: number, attribute?: string) {
+    const found = recordFieldAt(src, at, attribute);
+    const datasource = found && (found.datasource ?? /\[([a-z0-9][\w-]*)\]\.liquid$/i.exec(file)?.[1]);
+    if (!found || !datasource) return undefined;
+    let kind: string | undefined;
+    try {
+      kind = this.datasources()
+        .definition(datasource)
+        .definition?.fields.find((f) => f.name === found.field)?.kind;
+    } catch {}
+    return { datasource, field: found.field, kind };
+  }
+
+  /** The file of the record an edit names, checked against the field the element shows. */
+  private recordFileFor(
+    file: string,
+    src: string,
+    at: number,
+    record: string,
+    attribute: string | undefined,
+    refused: string,
+  ) {
+    const shown = this.recordField(file, src, at, attribute);
+    const of = /^([a-z0-9][\w-]*)\/([a-z0-9][\w-]*)$/i.exec(record);
+    if (!shown || !of || of[1] !== shown.datasource) throw new EditRefused(refused);
+    return { path: recordFile(of[1]!, of[2]!), field: shown.field, kind: shown.kind };
+  }
+
+  /** A record's file with one value changed. */
+  private recordValue(file: string, field: string, value: unknown): string {
+    try {
+      return setRecordValue(this.read(file), field, value, false);
+    } catch (error) {
+      if (error instanceof RecordWriteRefused) throw new EditRefused(error.message);
+      throw error;
+    }
+  }
+
+  /** The alt text kept beside a media file, if any. */
+  private altOf(address: string): string | undefined {
+    const path = address.replace(/^\//, "");
+    if (!/^media\/[\w][\w.-]*$/.test(path)) return undefined;
+    try {
+      const alt = JSON.parse(readFileSync(join(this.root(), infoFile(path)), "utf8")).alt;
+      return typeof alt === "string" ? alt : undefined;
+    } catch {
+      return undefined;
+    }
   }
 
   /** Every template of the project, path → text, to find what uses a part. */

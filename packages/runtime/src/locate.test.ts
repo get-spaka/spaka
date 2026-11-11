@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { test } from "vitest";
-import { decodeText, encodeText, locate, replaceTexts, sections, textRuns } from "./locate.ts";
+import { describe, expect, test } from "vitest";
+import { decodeText, encodeText, locate, recordFieldAt, replaceTexts, sections, textRuns } from "./locate.ts";
 
 const at = (src: string, needle: string) => {
   const i = src.indexOf(needle);
@@ -96,4 +96,30 @@ test("on a page the agent wrote: every heading and paragraph without Liquid can 
       assert.equal(replaceTexts(src, m.index, same), src);
     }
   }
+});
+
+describe("a record's field behind an element (Q148, Q159)", () => {
+  const page = `<ul>{% for post in data.posts limit: 3 %}<li><h2 class="t">{{ post.title }}</h2><p>{{ post.date | date: "%Y" }}</p><img src="{{ post.cover }}" alt=""><span>By {{ post.author }}</span></li>{% endfor %}</ul><h1>{{ record.title }}</h1><img src="/media/x.jpg">`;
+  const at = (needle: string) => page.indexOf(needle);
+  test("a lone output of a loop's item, in the text or an attribute", () => {
+    expect(recordFieldAt(page, at("<h2"))).toEqual({ field: "title", variable: "post", datasource: "posts" });
+    expect(recordFieldAt(page, at('<img src="{{'), "src")).toEqual({
+      field: "cover",
+      variable: "post",
+      datasource: "posts",
+    });
+  });
+  test("not with a filter, nor beside other text, nor a fixed address", () => {
+    expect(recordFieldAt(page, at("<p>"))).toBeUndefined();
+    expect(recordFieldAt(page, at("<span>"))).toBeUndefined();
+    expect(recordFieldAt(page, at('<img src="/media'), "src")).toBeUndefined();
+  });
+  test("only the record the trace names: the innermost loop's, or the page's", () => {
+    const nested = `{% for post in data.posts %}{% for tag in post.tags %}<i>{{ post.title }}</i>{% endfor %}{% endfor %}<b>{{ site.name }}</b>`;
+    expect(recordFieldAt(nested, nested.indexOf("<i>"))).toBeUndefined();
+    expect(recordFieldAt(nested, nested.indexOf("<b>"))).toBeUndefined();
+  });
+  test("the record of a record page, its datasource left to the trace", () => {
+    expect(recordFieldAt(page, at("<h1>"))).toEqual({ field: "title", variable: "record" });
+  });
 });

@@ -2,6 +2,7 @@
 // field of the Content tab (and from "Replace…" in the preview); it answers
 // with the chosen file's address, or null.
 import { useEffect, useState } from "react";
+import { upstart } from "./bridge";
 
 export type PickRequest = { id: number; resolve: (path: string | null) => void };
 
@@ -36,3 +37,9 @@ export function usePickRequest(): PickRequest | undefined {
   }, []);
   return request;
 }
+
+/** "Replace…" in the preview (Q159): the main process asks for the picker, and gets its answer. */
+if (typeof window !== "undefined")
+  upstart.on("media:pick-request", ({ id }) => {
+    void pickImage().then((path) => upstart.invoke("media:picked", id, path));
+  });

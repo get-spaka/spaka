@@ -11,11 +11,13 @@ const FIXTURE = join(import.meta.dirname, "fixtures/images");
 // wide; a file added from the disk; an alt text written, one version on
 // leaving; an image chosen for a record's field in the picker; its uses
 // shown and its deletion refused; renamed everywhere it is used; an unused
-// file deleted and brought back; the credits page.
+// file deleted and brought back; the credits page. In the preview: a
+// record's title edited in place, "Replace…" on an image written in the
+// template and on a record's image, a file dropped onto an image.
 describe("the media library", () => {
   let launched: LaunchedApp;
   let path: string;
-  const { invoke, until } = previewDriver(() => launched);
+  const { invoke, until, page, click, typeText, key } = previewDriver(() => launched);
   const w = () => launched.window;
   const last = async () => ((await invoke("history:list")) as { label: string }[]).at(-1)?.label;
   const items = () =>
@@ -140,5 +142,73 @@ describe("the media library", () => {
     await until(() => Promise.resolve(existsSync(join(path, "media/shop-front.jpg"))));
     await until(async () => (await items()).join() === "media/croissants.jpg,media/shop-front.jpg");
     await launched.capture("media-library");
+  });
+
+  test("a record's title edited in place in the preview, written in its record (Q148)", async () => {
+    writeFileSync(
+      join(path, "pages/blog.liquid"),
+      '<!doctype html><html><head><title>Blog</title></head><body>{% for post in data.posts %}<article><h2>{{ post.title }}</h2><img class="cover" src="{{ post.cover }}" alt="" width="200"></article>{% endfor %}<img class="hero" src="/media/shop-front.jpg" alt="Shop" width="200"></body></html>',
+    );
+    await invoke("preview:navigate", "/blog");
+    await until(() =>
+      page("!!document.querySelector('img.hero') && document.querySelector('h2')?.textContent === 'Opening day'"),
+    );
+    await click("h2", false, 2);
+    await until(() => page("document.querySelector('h2').isContentEditable"));
+    await key("End");
+    await typeText(" again");
+    await key("Enter");
+    await until(async () =>
+      readFileSync(join(path, "data/posts/opening.md"), "utf8").includes("title: Opening day again"),
+    );
+    expect(await last()).toBe("Edited Opening day again");
+  });
+
+  test("Replace… on an image of the template, and on a record's image, through the picker (Q159)", async () => {
+    const replace = async (selector: string, choose: string) => {
+      await click(selector);
+      await until(() =>
+        page("!!document.querySelector('upstart-editor').shadowRoot.querySelector('[data-testid=\"editor-replace\"]')"),
+      );
+      await click('[data-testid="editor-replace"]', true);
+      await w().getByTestId("media-picker").waitFor();
+      await w().locator(`[data-testid="picker-item"][data-path="${choose}"]`).click();
+      await w().getByTestId("media-picker").waitFor({ state: "detached" });
+    };
+    await replace("img.hero", "media/croissants.jpg");
+    await until(async () =>
+      readFileSync(join(path, "pages/blog.liquid"), "utf8").includes(
+        '<img class="hero" src="/media/croissants.jpg" alt="Croissants on a counter" width="200">',
+      ),
+    );
+    expect(await last()).toBe("Image replaced");
+    await until(() => page("document.querySelector('img.hero').getAttribute('src') === '/media/croissants.jpg'"));
+    await replace("img.cover", "media/shop-front.jpg");
+    await until(async () =>
+      readFileSync(join(path, "data/posts/opening.md"), "utf8").includes("cover: /media/shop-front.jpg"),
+    );
+    expect(await last()).toBe("Image replaced");
+  });
+
+  test("an image file dropped onto an image: added to the library and used, one version", async () => {
+    const at = Number(
+      String(await page("document.querySelector('img.hero').getAttribute('data-up-src')"))
+        .split(":")
+        .pop(),
+    );
+    const versions = ((await invoke("history:list")) as unknown[]).length;
+    // What the preview sends for a drop: a real one cannot be made in the background.
+    await launched.app.evaluate(
+      // biome-ignore lint/suspicious/noExplicitAny: the main process's objects, set for checks
+      (_electron, action) => (globalThis as any).upstart.editor.edit(action),
+      { type: "image", file: "pages/blog.liquid", at, src: "", from: join(FIXTURE, "shop-front.jpg") },
+    );
+    await until(async () =>
+      readFileSync(join(path, "pages/blog.liquid"), "utf8").includes('src="/media/shop-front-2.jpg"'),
+    );
+    expect(existsSync(join(path, "media/shop-front-2.jpg"))).toBe(true);
+    expect(((await invoke("history:list")) as unknown[]).length).toBe(versions + 1);
+    expect(await last()).toBe("Image replaced");
+    await until(async () => (await items()).includes("media/shop-front-2.jpg"));
   });
 });

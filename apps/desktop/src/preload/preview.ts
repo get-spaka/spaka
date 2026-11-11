@@ -5,7 +5,7 @@
 // It morphs the page into each new rendering the main process sends while
 // the agent writes (ADR 0009), reports what the page does, and carries the
 // editing the maker does in the page (editor/).
-import { ipcRenderer } from "electron";
+import { ipcRenderer, webUtils } from "electron";
 import { Idiomorph } from "idiomorph";
 import type { FromPreview, PreviewInvokes, ToPreview } from "../shared/ipc";
 import { Editor } from "./editor/editor";
@@ -27,6 +27,8 @@ const editor = thumbnail
       {
         edit: (action) => invoke("preview:edit", action),
         info: (file, at) => invoke("preview:edit-info", file, at),
+        pickImage: () => invoke("preview:pick-image"),
+        pathOf: (file) => webUtils.getPathForFile(file),
         save: (comment) => invoke("preview:comment-save", comment),
         remove: (id) => invoke("preview:comment-remove", id),
         send: () => invoke("preview:comments-send"),

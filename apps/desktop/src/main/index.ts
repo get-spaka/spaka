@@ -206,8 +206,9 @@ async function main() {
       void preview.setView("pages");
     },
     invokes: {
-      "preview:edit": (action) => editor.apply(action),
+      "preview:edit": (action) => editor.edit(action),
       "preview:edit-info": (file, at) => editor.info(file, at),
+      "preview:pick-image": () => pickImage(),
       "preview:comment-save": (comment) => commentsChanged(current && comments.save(current.id, comment)),
       "preview:comment-remove": (id) => commentsChanged(current && comments.remove(current.id, id)),
       "preview:comments-send": () => sendComments(),
@@ -956,6 +957,20 @@ async function main() {
     return smallCopy(readFileSync(abs), `${abs}:${statSync(abs).mtimeMs}`).catch(() => null);
   });
   ipc.handle("media:add-files", (paths) => editor.addMedia(paths));
+  // "Replace…" in the preview (Q159): the app's own picker opens over the window, and answers.
+  const picking = new Map<number, (path: string | null) => void>();
+  let picks = 0;
+  function pickImage(): Promise<string | null> {
+    const id = ++picks;
+    return new Promise((resolve) => {
+      picking.set(id, resolve);
+      ipc.emit("media:pick-request", { id });
+    });
+  }
+  ipc.handle("media:picked", (id, path) => {
+    picking.get(id)?.(typeof path === "string" ? path : null);
+    picking.delete(id);
+  });
   ipc.handle("media:choose-files", async () => {
     if (env.background) return null;
     const answer = await dialog.showOpenDialog(dialogParent(), { properties: ["openFile", "multiSelections"] });
@@ -1029,7 +1044,7 @@ async function main() {
   // For automated checks: the main process's objects, reachable from Playwright's evaluate().
   if (env.background)
     Object.assign(globalThis, {
-      upstart: { win, projects, preview, agent, peek, settings, pageItems, images },
+      upstart: { win, projects, preview, agent, peek, settings, pageItems, images, editor },
     });
 
   await (devUrl ? win.loadURL(devUrl) : win.loadFile(join(here, "../renderer/index.html")));

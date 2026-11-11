@@ -274,3 +274,54 @@ function liquidBalanced(inside: Token[]): boolean {
   }
   return stack.length === 0;
 }
+
+/** The record field an element shows (Q148, Q159): which, and from which datasource when the template says. */
+export type RecordField = { field: string; variable: string; datasource?: string };
+
+const LONE_OUTPUT = /^\{\{-?\s*([a-z_]\w*)\.([a-z_]\w*)\s*-?\}\}$/i;
+
+/**
+ * Whether the element at `offset` shows a record's field and nothing else, in
+ * its text or in an attribute: `<h2>{{ post.title }}</h2>`, `<img src="{{ post.cover }}">`,
+ * where `post` is the item of a loop over `data.posts` or the record of a
+ * record page. A filter, or anything beside the output, makes it the agent's.
+ */
+export function recordFieldAt(src: string, offset: number, attribute?: string): RecordField | undefined {
+  const { tokens } = scan(src);
+  const index = tokens.findIndex((t) => t.type === "htmlOpen" && t.start === offset);
+  if (index < 0) return undefined;
+  const open = tokens[index] as Extract<Token, { type: "htmlOpen" }>;
+  let output: string | undefined;
+  if (attribute) {
+    const tag = src.slice(open.start, open.end);
+    const m = new RegExp(`\\s${attribute}\\s*=\\s*("([^"]*)"|'([^']*)')`, "i").exec(tag);
+    output = (m?.[2] ?? m?.[3])?.trim();
+  } else {
+    const located = locate(src, offset);
+    if (!located?.inner) return undefined;
+    const inside = tokens.filter((t) => t.start >= located.inner!.start && t.end <= located.inner!.end);
+    const meaningful = inside.filter((t) => !(t.type === "text" && !src.slice(t.start, t.end).trim()));
+    if (meaningful.length !== 1 || meaningful[0]!.type !== "liquidOutput") return undefined;
+    output = src.slice(meaningful[0]!.start, meaningful[0]!.end);
+  }
+  const m = output ? LONE_OUTPUT.exec(output) : null;
+  if (!m) return undefined;
+  const [, variable, field] = m as unknown as [string, string, string];
+  // The loops around the element, innermost last.
+  const loops: { variable: string; datasource?: string }[] = [];
+  for (let i = 0; i < index; i++) {
+    const t = tokens[i]!;
+    if (t.type !== "liquidTag") continue;
+    if (t.name === "for") {
+      const loop = /^(\w+)\s+in\s+(\S+)/.exec(t.args);
+      loops.push({ variable: loop?.[1] ?? "", datasource: /^data\.(\w+)$/.exec(loop?.[2] ?? "")?.[1] });
+    } else if (t.name === "endfor") loops.pop();
+  }
+  // The trace names the record of the innermost loop, or the page's record outside any.
+  const innermost = loops.at(-1);
+  if (innermost)
+    return innermost.variable === variable && innermost.datasource
+      ? { field, variable, datasource: innermost.datasource }
+      : undefined;
+  return variable === "record" ? { field, variable } : undefined;
+}

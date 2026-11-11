@@ -188,7 +188,18 @@ export type EditAction =
    * the section starting at `before` (null: after the last one; "auto": where a
    * block of its kind usually goes).
    */
-  | { type: "insert"; file: string; before: number | null | "auto"; block: string };
+  | { type: "insert"; file: string; before: number | null | "auto"; block: string }
+  /**
+   * A record's text field written from the preview (Q148): the element at `at`
+   * shows it alone; `record` is the record its trace names ("posts/hello").
+   */
+  | { type: "record-text"; file: string; at: number; record: string; text: string }
+  /**
+   * An image replaced (Q159): the `src` written in the template, or the
+   * record's image field when the template shows one. `from`: a file dropped
+   * from the disk, added to media/ first, its address then used.
+   */
+  | { type: "image"; file: string; at: number; src: string; record?: string; from?: string };
 
 /** What the preview needs to know before the maker edits an element. */
 export type EditInfo = {
@@ -200,6 +211,12 @@ export type EditInfo = {
   movable: boolean;
   /** For an element of a shared part: how many pages use that part. */
   sharedBy: number;
+  /** Its text is a record's text field, shown alone: editing it writes the record (Q148). */
+  field?: string;
+  /** Its text is a record's value of another kind, changed in the Content tab. */
+  fromRecord?: boolean;
+  /** An image the maker can replace: its address is in the template, or in a record's field (Q159). */
+  image?: { field?: string };
 };
 
 /** A project's conversation, as shown. */
@@ -435,6 +452,8 @@ export type Invokes = {
   "media:add-files": (paths: string[]) => { paths: string[] };
   /** Files chosen in a dialog, added to media/; null when none was chosen. */
   "media:choose-files": () => { paths: string[] } | null;
+  /** The picker's answer to a media:pick-request: the chosen image's address, or null. */
+  "media:picked": (id: number, path: string | null) => void;
   "media:search": (query: string) => { images: MediaFound[]; failed: string[] };
   /** An image found, added to media/ with its credits and this alt text. */
   "media:add-found": (id: string, alt: string) => { path: string };
@@ -486,6 +505,8 @@ export type Events = {
   "conversation:prefill": (text: string) => void;
   /** A file under data/ or media/ changed: the Content tab reads again. */
   "content:changed": () => void;
+  /** "Replace…" in the preview: the media picker opens, and answers with media:picked (Q159). */
+  "media:pick-request": (request: { id: number }) => void;
   "conversation:event": (message: { projectId: string; event: ConversationEvent }) => void;
   "agent:status": (status: AgentStatus) => void;
   "history:changed": (message: { projectId: string; entries: HistoryEntry[] }) => void;
@@ -575,6 +596,7 @@ export const channels = {
     "media:thumbnail",
     "media:add-files",
     "media:choose-files",
+    "media:picked",
     "media:search",
     "media:add-found",
     "media:set-alt",
@@ -594,6 +616,7 @@ export const channels = {
     "preview:placed",
     "conversation:prefill",
     "content:changed",
+    "media:pick-request",
     "conversation:event",
     "agent:status",
     "history:changed",
@@ -675,6 +698,8 @@ export type FromPreview =
 export type PreviewInvokes = {
   "preview:edit": (action: EditAction) => { label: string; files: string[] };
   "preview:edit-info": (file: string, at: number) => EditInfo;
+  /** Opens the app's media picker over the window (Q159): the chosen image's address, or null. */
+  "preview:pick-image": () => string | null;
   /** Adds a comment, or changes the one with this id. */
   "preview:comment-save": (comment: Omit<PageComment, "id"> & { id?: string }) => PageComment[];
   "preview:comment-remove": (id: string) => PageComment[];
