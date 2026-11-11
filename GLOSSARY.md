@@ -40,6 +40,14 @@ _Avoid_: Thinking mode, reasoning level
 The live rendering of a project inside the app, where the maker watches the agent work and edits visually.
 _Avoid_: Canvas, iframe
 
+**Comment**:
+A note the maker pins on an element of the preview for the agent. The maker writes several, then sends them together as one message of the conversation.
+_Avoid_: Annotation, selection, pin
+
+**Visitor view**:
+The preview behaving as the published project will for a visitor: links, buttons and fragments work, and nothing is selected or edited.
+_Avoid_: Play mode, live mode
+
 **Conversation**:
 The single, continuous exchange between the maker and the agent about a project.
 _Avoid_: Session, thread, chat
@@ -91,7 +99,7 @@ The colour values of a theme. A project has one palette, and may add a second th
 _Avoid_: Colour scheme, mode
 
 **Block**:
-A ready-made piece of a page (a hero, a pricing table, a form bound to a datasource…) that is copied from the gallery into a project and from then on belongs to that project.
+A ready-made piece of a page (a hero, a pricing table, a form bound to a datasource…) that is copied from the gallery into a project, where it becomes a shared part, and from then on belongs to that project.
 _Avoid_: Component, brick, widget
 
 **Gallery**:
