@@ -18,9 +18,11 @@ import type {
   PreviewState,
   PreviewView,
   PreviewZoom,
+  PreviewZoomReady,
   ProjectInfo,
   Rect,
   ToPreview,
+  ZoomTrial,
 } from "../../shared/ipc";
 import { PageGrid, pictureKey, type ThumbnailAction, type ThumbnailScreen } from "./grid";
 import { PreviewServer, VENDOR_BASE } from "./server";
@@ -58,6 +60,8 @@ export type PreviewOptions = {
   onZoom?: (zoom: PreviewZoom) => void;
   /** The agent began writing a website's second page, or a later one (Q131). */
   onManyPages?: () => void;
+  /** The page a zoom goes to is drawn, out of sight: the zoom may land (Q142). */
+  onZoomReady?: (ready: PreviewZoomReady) => void;
 };
 
 export class Preview {
@@ -65,6 +69,12 @@ export class Preview {
   private readonly server: PreviewServer;
   private site: OpenSite | undefined;
   private bounds: Rect | null = null;
+  /** Not shown but kept drawn at its place's size, out of sight, so that a zoom lands on a page already drawn (Q142). */
+  private parked = false;
+  /** Which landing of the zoom is being tried (Q142). */
+  private zoomTrial: ZoomTrial = "crossfade";
+  /** For checks: how each zoom to a page landed, whether the page drew a frame out of sight, and how soon. */
+  readonly landings: { route: string; drawn: boolean; ms: number; picture: boolean }[] = [];
   private device: DeviceView | undefined;
   private route: string | null = null;
   private title = "";
@@ -187,8 +197,9 @@ export class Preview {
     this.view.webContents.reload();
   }
 
-  setBounds(rect: Rect | null, device?: DeviceView) {
+  setBounds(rect: Rect | null, device?: DeviceView, parked = false) {
     this.bounds = rect;
+    this.parked = !!rect && parked;
     const changed = JSON.stringify(device) !== JSON.stringify(this.device);
     this.device = device;
     if (changed) this.emulate();
@@ -281,6 +292,44 @@ export class Preview {
 
   get currentView() {
     return this.viewMode;
+  }
+
+  setZoomTrial(trial: ZoomTrial) {
+    this.zoomTrial = trial;
+    this.emit();
+  }
+
+  /**
+   * Opens a page from its thumbnail (Q132). From the thumbnails, the interface
+   * zooms meanwhile (Q133): the page is loaded out of sight at its size, and
+   * once it has drawn, the zoom is told it may land; with the crossfade being
+   * tried, it is also given a picture of the page to fade into (Q142).
+   */
+  async openPage(route: string) {
+    const zooming = this.viewMode === "pages";
+    await this.setView("page", { route });
+    const started = Date.now();
+    await this.navigate(route, true);
+    if (!zooming) return;
+    const drawn = await this.drawn();
+    const picture =
+      this.zoomTrial !== "panel" && this.bounds
+        ? await this.view.webContents.capturePage().catch(() => undefined)
+        : undefined;
+    const url =
+      picture && !picture.isEmpty() ? `data:image/jpeg;base64,${picture.toJPEG(90).toString("base64")}` : undefined;
+    this.landings.push({ route, drawn, ms: Date.now() - started, picture: !!url });
+    if (this.landings.length > 20) this.landings.shift();
+    this.options.onZoomReady?.({ route, url });
+  }
+
+  /** Whether the page drew two frames, within a short time: a page out of sight draws none. */
+  private drawn(): Promise<boolean> {
+    const frames = this.view.webContents
+      .executeJavaScript("new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(true))))")
+      .then(Boolean)
+      .catch(() => false);
+    return Promise.race([frames, new Promise<boolean>((r) => setTimeout(() => r(false), 600))]);
   }
 
   /** The agent's turn is over: no page is being written. */
@@ -405,6 +454,7 @@ export class Preview {
       theme: this.site ? createHash("sha256").update(this.site.runtime.theme()).digest("hex").slice(0, 12) : "",
       view: this.viewMode,
       writing: this.site ? this.writing : null,
+      zoomTrial: this.zoomTrial,
     };
   }
 
@@ -490,7 +540,9 @@ export class Preview {
 
   private layout() {
     const visible = !!this.bounds && !!this.site && this.shown;
-    if (this.bounds) this.view.setBounds(this.bounds);
+    const b = this.bounds;
+    // Parked: left of the window, where it keeps drawing (a hidden view does not).
+    if (b) this.view.setBounds(this.parked ? { ...b, x: -b.width - 200 } : b);
     this.view.setVisible(visible);
   }
 

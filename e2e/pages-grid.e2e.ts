@@ -157,15 +157,49 @@ describe("all pages as thumbnails", () => {
     await until(async () => (await w.locator('[data-testid="page-thumb"] img').count()) === 4);
     await w.locator('[data-testid="page-thumb"][data-route="/about"] button').click();
     await zoom.waitFor({ timeout: 2000 });
+    // The page is loaded and drawn out of sight meanwhile; the zoom crossfades into its picture (Q142).
+    await w.getByTestId("preview-zoom-shot").waitFor({ timeout: 2000 });
     await zoom.waitFor({ state: "detached", timeout: 2000 });
     expect(await main((u) => u.preview.currentView)).toBe("page");
     await until(async () => (await main((u) => u.preview.state())).route === "/about");
+    const landing = await main((u) => u.preview.landings.at(-1));
+    expect(landing).toMatchObject({ route: "/about", drawn: true, picture: true });
+    expect(landing.ms).toBeLessThan(1000);
     // Back to the thumbnails: the page shrinks into its cell, the other thumbnails fade in.
     await w.getByTestId("view-pages").click();
     await zoom.waitFor({ timeout: 2000 });
     await new Promise((r) => setTimeout(r, 120));
     await launched.capture("pages-zoom");
     await zoom.waitFor({ state: "detached", timeout: 2000 });
+    await until(async () => (await thumbs().count()) === 4);
+  });
+
+  test("tried instead: thumbnails pictured at the preview's size, the zoom without a picture of the page", async () => {
+    const w = launched.window;
+    await main((u) => u.preview.setZoomTrial("panel"));
+    // The cells take the preview's shape, and the pictures are taken again at its size.
+    const area = await w.getByTestId("pages-grid").evaluate((el) => {
+      const r = (el.parentElement as HTMLElement).getBoundingClientRect();
+      return r.width / r.height;
+    });
+    const cellShape = async () =>
+      w.locator('[data-testid="page-thumb"][data-route="/about"] button').evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        return r.width / r.height;
+      });
+    await until(async () => Math.abs((await cellShape()) - area) < 0.03);
+    const pictureShape = () =>
+      w
+        .locator('[data-testid="page-thumb"][data-route="/about"] img')
+        .evaluate((img: HTMLImageElement) => img.naturalWidth / img.naturalHeight);
+    await until(async () => Math.abs((await pictureShape()) - area) < 0.03);
+    await w.locator('[data-testid="page-thumb"][data-route="/about"] button').click();
+    const zoom = w.getByTestId("preview-zoom");
+    await zoom.waitFor({ timeout: 2000 });
+    await zoom.waitFor({ state: "detached", timeout: 2000 });
+    expect(await main((u) => u.preview.landings.at(-1))).toMatchObject({ route: "/about", picture: false });
+    await invoke("preview:set-view", "pages");
+    await main((u) => u.preview.setZoomTrial("crossfade"));
     await until(async () => (await thumbs().count()) === 4);
   });
 

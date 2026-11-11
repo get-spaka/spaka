@@ -106,7 +106,16 @@ export type PreviewState = {
   view: PreviewView;
   /** The page the agent is writing, while it is (Q134). */
   writing: string | null;
+  /** Which landing of the zoom is being tried (Q142, until the maker chooses). */
+  zoomTrial: ZoomTrial;
 };
+
+/**
+ * The zoom from a thumbnail to its page, two ways to land it without a jump
+ * (Q142, being tried): crossfaded into a picture of the real page at its
+ * size; with thumbnails pictured at the preview's own size; or both.
+ */
+export type ZoomTrial = "crossfade" | "panel" | "both";
 
 export type PreviewView = "page" | "pages";
 
@@ -115,6 +124,12 @@ export type PreviewView = "page" | "pages";
  * picture of the page shown (`url`); to a page, from its thumbnail.
  */
 export type PreviewZoom = { to: PreviewView; route: string; url?: string };
+
+/**
+ * The page a zoom goes to is loaded and drawn at its size, out of sight: the
+ * zoom may land (Q142). With `url`, a picture of it, to crossfade into.
+ */
+export type PreviewZoomReady = { route: string; url?: string };
 
 /** A page's thumbnail in the "All pages" view: where it goes, and whether it is on screen (Q130). */
 export type GridCell = {
@@ -248,6 +263,8 @@ export type Invokes = {
   /** One page or every page (Q128). */
   /** `route`: the page opened, for the zoom from its thumbnail (Q133). */
   "preview:set-view": (view: PreviewView, route?: string) => void;
+  /** Opens a page from its thumbnail, zooming to it (Q132, Q133). */
+  "preview:open-page": (route: string) => void;
   /** A page's right-click menu in the "All pages" view (Q136). */
   "preview:page-menu": (route: string) => void;
   "comments:list": () => PageComment[];
@@ -318,12 +335,17 @@ export type Sends = {
   "app:ready": () => void;
   /** Where the preview sits in the window, in CSS pixels; null to hide it. */
   /** `area` is the whole of the preview's column, when a device is shown smaller inside it. */
-  "preview:bounds": (rect: Rect | null, device?: DeviceView, area?: Rect) => void;
+  /** `parked`: the page is not shown (the thumbnails, a zoom) but kept drawn at its place's size, out of sight. */
+  "preview:bounds": (rect: Rect | null, device?: DeviceView, area?: Rect, parked?: boolean) => void;
   /**
    * The thumbnails of the "All pages" view, in CSS pixels, and the screen their
    * pages are laid out on (Q129); null hides them.
    */
-  "preview:grid": (cells: GridCell[] | null, screen?: { width: number; height: number; mobile: boolean }) => void;
+  /** `panel`: the screen is the preview's own size, in CSS pixels (Q142, being tried). */
+  "preview:grid": (
+    cells: GridCell[] | null,
+    screen?: { width: number; height: number; mobile: boolean; panel?: boolean },
+  ) => void;
   /** Shows a gallery block large over the preview while the pointer rests on it (Q109); null hides it. */
   "gallery:peek": (id: string | null) => void;
 };
@@ -340,6 +362,8 @@ export type Events = {
   "preview:picture": (picture: { route: string; url: string }) => void;
   /** The preview goes between one page and all of them: the interface zooms (Q133). */
   "preview:zoom": (zoom: PreviewZoom) => void;
+  /** The page zoomed to is drawn, out of sight: the zoom may land (Q142). */
+  "preview:zoom-ready": (ready: PreviewZoomReady) => void;
   /** A page was deleted from its thumbnail's menu: a note offers to undo it (Q137). */
   "preview:page-deleted": (page: { route: string }) => void;
   /** Text to put in the message field, which takes the keyboard ("Ask the agent about it", Q136). */
@@ -378,6 +402,7 @@ export const channels = {
     "preview:reload",
     "preview:set-mode",
     "preview:set-view",
+    "preview:open-page",
     "preview:page-menu",
     "comments:list",
     "comments:send",
@@ -429,6 +454,7 @@ export const channels = {
     "preview:picture",
     "preview:page-deleted",
     "preview:zoom",
+    "preview:zoom-ready",
     "conversation:prefill",
     "conversation:event",
     "agent:status",

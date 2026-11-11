@@ -87,6 +87,7 @@ const EMPTY_PREVIEW: PreviewState = {
   theme: "",
   view: "page",
   writing: null,
+  zoomTrial: "crossfade",
 };
 
 export function usePreviewState() {

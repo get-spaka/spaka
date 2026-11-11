@@ -14,8 +14,16 @@ import {
   Tablet,
   Upload,
 } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { DeviceView, HistoryEntry, PreviewState, PreviewZoom, ProjectInfo, Rect } from "../../shared/ipc";
+import { type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
+import type {
+  DeviceView,
+  HistoryEntry,
+  PreviewState,
+  PreviewZoom,
+  PreviewZoomReady,
+  ProjectInfo,
+  Rect,
+} from "../../shared/ipc";
 import { useComments } from "../hooks/useMain";
 import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
@@ -103,13 +111,48 @@ export function PreviewPane({
   useLayoutEffect(() => {
     seen.current = { rects: {}, pictures: {} };
   }, [project?.id]);
-  useEffect(
-    () =>
+  // The page zoomed to is drawn, out of sight: the zoom may land, crossfading into its picture (Q142).
+  const pendingReady = useRef<PreviewZoomReady>(undefined);
+  useEffect(() => {
+    const offs = [
       upstart.on("preview:zoom", (z) => {
         pendingZoom.current = z;
+        pendingReady.current = undefined;
       }),
-    [],
-  );
+      upstart.on("preview:zoom-ready", (r) => {
+        pendingReady.current = r;
+        setZoom((z) => (z && !z.toGrid && z.route === r.route ? { ...z, ready: true, shot: r.url } : z));
+      }),
+    ];
+    return () => {
+      for (const off of offs) off();
+    };
+  }, []);
+  // The preview's own size, for thumbnails pictured at it (Q142, being tried); not followed while it is being resized.
+  const [panel, setPanel] = useState<{ width: number; height: number }>();
+  useLayoutEffect(() => {
+    const element = area.current;
+    if (!element) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const measure = () => {
+      const r = element.getBoundingClientRect();
+      setPanel((p) =>
+        p && p.width === Math.round(r.width) && p.height === Math.round(r.height)
+          ? p
+          : { width: Math.round(r.width), height: Math.round(r.height) },
+      );
+    };
+    measure();
+    const observer = new ResizeObserver(() => {
+      clearTimeout(timer);
+      timer = setTimeout(measure, 250);
+    });
+    observer.observe(element);
+    return () => {
+      clearTimeout(timer);
+      observer.disconnect();
+    };
+  }, []);
   // Where the device's frame is drawn, under the native view, relative to the area.
   const [frame, setFrame] = useState<{ x: number; y: number; width: number; height: number; radius: number }>();
   const comments = useComments(project?.id);
@@ -124,39 +167,57 @@ export function PreviewPane({
     const element = area.current;
     if (!element) return;
     // The native page view would cover the dialog: it is hidden while the dialog is open.
-    if (dialogOpen || covered || pagesView || zoom) {
+    if (dialogOpen || covered) {
       setFrame(undefined);
       upstart.send("preview:bounds", null);
       return;
     }
+    // Under the thumbnails and during a zoom, the page is kept drawn at its size, out of sight (Q142).
+    const parked = pagesView || !!zoom;
     const send = () => {
       const r = element.getBoundingClientRect();
       const device = DEVICES[width];
       if (!device) {
         setFrame(undefined);
-        upstart.send("preview:bounds", {
-          x: Math.round(r.x),
-          y: Math.round(r.y),
-          width: Math.round(r.width),
-          height: Math.round(r.height),
-        });
+        upstart.send(
+          "preview:bounds",
+          {
+            x: Math.round(r.x),
+            y: Math.round(r.y),
+            width: Math.round(r.width),
+            height: Math.round(r.height),
+          },
+          undefined,
+          undefined,
+          parked,
+        );
         return;
       }
       // A tablet or a phone at its own size, smaller if the column is, centred (Q110).
       const { rect, view } = deviceLayout(r, device, landscape);
-      setFrame({
-        x: rect.x - r.x - BEZEL,
-        y: rect.y - r.y - BEZEL,
-        width: rect.width + 2 * BEZEL,
-        height: rect.height + 2 * BEZEL,
-        radius: view.radius + BEZEL,
-      });
-      upstart.send("preview:bounds", rect, view, {
-        x: Math.round(r.x),
-        y: Math.round(r.y),
-        width: Math.round(r.width),
-        height: Math.round(r.height),
-      });
+      setFrame(
+        parked
+          ? undefined
+          : {
+              x: rect.x - r.x - BEZEL,
+              y: rect.y - r.y - BEZEL,
+              width: rect.width + 2 * BEZEL,
+              height: rect.height + 2 * BEZEL,
+              radius: view.radius + BEZEL,
+            },
+      );
+      upstart.send(
+        "preview:bounds",
+        rect,
+        view,
+        {
+          x: Math.round(r.x),
+          y: Math.round(r.y),
+          width: Math.round(r.width),
+          height: Math.round(r.height),
+        },
+        parked,
+      );
     };
     send();
     const observer = new ResizeObserver(send);
@@ -192,11 +253,22 @@ export function PreviewPane({
       const cell = area.current?.querySelector(`[data-route="${CSS.escape(z.route)}"] button`);
       if (!cell) return;
       const r = cell.getBoundingClientRect();
-      setZoom({ src: z.url, from: page, to: { x: r.x, y: r.y, width: r.width, height: r.height }, landing: z.route });
+      setZoom({
+        route: z.route,
+        toGrid: true,
+        page,
+        cell: { x: r.x, y: r.y, width: r.width, height: r.height },
+        shot: z.url,
+        thumb: seen.current.pictures[z.route],
+        ready: true,
+        landing: z.route,
+      });
     } else if (!pagesView && z.to === "page") {
-      const from = seen.current.rects[z.route];
-      const src = seen.current.pictures[z.route];
-      if (from && src) setZoom({ src, from, to: page });
+      const cell = seen.current.rects[z.route];
+      const thumb = seen.current.pictures[z.route];
+      const ready = pendingReady.current?.route === z.route ? pendingReady.current : undefined;
+      if (cell && thumb)
+        setZoom({ route: z.route, toGrid: false, page, cell, thumb, shot: ready?.url, ready: !!ready });
     }
   }, [pagesView]);
 
@@ -410,6 +482,7 @@ export function PreviewPane({
               layoutKey={`${String(layoutKey)}-${historyOpen}`}
               seen={seen}
               landing={zoom?.landing}
+              panel={state.zoomTrial !== "crossfade" ? panel : undefined}
             />
           ) : zoom ? null : (
             <>
@@ -430,43 +503,166 @@ export function PreviewPane({
   );
 }
 
-type Zoom = { src: string; from: Rect; to: Rect; landing?: string };
+/**
+ * A zoom between the page and a thumbnail (Q133): `page` is where the page is
+ * shown, `cell` its thumbnail; `shot` a picture of the page at its size, `thumb`
+ * the thumbnail's picture. To a page, it lands once the page is `ready` (Q142).
+ */
+type Zoom = {
+  route: string;
+  toGrid: boolean;
+  page: Rect;
+  cell: Rect;
+  shot?: string;
+  thumb?: string;
+  ready: boolean;
+  landing?: string;
+};
 
-/** A picture of the page moved and resized from where it was to where it goes, in 300 ms (Q133). */
+/**
+ * The transforms that make a box at the page's place look like the thumbnail:
+ * scaled down until it covers the cell, the rest clipped (the first screen's
+ * top, centred), and the thumbnail's picture drawn at the part left.
+ */
+function cellLook(cell: Rect, page: Rect, radius: number) {
+  const k = Math.max(cell.width / page.width, cell.height / page.height);
+  const vw = cell.width / k;
+  const vh = cell.height / k;
+  const cx = (page.width - vw) / 2;
+  const cy = page.height - vh;
+  return {
+    box: `translate(${cell.x - page.x - k * cx}px, ${cell.y - page.y}px) scale(${k})`,
+    clip: `inset(0px ${cx}px ${cy}px ${cx}px round ${radius / k}px)`,
+    thumb: `translate(${cx}px, 0px) scale(${vw / page.width})`,
+  };
+}
+const PAGE_LOOK = {
+  box: "translate(0px, 0px) scale(1)",
+  clip: "inset(0px 0px 0px 0px round 0px)",
+  thumb: "translate(0px, 0px) scale(1)",
+};
+const ZOOM_MS = 300;
+const ZOOM_EASING = "cubic-bezier(0.2, 0, 0, 1)";
+
+/**
+ * Pictures of the page moved from where it was to where it goes in 300 ms
+ * (Q133), by transforms only, which the compositor plays even while the
+ * interface is busy. The picture it starts from crossfades into the one it
+ * ends on: to the thumbnails, the thumbnail's; to a page, the page's own,
+ * drawn at its size out of sight (Q142). To a page, it lands once that page is drawn.
+ */
 function ZoomPicture({ zoom, onDone }: { zoom: Zoom; onDone: () => void }) {
   const box = useRef<HTMLDivElement>(null);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: one animation per zoom
+  const thumb = useRef<HTMLImageElement>(null);
+  const top = useRef<HTMLImageElement>(null);
+  const [moved, setMoved] = useState(false);
+  const [faded, setFaded] = useState(false);
+  // The picture on top, faded in: the thumbnail's going to the grid, the page's going to a page.
+  const topSrc = zoom.toGrid ? zoom.thumb : zoom.shot;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: one movement per zoom
   useLayoutEffect(() => {
     const element = box.current;
     if (!element) return;
-    const at = (r: Rect, radius: number) => ({
-      left: `${r.x}px`,
-      top: `${r.y}px`,
-      width: `${r.width}px`,
-      height: `${r.height}px`,
-      borderRadius: `${radius}px`,
+    const small = cellLook(zoom.cell, zoom.page, 6);
+    const [from, to] = zoom.toGrid ? [PAGE_LOOK, small] : [small, PAGE_LOOK];
+    const timing: KeyframeAnimationOptions = { duration: ZOOM_MS, easing: ZOOM_EASING, fill: "both" };
+    const animations = [
+      element.animate(
+        [
+          { transform: from.box, clipPath: from.clip },
+          { transform: to.box, clipPath: to.clip },
+        ],
+        timing,
+      ),
+    ];
+    if (thumb.current)
+      animations.push(thumb.current.animate([{ transform: from.thumb }, { transform: to.thumb }], timing));
+    const first = animations[0];
+    if (first) first.onfinish = () => setMoved(true);
+    return () => {
+      for (const a of animations) {
+        a.onfinish = null;
+        a.cancel();
+      }
+    };
+  }, [zoom.route, zoom.toGrid]);
+  // The crossfade: during the movement going to the grid; once the page's picture is there going to a page.
+  useLayoutEffect(() => {
+    const element = top.current;
+    if (!element || !topSrc) return;
+    const animation = element.animate([{ opacity: 0 }, { opacity: 1 }], {
+      duration: zoom.toGrid ? 200 : 150,
+      delay: zoom.toGrid ? 100 : 0,
+      easing: "ease-out",
+      fill: "both",
     });
-    const toGrid = zoom.landing !== undefined;
-    const animation = element.animate([at(zoom.from, toGrid ? 0 : 6), at(zoom.to, toGrid ? 6 : 0)], {
-      duration: 300,
-      easing: "cubic-bezier(0.2, 0, 0, 1)",
-      fill: "forwards",
-    });
-    animation.onfinish = onDone;
+    animation.onfinish = () => setFaded(true);
     return () => {
       animation.onfinish = null;
       animation.cancel();
     };
-  }, [zoom]);
+  }, [topSrc, zoom.toGrid]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: onDone is new at each rendering of the pane
+  useEffect(() => {
+    if (!moved) return;
+    if (zoom.ready && (!topSrc || faded)) return onDone();
+    // A page that never says it is drawn is shown all the same.
+    const timer = setTimeout(onDone, 1500);
+    return () => clearTimeout(timer);
+  }, [moved, faded, zoom.ready, topSrc]);
+  const thumbPicture = zoom.thumb && (
+    <img
+      ref={thumb}
+      src={zoom.thumb}
+      alt=""
+      draggable={false}
+      className="absolute top-0 left-0 max-w-none origin-top-left"
+      style={{ width: zoom.page.width, height: (zoom.page.width * zoom.cell.height) / zoom.cell.width }}
+    />
+  );
+  const shotPicture = (src: string | undefined, ref?: RefObject<HTMLImageElement | null>) =>
+    src && (
+      <img
+        ref={ref}
+        data-testid="preview-zoom-shot"
+        src={src}
+        alt=""
+        draggable={false}
+        className="absolute inset-0 h-full w-full max-w-none"
+      />
+    );
   return (
     <div
       ref={box}
       data-testid="preview-zoom"
+      data-ready={zoom.ready ? "" : undefined}
       aria-hidden
-      className="pointer-events-none fixed z-40 overflow-hidden bg-white shadow-lg ring-1 ring-black/10"
-      style={{ left: zoom.from.x, top: zoom.from.y, width: zoom.from.width, height: zoom.from.height }}
+      className="pointer-events-none fixed z-40 origin-top-left overflow-hidden bg-white will-change-transform"
+      style={{ left: zoom.page.x, top: zoom.page.y, width: zoom.page.width, height: zoom.page.height }}
     >
-      <img src={zoom.src} alt="" draggable={false} className="block h-auto w-full" />
+      {zoom.toGrid ? (
+        <>
+          {shotPicture(zoom.shot)}
+          {zoom.thumb && (
+            <img
+              ref={(el) => {
+                thumb.current = el;
+                top.current = el;
+              }}
+              src={zoom.thumb}
+              alt=""
+              draggable={false}
+              className="absolute top-0 left-0 max-w-none origin-top-left"
+              style={{ width: zoom.page.width, height: (zoom.page.width * zoom.cell.height) / zoom.cell.width }}
+            />
+          )}
+        </>
+      ) : (
+        <>
+          {thumbPicture}
+          {shotPicture(zoom.shot, top)}
+        </>
+      )}
     </div>
   );
 }

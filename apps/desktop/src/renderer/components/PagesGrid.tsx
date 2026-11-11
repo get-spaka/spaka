@@ -22,6 +22,7 @@ export function PagesGrid({
   layoutKey,
   seen,
   landing,
+  panel,
 }: {
   state: PreviewState;
   device: { width: number; height: number } | undefined;
@@ -33,6 +34,8 @@ export function PagesGrid({
   seen: RefObject<{ rects: Record<string, Rect>; pictures: Record<string, string> }>;
   /** The page the zoom from the page view lands on: its cell waits, the others fade in. */
   landing?: string;
+  /** The preview's own size: with a laptop's screen, pages are pictured at it instead (Q142, being tried). */
+  panel?: { width: number; height: number };
 }) {
   const scroller = useRef<HTMLDivElement>(null);
   const cells = useRef(new Map<string, HTMLElement>());
@@ -43,7 +46,10 @@ export function PagesGrid({
   const [pictures, setPictures] = useState<Record<string, string>>(() => ({ ...seen.current.pictures }));
   // Once the maker scrolls during a turn, the grid no longer moves to the page being written.
   const makerScrolled = useRef(false);
-  const screen = thumbnailScreen(device, landscape);
+  const screen =
+    !device && panel
+      ? { ...panel, mobile: false, panel: true }
+      : { ...thumbnailScreen(device, landscape), panel: false };
   const routes = state.routes.map((r) => r.route);
 
   useEffect(() => upstart.on("preview:hover", setHovered), []);
@@ -55,8 +61,7 @@ export function PagesGrid({
       }),
     [seen],
   );
-  const open = (route: string) =>
-    void upstart.invoke("preview:set-view", "page", route).then(() => upstart.invoke("preview:navigate", route));
+  const open = (route: string) => void upstart.invoke("preview:open-page", route);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: the cells move when any of these change
   useLayoutEffect(() => {
@@ -160,8 +165,8 @@ export function PagesGrid({
                   void upstart.invoke("preview:page-menu", route);
                 }}
                 className={cn(
-                  "block overflow-hidden rounded-md bg-background p-0 shadow-sm ring-1 ring-black/10 transition-[transform,box-shadow] duration-150 group-hover:-translate-y-0.5 group-hover:shadow-lg",
-                  hovered === route && "-translate-y-0.5 shadow-lg",
+                  "block overflow-hidden rounded-md bg-background p-0 shadow-sm ring-1 ring-black/10 transition-shadow duration-150 group-hover:shadow-lg",
+                  hovered === route && "shadow-lg",
                   writing && "outline-2 outline-offset-3 outline-primary",
                 )}
                 style={{

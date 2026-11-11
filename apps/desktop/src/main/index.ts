@@ -13,6 +13,7 @@ import {
   type Rect,
   SETTINGS_PAGES,
   type SettingsPage,
+  type ZoomTrial,
 } from "../shared/ipc";
 import { en as t } from "../shared/strings/en";
 import { Agent, projectNameFrom } from "./agent/agent";
@@ -120,6 +121,22 @@ async function main() {
   // The interface's text size (Q125): the whole interface is drawn larger or smaller; the website is not.
   const applyTextSize = () => win.webContents.setZoomFactor(zoomFor(settings.get().textSize));
   win.webContents.on("did-finish-load", applyTextSize);
+  // The zoom's landing being tried (Q142), kept until the maker chooses.
+  const trialFile = join(app.getPath("userData"), "zoom-trial.json");
+  const trials: { id: ZoomTrial; label: string }[] = [
+    { id: "crossfade", label: "Zoom: Crossfade into the Real Page" },
+    { id: "panel", label: "Zoom: Thumbnails at the Preview's Size" },
+    { id: "both", label: "Zoom: Both" },
+  ];
+  const readTrial = (): ZoomTrial => {
+    try {
+      const id = JSON.parse(readFileSync(trialFile, "utf8")).trial;
+      return trials.some((x) => x.id === id) ? id : "crossfade";
+    } catch {
+      return "crossfade";
+    }
+  };
+  const trial = readTrial();
   // The app's menu: macOS's usual one, with Settings… (⌘,) in the app's menu.
   Menu.setApplicationMenu(
     Menu.buildFromTemplate([
@@ -146,6 +163,18 @@ async function main() {
       { role: "fileMenu" },
       { role: "editMenu" },
       { role: "viewMenu" },
+      {
+        label: "Trial",
+        submenu: trials.map((x) => ({
+          label: x.label,
+          type: "radio" as const,
+          checked: x.id === trial,
+          click: () => {
+            writeFileSync(trialFile, JSON.stringify({ trial: x.id }));
+            preview.setZoomTrial(x.id);
+          },
+        })),
+      },
       { role: "windowMenu" },
     ]),
   );
@@ -159,23 +188,22 @@ async function main() {
   };
   // The open fonts the Theme tab offers (Q93), shipped the same way.
   const fonts = new Fonts(app.isPackaged ? join(process.resourcesPath, "fonts") : join(here, "../../fonts"));
-  const preview = new Preview(win, {
+  const preview: Preview = new Preview(win, {
     block: (id) => gallery.get(id)?.source,
     font: (path) => fonts.path(path),
     background: env.background,
     onState: (state) => ipc.emit("preview:state", state),
     // The "All pages" thumbnails (Q132): a click opens the page; the pointer over one raises it.
     onThumb: (route, action) => {
-      if (action === "click") {
-        void preview.setView("page", { route });
-        void preview.navigate(route, true);
-      } else if (action === "enter") ipc.emit("preview:hover", route);
+      if (action === "click") void preview.openPage(route);
+      else if (action === "enter") ipc.emit("preview:hover", route);
       else if (action === "leave") ipc.emit("preview:hover", null);
       else if (action === "menu") pageMenu(route);
     },
     onPicture: (route, url) => ipc.emit("preview:picture", { route, url }),
     onView: (view) => writeViewData({ ...viewData(), view }),
     onZoom: (zoom) => ipc.emit("preview:zoom", zoom),
+    onZoomReady: (ready) => ipc.emit("preview:zoom-ready", ready),
     // Once per website, the preview goes to all its pages when the agent begins the second (Q131).
     onManyPages: () => {
       const data = viewData();
@@ -192,6 +220,7 @@ async function main() {
       "preview:comments-discard": () => void discardComments(),
     },
   });
+  preview.setZoomTrial(trial);
   const peek = new BlockPeek(win, () => preview.origin);
   await preview.start();
 
@@ -528,9 +557,9 @@ async function main() {
       height: Math.round(r.height * zoom),
     }) as R;
   };
-  ipc.on("preview:bounds", (rect, device, area) => {
-    preview.setBounds(scaled(rect), device);
-    peek.setArea(scaled(rect && (area ?? rect)));
+  ipc.on("preview:bounds", (rect, device, area, parked) => {
+    preview.setBounds(scaled(rect), device, parked);
+    peek.setArea(parked ? null : scaled(rect && (area ?? rect)));
   });
   // A thumbnail's right-click menu (Q136). Duplicating and deleting are edits by hand:
   // a version each, told to the agent at its next message, waiting while it works.
@@ -551,10 +580,7 @@ async function main() {
     return [
       {
         label: m.open,
-        click: () => {
-          void preview.setView("page", { route });
-          void preview.navigate(route, true);
-        },
+        click: () => void preview.openPage(route),
       },
       { type: "separator" },
       { label: m.duplicate, enabled: !busy, click: () => edit(() => editor.duplicatePage(file)) },
@@ -595,7 +621,14 @@ async function main() {
     if (items.length) Menu.buildFromTemplate(items).popup({ window: win });
   };
   ipc.on("preview:grid", (cells, screen) => {
-    preview.setGrid(cells?.map((c) => ({ ...c, rect: scaled(c.rect) })) ?? null, screen);
+    // The preview's own size (Q142, being tried) is in the interface's pixels, as the page view's is.
+    const size = screen?.panel ? scaled({ x: 0, y: 0, width: screen.width, height: screen.height }) : undefined;
+    const laidOut = screen && {
+      width: size?.width ?? screen.width,
+      height: size?.height ?? screen.height,
+      mobile: screen.mobile,
+    };
+    preview.setGrid(cells?.map((c) => ({ ...c, rect: scaled(c.rect) })) ?? null, laidOut);
   });
 
   ipc.handle("conversation:get", () =>
@@ -783,6 +816,7 @@ async function main() {
   ipc.handle("comments:discard", () => void discardComments());
   ipc.handle("preview:page-menu", (route) => pageMenu(route));
   ipc.handle("preview:set-view", (view, route) => preview.setView(view === "pages" ? "pages" : "page", { route }));
+  ipc.handle("preview:open-page", (route) => preview.openPage(route));
   ipc.handle("preview:set-mode", (mode) => preview.setMode(mode === "visitor" || mode === "comment" ? mode : "edit"));
   ipc.handle("agent:status", () => agent.status());
   ipc.handle("agent:sign-in", (method) => {
