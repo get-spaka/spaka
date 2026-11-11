@@ -170,6 +170,15 @@ export type ConversationState = { projectId: string; items: ConversationItem[] }
 export const SETTINGS_PAGES = ["general", "agent", "skills", "connectors", "privacy", "about"] as const;
 export type SettingsPage = (typeof SETTINGS_PAGES)[number];
 
+export const TEXT_SIZES = ["small", "medium", "large"] as const;
+export type TextSize = (typeof TEXT_SIZES)[number];
+/** How the agent writes to the maker (Q125); not how it writes the website. */
+export const REPLY_STYLES = ["short", "explained", "teaching"] as const;
+export type ReplyStyle = (typeof REPLY_STYLES)[number];
+/** How much of the agent's work the conversation shows (Q127). */
+export const OUTPUT_STYLES = ["discreet", "normal", "detailed"] as const;
+export type OutputStyle = (typeof OUTPUT_STYLES)[number];
+
 /** The app's own settings, for every website, kept on this computer. */
 export type AppSettings = {
   /** The model and effort a new website starts with. */
@@ -177,17 +186,27 @@ export type AppSettings = {
   newEffort: Effort;
   /** Anonymous usage statistics (decisions: on by default; nothing is sent before the polish step). */
   statistics: boolean;
+  /** The interface's text size; the website keeps its own. */
+  textSize: TextSize;
+  replyStyle: ReplyStyle;
+  outputStyle: OutputStyle;
+  /** A system notification when the agent finishes while Upstart is not in front. */
+  notifyDone: boolean;
 };
 export const DEFAULT_APP_SETTINGS: AppSettings = {
   newModel: "claude-sonnet-5-5",
   newEffort: "medium",
   statistics: true,
+  textSize: "medium",
+  replyStyle: "short",
+  outputStyle: "discreet",
+  notifyDone: true,
 };
 
 /** Calls from the interface that get an answer: channel → (args) → answer. */
 export type Invokes = {
   "app:info": () => AppInfo;
-  /** Opens the settings window (Q116), at a page; brings it forward if it is open. */
+  /** Opens the settings panel over the window (Q123), at a page. */
   "settings:open": (page?: SettingsPage) => void;
   "settings:get": () => AppSettings;
   "settings:set": (change: Partial<AppSettings>) => AppSettings;
@@ -291,8 +310,8 @@ export type Events = {
   "connectors:changed": (connectors: ConnectorInfo[]) => void;
   "comments:changed": (comments: PageComment[]) => void;
   "settings:changed": (settings: AppSettings) => void;
-  /** The settings window, already open, is asked to show a page. */
-  "settings:page": (page: SettingsPage) => void;
+  /** The settings panel is asked to open at a page, or to open or close (⌘, in the menu). */
+  "settings:show": (request: { page?: SettingsPage; toggle?: boolean }) => void;
 };
 
 export type InvokeChannel = keyof Invokes;
@@ -369,7 +388,7 @@ export const channels = {
     "connectors:changed",
     "comments:changed",
     "settings:changed",
-    "settings:page",
+    "settings:show",
   ],
 } as const satisfies {
   invoke: readonly InvokeChannel[];

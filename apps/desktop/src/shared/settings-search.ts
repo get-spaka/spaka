@@ -1,4 +1,4 @@
-// The settings window's search (Q119): the categories that hold a matching
+// The settings' search (Q119): the categories that hold a matching
 // setting, and which of their rows to highlight. Each word typed must begin a
 // word of the setting's label or of its other names, accents and case aside.
 
@@ -13,6 +13,22 @@ export type SettingEntry = { page: SettingsPage; id: string; words: string[] };
 /** Every setting a search can find, with the words that find it. */
 export const SETTINGS: SettingEntry[] = [
   { page: "general", id: "folder", words: [t.general.folder, t.general.websites, "Finder", "documents", "location"] },
+  {
+    page: "general",
+    id: "text-size",
+    words: [t.general.textSize, "font", "zoom", "bigger", "smaller", "police", "taille"],
+  },
+  {
+    page: "general",
+    id: "output-style",
+    words: [t.general.outputStyle, "output style", "verbose", "thinking", "tool calls", "affichage", "étapes"],
+  },
+  { page: "general", id: "notify", words: [t.general.notify, "notification", "alert", "sound", "done", "terminé"] },
+  {
+    page: "agent",
+    id: "reply-style",
+    words: [t.agent.replyStyle, t.agent.replies, "tone", "verbosity", "explain", "teach", "réponses"],
+  },
   {
     page: "agent",
     id: "account",

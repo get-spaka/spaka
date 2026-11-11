@@ -28,6 +28,9 @@ export const en = {
     model: "Model",
     effort: "Effort",
     efforts: { low: "Low", medium: "Medium", high: "High", xhigh: "Extra high", max: "Max" },
+    steps: (count: number, failed: number) =>
+      `${count} ${count === 1 ? "step" : "steps"}${failed ? ` · ${failed} did not work` : ""}`,
+    thinking: "Thinking",
   },
   history: {
     title: "History",
@@ -194,7 +197,7 @@ export const en = {
   },
   settings: {
     title: "Settings",
-    close: "Close",
+    close: "Close the settings",
     search: "Search",
     searchLabel: "Search the settings",
     noMatch: (query: string) => `No setting matches “${query}”.`,
@@ -225,6 +228,20 @@ export const en = {
       folder: "Folder",
       folderHelp: "Where new websites go. A website opened from another folder stays where it is.",
       reveal: "Show in Finder",
+      interface: "Upstart",
+      textSize: "Text size",
+      textSizes: { small: "Small", medium: "Medium", large: "Large" },
+      textSizeHelp: "The size of Upstart's own text. Your website keeps its own sizes.",
+      outputStyle: "Agent's steps",
+      outputStyles: { discreet: "Discreet", normal: "Normal", detailed: "Detailed" },
+      outputStyleHelp: {
+        discreet: "Only the step under way, then one line that unfolds.",
+        normal: "One line for each step.",
+        detailed:
+          "Each step with what it ran or searched, why it failed, and the agent's thinking when the model gives it.",
+      },
+      notify: "Notify when the agent is done",
+      notifyHelp: "When Upstart is not in front.",
     },
     agent: {
       intro:
@@ -246,10 +263,18 @@ export const en = {
       model: "Model",
       effort: "Effort",
       forNewHelp: "Each website keeps its own model and effort; change them from its conversation or its settings.",
+      replies: "How the agent writes to you",
+      replyStyle: "Reply style",
+      replyStyles: { short: "Short", explained: "Explained", teaching: "Teaching" },
+      replyStyleHelp: {
+        short: "What changed, in a few lines.",
+        explained: "What it did and why.",
+        teaching: "How you could do it yourself.",
+      },
+      replyStyleNote: "Only its messages change: your website is written the same way.",
     },
     skills: {
       app: "For all your websites",
-      upstart: "Built into Upstart",
       siteHelp: "A website's own skills are in its settings: the button on its row in the websites list.",
       add: "Add a skill",
       remove: "Remove the chosen skill",
@@ -274,6 +299,11 @@ export const en = {
       built: (electron: string, chromium: string, node: string) =>
         `Electron ${electron} · Chromium ${chromium} · Node ${node}`,
     },
+  },
+  notify: {
+    done: "The agent is done. Have a look at the preview.",
+    stopped: "The agent stopped.",
+    failed: "The agent stopped: something went wrong.",
   },
   site: {
     open: (name: string) => `Settings of ${name}`,
@@ -304,14 +334,14 @@ export const en = {
   connectors: {
     title: "Connectors",
     intro:
-      "A connector gives the agent tools from another service or program: your documents, a database, a design tool. Its secrets stay on this computer, encrypted, and never go into your website's folder.",
+      "A connector gives the agent tools from another service or program through the Model Context Protocol (MCP): your documents, a database, a design tool. Its secrets stay on this computer, encrypted, and never go into your website's folder.",
     kind: { remote: "Address on the web", local: "Program on this computer" },
     kindLabel: "Kind",
     scope: "For",
     forProject: "For this website",
     name: "Name, for example notes",
-    url: "Address",
-    command: "Command",
+    url: "The MCP server's address",
+    command: "The command that starts the MCP server",
     commandExample: "npx -y some-connector",
     header: "Header, for example Authorization",
     variable: "Variable, for example API_KEY",

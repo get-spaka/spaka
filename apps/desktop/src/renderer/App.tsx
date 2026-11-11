@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { isWorking } from "../shared/conversation";
+import type { SettingsPage } from "../shared/ipc";
 import { Conversation } from "./components/Conversation";
 import { PreviewPane } from "./components/PreviewPane";
 import { Sidebar } from "./components/Sidebar";
@@ -14,6 +15,7 @@ import {
   useSkills,
 } from "./hooks/useMain";
 import { upstart } from "./lib/bridge";
+import { SettingsPanel } from "./settings/SettingsPanel";
 
 export function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -24,9 +26,22 @@ export function App() {
   const status = useAgentStatus();
   const skills = useSkills(current?.id);
   const connectors = useConnectors(current?.id);
-  // A website's own settings (Q118), over the window; the app's settings have a window of their own (Q116).
+  // A website's own settings (Q118), over the window.
   const [siteOpen, setSiteOpen] = useState(false);
   const siteShown = siteOpen && !!current;
+  // The settings for every website, in a panel over the window (Q123); they open again at the last page.
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsPage, setSettingsPage] = useState<SettingsPage>("general");
+  useEffect(
+    () =>
+      upstart.on("settings:show", ({ page, toggle }) => {
+        if (page) setSettingsPage(page);
+        setSettingsOpen((open) => (toggle ? !open : true));
+        setSiteOpen(false);
+      }),
+    [],
+  );
+  const closeSettings = useCallback(() => setSettingsOpen(false), []);
 
   return (
     <div className="relative flex h-full">
@@ -36,9 +51,13 @@ export function App() {
           current={current}
           onCollapse={() => setSidebarOpen(false)}
           onNew={() => void upstart.invoke("projects:close")}
-          onSettings={() => void upstart.invoke("settings:open")}
+          onSettings={() => {
+            setSiteOpen(false);
+            setSettingsOpen(true);
+          }}
           onSiteSettings={async (id) => {
             if (current?.id !== id) await upstart.invoke("projects:open", id);
+            setSettingsOpen(false);
             setSiteOpen(true);
           }}
         />
@@ -55,7 +74,7 @@ export function App() {
         project={current}
         state={preview}
         working={isWorking(items)}
-        covered={siteShown}
+        covered={siteShown || settingsOpen}
         layoutKey={sidebarOpen}
         history={history}
       />
@@ -68,6 +87,7 @@ export function App() {
           onClose={() => setSiteOpen(false)}
         />
       )}
+      {settingsOpen && <SettingsPanel page={settingsPage} onPage={setSettingsPage} onClose={closeSettings} />}
     </div>
   );
 }

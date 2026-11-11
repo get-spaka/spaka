@@ -75,11 +75,7 @@ export async function launchApp({ env = {}, packaged = false }: LaunchOptions = 
 async function interfacePage(app: ElectronApplication): Promise<Page> {
   const started = Date.now();
   for (;;) {
-    const found = app
-      .windows()
-      .find(
-        (page) => /renderer\/index\.html|^http:\/\/localhost/.test(page.url()) && !page.url().includes("#settings"),
-      );
+    const found = app.windows().find((page) => /renderer\/index\.html|^http:\/\/localhost/.test(page.url()));
     if (found) return found;
     if (Date.now() - started > 20_000)
       throw new Error(`no interface window among: ${app.windows().map((p) => p.url())}`);
@@ -87,19 +83,11 @@ async function interfacePage(app: ElectronApplication): Promise<Page> {
   }
 }
 
-/** The settings window (Q116), once it is open. */
-export async function settingsPage(app: ElectronApplication): Promise<Page> {
-  const started = Date.now();
-  for (;;) {
-    const found = app.windows().find((page) => page.url().includes("#settings"));
-    if (found) {
-      await found.waitForLoadState("domcontentloaded");
-      await found.getByTestId("settings").waitFor();
-      return found;
-    }
-    if (Date.now() - started > 20_000) throw new Error("the settings window did not open");
-    await new Promise((resolve) => setTimeout(resolve, 50));
-  }
+/** Opens the settings panel over the window (Q123) from the sidebar's button. */
+export async function openSettings(window: Page): Promise<Page> {
+  await window.getByTestId("open-settings").click();
+  await window.getByTestId("settings").waitFor();
+  return window;
 }
 
 function cleanEnv() {

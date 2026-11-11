@@ -3,6 +3,8 @@
 // live-generation spike, reduced to what build step 1 offers: no datasources,
 // forms or media yet.
 
+import type { ReplyStyle } from "../../shared/ipc";
+
 export const HTMX4_CHEAT_SHEET = `# htmx 4 cheat sheet (this is NOT htmx 2)
 
 The page already loads htmx 4. Never add a script tag for it and never write hx-ext.
@@ -24,6 +26,21 @@ What changed since htmx 2. Do not write the htmx 2 form:
 - Every response is swapped, 4xx and 5xx included (only 204 and 304 are not).
 - hx-get and hx-delete do not send the fields of the enclosing form: add hx-include="closest form" when they are needed.
 - To update several regions from one response, put <hx-partial hx-target="#a" hx-swap="beforeend">...</hx-partial> elements in it.`;
+
+/** How the agent writes to the maker (Q125), added to its instructions. It never changes the website. */
+export const REPLY_STYLE_NOTES: Record<ReplyStyle, string> = {
+  short:
+    "When you have finished, tell the maker in a few short lines what changed on the site. No list of files, no technical details unless asked.",
+  explained:
+    "When you have finished, tell the maker what you did and why: the choices you made for the site and what they could ask next, in a short paragraph or a few points. Name files only when it helps.",
+  teaching:
+    "When you have finished, explain to the maker how they could do it themselves: which file holds what, what you changed in it and why, in plain words they can learn from. Keep it to what this turn did.",
+};
+
+/** The instructions an agent session starts with: Upstart's, and how to write to the maker. */
+export function instructionsFor(style: ReplyStyle): string {
+  return `${UPSTART_INSTRUCTIONS}\n\n# Writing to the maker\n\n${REPLY_STYLE_NOTES[style]} This is only about your messages: the website is written the same way whatever the style.`;
+}
 
 export const UPSTART_INSTRUCTIONS = `You are the agent of Upstart, a desktop app in which a maker builds a website by talking to you. Your working directory is the project: a folder of plain files that Upstart serves and shows in a live preview next to the conversation.
 

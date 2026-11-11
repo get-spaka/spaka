@@ -57,6 +57,16 @@ test("follows a Write while its input streams, path first", () => {
   expect(events[7]).toMatchObject({ kind: "tool-result", name: "Write", isError: false });
 });
 
+test("passes the agent's thinking on, with its text", () => {
+  const events: AgentEvent[] = [];
+  const reader = new StreamReader((e) => events.push(e));
+  reader.read({
+    type: "stream_event",
+    event: { type: "content_block_delta", index: 0, delta: { type: "thinking_delta", thinking: "Warm colours." } },
+  });
+  expect(events).toEqual([{ kind: "thinking", text: "Warm colours." }]);
+});
+
 test("ignores the stream of a sub-agent", () => {
   const events: AgentEvent[] = [];
   const reader = new StreamReader((e) => events.push(e));

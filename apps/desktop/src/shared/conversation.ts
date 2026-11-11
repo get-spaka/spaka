@@ -5,8 +5,18 @@
 
 export type ActivityState = "running" | "done" | "failed" | "refused";
 
-/** One short line about what the agent does: "Writing pages/index.liquid". */
-export type Activity = { id: string; label: string; state: ActivityState };
+/**
+ * One short line about what the agent does: "Writing pages/index.liquid". The
+ * detailed output style (Q127) also shows what was run or searched, and why a
+ * step failed.
+ */
+export type Activity = { id: string; label: string; state: ActivityState; detail?: string; error?: string };
+
+export type AgentPart =
+  | { kind: "text"; text: string }
+  | { kind: "activity"; activity: Activity }
+  /** The agent's thinking, when the model gives it; shown in the detailed style only. */
+  | { kind: "thinking"; text: string };
 
 export type TurnStatus = "working" | "done" | "stopped" | "failed";
 
@@ -16,7 +26,7 @@ export type ConversationItem =
       kind: "agent";
       id: string;
       /** The agent's words and its activity, in the order they came. */
-      parts: ({ kind: "text"; text: string } | { kind: "activity"; activity: Activity })[];
+      parts: AgentPart[];
       status: TurnStatus;
       error?: string;
       at: number;
@@ -26,6 +36,7 @@ export type ConversationItem =
 export type ConversationEvent =
   | { type: "turn-start"; id: string; text: string; at: number }
   | { type: "text"; text: string }
+  | { type: "thinking"; text: string }
   | { type: "activity"; activity: Activity }
   | { type: "turn-end"; status: Exclude<TurnStatus, "working">; error?: string }
   | { type: "notice"; id: string; text: string; at: number };
@@ -42,10 +53,11 @@ export function applyEvent(items: ConversationItem[], event: ConversationEvent):
   const last = items.at(-1);
   if (last?.kind !== "agent" || last.status !== "working") return items;
   const parts = [...last.parts];
-  if (event.type === "text") {
+  if (event.type === "text" || event.type === "thinking") {
+    const kind = event.type;
     const tail = parts.at(-1);
-    if (tail?.kind === "text") parts[parts.length - 1] = { kind: "text", text: tail.text + event.text };
-    else parts.push({ kind: "text", text: event.text });
+    if (tail?.kind === kind) parts[parts.length - 1] = { kind, text: tail.text + event.text };
+    else parts.push({ kind, text: event.text });
     return [...items.slice(0, -1), { ...last, parts }];
   }
   if (event.type === "activity") {

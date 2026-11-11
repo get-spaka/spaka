@@ -1,10 +1,18 @@
-// The app's own settings, for every website (Q117): the model and effort a new
-// website starts with, and the anonymous statistics switch. Kept as a JSON file
+// The app's own settings, for every website (Q117, Q125): the model and effort a
+// new website starts with, the anonymous statistics switch, the text size, the
+// agent's reply style, the conversation's output style and the notification. Kept as a JSON file
 // in the app's data on this computer; a value missing or unreadable falls back
 // to its default.
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { type AppSettings, DEFAULT_APP_SETTINGS } from "../shared/ipc";
+import {
+  type AppSettings,
+  DEFAULT_APP_SETTINGS,
+  OUTPUT_STYLES,
+  REPLY_STYLES,
+  TEXT_SIZES,
+  type TextSize,
+} from "../shared/ipc";
 import { isEffort } from "./projects";
 
 export const DEFAULT_SETTINGS = DEFAULT_APP_SETTINGS;
@@ -16,7 +24,15 @@ export function settingsFrom(data: unknown): AppSettings {
     newModel: typeof d.newModel === "string" && d.newModel.trim() ? d.newModel : DEFAULT_SETTINGS.newModel,
     newEffort: typeof d.newEffort === "string" && isEffort(d.newEffort) ? d.newEffort : DEFAULT_SETTINGS.newEffort,
     statistics: typeof d.statistics === "boolean" ? d.statistics : DEFAULT_SETTINGS.statistics,
+    textSize: oneOf(TEXT_SIZES, d.textSize) ?? DEFAULT_SETTINGS.textSize,
+    replyStyle: oneOf(REPLY_STYLES, d.replyStyle) ?? DEFAULT_SETTINGS.replyStyle,
+    outputStyle: oneOf(OUTPUT_STYLES, d.outputStyle) ?? DEFAULT_SETTINGS.outputStyle,
+    notifyDone: typeof d.notifyDone === "boolean" ? d.notifyDone : DEFAULT_SETTINGS.notifyDone,
   };
+}
+
+function oneOf<V extends string>(values: readonly V[], value: unknown): V | undefined {
+  return values.find((v) => v === value);
 }
 
 export class AppSettingsStore {
@@ -43,4 +59,9 @@ export class AppSettingsStore {
     this.cache = next;
     return next;
   }
+}
+
+/** How much larger or smaller the interface is drawn for a text size. */
+export function zoomFor(size: TextSize): number {
+  return { small: 0.9, medium: 1, large: 1.15 }[size];
 }

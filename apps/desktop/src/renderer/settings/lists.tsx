@@ -17,7 +17,8 @@ export function SkillList({
   caption,
   addLabel = t.settings.skills.add,
 }: {
-  origin: SkillInfo["origin"];
+  /** The maker's own skills only: the ones built into Upstart are not listed (Q123). */
+  origin: Exclude<SkillInfo["origin"], "upstart">;
   title: string;
   skills: SkillInfo[];
   caption?: React.ReactNode;
@@ -25,7 +26,6 @@ export function SkillList({
 }) {
   const [chosen, setChosen] = useState<string>();
   const [error, setError] = useState<string>();
-  const editable = origin !== "upstart";
   const run = async (action: () => Promise<unknown>) => {
     setError(undefined);
     try {
@@ -36,7 +36,6 @@ export function SkillList({
   };
   const add = () =>
     run(async () => {
-      if (origin === "upstart") return;
       const folder = await upstart.invoke("skills:choose-folder");
       if (folder) await upstart.invoke("skills:add", origin, folder);
     });
@@ -54,20 +53,18 @@ export function SkillList({
         )
       }
       footer={
-        editable && (
-          <ListBar
-            testid={`skills-${origin}`}
-            addLabel={addLabel}
-            removeLabel={t.settings.skills.remove}
-            onAdd={() => void add()}
-            canRemove={exists}
-            onRemove={() => chosen && void run(() => upstart.invoke("skills:remove", origin, chosen))}
-          />
-        )
+        <ListBar
+          testid={`skills-${origin}`}
+          addLabel={addLabel}
+          removeLabel={t.settings.skills.remove}
+          onAdd={() => void add()}
+          canRemove={exists}
+          onRemove={() => chosen && void run(() => upstart.invoke("skills:remove", origin, chosen))}
+        />
       }
     >
       {skills.length === 0 ? (
-        <p className="px-3 py-2.5 text-[13px] text-neutral-600">{editable ? t.skills.noneYet : t.skills.none}</p>
+        <p className="px-3 py-2.5 text-[13px] text-neutral-600">{t.skills.noneYet}</p>
       ) : (
         skills.map((skill) => (
           <button
@@ -75,20 +72,16 @@ export function SkillList({
             key={skill.name}
             data-testid="skill"
             data-name={skill.name}
-            aria-pressed={editable ? chosen === skill.name : undefined}
-            disabled={!editable}
+            aria-pressed={chosen === skill.name}
             onClick={() => setChosen(skill.name)}
             className={cn(
-              "flex w-full flex-col gap-0.5 px-3 py-2 text-left disabled:cursor-default",
-              editable && chosen === skill.name && "bg-neutral-900 text-white",
+              "flex w-full flex-col gap-0.5 px-3 py-2 text-left",
+              chosen === skill.name && "bg-neutral-900 text-white",
             )}
           >
             <span className="font-mono text-[13px]">{skill.name}</span>
             <span
-              className={cn(
-                "line-clamp-2 text-[11px]",
-                editable && chosen === skill.name ? "text-white/80" : "text-neutral-600",
-              )}
+              className={cn("line-clamp-2 text-[11px]", chosen === skill.name ? "text-white/80" : "text-neutral-600")}
             >
               {skill.description}
             </span>
@@ -359,7 +352,11 @@ function AddConnector({ scope, onDone }: { scope: ConnectorScope; onDone: () => 
       </div>
       <input
         aria-label={kind === "remote" ? t.connectors.url : t.connectors.command}
-        placeholder={kind === "remote" ? "https://" : t.connectors.commandExample}
+        placeholder={
+          kind === "remote"
+            ? `${t.connectors.url}: https://…`
+            : `${t.connectors.command}: ${t.connectors.commandExample}`
+        }
         value={target}
         onChange={(event) => setTarget(event.target.value)}
         className={cn(inputClass, "font-mono")}

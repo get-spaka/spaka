@@ -2,9 +2,9 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp, settingsPage } from "./app.ts";
+import { type LaunchedApp, launchApp, openSettings } from "./app.ts";
 
-// Connectors (ADR 0010), with the recorded agent: added in the settings window
+// Connectors (ADR 0010), with the recorded agent: added in the settings
 // for every website (Q116) without their secrets in any file in clear, a
 // received project's program shown in the website's own settings (Q118) and
 // kept off until turned on, and what is on given to the agent.
@@ -46,8 +46,7 @@ describe("connectors", () => {
     await launched.window.getByTestId("conversation").waitFor();
     await invoke("conversation:send", "A bakery in Lyon. Warm colours please.");
     await until(() => launched.window.locator('[data-testid="agent-message"][data-status="done"]').count(), 30_000);
-    await launched.window.getByTestId("open-settings").click();
-    settings = await settingsPage(launched.app);
+    settings = await openSettings(launched.window);
     await settings.getByTestId("settings-page-connectors").click();
   }, 60_000);
   afterAll(async () => {
@@ -76,6 +75,9 @@ describe("connectors", () => {
       join(path, ".upstart/connectors.json"),
       JSON.stringify({ connectors: [{ name: "notes", kind: "local", command: "node", args: ["notes-server.js"] }] }),
     );
+    // The panel closes with Escape before the website's own settings open.
+    await launched.window.keyboard.press("Escape");
+    await until(async () => (await launched.window.getByTestId("settings").count()) === 0);
     await launched.window.getByTestId("project-settings").first().click();
     await until(() => sheetRow("notes").count());
     expect(await sheetRow("notes").getAttribute("data-state")).toBe("needs-approval");
@@ -83,7 +85,6 @@ describe("connectors", () => {
     expect(await given()).not.toContain("notes");
     // The website's settings say which connectors it also gets from the settings for all.
     await expect(launched.window.getByTestId("site-shared-connectors").textContent()).resolves.toContain("docs");
-    expect(await row("notes").count()).toBe(0);
     await launched.capture("site-settings-connectors");
     await sheetRow("notes").getByTestId("connector-approve").click();
     await until(async () => (await sheetRow("notes").getAttribute("data-state")) === "on");
@@ -96,7 +97,11 @@ describe("connectors", () => {
     );
     await until(async () => (await sheetRow("notes").getAttribute("data-state")) === "needs-approval");
     await until(async () => !(await given()).includes("notes"));
-    await launched.window.getByTestId("site-settings-done").click();
+    // The link to the settings for all websites opens the panel at Connectors, in place of the sheet.
+    await launched.window.getByTestId("site-open-settings").click();
+    await until(async () => (await settings.getByTestId("settings-title").textContent()) === "Connectors");
+    expect(await launched.window.getByTestId("site-settings").count()).toBe(0);
+    expect(await row("notes").count()).toBe(0);
   });
 
   test("a form error is said; removing a connector takes it from the agent", async () => {
@@ -106,7 +111,7 @@ describe("connectors", () => {
     await w.getByTestId("connector-target").fill("https://example.com/mcp");
     await w.getByTestId("connector-add").click();
     await expect(w.getByTestId("connector-error").textContent()).resolves.toContain("taken by Upstart");
-    await settings.screenshot({ path: join(import.meta.dirname, ".runs/settings-connectors.png") });
+    await launched.capture("settings-connectors");
     // Chosen, then removed with −.
     await row("docs").locator("button").first().click();
     await w.getByTestId("connectors-app-remove").click();

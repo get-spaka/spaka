@@ -1,7 +1,7 @@
-import { ArrowUp, Check, CircleSlash, Eraser, Loader2, PanelLeft, Square, X } from "lucide-react";
+import { ArrowUp, Check, ChevronRight, CircleSlash, Eraser, Loader2, PanelLeft, Square, X } from "lucide-react";
 import { type KeyboardEvent, useLayoutEffect, useRef, useState } from "react";
-import { type Activity, type ConversationItem, isWorking } from "../../shared/conversation";
-import type { AgentStatus, Effort, PreviewState, ProjectInfo } from "../../shared/ipc";
+import { type Activity, type AgentPart, type ConversationItem, isWorking } from "../../shared/conversation";
+import type { AgentStatus, Effort, OutputStyle, PreviewState, ProjectInfo } from "../../shared/ipc";
 import { useAppSettings } from "../hooks/useMain";
 import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
@@ -190,6 +190,7 @@ export function Conversation({
 }
 
 function Messages({ items }: { items: ConversationItem[] }) {
+  const style = useAppSettings().outputStyle;
   const scroller = useRef<HTMLDivElement>(null);
   const pinned = useRef(true);
   // Follows the agent as it writes, unless the maker scrolled up to read.
@@ -224,16 +225,7 @@ function Messages({ items }: { items: ConversationItem[] }) {
           );
         return (
           <div key={item.id} data-testid="agent-message" data-status={item.status} className="space-y-1.5 text-sm">
-            {item.parts.map((part, index) =>
-              part.kind === "text" ? (
-                // biome-ignore lint/suspicious/noArrayIndexKey: parts only grow at the end
-                <p key={index} className="whitespace-pre-wrap leading-relaxed">
-                  {part.text.trim()}
-                </p>
-              ) : (
-                <ActivityLine key={part.activity.id} activity={part.activity} />
-              ),
-            )}
+            <AgentParts parts={item.parts} working={item.status === "working"} style={style} />
             {item.status === "working" && item.parts.length === 0 && (
               <p className="flex items-center gap-2 text-muted-foreground">
                 <Loader2 className="size-3.5 animate-spin" />
@@ -253,16 +245,107 @@ function Messages({ items }: { items: ConversationItem[] }) {
   );
 }
 
-function ActivityLine({ activity }: { activity: Activity }) {
+/**
+ * The agent's words and steps, as the output style says (Q127). Discreet: a
+ * run of steps is one line, "5 steps", that unfolds, and only the step under
+ * way shows while the agent works. Normal: one line per step. Detailed: each
+ * step with what it ran or searched and why it failed, and the agent's
+ * thinking, in grey.
+ */
+function AgentParts({ parts, working, style }: { parts: AgentPart[]; working: boolean; style: OutputStyle }) {
+  const shown = style === "detailed" ? parts : parts.filter((p) => p.kind !== "thinking");
+  if (style !== "discreet")
+    return shown.map((part, index) =>
+      part.kind === "activity" ? (
+        <ActivityLine key={part.activity.id} activity={part.activity} detailed={style === "detailed"} />
+      ) : (
+        // biome-ignore lint/suspicious/noArrayIndexKey: parts only grow at the end
+        <PartText key={index} part={part} />
+      ),
+    );
+  // Runs of steps, between the agent's words.
+  const groups: ({ kind: "steps"; activities: Activity[] } | Exclude<AgentPart, { kind: "activity" }>)[] = [];
+  for (const part of shown) {
+    const last = groups.at(-1);
+    if (part.kind !== "activity") groups.push(part);
+    else if (last?.kind === "steps") last.activities.push(part.activity);
+    else groups.push({ kind: "steps", activities: [part.activity] });
+  }
+  return groups.map((group, index) => {
+    if (group.kind !== "steps")
+      // biome-ignore lint/suspicious/noArrayIndexKey: parts only grow at the end
+      return <PartText key={index} part={group} />;
+    const steps = group.activities;
+    if (working && index === groups.length - 1) return <ActivityLine key={steps.at(-1)!.id} activity={steps.at(-1)!} />;
+    if (steps.length === 1) return <ActivityLine key={steps[0]!.id} activity={steps[0]!} />;
+    return <Steps key={steps[0]!.id} activities={steps} />;
+  });
+}
+
+function PartText({ part }: { part: { kind: "text" | "thinking"; text: string } }) {
+  if (part.kind === "thinking")
+    return (
+      <p
+        data-testid="thinking"
+        className="whitespace-pre-wrap border-l-2 border-border pl-2 text-xs leading-relaxed text-muted-foreground italic"
+      >
+        {part.text.trim()}
+      </p>
+    );
+  return <p className="whitespace-pre-wrap leading-relaxed">{part.text.trim()}</p>;
+}
+
+function Steps({ activities }: { activities: Activity[] }) {
+  const [open, setOpen] = useState(false);
+  const failed = activities.filter((a) => a.state === "failed" || a.state === "refused").length;
+  return (
+    <div>
+      <button
+        type="button"
+        data-testid="steps"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground"
+      >
+        <ChevronRight className={cn("size-3.5 transition-transform", open && "rotate-90")} />
+        {t.conversation.steps(activities.length, failed)}
+      </button>
+      {open && (
+        <div className="mt-1 space-y-1.5 pl-5.5">
+          {activities.map((a) => (
+            <ActivityLine key={a.id} activity={a} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ActivityLine({ activity, detailed }: { activity: Activity; detailed?: boolean }) {
   const Icon = { running: Loader2, done: Check, failed: X, refused: CircleSlash }[activity.state];
   return (
-    <div
-      data-testid="activity"
-      data-state={activity.state}
-      className="flex items-center gap-2 text-xs text-muted-foreground"
-    >
-      <Icon className={cn("size-3.5", activity.state === "running" && "animate-spin")} />
-      <span className="truncate font-mono">{activity.label}</span>
+    <div>
+      <div
+        data-testid="activity"
+        data-state={activity.state}
+        className="flex items-center gap-2 text-xs text-muted-foreground"
+      >
+        <Icon className={cn("size-3.5 shrink-0", activity.state === "running" && "animate-spin")} />
+        <span className="truncate font-mono">{activity.label}</span>
+      </div>
+      {detailed && activity.detail && (
+        <pre
+          data-testid="activity-detail"
+          className="mt-0.5 ml-5.5 whitespace-pre-wrap break-all font-mono text-[11px] text-muted-foreground/80"
+        >
+          {activity.detail}
+        </pre>
+      )}
+      {detailed && activity.error && (
+        <p data-testid="activity-error" className="mt-0.5 ml-5.5 whitespace-pre-wrap text-[11px] text-destructive/80">
+          {activity.error}
+        </p>
+      )}
     </div>
   );
 }

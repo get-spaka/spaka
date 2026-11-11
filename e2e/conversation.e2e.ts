@@ -49,11 +49,22 @@ describe("a conversation with the agent", () => {
     await expect(w.getByTestId("maker-message").textContent()).resolves.toContain("A bakery in Lyon");
   });
 
-  test("the agent's words and one line per file, then the page in the preview", async () => {
+  test("the agent's words and its steps in one line that unfolds, then the page in the preview", async () => {
     const w = launched.window;
     await until(() => w.locator('[data-testid="agent-message"][data-status="done"]').count());
+    // Discreet by default (Q127): the steps are one line, which unfolds into one line per file.
+    expect(await w.getByTestId("activity").count()).toBe(0);
+    await expect(w.getByTestId("steps").textContent()).resolves.toBe("3 steps");
+    await w.getByTestId("steps").click();
     const lines = await w.getByTestId("activity").allTextContents();
     expect(lines).toEqual(["Writing theme.css", "Writing pages/index.liquid", "Writing pages/menu.liquid"]);
+    // Normal: one line per step, without unfolding.
+    await w.evaluate(() =>
+      // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
+      (window as any).upstart.invoke("settings:set", { outputStyle: "normal" }),
+    );
+    await until(async () => (await w.getByTestId("steps").count()) === 0);
+    expect(await w.getByTestId("activity").allTextContents()).toEqual(lines);
     await expect(w.getByTestId("agent-message").textContent()).resolves.toContain("home page is ready");
     // The preview followed the agent to the last page it wrote.
     await until(() =>

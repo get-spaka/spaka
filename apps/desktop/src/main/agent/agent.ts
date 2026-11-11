@@ -152,6 +152,11 @@ export class Agent {
     this.o.auth.cancelSignIn();
   }
 
+  /** The agent's instructions changed (the reply style): idle agents start again with them. */
+  instructionsChanged() {
+    this.restartIdle();
+  }
+
   private restartIdle() {
     for (const [id, session] of this.sessions)
       if (!session.busy) {
@@ -189,7 +194,8 @@ export class Agent {
     const items = applyEvent(this.conversation(projectId), event);
     this.logs.set(projectId, items);
     // Kept at the start and the end of each turn, not on every word.
-    if (event.type !== "text" && event.type !== "activity") writeLog(this.logFile(projectId), items);
+    if (event.type !== "text" && event.type !== "thinking" && event.type !== "activity")
+      writeLog(this.logFile(projectId), items);
     this.o.emitConversation(projectId, event);
   }
 

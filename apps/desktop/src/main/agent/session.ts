@@ -46,6 +46,8 @@ export type SessionDeps = {
     /** Changes when the skills the agent would get change. */
     fingerprint(projectDir: string): string;
   };
+  /** The instructions a session starts with; Upstart's own when not given. */
+  instructions?: () => string;
   /** Keeps the agent's stream, to play it back in checks (replay.ts). */
   recorder?: { turn(): void; message(m: unknown): void };
 };
@@ -74,7 +76,7 @@ export class AgentSession {
   private pending: string | undefined;
   private started = false;
   private turnFailed: string | undefined;
-  private readonly activities = new Map<string, { name: string; label: string }>();
+  private readonly activities = new Map<string, { name: string; label: string; detail?: string }>();
   private stderr = "";
   /** The skills the running agent was given, and their fingerprint at the time. */
   private skills: { assembled: AssembledSkills; fingerprint: string } | undefined;
@@ -119,7 +121,7 @@ export class AgentSession {
         env: this.deps.env(),
         model: this.project.model,
         effort: this.project.effort,
-        systemPrompt: { type: "custom", prompt: UPSTART_INSTRUCTIONS, snapshot: false },
+        systemPrompt: { type: "custom", prompt: this.deps.instructions?.() ?? UPSTART_INSTRUCTIONS, snapshot: false },
         tools: skills?.enabled.length ? [...TOOLS, "Skill"] : TOOLS,
         // Only Upstart's skills: the ones built into the binary stay hidden.
         skills: skills?.enabled ?? [],
@@ -318,6 +320,9 @@ export class AgentSession {
       case "text":
         if (this.working) this.handlers.onConversation({ type: "text", text: e.text });
         return;
+      case "thinking":
+        if (this.working && e.text) this.handlers.onConversation({ type: "thinking", text: e.text });
+        return;
       case "tool-start":
         return this.activity(e.id, e.name, {}, "running");
       case "tool-input":
@@ -326,9 +331,9 @@ export class AgentSession {
       case "tool-input-end":
         return this.activity(e.id, e.name, e.input, "running");
       case "tool-result":
-        return this.activity(e.id, e.name, undefined, e.isError ? "failed" : "done");
+        return this.activity(e.id, e.name, undefined, e.isError ? "failed" : "done", e.isError ? e.text : undefined);
       case "permission-denied":
-        return this.activity(e.id, e.name, undefined, "refused");
+        return this.activity(e.id, e.name, undefined, "refused", e.message);
       case "auth":
         this.turnFailed = en.errors.signInNeeded;
         this.handlers.onSignInNeeded?.();
@@ -354,16 +359,22 @@ export class AgentSession {
     name: string,
     input: Record<string, unknown> | undefined,
     state: "running" | "done" | "failed" | "refused",
+    error?: string,
   ) {
     if (!this.working) return;
     const known = this.activities.get(id);
     const label = input
       ? activityLabel(name, input, this.project.path)
       : (known?.label ?? activityLabel(name, {}, this.project.path));
+    const detail = input ? activityDetail(name, input) : known?.detail;
     // A tool's input streams in many small pieces: send only what changes the line.
-    if (known && known.label === label && state === "running") return;
-    this.activities.set(id, { name, label });
-    this.handlers.onConversation({ type: "activity", activity: { id, label, state } });
+    if (known && known.label === label && known.detail === detail && state === "running") return;
+    this.activities.set(id, { name, label, detail });
+    const why = error?.trim() ? clip(error.trim(), 300) : undefined;
+    this.handlers.onConversation({
+      type: "activity",
+      activity: { id, label, state, ...(detail ? { detail } : {}), ...(why ? { error: why } : {}) },
+    });
   }
 
   private endTurn(status: "done" | "stopped" | "failed", error?: string) {
@@ -423,6 +434,37 @@ export function activityLabel(name: string, input: Record<string, unknown>, proj
     default:
       return en.activity.other(name);
   }
+}
+
+/** What the detailed output style shows under a step (Q127): what was run or searched. */
+export function activityDetail(name: string, input: Record<string, unknown>): string | undefined {
+  const text = (value: unknown) => (typeof value === "string" && value.trim() ? value.trim() : undefined);
+  switch (name) {
+    case "Bash":
+      return text(input.command) && clip(text(input.command)!, 400);
+    case "Grep": {
+      const pattern = text(input.pattern);
+      const where = text(input.glob) ?? text(input.path);
+      return pattern && (where ? `${pattern} in ${where}` : pattern);
+    }
+    case "Glob":
+      return text(input.pattern);
+    case "Write":
+    case "Edit":
+    case "Read":
+    case "Skill":
+    case LOOK_TOOL:
+      return undefined;
+    default: {
+      // A connector's tool: what it was asked.
+      const shown = Object.keys(input).length ? JSON.stringify(input) : undefined;
+      return shown && clip(shown, 200);
+    }
+  }
+}
+
+function clip(text: string, max: number) {
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }
 
 function complete(fields: Record<string, string>, done: Record<string, boolean>) {

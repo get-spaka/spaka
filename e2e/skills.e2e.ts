@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp, settingsPage } from "./app.ts";
+import { type LaunchedApp, launchApp, openSettings } from "./app.ts";
 
 // Skills (ADR 0010), with the recorded agent: the settings window lists
 // Upstart's and the maker's skills for every website (Q116), a website's own
@@ -55,18 +55,13 @@ describe("skills", () => {
 
   let settings: Page;
 
-  test("the settings window lists Upstart's skills; the page stays shown", async () => {
-    await launched.window.getByTestId("open-settings").click();
-    settings = await settingsPage(launched.app);
+  test("the settings do not list Upstart's own skills, which the agent still gets; the page is hidden meanwhile", async () => {
+    settings = await openSettings(launched.window);
     await settings.getByTestId("settings-page-skills").click();
-    await until(async () => (await settings.getByTestId("skills-upstart").getByTestId("skill").count()) === 4);
-    expect(await settings.getByTestId("skills-upstart").getByTestId("skill").allTextContents()).toEqual([
-      expect.stringContaining("gallery"),
-      expect.stringContaining("htmx-patterns"),
-      expect.stringContaining("upstart-help"),
-      expect.stringContaining("writing-skills"),
-    ]);
-    expect(await main((u) => u.preview.view.getVisible())).toBe(true);
+    await settings.getByTestId("skills-app").waitFor();
+    expect(await settings.getByTestId("skills-upstart").count()).toBe(0);
+    expect(await settings.getByTestId("settings").getByText("upstart-help").count()).toBe(0);
+    await until(async () => !(await main((u) => u.preview.view.getVisible())));
     // The agent got them from the start, as plugins Upstart assembled.
     expect(existsSync(join(await assembled(), "upstart/skills/upstart-help/SKILL.md"))).toBe(true);
   });
@@ -78,7 +73,11 @@ describe("skills", () => {
     expect(existsSync(join(launched.dataDir, "skills/brand-voice/SKILL.md"))).toBe(true);
     await until(() => assembledHas("app/skills/brand-voice/SKILL.md"));
     await expect(invoke("skills:add", "app", tmpdir())).rejects.toThrow(/SKILL.md/);
-    await settings.screenshot({ path: join(import.meta.dirname, ".runs/settings-skills.png") });
+    await launched.capture("settings-skills");
+    // Escape closes the panel, and the page is shown again.
+    await launched.window.keyboard.press("Escape");
+    await until(async () => (await launched.window.getByTestId("settings").count()) === 0);
+    await until(() => main((u) => u.preview.view.getVisible()));
   });
 
   test("a skill written into the project appears in its own settings and reaches the agent", async () => {

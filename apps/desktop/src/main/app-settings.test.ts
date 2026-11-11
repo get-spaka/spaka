@@ -7,14 +7,38 @@ import { AppSettingsStore, DEFAULT_SETTINGS, settingsFrom } from "./app-settings
 let dir: string | undefined;
 afterEach(() => dir && rmSync(dir, { recursive: true, force: true }));
 
+test("by default: medium text, short replies, a discreet conversation, a notification", () => {
+  expect(DEFAULT_SETTINGS).toMatchObject({
+    textSize: "medium",
+    replyStyle: "short",
+    outputStyle: "discreet",
+    notifyDone: true,
+  });
+});
+
 test("each value is checked; a wrong or missing one is its default", () => {
   expect(settingsFrom(undefined)).toEqual(DEFAULT_SETTINGS);
-  expect(settingsFrom({ newModel: "", newEffort: "huge", statistics: "no" })).toEqual(DEFAULT_SETTINGS);
-  expect(settingsFrom({ newModel: "claude-opus-5-5", newEffort: "high", statistics: false })).toEqual({
+  expect(
+    settingsFrom({
+      newModel: "",
+      newEffort: "huge",
+      statistics: "no",
+      textSize: "huge",
+      replyStyle: "rude",
+      outputStyle: 2,
+      notifyDone: "yes",
+    }),
+  ).toEqual(DEFAULT_SETTINGS);
+  const chosen = {
     newModel: "claude-opus-5-5",
     newEffort: "high",
     statistics: false,
-  });
+    textSize: "large",
+    replyStyle: "teaching",
+    outputStyle: "detailed",
+    notifyDone: false,
+  };
+  expect(settingsFrom(chosen)).toEqual(chosen);
 });
 
 test("the settings are kept in their file, and an unreadable file gives the defaults", () => {

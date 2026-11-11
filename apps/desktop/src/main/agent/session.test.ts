@@ -6,7 +6,16 @@ import { applyEvent, type ConversationEvent, type ConversationItem } from "../..
 import { Skills } from "../skills/skills";
 import { modelChoices, projectNameFrom } from "./agent";
 import { findSignInUrl, parseAuthStatus } from "./auth";
-import { AgentSession, activityLabel, DENY_MESSAGE, isolationProblem, type SessionDeps, TOOLS } from "./session";
+import { instructionsFor, UPSTART_INSTRUCTIONS } from "./instructions";
+import {
+  AgentSession,
+  activityDetail,
+  activityLabel,
+  DENY_MESSAGE,
+  isolationProblem,
+  type SessionDeps,
+  TOOLS,
+} from "./session";
 
 // A stand-in for the SDK's query(): each message the session sends gets the
 // next scripted turn; the test sees the options the session passed.
@@ -257,6 +266,47 @@ test("activity lines", () => {
   expect(activityLabel("Bash", { command: "ls -la\necho" }, "/p")).toBe("Running ls -la");
   expect(activityLabel("Skill", { skill: "project:menu-format" }, "/p")).toBe("Following the skill menu-format");
   expect(activityLabel("Grep", {}, "/p")).toBe("Searching the project");
+});
+
+test("the detailed output style's details: what was run or searched", () => {
+  expect(activityDetail("Bash", { command: "ls -la parts", description: "List the parts" })).toBe("ls -la parts");
+  expect(activityDetail("Grep", { pattern: "hero", glob: "*.liquid" })).toBe("hero in *.liquid");
+  expect(activityDetail("Glob", { pattern: "pages/**" })).toBe("pages/**");
+  expect(activityDetail("Write", { file_path: "/p/a.liquid", content: "x" })).toBeUndefined();
+  expect(activityDetail("mcp__notes__search", { query: "menu" })).toBe('{"query":"menu"}');
+  expect(activityDetail("Bash", { command: "x".repeat(500) })?.length).toBe(400);
+});
+
+test("the reply style is added to the instructions, and says the website does not change", async () => {
+  expect(instructionsFor("short").startsWith(UPSTART_INSTRUCTIONS)).toBe(true);
+  expect(instructionsFor("teaching")).toContain("how they could do it themselves");
+  expect(instructionsFor("explained")).toContain("the website is written the same way");
+  const { s, fake } = session([], { instructions: () => instructionsFor("teaching") });
+  s.start();
+  expect((fake.runs[0]!.options.systemPrompt as { prompt: string }).prompt).toBe(instructionsFor("teaching"));
+});
+
+test("thinking is kept apart from the words, and why a step failed is kept with it", () => {
+  let items: ConversationItem[] = [];
+  const events: ConversationEvent[] = [
+    { type: "turn-start", id: "t", text: "Hi", at: 0 },
+    { type: "thinking", text: "A warm " },
+    { type: "thinking", text: "palette." },
+    { type: "text", text: "Building." },
+    {
+      type: "activity",
+      activity: { id: "a", label: "Running ls", state: "failed", detail: "ls", error: "No such file" },
+    },
+    { type: "turn-end", status: "done" },
+  ];
+  for (const e of events) items = applyEvent(items, e);
+  expect(items[1]).toMatchObject({
+    parts: [
+      { kind: "thinking", text: "A warm palette." },
+      { kind: "text", text: "Building." },
+      { kind: "activity", activity: { detail: "ls", error: "No such file" } },
+    ],
+  });
 });
 
 test("models, project names, sign-in output", () => {

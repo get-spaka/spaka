@@ -18,7 +18,7 @@ export type AgentEvent =
     }
   | { kind: "request-start" }
   | { kind: "text"; text: string }
-  | { kind: "thinking" }
+  | { kind: "thinking"; text: string }
   | { kind: "tool-start"; id: string; name: string }
   /** `json` is everything received so far for this call; `fields` its string fields, decoded. */
   | {
@@ -81,7 +81,7 @@ export class StreamReader {
     if (e.type === "content_block_delta") {
       const d = e.delta;
       if (d?.type === "text_delta" && d.text) return this.emit({ kind: "text", text: d.text });
-      if (d?.type === "thinking_delta") return this.emit({ kind: "thinking" });
+      if (d?.type === "thinking_delta") return this.emit({ kind: "thinking", text: String(d.thinking ?? "") });
       if (d?.type === "input_json_delta" && d.partial_json) {
         const block = this.blocks.get(e.index);
         if (!block) return;

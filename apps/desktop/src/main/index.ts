@@ -3,7 +3,7 @@ import { existsSync, type FSWatcher, mkdirSync, readFileSync, watch, writeFileSy
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { query } from "@anthropic-ai/claude-agent-sdk";
-import { app, BrowserWindow, dialog, Menu, safeStorage, shell } from "electron";
+import { app, BrowserWindow, dialog, Menu, Notification, safeStorage, shell } from "electron";
 import {
   type ConnectorInfo,
   type HistoryEntry,
@@ -16,9 +16,10 @@ import { en as t } from "../shared/strings/en";
 import { Agent, projectNameFrom } from "./agent/agent";
 import { AgentAuth } from "./agent/auth";
 import { agentBinary, cleanEnv, nodeLauncher } from "./agent/confinement";
+import { instructionsFor } from "./agent/instructions";
 import { FIND_BLOCKS_TOOL, LOOK_TOOL, UPSTART_SERVER, upstartServer } from "./agent/preview-tool";
 import { Recorder, replayQuery } from "./agent/replay";
-import { AppSettingsStore } from "./app-settings";
+import { AppSettingsStore, zoomFor } from "./app-settings";
 import { Connectors, type Vault } from "./connectors/connectors";
 import { Comments, commentsMessage } from "./editing/comments";
 import { Editor } from "./editing/editor";
@@ -93,56 +94,29 @@ async function main() {
   });
   if (!env.background) win.once("ready-to-show", () => win.show());
 
-  // The settings, in a window of their own (Q116), opened with ⌘, or from the sidebar.
-  let settingsWin: BrowserWindow | undefined;
-  const ipc = createIpc(() => (settingsWin ? [win, settingsWin] : [win]));
+  const ipc = createIpc(() => [win]);
   const devUrl = process.env.ELECTRON_RENDERER_URL;
-  const loadInterface = (w: BrowserWindow, hash?: string) =>
-    devUrl
-      ? w.loadURL(hash ? `${devUrl}#${hash}` : devUrl)
-      : w.loadFile(join(here, "../renderer/index.html"), { hash });
-  const openSettings = (page?: SettingsPage) => {
-    const wanted = page && SETTINGS_PAGES.includes(page) ? page : undefined;
-    if (settingsWin && !settingsWin.isDestroyed()) {
-      if (wanted) ipc.emit("settings:page", wanted);
-      if (!env.background) settingsWin.focus();
-      return;
-    }
-    const w = new BrowserWindow({
-      width: 900,
-      height: 640,
-      minWidth: 760,
-      minHeight: 480,
-      show: false,
-      title: t.settings.title,
-      titleBarStyle: "hiddenInset",
-      trafficLightPosition: { x: 18, y: 18 },
-      backgroundColor: "#f2f2f3",
-      fullscreenable: false,
-      webPreferences: {
-        preload: join(here, "../preload/app.cjs"),
-        contextIsolation: true,
-        sandbox: true,
-        backgroundThrottling: !env.background,
-      },
+  // The settings are a panel over the window (Q123), opened with ⌘, or from the sidebar.
+  const openSettings = (page?: SettingsPage) =>
+    ipc.emit("settings:show", page && SETTINGS_PAGES.includes(page) ? { page } : {});
+  const dialogParent = () => win;
+  // A system notification when the agent finishes while Upstart is not in front (Q125).
+  const notifyDone = (projectId: string, status: string, error?: string) => {
+    if (env.background || win.isFocused() || !settings.get().notifyDone || !Notification.isSupported()) return;
+    const name = projects.list().find((p) => p.id === projectId)?.name ?? t.app.name;
+    const body =
+      status === "done" ? t.notify.done : status === "stopped" ? t.notify.stopped : (error ?? t.notify.failed);
+    const note = new Notification({ title: name, body, silent: false });
+    note.on("click", () => {
+      win.show();
+      win.focus();
     });
-    w.webContents.on("will-navigate", (details) => {
-      if (details.url !== w.webContents.getURL()) details.preventDefault();
-    });
-    w.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
-    if (!env.background) w.once("ready-to-show", () => w.show());
-    w.on("closed", () => {
-      if (settingsWin === w) settingsWin = undefined;
-    });
-    settingsWin = w;
-    void loadInterface(w, `settings/${wanted ?? "general"}`);
-  };
-  // A native dialog belongs to the window it was asked from.
-  const dialogParent = () => {
-    const focused = BrowserWindow.getFocusedWindow();
-    return focused && (focused === win || focused === settingsWin) ? focused : win;
+    note.show();
   };
   const settings = new AppSettingsStore(join(app.getPath("userData"), "settings.json"));
+  // The interface's text size (Q125): the whole interface is drawn larger or smaller; the website is not.
+  const applyTextSize = () => win.webContents.setZoomFactor(zoomFor(settings.get().textSize));
+  win.webContents.on("did-finish-load", applyTextSize);
   // The app's menu: macOS's usual one, with Settings… (⌘,) in the app's menu.
   Menu.setApplicationMenu(
     Menu.buildFromTemplate([
@@ -151,7 +125,11 @@ async function main() {
         submenu: [
           { role: "about" },
           { type: "separator" },
-          { label: `${t.settings.title}…`, accelerator: "CommandOrControl+,", click: () => openSettings() },
+          {
+            label: `${t.settings.title}…`,
+            accelerator: "CommandOrControl+,",
+            click: () => ipc.emit("settings:show", { toggle: true }),
+          },
           { type: "separator" },
           { role: "services" },
           { type: "separator" },
@@ -168,10 +146,6 @@ async function main() {
       { role: "windowMenu" },
     ]),
   );
-  // Closing the app's window closes its settings too.
-  win.on("closed", () => {
-    if (settingsWin && !settingsWin.isDestroyed()) settingsWin.close();
-  });
   const projects = new Projects(app.getPath("userData"), env.projectsDir);
   // The gallery's blocks (Q92), shipped beside the app like its skills.
   const gallery = new Gallery(app.isPackaged ? join(process.resourcesPath, "gallery") : join(here, "../../gallery"));
@@ -242,6 +216,7 @@ async function main() {
     session: {
       binary,
       readable: launcher.readable,
+      instructions: () => instructionsFor(settings.get().replyStyle),
       extraOptions: () => ({
         mcpServers: {
           [UPSTART_SERVER]: upstartServer(
@@ -268,6 +243,7 @@ async function main() {
         history.store.snapshot("turn", history.lastMessage ?? "");
         emitHistory();
       }
+      if (event.type === "turn-end") notifyDone(projectId, event.status, event.error);
     },
     emitStatus: (status) => ipc.emit("agent:status", status),
     // What the agent writes reaches the preview before the disk (ADR 0009).
@@ -453,7 +429,11 @@ async function main() {
   ipc.handle("settings:open", (page) => openSettings(page));
   ipc.handle("settings:get", () => settings.get());
   ipc.handle("settings:set", (change) => {
+    const before = settings.get();
     const next = settings.set(change);
+    if (next.textSize !== before.textSize) applyTextSize();
+    // The agent's instructions say how it writes to the maker: idle agents start again with the new style.
+    if (next.replyStyle !== before.replyStyle) agent.instructionsChanged();
     ipc.emit("settings:changed", next);
     return next;
   });
@@ -499,8 +479,17 @@ async function main() {
   ipc.handle("preview:navigate", (route) => preview.navigate(route, true));
   ipc.handle("preview:reload", () => preview.reload());
   ipc.on("preview:bounds", (rect, device, area) => {
-    preview.setBounds(rect, device);
-    peek.setArea(rect && (area ?? rect));
+    // The interface measures in its own pixels, drawn larger or smaller by the text size.
+    const zoom = win.webContents.getZoomFactor();
+    const scaled = (r: typeof rect) =>
+      r && {
+        x: Math.round(r.x * zoom),
+        y: Math.round(r.y * zoom),
+        width: Math.round(r.width * zoom),
+        height: Math.round(r.height * zoom),
+      };
+    preview.setBounds(scaled(rect), device);
+    peek.setArea(scaled(rect && (area ?? rect)));
   });
 
   ipc.handle("conversation:get", () =>
@@ -716,10 +705,10 @@ async function main() {
   // For automated checks: the main process's objects, reachable from Playwright's evaluate().
   if (env.background)
     Object.assign(globalThis, {
-      upstart: { win, projects, preview, agent, peek, settingsWindow: () => settingsWin },
+      upstart: { win, projects, preview, agent, peek, settings },
     });
 
-  await loadInterface(win);
+  await (devUrl ? win.loadURL(devUrl) : win.loadFile(join(here, "../renderer/index.html")));
 
   app.on("window-all-closed", () => app.quit());
   app.on("before-quit", () => {
