@@ -217,3 +217,28 @@ export async function addFile(root: string, from: string): Promise<Added> {
   writeFileSync(join(root, path), bytes);
   return { path };
 }
+
+/**
+ * The WebP copies of an image for the export's srcset (Q156): at each width
+ * given that the image reaches, and at its own when it is narrower than the
+ * widest; none for a drawing (SVG) or an animation (GIF), kept as they are.
+ */
+export async function webpCopies(
+  _path: string,
+  data: Buffer,
+  widths: number[],
+): Promise<{ width: number; data: Buffer }[] | undefined> {
+  const { default: sharp } = await import("sharp");
+  const meta = await sharp(data, { failOn: "error" }).metadata();
+  if (!meta.format || ["svg", "gif"].includes(meta.format)) return undefined;
+  const own = meta.autoOrient?.width ?? meta.width ?? 0;
+  if (!own) return undefined;
+  const chosen = widths.filter((w) => w <= own);
+  if (own < Math.max(...widths) && !chosen.includes(own)) chosen.push(own);
+  return Promise.all(
+    chosen.map(async (width) => ({
+      width,
+      data: await sharp(data).rotate().resize({ width }).webp({ quality: 80 }).toBuffer(),
+    })),
+  );
+}

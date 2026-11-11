@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import sharp from "sharp";
 import { describe, expect, test } from "vitest";
-import { addImage, freeName, replaceUses, slug, useFoundImage, usesLabel, usesOf } from "./library";
+import { addImage, freeName, replaceUses, slug, useFoundImage, usesLabel, usesOf, webpCopies } from "./library";
 import {
   commonsThumb,
   FixtureImages,
@@ -285,4 +285,18 @@ describe("where a media file is used (Q168)", () => {
       "data/posts/b.md": "---\ncover: /media/shop.jpg\n---\n",
     });
   });
+});
+
+test("an image's WebP copies at the widths it reaches, at its own when narrower; none for a drawing (Q156)", async () => {
+  const photo = readFileSync(join(import.meta.dirname, "../../../../../e2e/fixtures/images/croissants.jpg"));
+  const copies = await webpCopies("media/croissants.jpg", photo, [480, 960, 1600, 2400]);
+  expect(copies?.map((c) => c.width)).toEqual([480, 960, 1600, 2400]);
+  const meta = await sharp(copies![1]!.data).metadata();
+  expect([meta.format, meta.width]).toEqual(["webp", 960]);
+  const small = await sharp({ create: { width: 700, height: 400, channels: 3, background: "#c96" } })
+    .png()
+    .toBuffer();
+  expect((await webpCopies("media/small.png", small, [480, 960, 1600, 2400]))?.map((c) => c.width)).toEqual([480, 700]);
+  const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>');
+  expect(await webpCopies("media/logo.svg", svg, [480])).toBeUndefined();
 });

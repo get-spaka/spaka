@@ -98,21 +98,39 @@ function cleanEnv() {
   return env;
 }
 
+/** The apps macOS knows by the name Electron: their process and how it classes them. */
+function electronApps(): { pid: string; type: string }[] {
+  const list = execFileSync("lsappinfo", ["list"], { encoding: "utf8" });
+  return list
+    .split(/^\s*\d+\) /m)
+    .filter((block) => block.startsWith('"Electron"'))
+    .flatMap((block) => {
+      const m = /pid = (\d+) [^\n]*type="(\w+)"/.exec(block);
+      return m ? [{ pid: m[1]!, type: m[2]! }] : [];
+    });
+}
+
 /**
  * Watches, on macOS, which app is in front while a check runs, and how macOS
- * classes the app under test. `stop()` returns every distinct observation.
+ * classes the app under test: an Electron app started after the watch, not
+ * one already running (the development run, `pnpm dev:live`).
+ * `stop()` returns every distinct observation.
  */
 export function watchFront() {
   const seen = new Set<string>();
+  let already: Set<string> | undefined;
+  try {
+    already = new Set(electronApps().map((a) => a.pid));
+  } catch {
+    already = new Set();
+  }
   const read = () => {
     try {
       const front = execFileSync("lsappinfo", ["front"], { encoding: "utf8" }).trim();
       const name = execFileSync("lsappinfo", ["info", "-only", "name", front], { encoding: "utf8" });
       const match = /"(?:LSDisplayName|name)"="([^"]*)"/.exec(name) ?? /^"([^"]*)"/m.exec(name);
       seen.add(`front:${match?.[1] ?? name.trim()}`);
-      const ours = execFileSync("lsappinfo", ["info", "-only", "applicationtype", "Electron"], { encoding: "utf8" });
-      const type = /type="(\w+)"/.exec(ours)?.[1];
-      if (type) seen.add(`electron:${type}`);
+      for (const app of electronApps()) if (!already?.has(app.pid)) seen.add(`electron:${app.type}`);
     } catch {
       // lsappinfo can fail for an instant while apps start or quit.
     }

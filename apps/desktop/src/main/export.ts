@@ -5,6 +5,7 @@ import { buildStatic } from "@upstart/builder";
 import { diskSource } from "@upstart/runtime/node";
 import type { ExportResult } from "../shared/ipc";
 import { tracked } from "./history/history";
+import { webpCopies } from "./media/library";
 
 /** Marks a folder as an export of Upstart's, which a new export may replace. */
 const MARKER = ".upstart-export";
@@ -36,6 +37,7 @@ export async function exportProject(projectDir: string, chosen: string): Promise
     outDir: folder,
     files,
     readFile: (path) => readFileSync(join(projectDir, path)),
+    images: webpCopies,
   });
   writeFileSync(join(folder, MARKER), "This folder was exported by Upstart. A new export replaces what it holds.\n");
   return { folder, pages: result.pages, files: result.files.length, warnings: result.warnings };

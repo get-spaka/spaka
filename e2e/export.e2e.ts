@@ -7,6 +7,8 @@ import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
 
 // The static export (decisions): the recorded project is exported, the folder
 // served by a plain static file server, and its pages look like the preview.
+// With a blog written beside it: its record pages and the credits page, no
+// datasources, the images in WebP at the widths a screen asks for (Q156).
 describe("exporting the website", () => {
   let launched: LaunchedApp;
   let server: Server;
@@ -178,6 +180,73 @@ describe("exporting the website", () => {
     );
     await w.getByTestId("export-close").click();
     await until(() => main((u) => u.preview.view.getVisible()));
+  });
+
+  test("record pages and the credits page; no datasources; the images in WebP with a srcset (Q147, Q156, Q157)", async () => {
+    const { path } = await invoke("projects:current");
+    const write = (name: string, text: string | Buffer) => {
+      mkdirSync(join(path, name, ".."), { recursive: true });
+      writeFileSync(join(path, name), text);
+    };
+    write(
+      "data/posts/_datasource.yaml",
+      "label: Posts\nfields:\n  - name: title\n    kind: text\n  - name: cover\n    kind: image\n",
+    );
+    write(
+      "data/posts/opening.md",
+      "---\ntitle: Opening day\ncover: /media/croissants.jpg\n---\nWe open on *Monday*.\n",
+    );
+    write("media/croissants.jpg", readFileSync(join(import.meta.dirname, "fixtures/images/croissants.jpg")));
+    write(
+      "media/croissants.json",
+      JSON.stringify({
+        alt: "Croissants on a counter",
+        credit: {
+          author: "Jane Doe",
+          license: "CC BY-SA 4.0",
+          source: "https://commons.wikimedia.org/wiki/File:Croissants.jpg",
+        },
+      }),
+    );
+    write(
+      "pages/blog/index.liquid",
+      '<!doctype html><html><head><title>Blog</title></head><body>{% for post in data.posts %}<a href="/blog/{{ post.id }}"><img src="{{ post.cover }}" style="width:100%">{{ post.title }}</a>{% endfor %}<footer>Chez Margot</footer></body></html>',
+    );
+    write(
+      "pages/blog/[posts].liquid",
+      "<!doctype html><html><head><title>{{ record.title }}</title></head><body><h1>{{ record.title }}</h1>{{ record.body }}</body></html>",
+    );
+    const started = Date.now();
+    const result = await invoke("export:run", out);
+    process.stdout.write(`[export] with 4 WebP copies of a 2600 px image: ${Date.now() - started} ms\n`);
+    expect(result.pages).toEqual(expect.arrayContaining(["/blog", "/blog/opening", "/credits"]));
+    expect(readFileSync(join(out, "blog/opening/index.html"), "utf8")).toContain(
+      "<h1>Opening day</h1><p>We open on <em>Monday</em>.</p>",
+    );
+    expect(readFileSync(join(out, "credits/index.html"), "utf8")).toContain("Jane Doe");
+    expect(existsSync(join(out, "data"))).toBe(false);
+    expect(existsSync(join(out, "media/croissants.json"))).toBe(false);
+    for (const w of [480, 960, 1600, 2400])
+      expect(existsSync(join(out, `media/croissants-${w}w.webp`)), `${w}`).toBe(true);
+    const blog = readFileSync(join(out, "blog/index.html"), "utf8");
+    expect(blog).toContain(
+      '<img srcset="/media/croissants-480w.webp 480w, /media/croissants-960w.webp 960w, /media/croissants-1600w.webp 1600w, /media/croissants-2400w.webp 2400w" sizes="100vw" alt="Croissants on a counter" src="/media/croissants.jpg"',
+    );
+    expect(blog).toMatch(/<a href="\/credits"[^>]*>Image credits<\/a><\/p><\/footer>/);
+    // Served, the browser takes a WebP copy, not the original.
+    const shown = await main(async (u, origin, electron) => {
+      const view = new electron.WebContentsView({ webPreferences: { partition: "export-check" } });
+      u.win.contentView.addChildView(view);
+      view.setBounds({ x: 0, y: 0, width: 800, height: 600 });
+      await view.webContents.loadURL(`${origin}/blog`);
+      const src = await view.webContents.executeJavaScript(
+        "new Promise((r) => { const i = document.querySelector('img'); i.complete ? r(i.currentSrc) : i.onload = () => r(i.currentSrc); })",
+      );
+      u.win.contentView.removeChildView(view);
+      view.webContents.close();
+      return src as string;
+    }, siteOrigin);
+    expect(shown).toMatch(/\/media\/croissants-\d+w\.webp$/);
   });
 
   const projectFolderName = async () => (await invoke("projects:current")).path.split("/").at(-1);

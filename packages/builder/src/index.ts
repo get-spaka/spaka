@@ -2,11 +2,13 @@
 // Builds a project into a static website (decisions: static export at build
 // step 1): each page and each fragment rendered once into an HTML file, the
 // Tailwind stylesheet compiled from the classes the pages use, daisyUI and
-// the theme as files. The result is served by any static file host.
+// the theme as files; record pages and the image credits as the preview
+// shows them, WebP copies of the images the pages use with srcset (Q156).
+// The result is served by any static file host.
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
-import { BRIDGE_CSS, injectHead, type ProjectSource, Runtime, TAILWIND_THEME } from "@upstart/runtime";
+import { BRIDGE_CSS, infoFile, injectHead, type ProjectSource, Runtime, TAILWIND_THEME } from "@upstart/runtime";
 import { compile } from "tailwindcss";
 
 const resolveFrom = createRequire(import.meta.url);
@@ -33,9 +35,83 @@ export function exportHead(hasTheme: boolean): string {
   ].join("");
 }
 
-/** The files of the project that are not templates: copied as they are. */
-function isStatic(path: string) {
-  return !/^(pages|parts|fragments)\//.test(path) && path !== "theme.css" && !path.endsWith(".liquid");
+/**
+ * The files of the project that are not templates, copied as they are: not
+ * the datasources, which are in the pages (Q147), nor what is kept beside a
+ * media file (its alt text and credits, which are in the pages too).
+ */
+function isStatic(path: string, files: Set<string>) {
+  if (/^(pages|parts|fragments|data)\//.test(path) || path === "theme.css" || path.endsWith(".liquid")) return false;
+  if (
+    /^media\/.+\.json$/i.test(path) &&
+    [...files].some((f) => f !== path && f.startsWith("media/") && infoFile(f) === path)
+  )
+    return false;
+  return true;
+}
+
+/** The widths of an image's WebP copies, never wider than the image (Q156). */
+export const IMAGE_WIDTHS = [480, 960, 1600, 2400];
+
+/**
+ * Makes the WebP copies of an image at the widths given (or at its own width
+ * when it is narrower), or undefined for an image kept as it is (a drawing,
+ * an animation). Given by the app, which has an image library: the builder
+ * itself stays portable.
+ */
+export type ImageCopies = (
+  path: string,
+  data: Buffer,
+  widths: number[],
+) => Promise<{ width: number; data: Buffer }[] | undefined>;
+
+/** The media files an HTML page shows in an <img>, as project paths. */
+export function imagesIn(html: string): string[] {
+  const out = new Set<string>();
+  for (const tag of html.match(/<img\b[^>]*>/gi) ?? []) {
+    const path = mediaPath(tag);
+    if (path) out.add(path);
+  }
+  return [...out];
+}
+
+function srcOf(tag: string): string | undefined {
+  return /\ssrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i
+    .exec(tag)
+    ?.slice(1)
+    .find((v) => v !== undefined);
+}
+
+function mediaPath(tag: string): string | undefined {
+  const src = srcOf(tag);
+  if (!src || !/^\/?media\/[^?#]+$/i.test(src)) return undefined;
+  try {
+    return decodeURI(src.replace(/^\//, ""));
+  } catch {
+    return undefined;
+  }
+}
+
+/** A copy's address beside its image's: /media/cafe.jpg at 960 gives /media/cafe-960w.webp. */
+export function copyAddress(src: string, width: number): string {
+  return `${src.replace(/\.[^./]+$/, "")}-${width}w.webp`;
+}
+
+/**
+ * Gives each <img> of an image with copies a srcset of them, and sizes="100vw"
+ * when it has none; its src stays the original, for browsers without WebP.
+ * An <img> with a srcset of its own is left as it is.
+ */
+export function withSrcset(html: string, copies: Map<string, number[]>): string {
+  return html.replace(/<img\b[^>]*>/gi, (tag) => {
+    const path = mediaPath(tag);
+    const widths = path ? copies.get(path) : undefined;
+    if (!widths?.length || /\ssrcset\s*=/i.test(tag)) return tag;
+    const src = srcOf(tag)!;
+    const srcset = widths.map((w) => `${copyAddress(src, w)} ${w}w`).join(", ");
+    const sizes = /\ssizes\s*=/i.test(tag) ? "" : ' sizes="100vw"';
+    return tag.replace(/^<img\b/i, `<img srcset="${srcset}"${sizes}`);
+  });
 }
 
 export async function buildStatic(options: {
@@ -45,6 +121,8 @@ export async function buildStatic(options: {
   files?: string[];
   /** Reads a project file's bytes, for those copies. */
   readFile?: (path: string) => Buffer;
+  /** WebP copies of the images the pages use (Q156); without it, the images are only copied. */
+  images?: ImageCopies;
 }): Promise<BuildResult> {
   const { source, outDir } = options;
   const runtime = new Runtime(source, { repair: false, trace: false });
@@ -60,16 +138,22 @@ export async function buildStatic(options: {
     written.push(rel);
   };
 
+  // Each page, a record's page and the credits page among them, rendered first:
+  // the images they use get their copies before the pages are written.
+  const rendered: { rel: string; html: string }[] = [];
   const pages: string[] = [];
   for (const { route, file } of runtime.routes()) {
-    const result = runtime.renderPage(file, route);
+    const result = runtime.renderRoute(route);
     if (result.status !== 200) {
       warnings.push(`${file} was not exported: ${result.notes.map((n) => n.note).join("; ")}`);
       continue;
     }
     for (const note of result.notes) warnings.push(`${note.file}: ${note.note}`);
     html.push(result.html);
-    write(route === "/" ? "index.html" : `${route.slice(1)}/index.html`, injectHead(result.html, head));
+    rendered.push({
+      rel: route === "/" ? "index.html" : `${route.slice(1)}/index.html`,
+      html: injectHead(result.html, head),
+    });
     pages.push(route);
   }
 
@@ -85,9 +169,29 @@ export async function buildStatic(options: {
       continue;
     }
     html.push(result.html);
-    write(`fragments/${name}/index.html`, result.html);
+    rendered.push({ rel: `fragments/${name}/index.html`, html: result.html });
     fragments.push(`/fragments/${name}`);
   }
+
+  // The images the pages show, in WebP at the widths a screen asks for (Q156).
+  const projectFiles = new Set(options.files ?? []);
+  const copies = new Map<string, number[]>();
+  if (options.images && options.readFile)
+    for (const path of imagesIn(html.join("\n"))) {
+      if (!projectFiles.has(path)) continue;
+      try {
+        const made = await options.images(path, options.readFile(path), IMAGE_WIDTHS);
+        if (!made?.length) continue;
+        for (const copy of made) write(copyAddress(path, copy.width), copy.data);
+        copies.set(
+          path,
+          made.map((c) => c.width).sort((a, b) => a - b),
+        );
+      } catch (error) {
+        warnings.push(`${path}: no smaller copies were made (${error instanceof Error ? error.message : error}).`);
+      }
+    }
+  for (const page of rendered) write(page.rel, withSrcset(page.html, copies));
 
   // The stylesheet: Tailwind and daisyUI compiled from every word that may be
   // a class, so that only the components the pages use are in it.
@@ -97,7 +201,7 @@ export async function buildStatic(options: {
   if (theme !== undefined) write("theme.css", theme);
 
   if (options.files && options.readFile)
-    for (const path of options.files) if (isStatic(path)) write(path, options.readFile(path));
+    for (const path of options.files) if (isStatic(path, projectFiles)) write(path, options.readFile(path));
 
   return { files: written, pages, fragments, warnings };
 }
