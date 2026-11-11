@@ -1,7 +1,8 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
+import { type LaunchedApp, launchApp } from "./app.ts";
+import { previewDriver } from "./preview-driver.ts";
 
 // Editing in the preview (Q90, Q91, Q99), with the recorded agent and the
 // pointer and keyboard sent to the preview as input events, in the
@@ -10,76 +11,8 @@ import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
 describe("editing in the preview", () => {
   let launched: LaunchedApp;
   let path: string;
-  const invoke = (channel: string, ...args: unknown[]) =>
-    launched.window.evaluate(
-      // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      ([channel, args]) => (window as any).upstart.invoke(channel, ...args),
-      [channel, args] as const,
-    );
-  const until = async (read: () => Promise<unknown>, timeout = 10_000) => {
-    const started = Date.now();
-    for (;;) {
-      const value = await read().catch(() => undefined);
-      if (value) return value;
-      if (Date.now() - started > timeout) throw new Error(`timed out waiting for: ${read}`);
-      await new Promise((r) => setTimeout(r, 50));
-    }
-  };
-  // biome-ignore lint/suspicious/noExplicitAny: what the page answers
-  const page = (code: string): Promise<any> =>
-    launched.app.evaluate(
-      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      (_electron, code) => (globalThis as any).upstart.preview.view.webContents.executeJavaScript(code),
-      code,
-    );
-  /** Input events, as the pointer and the keyboard would send them. */
-  const input = (events: object[]) =>
-    launched.app.evaluate(async (_electron, events) => {
-      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      const contents = (globalThis as any).upstart.preview.view.webContents as Electron.WebContents;
-      contents.focus();
-      for (const event of events) {
-        contents.sendInputEvent(event as Electron.MouseInputEvent);
-        await new Promise((r) => setTimeout(r, 15));
-      }
-    }, events);
-  const center = async (selector: string, inShadow = false) => {
-    const root = inShadow ? "document.querySelector('upstart-editor').shadowRoot" : "document";
-    const r = await page(`(() => { const r = ${root}.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();
-      return { x: Math.round(r.left + Math.min(r.width / 2, 40)), y: Math.round(r.top + r.height / 2) }; })()`);
-    return r as { x: number; y: number };
-  };
-  const click = async (selector: string, inShadow = false, clickCount = 1) => {
-    const { x, y } = await center(selector, inShadow);
-    const down = (n: number) => [
-      { type: "mouseDown", x, y, button: "left", clickCount: n },
-      { type: "mouseUp", x, y, button: "left", clickCount: n },
-    ];
-    await input([{ type: "mouseMove", x, y }, ...down(1), ...(clickCount === 2 ? down(2) : [])]);
-  };
-  const typeText = (text: string) => input([...text].map((c) => ({ type: "char", keyCode: c })));
-  const key = (keyCode: string) =>
-    input([
-      { type: "keyDown", keyCode },
-      { type: "keyUp", keyCode },
-    ]);
-  const drawn = (selector: string) =>
-    page(
-      `getComputedStyle(document.querySelector('upstart-editor').shadowRoot.querySelector(${JSON.stringify(selector)})).display !== "none"`,
-    );
+  const { invoke, until, page, input, center, click, typeText, key, drawn, picture } = previewDriver(() => launched);
   const home = () => readFileSync(join(path, "pages/index.liquid"), "utf8");
-  /** A picture of the preview with the editor's drawings (the capture for the agent leaves them out). */
-  const picture = async (name: string) => {
-    const png = await launched.app.evaluate(async () => {
-      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      const contents = (globalThis as any).upstart.preview.view.webContents as Electron.WebContents;
-      if (!contents.debugger.isAttached()) contents.debugger.attach("1.3");
-      const { data } = await contents.debugger.sendCommand("Page.captureScreenshot", { format: "png" });
-      return data as string;
-    });
-    writeFileSync(join(runsDir, `${name}.png`), Buffer.from(png, "base64"));
-  };
-
   beforeAll(async () => {
     launched = await launchApp();
     await launched.window.getByTestId("conversation").waitFor();

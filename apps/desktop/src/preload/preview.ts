@@ -18,6 +18,10 @@ const editor = new Editor(
   {
     edit: (action) => invoke("preview:edit", action),
     info: (file, at) => invoke("preview:edit-info", file, at),
+    save: (comment) => invoke("preview:comment-save", comment),
+    remove: (id) => invoke("preview:comment-remove", id),
+    send: () => invoke("preview:comments-send"),
+    discard: () => invoke("preview:comments-discard"),
   },
   process.argv.includes("--upstart-checks"),
 );
@@ -26,6 +30,7 @@ ipcRenderer.on("preview:message", (_event, message: ToPreview) => {
   if (message.type === "render") render(message.html, message.final);
   else if (message.type === "theme") setTheme(message.css);
   else if (message.type === "editor") editor.set(message.mode, message.paused);
+  else if (message.type === "comments") editor.setComments(message.comments);
   else if (message.type === "chrome") {
     editor.setHidden(message.hidden);
     // Answered once the page has drawn itself without them.

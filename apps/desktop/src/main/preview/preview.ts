@@ -8,9 +8,9 @@ import { Overlay, previewHead, Runtime } from "@upstart/runtime";
 import { diskSource } from "@upstart/runtime/node";
 import { type BrowserWindow, shell, WebContentsView } from "electron";
 import type {
-  EditAction,
-  EditInfo,
   FromPreview,
+  PageComment,
+  PreviewInvokes,
   PreviewMode,
   PreviewState,
   ProjectInfo,
@@ -36,9 +36,8 @@ export type PreviewOptions = {
   background: boolean;
   onState: (state: PreviewState) => void;
   onPageEvent?: (event: FromPreview) => void;
-  /** An edit the maker made in the page (Q90). */
-  onEdit?: (action: EditAction) => unknown;
-  onEditInfo?: (file: string, at: number) => EditInfo;
+  /** What the preview's script may ask for: the maker's edits and comments (Q90, Q95). */
+  invokes?: Partial<PreviewInvokes>;
 };
 
 export class Preview {
@@ -195,6 +194,15 @@ export class Preview {
 
   private sendEditor() {
     this.send({ type: "editor", mode: this.mode, paused: this.paused });
+    this.send({ type: "comments", comments: this.comments });
+  }
+
+  private comments: PageComment[] = [];
+
+  /** The maker's comments, drawn by the page on the elements they are about (Q95). */
+  setComments(comments: PageComment[]) {
+    this.comments = comments;
+    this.send({ type: "comments", comments });
   }
 
   /**
@@ -368,15 +376,12 @@ export class Preview {
     });
     // Nothing in the preview may ask for a permission (camera, location, notifications…).
     contents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
-    // The edits the maker makes in the page, from the preview's own script only.
-    contents.ipc.handle("preview:edit", (event, action: EditAction) => {
-      if (event.sender !== contents || !this.options.onEdit) throw new Error("Editing is not available.");
-      return this.options.onEdit(action);
-    });
-    contents.ipc.handle("preview:edit-info", (event, file: string, at: number) => {
-      if (event.sender !== contents || !this.options.onEditInfo) throw new Error("Editing is not available.");
-      return this.options.onEditInfo(file, at);
-    });
+    // The edits and comments the maker makes in the page, from the preview's own script only.
+    for (const [channel, handler] of Object.entries(this.options.invokes ?? {}))
+      contents.ipc.handle(channel, (event, ...args: unknown[]) => {
+        if (event.sender !== contents) throw new Error("Not available.");
+        return (handler as (...a: unknown[]) => unknown)(...args);
+      });
     contents.ipc.on("preview:event", (event, message: FromPreview) => {
       if (event.sender !== contents) return;
       if (message.type === "error") {

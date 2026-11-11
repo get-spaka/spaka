@@ -5,6 +5,7 @@ import type {
   ConnectorInfo,
   ConversationState,
   HistoryEntry,
+  PageComment,
   PreviewState,
   ProjectInfo,
   ProjectSummary,
@@ -80,6 +81,22 @@ export function usePreviewState() {
   const [state, setState] = useState<PreviewState>(EMPTY_PREVIEW);
   useEffect(() => upstart.on("preview:state", setState), []);
   return state;
+}
+
+/** The maker's comments on the page, waiting to be sent (Q95). */
+export function useComments(projectId: string | undefined) {
+  const [comments, setComments] = useState<PageComment[]>([]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: another project has its own comments
+  useEffect(() => {
+    let live = true;
+    void upstart.invoke("comments:list").then((list) => live && setComments(list));
+    const off = upstart.on("comments:changed", setComments);
+    return () => {
+      live = false;
+      off();
+    };
+  }, [projectId]);
+  return comments;
 }
 
 /** The skills the open project's agent gets, kept in step with the main process. */

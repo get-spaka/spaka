@@ -11,13 +11,14 @@
 //
 // The edits are written by the main process (main/editing); this script only
 // says what the maker did, where, as the trace gives it.
-import type { EditAction, EditInfo, PreviewMode } from "../../shared/ipc";
+import type { EditAction, EditInfo, PageComment, PreviewMode } from "../../shared/ipc";
 import { en } from "../../shared/strings/en";
+import { COMMENT_STYLE, CommentLayer, type CommentsBridge } from "./comments";
 import { type Origin, originOf, sectionList, sectionTarget, textsOf, tracedFrom } from "./trace";
 
 const t = en.editor;
 
-export type EditorBridge = {
+export type EditorBridge = CommentsBridge & {
   edit(action: EditAction): Promise<unknown>;
   info(file: string, at: number): Promise<EditInfo>;
 };
@@ -93,7 +94,7 @@ export class Editor {
     this.host.style.cssText =
       "all: initial; position: fixed; top: 0; left: 0; width: 0; height: 0; z-index: 2147483647;";
     this.root = this.host.attachShadow({ mode: open ? "open" : "closed" });
-    this.root.innerHTML = `<style>${STYLE}</style><div class="layer">
+    this.root.innerHTML = `<style>${STYLE}${COMMENT_STYLE}</style><div class="layer">
       <div class="box hover"><span class="tag"></span></div>
       <div class="box selected"></div>
       <div class="bar" data-testid="editor-bar"></div>
@@ -109,7 +110,14 @@ export class Editor {
     this.note = q(".editing-note");
     q<HTMLButtonElement>('[data-act="cancel"]').textContent = t.cancel;
     q<HTMLButtonElement>('[data-act="save"]').textContent = t.save;
+    this.comments = new CommentLayer(q(".layer"), bridge, (text) => this.toast(text));
     this.listen();
+  }
+
+  private readonly comments: CommentLayer;
+
+  setComments(comments: PageComment[]) {
+    this.comments.set(comments);
   }
 
   /** Puts the drawings back in the page: a rendering may have replaced what was around them. */
@@ -124,6 +132,8 @@ export class Editor {
   set(mode: PreviewMode, paused: boolean) {
     this.mode = mode;
     this.paused = paused;
+    this.comments.setPaused(paused);
+    if (mode === "visitor") this.comments.close();
     if (mode !== "edit" || paused) {
       this.commitEdit();
       this.select(undefined);
@@ -151,8 +161,14 @@ export class Editor {
     this.place();
   }
 
+  /** Edit mode, not paused: selecting and editing. */
   private get active() {
     return this.mode === "edit" && !this.paused && !this.hidden;
+  }
+
+  /** Comment mode: allowed while the agent works, only sending waits (Q95). */
+  private get commenting() {
+    return this.mode === "comment" && !this.hidden;
   }
 
   // ---- events --------------------------------------------------------------
@@ -163,7 +179,7 @@ export class Editor {
     window.addEventListener(
       "mousemove",
       (e) => {
-        if (!this.active || ours(e) || this.editing) return this.setHover(undefined);
+        if (!(this.active || this.commenting) || ours(e) || this.editing) return this.setHover(undefined);
         this.setHover(tracedFrom(e.target));
       },
       { capture: true, passive: true },
@@ -173,13 +189,17 @@ export class Editor {
       window.addEventListener(
         type,
         (e) => {
-          if (this.mode !== "edit" || ours(e) || inEdit(e)) return;
-          // In edit mode, the page's own links, buttons and htmx do nothing.
+          if (this.mode === "visitor" || ours(e) || inEdit(e)) return;
+          // In edit and comment modes, the page's own links, buttons and htmx do nothing.
           e.preventDefault();
           e.stopImmediatePropagation();
           if (type === "click" && this.active) {
             if (this.editing) this.commitEdit();
             void this.select(tracedFrom(e.target));
+          }
+          if (type === "click" && this.commenting) {
+            const el = tracedFrom(e.target);
+            if (el) this.comments.openOn(el);
           }
         },
         { capture: true },
@@ -188,7 +208,7 @@ export class Editor {
       window.addEventListener(
         type,
         (e) => {
-          if (this.mode !== "edit" || ours(e) || inEdit(e)) return;
+          if (this.mode === "visitor" || ours(e) || inEdit(e)) return;
           // Keeps the page from taking the focus or starting a drag of its own.
           e.preventDefault();
           e.stopImmediatePropagation();
@@ -363,7 +383,11 @@ export class Editor {
     const origin = originOf(el);
     if (!origin || this.editing) return;
     const info = await this.bridge.info(origin.file, origin.at).catch(() => undefined);
-    if (!info?.text) return this.toast(info?.computed ? t.computed : t.notText);
+    // A text the app cannot write: a comment for the agent opens on it instead.
+    if (!info?.text) {
+      this.toast(info?.computed ? t.computed : t.notText);
+      return this.comments.openOn(el);
+    }
     await this.select(el);
     this.editing = { el, before: el.innerHTML, origin };
     el.setAttribute("contenteditable", "plaintext-only");
@@ -446,6 +470,7 @@ export class Editor {
 
   /** Lays the outlines, the bar and the box over the elements, where they are now. */
   private place() {
+    this.comments.place();
     const fit = (box: HTMLElement, el: Element | undefined) => {
       if (!el?.isConnected) {
         box.style.display = "none";
@@ -461,7 +486,7 @@ export class Editor {
       });
       return r;
     };
-    const hoverRect = fit(this.hover, this.active ? this.hovered : undefined);
+    const hoverRect = fit(this.hover, this.active || this.commenting ? this.hovered : undefined);
     if (hoverRect && this.hovered) this.hover.querySelector(".tag")!.textContent = this.hovered.localName;
     const r = fit(this.selectedBox, this.active ? this.selected?.el : undefined);
     const showBar = !!r && !!this.selected?.info && !this.editing;

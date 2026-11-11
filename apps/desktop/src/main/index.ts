@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { app, BrowserWindow, dialog, safeStorage, shell } from "electron";
-import type { ConnectorInfo, HistoryEntry, ProjectInfo } from "../shared/ipc";
+import type { ConnectorInfo, HistoryEntry, PageComment, ProjectInfo } from "../shared/ipc";
 import { en as t } from "../shared/strings/en";
 import { Agent, projectNameFrom } from "./agent/agent";
 import { AgentAuth } from "./agent/auth";
@@ -12,6 +12,7 @@ import { agentBinary, cleanEnv, nodeLauncher } from "./agent/confinement";
 import { LOOK_TOOL, UPSTART_SERVER, upstartServer } from "./agent/preview-tool";
 import { Recorder, replayQuery } from "./agent/replay";
 import { Connectors, type Vault } from "./connectors/connectors";
+import { Comments, commentsMessage } from "./editing/comments";
 import { Editor } from "./editing/editor";
 import { AgentNotes } from "./editing/notes";
 import { readEnvironment } from "./environment";
@@ -83,8 +84,14 @@ async function main() {
   const preview = new Preview(win, {
     background: env.background,
     onState: (state) => ipc.emit("preview:state", state),
-    onEdit: (action) => editor.apply(action),
-    onEditInfo: (file, at) => editor.info(file, at),
+    invokes: {
+      "preview:edit": (action) => editor.apply(action),
+      "preview:edit-info": (file, at) => editor.info(file, at),
+      "preview:comment-save": (comment) => commentsChanged(current && comments.save(current.id, comment)),
+      "preview:comment-remove": (id) => commentsChanged(current && comments.remove(current.id, id)),
+      "preview:comments-send": () => sendComments(),
+      "preview:comments-discard": () => void discardComments(),
+    },
   });
   await preview.start();
 
@@ -163,6 +170,27 @@ async function main() {
   let tap: { projectId: string; tap: FileTap } | undefined;
   let history: { projectId: string; store: History; lastMessage?: string } | undefined;
   // What the agent is told before the next message (a return to an earlier version, edits by hand).
+  // The maker's comments on the page, sent together as one message (Q95).
+  const comments = new Comments();
+  const commentsChanged = (list: PageComment[] | undefined) => {
+    const now = list ?? [];
+    preview.setComments(now);
+    ipc.emit("comments:changed", now);
+    return now;
+  };
+  const discardComments = () => {
+    if (current) comments.clear(current.id);
+    return commentsChanged([]);
+  };
+  const sendComments = () => {
+    if (!current) return;
+    const list = comments.list(current.id);
+    if (!list.length) return;
+    if (agent.isWorking(current.id)) throw new Error(t.editing.busy);
+    const message = commentsMessage(list);
+    discardComments();
+    sendMessage(current, message.shown, message.forAgent);
+  };
   const allNotes = new Map<string, AgentNotes>();
   const notesFor = (projectId: string) => {
     const notes = allNotes.get(projectId) ?? new AgentNotes();
@@ -287,6 +315,7 @@ async function main() {
     agent.open(project);
     preview.setPaused(agent.isWorking(project.id));
     await preview.open(project);
+    commentsChanged(comments.list(project.id));
     tap = tapFor(project);
     history = { projectId: project.id, store: new History(projects.dataFor(project.id), project.path) };
     history.store.snapshot("start", "");
@@ -323,6 +352,7 @@ async function main() {
     history = undefined;
     agent.open(undefined);
     preview.close();
+    commentsChanged([]);
     ipc.emit("project:opened", null);
   });
   ipc.handle("projects:choose-folder", async () => {
@@ -353,17 +383,20 @@ async function main() {
       const effort = isEffort(settings?.effort) ? settings.effort : created.effort;
       project = await opened(projects.update(created.id, { model, effort }));
     }
+    sendMessage(project, message, message);
+  });
+  /** A message to the agent: `shown` in the conversation, `forAgent` what the agent receives. */
+  function sendMessage(project: ProjectInfo, shown: string, forAgent: string) {
     // What the maker changed by hand since the last version is kept apart.
     if (history?.projectId === project.id) {
       history.store.snapshot(history.store.list().length ? "outside" : "start", "");
-      history.lastMessage = message;
+      history.lastMessage = shown;
     }
     // After a return to an earlier version, or edits by hand, the agent is told before the message.
     const note = notesFor(project.id).take();
-    const forAgent = note ? `${note}\n\n${message}` : message;
     preview.startFollowing();
-    agent.send(project, message, forAgent);
-  });
+    agent.send(project, shown, note ? `${note}\n\n${forAgent}` : forAgent);
+  }
   ipc.handle("conversation:stop", () => current && agent.stop(current.id));
   ipc.handle("conversation:start-over", () => current && agent.startOver(current));
   // The static export (decisions): into a folder the maker picks, remembered per project on this machine.
@@ -449,7 +482,10 @@ async function main() {
   ipc.handle("history:restore", (id) => goBack(id));
   ipc.handle("history:undo", () => goBack(history?.store.undoTarget()?.id));
   ipc.handle("editing:apply", (action) => editor.apply(action));
-  ipc.handle("preview:set-mode", (mode) => preview.setMode(mode === "visitor" ? "visitor" : "edit"));
+  ipc.handle("comments:list", () => (current ? comments.list(current.id) : []));
+  ipc.handle("comments:send", () => sendComments());
+  ipc.handle("comments:discard", () => void discardComments());
+  ipc.handle("preview:set-mode", (mode) => preview.setMode(mode === "visitor" || mode === "comment" ? mode : "edit"));
   ipc.handle("agent:status", () => agent.status());
   ipc.handle("agent:sign-in", (method) => {
     if (!env.background) agent.signIn(method);

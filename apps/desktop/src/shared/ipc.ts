@@ -142,6 +142,10 @@ export type Invokes = {
   "preview:navigate": (route: string) => void;
   "preview:reload": () => void;
   "preview:set-mode": (mode: PreviewMode) => void;
+  "comments:list": () => PageComment[];
+  /** Sends the open project's comments to the agent as one message (Q95). */
+  "comments:send": () => void;
+  "comments:discard": () => void;
   /** The open project's conversation; empty when no project is open. */
   "conversation:get": () => ConversationState | null;
   /** Sends a message to the agent. Without an open project, a new one is created from it. */
@@ -206,6 +210,7 @@ export type Events = {
   /** The skills changed: added, removed, or written by the agent. */
   "skills:changed": (skills: SkillInfo[]) => void;
   "connectors:changed": (connectors: ConnectorInfo[]) => void;
+  "comments:changed": (comments: PageComment[]) => void;
 };
 
 export type InvokeChannel = keyof Invokes;
@@ -225,6 +230,9 @@ export const channels = {
     "preview:navigate",
     "preview:reload",
     "preview:set-mode",
+    "comments:list",
+    "comments:send",
+    "comments:discard",
     "conversation:get",
     "conversation:send",
     "conversation:stop",
@@ -266,6 +274,7 @@ export const channels = {
     "history:changed",
     "skills:changed",
     "connectors:changed",
+    "comments:changed",
   ],
 } as const satisfies {
   invoke: readonly InvokeChannel[];
@@ -296,11 +305,31 @@ export type ToPreview =
   | { type: "theme"; css: string }
   /** How the page answers the pointer (Q99), and whether editing waits for the agent (Q91). */
   | { type: "editor"; mode: PreviewMode; paused: boolean }
+  /** The maker's comments, all pages included, so the page can show its own. */
+  | { type: "comments"; comments: PageComment[] }
   /** Hides Upstart's own drawings in the page while a capture is taken; answered by "chrome-hidden". */
   | { type: "chrome"; hidden: boolean };
 
-/** Edit: a click selects, a double click edits a text. Visitor: the page behaves as online. */
-export type PreviewMode = "edit" | "visitor";
+/**
+ * Edit: a click selects, a double click edits a text. Comment: a click opens
+ * a comment on the element (Q95). Visitor: the page behaves as online.
+ */
+export type PreviewMode = "edit" | "comment" | "visitor";
+
+/** A comment the maker pins on an element of the preview, for the agent (Q95). */
+export type PageComment = {
+  id: string;
+  /** The page it was written on. */
+  route: string;
+  /** Where the element comes from, as the trace gives it. */
+  file: string;
+  line: number;
+  at: number;
+  /** A short description of the element ("heading “Chez Margot”"), and the start of its HTML. */
+  label: string;
+  snippet: string;
+  text: string;
+};
 
 /** From the preview's script to the main process. */
 export type FromPreview =
@@ -313,4 +342,9 @@ export type FromPreview =
 export type PreviewInvokes = {
   "preview:edit": (action: EditAction) => { label: string; files: string[] };
   "preview:edit-info": (file: string, at: number) => EditInfo;
+  /** Adds a comment, or changes the one with this id. */
+  "preview:comment-save": (comment: Omit<PageComment, "id"> & { id?: string }) => PageComment[];
+  "preview:comment-remove": (id: string) => PageComment[];
+  "preview:comments-send": () => void;
+  "preview:comments-discard": () => void;
 };

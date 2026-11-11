@@ -1,6 +1,19 @@
-import { ChevronDown, Eye, Globe, Monitor, MousePointer2, RotateCw, Smartphone, Tablet, Upload } from "lucide-react";
+import {
+  ChevronDown,
+  Eye,
+  Globe,
+  MessageSquarePlus,
+  Monitor,
+  MousePointer2,
+  RotateCw,
+  Send,
+  Smartphone,
+  Tablet,
+  Upload,
+} from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
 import type { PreviewState, ProjectInfo } from "../../shared/ipc";
+import { useComments } from "../hooks/useMain";
 import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
@@ -32,6 +45,7 @@ export function PreviewPane({
   const area = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
   const [width, setWidth] = useState<Width>("desktop");
+  const comments = useComments(project?.id);
   const dialogOpen = exporting && project !== null;
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new project closes the dialog
   useLayoutEffect(() => setExporting(false), [project?.id]);
@@ -99,6 +113,7 @@ export function PreviewPane({
               {(
                 [
                   ["edit", MousePointer2, t.preview.editMode],
+                  ["comment", MessageSquarePlus, t.preview.commentMode],
                   ["visitor", Eye, t.preview.visitorMode],
                 ] as const
               ).map(([mode, Icon, title]) => (
@@ -141,6 +156,20 @@ export function PreviewPane({
               ))}
             </div>
           </>
+        )}
+        {/* At the phone's width the page's own send bar does not fit: it is here instead (Q95). */}
+        {project && width === "phone" && comments.length > 0 && (
+          <Button
+            size="sm"
+            className="no-drag h-7"
+            disabled={working}
+            title={working ? t.comments.waitForAgent : t.comments.sendTitle}
+            onClick={() => void upstart.invoke("comments:send")}
+            data-testid="comments-send"
+          >
+            <Send />
+            {t.comments.sendShort(comments.length)}
+          </Button>
         )}
         {project && state.routes.length > 0 && (
           <Button
