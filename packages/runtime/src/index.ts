@@ -40,6 +40,18 @@ export {
   needsCredit,
 } from "./media.ts";
 export {
+  newRecordText,
+  RecordWriteRefused,
+  readRecordFile,
+  recordIdFrom,
+  recordTitle,
+  renameInOrder,
+  setOrder,
+  setRecordValue,
+  titleField,
+  validRecordId,
+} from "./records.ts";
+export {
   escapeHtml,
   injectHead,
   type Note,

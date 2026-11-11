@@ -1,0 +1,74 @@
+import { describe, expect, test } from "vitest";
+import {
+  newRecordText,
+  RecordWriteRefused,
+  readRecordFile,
+  recordIdFrom,
+  renameInOrder,
+  setOrder,
+  setRecordValue,
+  validRecordId,
+} from "./records.ts";
+
+const record = "---\n# The opening\ntitle: Hello\ndate: 2026-11-01\ntags: [news]\n---\n# Hi\n\nSome text.\n";
+
+describe("a record written one value at a time (Q162)", () => {
+  test("a field changed, the rest as it was: its order, its comments, its text", () => {
+    expect(setRecordValue(record, "title", "Hello world", false)).toBe(
+      "---\n# The opening\ntitle: Hello world\ndate: 2026-11-01\ntags: [news]\n---\n# Hi\n\nSome text.\n",
+    );
+    expect(setRecordValue(record, "tags", ["news", "shop"], false)).toContain("tags: [news, shop]");
+    expect(setRecordValue(record, "price", 4.5, false)).toContain("tags: [news]\nprice: 4.5\n---");
+    expect(setRecordValue(record, "featured", true, false)).toContain("featured: true");
+  });
+
+  test("an empty value left out; the body below", () => {
+    expect(setRecordValue(record, "date", "", false)).toBe(
+      "---\n# The opening\ntitle: Hello\ntags: [news]\n---\n# Hi\n\nSome text.\n",
+    );
+    expect(setRecordValue(record, "body", "New text", true)).toBe(
+      "---\n# The opening\ntitle: Hello\ndate: 2026-11-01\ntags: [news]\n---\nNew text\n",
+    );
+    expect(setRecordValue("---\ntitle: A\n---\n", "title", "", false)).toBe("---\n---\n");
+  });
+
+  test("a text with a colon quoted; a date kept a date", () => {
+    const text = setRecordValue(record, "title", "Bread: our way", false);
+    expect(readRecordFile(text).values.title).toBe("Bread: our way");
+    expect(readRecordFile(text).values.date).toBe("2026-11-01");
+  });
+
+  test("fields that do not read are not overwritten", () => {
+    const broken = "---\ntitle: [unclosed\n---\nx\n";
+    expect(() => setRecordValue(broken, "title", "x", false)).toThrow(RecordWriteRefused);
+    expect(readRecordFile(broken).error).toBeTruthy();
+    expect(setRecordValue(broken, "body", "y", true)).toBe("---\ntitle: [unclosed\n---\ny\n");
+  });
+
+  test("a new record, its fields in the order given", () => {
+    expect(newRecordText({ title: "Opening day", date: "2026-11-01", cover: "" }, "Text")).toBe(
+      "---\ntitle: Opening day\ndate: 2026-11-01\n---\nText\n",
+    );
+    expect(readRecordFile(newRecordText({}))).toEqual({ values: {}, body: "" });
+  });
+});
+
+describe("ids and order (Q153, Q160, Q165)", () => {
+  test("an id from the title, the next free one if taken", () => {
+    expect(recordIdFrom("Hello world!", () => false)).toBe("hello-world");
+    expect(recordIdFrom("Crème brûlée", () => false)).toBe("creme-brulee");
+    expect(recordIdFrom("", () => false)).toBe("untitled");
+    const taken = new Set(["hello", "hello-2"]);
+    expect(recordIdFrom("Hello", (id) => taken.has(id))).toBe("hello-3");
+    expect(validRecordId("hello-2")).toBe(true);
+    for (const no of ["_draft", "-x", "Hello", "a b", "a/b", ""]) expect(validRecordId(no), no).toBe(false);
+  });
+
+  test("the manual order written in the definition, and kept through a rename", () => {
+    const definition = "label: Team\n# Who works here\nfields:\n  - name: name\n    kind: text\n";
+    const ordered = setOrder(definition, ["zoe", "adam"]);
+    expect(ordered).toBe(`${definition}order: [zoe, adam]\n`);
+    expect(renameInOrder(ordered, "zoe", "zoe-b")).toContain("order: [zoe-b, adam]");
+    expect(renameInOrder(definition, "zoe", "x")).toBe(definition);
+  });
+});

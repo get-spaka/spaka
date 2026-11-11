@@ -4,7 +4,24 @@
 // message. The text changes themselves are in edits.ts.
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
-import { locate, sections } from "@upstart/runtime";
+import {
+  Datasources,
+  DEFINITION_FILE,
+  locate,
+  newRecordText,
+  RecordWriteRefused,
+  readRecordFile,
+  recordFile,
+  recordIdFrom,
+  recordOf,
+  recordTitle,
+  renameInOrder,
+  sections,
+  setOrder,
+  setRecordValue,
+  validRecordId,
+} from "@upstart/runtime";
+import { diskSource } from "@upstart/runtime/node";
 import type { EditAction, EditInfo } from "../../shared/ipc";
 import { copyOfPage } from "../../shared/page-grid";
 import { en } from "../../shared/strings/en";
@@ -56,11 +73,127 @@ export type EditorDeps = {
 };
 
 export class Editor {
+  /**
+   * The record the Content tab is writing: each change is on the disk at
+   * once, and makes one version only when the maker leaves the record (Q162).
+   */
+  private editing?: { file: string; added: boolean };
+
   constructor(private readonly deps: EditorDeps) {}
 
-  apply(action: EditAction): { label: string; files: string[] } {
+  /** Writes one value of a record, a field or its text below, without a version (Q162). */
+  setRecordValue(file: string, field: string, value: unknown, isBody: boolean): void {
     if (this.deps.busy()) throw new EditRefused(en.editing.busy);
-    this.deps.before();
+    if (!RECORD.test(file)) throw new EditRefused("Only a record's values can be changed here.");
+    const src = this.read(file);
+    if (this.editing?.file !== file) {
+      this.leaveRecord();
+      this.deps.before();
+      this.editing = { file, added: false };
+    }
+    try {
+      this.write(file, setRecordValue(src, field, value, isBody));
+    } catch (error) {
+      if (error instanceof RecordWriteRefused) throw new EditRefused(error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * A new record, written once the maker has typed in its form, its id made
+   * from its title (Q165); its version comes when the maker leaves it.
+   */
+  addRecord(datasource: string, values: Record<string, unknown>, body = ""): { file: string; id: string } {
+    this.ready();
+    const definition = this.datasources().definition(datasource).definition;
+    if (!definition) throw new EditRefused("This datasource has no definition yet.");
+    const title = recordTitle({ id: "", __ref: "", ...values }, definition);
+    const id = recordIdFrom(title, (id) => existsSync(this.abs(recordFile(datasource, id))));
+    const file = recordFile(datasource, id);
+    // The fields in the definition's order.
+    const ordered = Object.fromEntries(
+      [...definition.fields.map((f) => f.name), ...Object.keys(values)]
+        .filter((name, i, all) => all.indexOf(name) === i && name in values && name !== definition.body)
+        .map((name) => [name, values[name]]),
+    );
+    const text = newRecordText(ordered, definition.body ? String(values[definition.body] ?? body) : body);
+    this.write(file, text);
+    this.editing = { file, added: true };
+    return { file, id };
+  }
+
+  /** The maker left the record they were writing: one version, told to the agent (Q162). */
+  leaveRecord(): { label: string; files: string[] } | undefined {
+    const editing = this.editing;
+    this.editing = undefined;
+    if (!editing) return undefined;
+    const name = this.recordName(editing.file);
+    const t = en.editing.labels;
+    const change = { label: editing.added ? t.recordAdded(name) : t.recordEdited(name), files: [editing.file] };
+    this.deps.changed(change);
+    return change;
+  }
+
+  /** The manual order of a datasource's records, written in its definition (Q153). */
+  reorderRecords(datasource: string, ids: string[]): { label: string; files: string[] } {
+    this.ready();
+    const file = `data/${datasource}/${DEFINITION_FILE}`;
+    try {
+      this.write(file, setOrder(this.read(file), ids));
+    } catch (error) {
+      if (error instanceof RecordWriteRefused) throw new EditRefused(error.message);
+      throw error;
+    }
+    const change = { label: en.editing.labels.recordsReordered, files: [file] };
+    this.deps.changed(change);
+    return change;
+  }
+
+  /** A record's id changed: its file renamed, and its place in the manual order kept (Q165). */
+  renameRecord(file: string, id: string): { label: string; files: string[]; file: string } {
+    this.ready();
+    const from = recordOf(file);
+    if (!from || !RECORD.test(file)) throw new EditRefused("Only a record can be renamed.");
+    if (!validRecordId(id)) throw new EditRefused(en.editing.recordIdInvalid);
+    const to = recordFile(from.datasource, id);
+    if (to === file) return { label: en.editing.labels.recordRenamed, files: [], file };
+    if (existsSync(this.abs(to))) throw new EditRefused(en.editing.recordIdTaken);
+    const text = this.read(file);
+    this.write(to, text);
+    rmSync(this.abs(file));
+    const files = [file, to];
+    const definitionFile = `data/${from.datasource}/${DEFINITION_FILE}`;
+    const definition = existsSync(this.abs(definitionFile)) ? this.read(definitionFile) : undefined;
+    const renamed = definition && renameInOrder(definition, from.id, id);
+    if (definition && renamed !== definition) {
+      this.write(definitionFile, renamed!);
+      files.push(definitionFile);
+    }
+    const change = { label: en.editing.labels.recordRenamed, files };
+    this.deps.changed(change);
+    return { ...change, file: to };
+  }
+
+  /** A record's title, or its id. */
+  private recordName(file: string): string {
+    const of = recordOf(file);
+    if (!of) return file;
+    const definition = this.datasources().definition(of.datasource).definition;
+    let values: Record<string, unknown> = {};
+    try {
+      values = readRecordFile(this.read(file)).values;
+    } catch {}
+    return recordTitle({ ...values, id: of.id, __ref: "" }, definition);
+  }
+
+  private datasources(): Datasources {
+    const root = this.deps.root();
+    if (!root) throw new EditRefused("No project is open.");
+    return new Datasources(diskSource(root));
+  }
+
+  apply(action: EditAction): { label: string; files: string[] } {
+    this.ready();
     const t = en.editing.labels;
     const src = this.read(action.file);
     const writes: Record<string, string> = {};
@@ -170,6 +303,8 @@ export class Editor {
   /** Editing waits for the agent's turn to end (Q91); what changed outside the app gets its own version first. */
   private ready() {
     if (this.deps.busy()) throw new EditRefused(en.editing.busy);
+    // A record being written gets its version first.
+    this.leaveRecord();
     this.deps.before();
   }
 
@@ -181,6 +316,7 @@ export class Editor {
     if (this.deps.busy()) throw new EditRefused(en.editing.busy);
     const root = this.deps.root();
     if (!root) throw new EditRefused("No project is open.");
+    this.leaveRecord();
     this.deps.before();
     const files: string[] = [];
     for (const [file, data] of Object.entries(fonts)) {

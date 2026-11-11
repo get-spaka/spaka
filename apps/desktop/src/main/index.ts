@@ -3,10 +3,14 @@ import { existsSync, type FSWatcher, mkdirSync, readFileSync, watch, writeFileSy
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { query } from "@anthropic-ai/claude-agent-sdk";
-import { recordFile } from "@upstart/runtime";
+import { Datasources, readRecordFile, recordFile, recordOf, recordTitle, titleOf } from "@upstart/runtime";
+import { diskSource } from "@upstart/runtime/node";
 import { app, BrowserWindow, dialog, Menu, Notification, safeStorage, shell } from "electron";
 import {
   type ConnectorInfo,
+  type ContentDatasource,
+  type ContentRecord,
+  type ContentRecordSummary,
   type HistoryEntry,
   type PageComment,
   type PreviewView,
@@ -169,11 +173,18 @@ async function main() {
   };
   // The open fonts the Theme tab offers (Q93), shipped the same way.
   const fonts = new Fonts(app.isPackaged ? join(process.resourcesPath, "fonts") : join(here, "../../fonts"));
+  let contentTimer: NodeJS.Timeout | undefined;
   const preview: Preview = new Preview(win, {
     block: (id) => gallery.get(id)?.source,
     font: (path) => fonts.path(path),
     background: env.background,
     onState: (state) => ipc.emit("preview:state", state),
+    // The Content tab reads again when a datasource or a media file changes.
+    onFileChanged: (path) => {
+      if (!/^(data|media)\//.test(path)) return;
+      clearTimeout(contentTimer);
+      contentTimer = setTimeout(() => ipc.emit("content:changed"), 80);
+    },
     // The "All pages" thumbnails (Q132): a click opens the page; the pointer over one raises it.
     onThumb: (route, action) => {
       if (action === "click") void preview.openPage(route);
@@ -457,6 +468,8 @@ async function main() {
     }
   };
   const opened = async (project: ProjectInfo) => {
+    // A record being written in the Content tab gets its version first (Q162).
+    editor.leaveRecord();
     current = project;
     watchSkills(project);
     agent.open(project);
@@ -511,6 +524,7 @@ async function main() {
   ipc.handle("projects:open", (id) => opened(projects.open(id)));
   ipc.handle("projects:current", () => current ?? null);
   ipc.handle("projects:close", () => {
+    editor.leaveRecord();
     current = undefined;
     watchSkills(undefined);
     tap = undefined;
@@ -632,6 +646,8 @@ async function main() {
   ipc.handle("conversation:send", async (text, settings) => {
     const message = text.trim();
     if (!message) return;
+    // The agent hears of the record the maker was writing with this message (Q162).
+    editor.leaveRecord();
     // A first message without a project creates one (decisions: built at once
     // from it, with the model and effort the maker picked beforehand).
     let project = current;
@@ -799,6 +815,91 @@ async function main() {
       writeFileSync(file, JSON.stringify({ ...ownPalette(), ...colors }));
     }
     return change;
+  });
+  // The Content tab (Q148, Q162-Q166): datasources read from the disk, records written by the editor.
+  const contentSource = () => {
+    if (!current) throw new Error("No project is open.");
+    return new Datasources(diskSource(current.path));
+  };
+  const routeOfRecord = (file: string) => preview.runtime?.routeOf(file) ?? undefined;
+  const contentRecordFile = (datasource: string, id: string) => {
+    if (!/^[a-z0-9][\w-]*$/i.test(datasource) || !/^[a-z0-9][\w-]*$/i.test(id)) throw new Error("No such record.");
+    return recordFile(datasource, id);
+  };
+  ipc.handle("content:list", () => {
+    if (!current) return [];
+    const data = contentSource();
+    return data.names().map((name): ContentDatasource => {
+      const { definition, problem } = data.definition(name);
+      const ds = data.get(name);
+      const image = definition?.fields.find((f) => f.kind === "image")?.name;
+      const problems = new Map(ds.problems.map((p) => [p.id, p]));
+      const records = ds.records.map((record): ContentRecordSummary => {
+        const file = recordFile(name, record.id);
+        const picture = image ? record[image] : undefined;
+        return {
+          id: record.id,
+          file,
+          title: recordTitle(record, definition),
+          ...(typeof picture === "string" && picture ? { image: picture } : {}),
+          problems: problems.get(record.id)?.problems ?? [],
+          skipped: false,
+          ...(routeOfRecord(file) ? { route: routeOfRecord(file) } : {}),
+        };
+      });
+      for (const p of ds.problems)
+        if (p.skipped) records.push({ id: p.id, file: p.file, title: p.id, problems: p.problems, skipped: true });
+      return {
+        name,
+        label: definition?.label ?? titleOf(name),
+        fields: definition?.fields ?? [],
+        ...(definition?.body ? { body: definition.body } : {}),
+        ...(definition?.sort ? { sort: definition.sort } : {}),
+        records,
+        ...(problem ? { problem } : {}),
+      };
+    });
+  });
+  ipc.handle("content:record", (datasource, id) => {
+    if (!current) throw new Error("No project is open.");
+    const file = contentRecordFile(datasource, id);
+    const text = readFileSync(join(current.path, file), "utf8");
+    const read = readRecordFile(text);
+    const problems =
+      contentSource()
+        .get(datasource)
+        .problems.find((p) => p.id === id)?.problems ?? [];
+    return {
+      id,
+      file,
+      values: read.values,
+      body: read.body,
+      ...(read.error ? { error: read.error } : {}),
+      problems,
+      ...(routeOfRecord(file) ? { route: routeOfRecord(file) } : {}),
+    } satisfies ContentRecord;
+  });
+  ipc.handle("content:set-value", (datasource, id, field, value) => {
+    const body = contentSource().definition(datasource).definition?.body;
+    editor.setRecordValue(contentRecordFile(datasource, id), field, value, field === body);
+  });
+  ipc.handle("content:add", (datasource, values) => ({ id: editor.addRecord(datasource, values).id }));
+  ipc.handle("content:leave", () => {
+    editor.leaveRecord();
+  });
+  ipc.handle("content:duplicate", (datasource, id) => {
+    const copy = editor.duplicateRecord(contentRecordFile(datasource, id));
+    return { id: recordOf(copy.file)!.id };
+  });
+  ipc.handle("content:delete", (datasource, id) => {
+    editor.deleteRecord(contentRecordFile(datasource, id));
+  });
+  ipc.handle("content:reorder", (datasource, ids) => {
+    editor.reorderRecords(datasource, ids);
+  });
+  ipc.handle("content:rename", (datasource, id, to) => {
+    const renamed = editor.renameRecord(contentRecordFile(datasource, id), to);
+    return { id: recordOf(renamed.file)!.id };
   });
   ipc.handle("gallery:add", (id) => {
     const route = preview.state().route;

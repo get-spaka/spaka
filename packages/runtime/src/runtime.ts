@@ -9,6 +9,7 @@ import { Liquid } from "liquidjs";
 import { type Datasource, Datasources, recordOf, titleOf } from "./data.ts";
 import { escapeHtml } from "./escape.ts";
 import { addCreditsLink, CREDITS_ROUTE, creditedMedia, creditsPage, fillAlts } from "./media.ts";
+import { recordTitle } from "./records.ts";
 import type { ProjectSource } from "./source.ts";
 import { injectTrace, repairTemplate } from "./template.ts";
 import { repairCss } from "./theme.ts";
@@ -115,14 +116,13 @@ export class Runtime {
       // pages/blog/[posts].liquid: a page per record, at its id (Q147).
       const ds = this.datasource(bracket.name, false);
       if (!ds || ds.standIns) continue;
-      const named = ds.definition?.fields.find((f) => f.kind === "text")?.name ?? "title";
       for (const record of ds.records)
         records.push({
           route: `/${route.slice(0, bracket.at)}${record.id}${route.slice(bracket.end)}`.replace(/\/+$/, "") || "/",
           file,
           record: { datasource: bracket.name, id: record.id },
           group: ds.definition?.label ?? titleOf(bracket.name),
-          title: typeof record[named] === "string" && record[named] ? (record[named] as string) : record.id,
+          title: recordTitle(record, ds.definition),
         });
     }
     pages.sort((a, b) => (a.route === "/" ? -1 : b.route === "/" ? 1 : a.route.localeCompare(b.route)));

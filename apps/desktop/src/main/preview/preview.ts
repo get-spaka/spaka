@@ -42,6 +42,8 @@ type OpenSite = {
 export type PreviewOptions = {
   background: boolean;
   onState: (state: PreviewState) => void;
+  /** A file of the open project changed on the disk, by its path in the project. */
+  onFileChanged?: (path: string) => void;
   onPageEvent?: (event: FromPreview) => void;
   /** What the preview's script may ask for: the maker's edits and comments (Q90, Q95). */
   invokes?: Partial<PreviewInvokes>;
@@ -519,6 +521,7 @@ export class Preview {
         if (!name || this.site !== site) return;
         const path = name.split("\\").join("/");
         if (path.split("/").some((part) => part.startsWith(".") || part === "node_modules")) return;
+        this.options.onFileChanged?.(path);
         // A file the agent is still writing is shown from the overlay, not from the disk.
         if (site.overlay.has(path)) return;
         this.refresh(true);

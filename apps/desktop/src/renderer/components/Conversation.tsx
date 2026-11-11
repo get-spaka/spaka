@@ -7,6 +7,7 @@ import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { BlocksTab } from "./BlocksTab";
+import { ContentTab } from "./ContentTab";
 import { SignInPanel } from "./SignInPanel";
 import { ThemeTab } from "./ThemeTab";
 import { Button } from "./ui/button";
@@ -28,7 +29,7 @@ export function Conversation({
 }) {
   const [draft, setDraft] = useState("");
   // The middle column's tabs (Q100): the conversation, the gallery's blocks.
-  const [tab, setTab] = useState<"conversation" | "blocks" | "theme">("conversation");
+  const [tab, setTab] = useState<"conversation" | "blocks" | "theme" | "content">("conversation");
   const shownTab = project ? tab : "conversation";
   // Before the first message there is no project yet: the choice waits for it.
   // It starts from the settings' model and effort for new websites (Q117).
@@ -101,7 +102,7 @@ export function Conversation({
 
       {project && (
         <div role="tablist" className="flex shrink-0 gap-1 border-b px-3">
-          {(["conversation", "blocks", "theme"] as const).map((name) => (
+          {(["conversation", "blocks", "theme", "content"] as const).map((name) => (
             <button
               key={name}
               type="button"
@@ -127,6 +128,15 @@ export function Conversation({
           theme={preview.theme}
           hasPage={preview.route !== null && preview.routes.length > 0}
           working={working}
+        />
+      ) : shownTab === "content" ? (
+        <ContentTab
+          working={working}
+          onAsk={(text) => {
+            setTab("conversation");
+            setDraft((d) => (d.trim() ? `${d.trimEnd()}\n${text}` : text));
+            setPrefilled((n) => n + 1);
+          }}
         />
       ) : shownTab === "theme" ? (
         <ThemeTab

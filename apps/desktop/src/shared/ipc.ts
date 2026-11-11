@@ -243,6 +243,55 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
 };
 
 /** Calls from the interface that get an answer: channel → (args) → answer. */
+/** A field of a datasource, as its definition names it (Q146, Q160). */
+export type ContentField = {
+  name: string;
+  kind: "text" | "markdown" | "number" | "boolean" | "date" | "choice" | "image" | "link" | "list";
+  label?: string;
+  required?: boolean;
+  choices?: string[];
+};
+
+/** A record as the Content tab lists it. */
+export type ContentRecordSummary = {
+  id: string;
+  file: string;
+  title: string;
+  /** Its image, when its definition has an image field and it has one. */
+  image?: string;
+  /** What is wrong with it (Q166); `skipped` when its fields do not read at all. */
+  problems: string[];
+  skipped: boolean;
+  /** Its page's address, when the datasource has a page per record. */
+  route?: string;
+};
+
+/** A datasource as the Content tab shows it. */
+export type ContentDatasource = {
+  name: string;
+  label: string;
+  fields: ContentField[];
+  /** The field written below the fields, as the file's text. */
+  body?: string;
+  /** Listed by a field: no manual order. */
+  sort?: { field: string; desc: boolean };
+  records: ContentRecordSummary[];
+  /** The definition itself does not read. */
+  problem?: string;
+};
+
+/** A record's values as its file has them, for its form. */
+export type ContentRecord = {
+  id: string;
+  file: string;
+  values: Record<string, unknown>;
+  body: string;
+  /** Why its fields do not read, when they do not (Q166). */
+  error?: string;
+  problems: string[];
+  route?: string;
+};
+
 export type Invokes = {
   "app:info": () => AppInfo;
   /** Opens the settings panel over the window (Q123), at a page. */
@@ -330,6 +379,19 @@ export type Invokes = {
   /** Writes these values into theme.css, at the end of a gesture: one version (Q93). */
   /** `own`: the colours also become the project's "Site's own" palette (Q114). */
   "theme:apply": (values: ThemeValues, own?: boolean) => { label: string; files: string[] };
+  /** The Content tab (Q148): the project's datasources and their records. */
+  "content:list": () => ContentDatasource[];
+  "content:record": (datasource: string, id: string) => ContentRecord;
+  /** Writes one value of a record at once, without a version (Q162); `body` for the text below its fields. */
+  "content:set-value": (datasource: string, id: string, field: string, value: unknown) => void;
+  /** A record written from an empty form, its id from its title (Q165). */
+  "content:add": (datasource: string, values: Record<string, unknown>) => { id: string };
+  /** The maker left the record: its version, told to the agent (Q162). */
+  "content:leave": () => void;
+  "content:duplicate": (datasource: string, id: string) => { id: string };
+  "content:delete": (datasource: string, id: string) => void;
+  "content:reorder": (datasource: string, ids: string[]) => void;
+  "content:rename": (datasource: string, id: string, to: string) => { id: string };
 };
 
 /** One-way messages from the interface to the main process. */
@@ -372,6 +434,8 @@ export type Events = {
   "preview:page-deleted": (page: { route: string; name?: string }) => void;
   /** Text to put in the message field, which takes the keyboard ("Ask the agent about it", Q136). */
   "conversation:prefill": (text: string) => void;
+  /** A file under data/ or media/ changed: the Content tab reads again. */
+  "content:changed": () => void;
   "conversation:event": (message: { projectId: string; event: ConversationEvent }) => void;
   "agent:status": (status: AgentStatus) => void;
   "history:changed": (message: { projectId: string; entries: HistoryEntry[] }) => void;
@@ -448,6 +512,15 @@ export const channels = {
     "theme:get",
     "theme:show",
     "theme:apply",
+    "content:list",
+    "content:record",
+    "content:set-value",
+    "content:add",
+    "content:leave",
+    "content:duplicate",
+    "content:delete",
+    "content:reorder",
+    "content:rename",
   ],
   send: ["app:ready", "preview:bounds", "preview:grid", "gallery:peek"],
   events: [
@@ -461,6 +534,7 @@ export const channels = {
     "preview:zoom-ready",
     "preview:placed",
     "conversation:prefill",
+    "content:changed",
     "conversation:event",
     "agent:status",
     "history:changed",
