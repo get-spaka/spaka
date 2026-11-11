@@ -65,7 +65,7 @@ describe("the settings panel", () => {
     expect(await w.getByTestId("settings-title").textContent()).toBe("General");
     expect(await w.getByTestId("projects-dir").textContent()).toBe(launched.projectsDir);
     const box = await w.getByTestId("settings").boundingBox();
-    expect(box && Math.round(box.width)).toBeLessThanOrEqual(900);
+    expect(box && Math.round(box.width)).toBeLessThanOrEqual(1100);
     await launched.capture("settings-general");
   });
 

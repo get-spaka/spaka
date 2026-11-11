@@ -71,7 +71,7 @@ export function SettingsPanel({
         aria-modal="true"
         aria-label={t.settings.title}
         data-testid="settings"
-        className="flex h-full max-h-[620px] w-full max-w-[900px] overflow-hidden rounded-xl border border-black/10 text-[13px] text-neutral-950 shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
+        className="flex h-full max-h-[780px] w-full max-w-[1100px] overflow-hidden rounded-xl border border-black/10 text-[13px] text-neutral-950 shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
       >
         <nav
           aria-label={t.settings.title}
@@ -173,7 +173,7 @@ export function SettingsPanel({
           </header>
           <div className="flex-1 overflow-y-auto">
             <Highlighted.Provider value={highlighted}>
-              <div className="mx-auto flex max-w-[640px] flex-col gap-5 px-7 py-5" data-testid={`settings-${shown}`}>
+              <div className="mx-auto flex max-w-[720px] flex-col gap-5 px-7 py-5" data-testid={`settings-${shown}`}>
                 {shown === "general" && <GeneralPage />}
                 {shown === "agent" && <AgentPage />}
                 {shown === "skills" && <SkillsPage />}
