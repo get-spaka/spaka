@@ -39,6 +39,18 @@ export const en = {
     outside: "Changes made outside Upstart",
     restored: (label: string) => `Back to: ${label}`,
     notice: (label: string) => `Went back to the version after: ${label}`,
+    byHand: (n: number) => `${n} changes by you`,
+  },
+  editing: {
+    busy: "The agent is working: edit the page once it is done, or stop it.",
+    labels: {
+      text: "Text changed",
+      link: "Link changed",
+      deleted: "Deleted",
+      duplicated: "Duplicated",
+      moved: "Section moved",
+      inserted: "Block added",
+    },
   },
   activity: {
     write: (path?: string) => (path ? `Writing ${path}` : "Writing a file…"),

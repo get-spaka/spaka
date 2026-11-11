@@ -12,6 +12,8 @@ import { agentBinary, cleanEnv, nodeLauncher } from "./agent/confinement";
 import { LOOK_TOOL, UPSTART_SERVER, upstartServer } from "./agent/preview-tool";
 import { Recorder, replayQuery } from "./agent/replay";
 import { Connectors, type Vault } from "./connectors/connectors";
+import { Editor } from "./editing/editor";
+import { AgentNotes } from "./editing/notes";
 import { readEnvironment } from "./environment";
 import { exportProject } from "./export";
 import { History } from "./history/history";
@@ -154,7 +156,25 @@ async function main() {
     },
   });
   let tap: { projectId: string; tap: FileTap } | undefined;
-  let history: { projectId: string; store: History; lastMessage?: string; wentBack?: string } | undefined;
+  let history: { projectId: string; store: History; lastMessage?: string } | undefined;
+  // What the agent is told before the next message (a return to an earlier version, edits by hand).
+  const allNotes = new Map<string, AgentNotes>();
+  const notesFor = (projectId: string) => {
+    const notes = allNotes.get(projectId) ?? new AgentNotes();
+    allNotes.set(projectId, notes);
+    return notes;
+  };
+  // The maker's edits by hand, written by the app (Q90), each a snapshot of its own (Q94).
+  const editor = new Editor({
+    root: () => current?.path,
+    busy: () => !!current && agent.isWorking(current.id),
+    before: () => history?.store.snapshot("outside", ""),
+    changed: (change) => {
+      history?.store.snapshot("hand", change.label);
+      if (current) notesFor(current.id).changed(change);
+      emitHistory();
+    },
+  });
   const historyEntries = (): HistoryEntry[] => {
     if (!history) return [];
     const list = history.store.list();
@@ -177,7 +197,7 @@ async function main() {
     if (agent.isWorking(current.id)) throw new Error("The agent is working: stop it first.");
     if (!id) return historyEntries();
     const snapshot = history.store.restore(id);
-    history.wentBack = snapshot.label;
+    notesFor(current.id).restored(snapshot.label);
     agent.notice(current.id, t.history.notice(snapshot.label || t.history.start));
     emitHistory();
     return historyEntries();
@@ -332,13 +352,9 @@ async function main() {
       history.store.snapshot(history.store.list().length ? "outside" : "start", "");
       history.lastMessage = message;
     }
-    // After a return to an earlier version, the agent is told before the message.
-    const wentBack = history?.wentBack;
-    if (history) history.wentBack = undefined;
-    const forAgent =
-      wentBack !== undefined
-        ? `[Upstart: the maker took the project back to an earlier version (the one after "${wentBack}"). The files may differ from what you remember: read a file again before editing it.]\n\n${message}`
-        : message;
+    // After a return to an earlier version, or edits by hand, the agent is told before the message.
+    const note = notesFor(project.id).take();
+    const forAgent = note ? `${note}\n\n${message}` : message;
     preview.startFollowing();
     agent.send(project, message, forAgent);
   });
@@ -426,6 +442,7 @@ async function main() {
   ipc.handle("history:list", () => historyEntries());
   ipc.handle("history:restore", (id) => goBack(id));
   ipc.handle("history:undo", () => goBack(history?.store.undoTarget()?.id));
+  ipc.handle("editing:apply", (action) => editor.apply(action));
   ipc.handle("agent:status", () => agent.status());
   ipc.handle("agent:sign-in", (method) => {
     if (!env.background) agent.signIn(method);

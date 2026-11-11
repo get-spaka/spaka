@@ -90,10 +90,38 @@ export type AgentStatus = {
 export type HistoryEntry = {
   id: string;
   at: number;
-  kind: "start" | "turn" | "outside" | "restore";
+  kind: "start" | "turn" | "outside" | "restore" | "hand";
   label: string;
   /** The project's files are as this version has them. */
   current: boolean;
+};
+
+/**
+ * An edit the maker makes by hand, written by the app (Q90). `file` is the
+ * template, `at` where the element's start tag (or the include) begins, as
+ * the trace gives them.
+ */
+export type EditAction =
+  /** `tags` are the element's inline tags as shown, which must be those of the source. */
+  | { type: "text"; file: string; at: number; texts: string[]; tags?: string[] }
+  | { type: "link"; file: string; at: number; href: string }
+  | { type: "duplicate"; file: string; at: number }
+  | { type: "delete"; file: string; at: number }
+  /** Moves the section starting at `at` to just before the one starting at `before` (null: after the last one). */
+  | { type: "move"; file: string; at: number; before: number | null }
+  /** Puts an include of an existing shared part before the section starting at `before` (null: after the last one). */
+  | { type: "insert"; file: string; before: number | null; part: string };
+
+/** What the preview needs to know before the maker edits an element. */
+export type EditInfo = {
+  /** Its text can be edited in place. */
+  text: boolean;
+  /** Its text is computed by Liquid: the agent changes it. */
+  computed: boolean;
+  /** It can be duplicated, deleted or moved by hand. */
+  movable: boolean;
+  /** For an element of a shared part: how many pages use that part. */
+  sharedBy: number;
 };
 
 /** A project's conversation, as shown. */
@@ -153,6 +181,8 @@ export type Invokes = {
   "history:restore": (id: string) => HistoryEntry[];
   /** Goes back to the version before the last change. */
   "history:undo": () => HistoryEntry[];
+  /** An edit by hand; throws with the reason when it cannot be made. */
+  "editing:apply": (action: EditAction) => { label: string; files: string[] };
 };
 
 /** One-way messages from the interface to the main process. */
@@ -221,6 +251,7 @@ export const channels = {
     "history:list",
     "history:restore",
     "history:undo",
+    "editing:apply",
   ],
   send: ["app:ready", "preview:bounds"],
   events: [

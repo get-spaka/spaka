@@ -16,7 +16,8 @@ import {
 } from "node:fs";
 import { dirname, join, relative } from "node:path";
 
-export type SnapshotKind = "start" | "turn" | "outside" | "restore";
+/** "hand": an edit the maker made in the preview, written by the app (Q94). */
+export type SnapshotKind = "start" | "turn" | "outside" | "restore" | "hand";
 
 export type Snapshot = {
   id: string;
