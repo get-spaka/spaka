@@ -2,8 +2,8 @@
 // file beside it holding its alternative text and its credits. An image is
 // made at most 2400 px wide when it is added, turned upright, in its own
 // format; an SVG, a GIF and a document are kept as they are.
-import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { basename, extname, join } from "node:path";
 import { infoFile, type MediaInfo } from "@upstart/runtime";
 import type { ImageFinder } from "./search";
 
@@ -108,4 +108,112 @@ export async function useFoundImage(
   const added = await addImage(root, name, bytes, { alt, credit: image.credit });
   const size = added.width ? ` (${added.width}×${added.height})` : "";
   return `Added as /${added.path}${size}. Write <img src="/${added.path}" …> in a page, part or record without an alt attribute: Upstart takes its alternative text from ${infoFile(added.path)}, where the maker can change it, and lists its credits on the site's /credits page when its licence asks for them.`;
+}
+
+/** The kinds of file the library takes (Q169): images, and documents to link to; no video or audio. */
+export function mediaKind(path: string): "image" | "document" | undefined {
+  const ext = path.toLowerCase().split(".").pop() ?? "";
+  if (["jpg", "jpeg", "png", "webp", "gif", "avif", "svg"].includes(ext)) return "image";
+  if (["mp4", "mov", "m4v", "webm", "avi", "mkv", "mp3", "wav", "m4a", "aac", "ogg", "flac"].includes(ext))
+    return undefined;
+  return "document";
+}
+
+/** The folders a site is written in, where a media file is used (Q168). */
+const USING_DIRS = ["pages", "parts", "fragments", "data"];
+
+function walk(root: string, rel: string, out: string[]) {
+  const abs = join(root, rel);
+  if (!existsSync(abs)) return;
+  for (const entry of readdirSync(abs, { withFileTypes: true })) {
+    if (entry.name.startsWith(".")) continue;
+    const path = `${rel}/${entry.name}`;
+    if (entry.isDirectory()) walk(root, path, out);
+    else if (/\.(liquid|md|ya?ml)$/.test(entry.name)) out.push(path);
+  }
+}
+
+/** Every file a media file can be used in, path → text. */
+export function usingFiles(root: string): Record<string, string> {
+  const files: string[] = [];
+  for (const dir of USING_DIRS) walk(root, dir, files);
+  return Object.fromEntries(files.map((f) => [f, readFileSync(join(root, f), "utf8")]));
+}
+
+/** Its address in a page or a record, /media/cafe.jpg or media/cafe.jpg, and nothing longer. */
+function addressPattern(path: string): RegExp {
+  const escaped = path.replace(/^\//, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(?<![\\w./-])(/?)${escaped}(?![\\w.-])`, "g");
+}
+
+/** The files that use a media file. */
+export function usesOf(path: string, files: Record<string, string>): string[] {
+  const pattern = addressPattern(path);
+  return Object.entries(files)
+    .filter(([, text]) => {
+      pattern.lastIndex = 0;
+      return pattern.test(text);
+    })
+    .map(([file]) => file);
+}
+
+/** "2 pages, 1 part, Posts (3)": where a media file is used, for the maker. */
+export function usesLabel(uses: string[], labelOf: (datasource: string) => string = (n) => n): string {
+  const count = (prefix: string) => uses.filter((u) => u.startsWith(prefix)).length;
+  const parts: string[] = [];
+  const plural = (n: number, one: string) => (n === 1 ? `1 ${one}` : `${n} ${one}s`);
+  if (count("pages/")) parts.push(plural(count("pages/"), "page"));
+  if (count("parts/")) parts.push(plural(count("parts/"), "shared part"));
+  if (count("fragments/")) parts.push(plural(count("fragments/"), "fragment"));
+  const datasources = new Map<string, number>();
+  for (const u of uses) {
+    const m = /^data\/([^/]+)\//.exec(u);
+    if (m) datasources.set(m[1]!, (datasources.get(m[1]!) ?? 0) + 1);
+  }
+  for (const [name, n] of datasources) parts.push(`${labelOf(name)} (${n})`);
+  return parts.join(", ");
+}
+
+/** Every file that uses `from`, with `to` in its place. */
+export function replaceUses(from: string, to: string, files: Record<string, string>): Record<string, string> {
+  const pattern = addressPattern(from);
+  const out: Record<string, string> = {};
+  for (const [file, text] of Object.entries(files)) {
+    const next = text.replace(pattern, (_m, slash: string) => `${slash}${to.replace(/^\//, "")}`);
+    if (next !== text) out[file] = next;
+  }
+  return out;
+}
+
+/** The library's files, not the files kept beside them. */
+export function libraryFiles(root: string): string[] {
+  const dir = join(root, "media");
+  if (!existsSync(dir)) return [];
+  const names = readdirSync(dir, { withFileTypes: true })
+    .filter((e) => e.isFile() && !e.name.startsWith("."))
+    .map((e) => e.name);
+  const stems = new Set(names.filter((n) => !n.endsWith(".json")).map((n) => n.replace(/\.[^.]+$/, "")));
+  return names
+    .filter((n) => !(n.endsWith(".json") && stems.has(n.slice(0, -".json".length))))
+    .sort()
+    .map((n) => `media/${n}`);
+}
+
+/**
+ * Adds a file from the disk (dropped, or chosen): an image made at most
+ * 2400 px wide, any other document as it is; never a video or a sound.
+ */
+export async function addFile(root: string, from: string): Promise<Added> {
+  const name = basename(from);
+  const kind = mediaKind(name);
+  if (!kind)
+    throw new Error(`${name}: Upstart does not keep video or audio files. Link to them where they are hosted.`);
+  const bytes = readFileSync(from);
+  if (kind === "image") return addImage(root, name, bytes, {});
+  const dir = join(root, "media");
+  mkdirSync(dir, { recursive: true });
+  const ext = (extname(name).slice(1) || "bin").toLowerCase();
+  const path = `media/${freeName(dir, slug(name))}.${ext}`;
+  writeFileSync(join(root, path), bytes);
+  return { path };
 }

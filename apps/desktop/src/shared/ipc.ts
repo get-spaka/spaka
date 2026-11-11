@@ -292,6 +292,41 @@ export type ContentRecord = {
   route?: string;
 };
 
+/** The credits kept beside an image taken from an open collection (Q151, Q155). */
+export type MediaCredit = {
+  title?: string;
+  author?: string;
+  authorUrl?: string;
+  license: string;
+  licenseUrl?: string;
+  source?: string;
+  sourceUrl?: string;
+};
+
+/** A file of the media library, as the Content tab shows it (Q158, Q168). */
+export type MediaItem = {
+  path: string;
+  name: string;
+  size: number;
+  image: boolean;
+  alt?: string;
+  credit?: MediaCredit;
+  /** The files that use it, and that said for the maker ("2 pages, Posts (3)"). */
+  uses: string[];
+  usesLabel: string;
+};
+
+/** An image the maker's search found (Q150). */
+export type MediaFound = {
+  id: string;
+  title: string;
+  width: number;
+  height: number;
+  credit: MediaCredit;
+  /** A small copy, as a data: URL, when the source gave one in time. */
+  thumb?: string;
+};
+
 export type Invokes = {
   "app:info": () => AppInfo;
   /** Opens the settings panel over the window (Q123), at a page. */
@@ -392,6 +427,21 @@ export type Invokes = {
   "content:delete": (datasource: string, id: string) => void;
   "content:reorder": (datasource: string, ids: string[]) => void;
   "content:rename": (datasource: string, id: string, to: string) => { id: string };
+  /** The media library (Q158, Q168). */
+  "media:list": () => MediaItem[];
+  /** A small copy of an image of the library, as a data: URL. */
+  "media:thumbnail": (path: string) => string | null;
+  /** Files dropped from the Finder, by their paths on the disk, added to media/. */
+  "media:add-files": (paths: string[]) => { paths: string[] };
+  /** Files chosen in a dialog, added to media/; null when none was chosen. */
+  "media:choose-files": () => { paths: string[] } | null;
+  "media:search": (query: string) => { images: MediaFound[]; failed: string[] };
+  /** An image found, added to media/ with its credits and this alt text. */
+  "media:add-found": (id: string, alt: string) => { path: string };
+  /** Written at once; one version when the maker moves on (content:leave). */
+  "media:set-alt": (path: string, alt: string) => void;
+  "media:delete": (path: string) => void;
+  "media:rename": (path: string, name: string) => { path: string };
 };
 
 /** One-way messages from the interface to the main process. */
@@ -521,6 +571,15 @@ export const channels = {
     "content:delete",
     "content:reorder",
     "content:rename",
+    "media:list",
+    "media:thumbnail",
+    "media:add-files",
+    "media:choose-files",
+    "media:search",
+    "media:add-found",
+    "media:set-alt",
+    "media:delete",
+    "media:rename",
   ],
   send: ["app:ready", "preview:bounds", "preview:grid", "gallery:peek"],
   events: [
@@ -559,6 +618,8 @@ export type Bridge = {
   send<C extends SendChannel>(channel: C, ...args: Parameters<Sends[C]>): void;
   /** Returns a function that stops listening. */
   on<C extends EventChannel>(channel: C, listener: Events[C]): () => void;
+  /** The path on the disk of a file dropped from the Finder (Q158). */
+  pathOf(file: File): string;
 };
 
 // ---- The preview's own channel ---------------------------------------------

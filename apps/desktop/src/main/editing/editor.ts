@@ -3,10 +3,11 @@
 // snapshot for each action, and keeps a note of it for the agent's next
 // message. The text changes themselves are in edits.ts.
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { basename, dirname, join } from "node:path";
+import { basename, dirname, extname, join } from "node:path";
 import {
   Datasources,
   DEFINITION_FILE,
+  infoFile,
   locate,
   newRecordText,
   RecordWriteRefused,
@@ -25,6 +26,8 @@ import { diskSource } from "@upstart/runtime/node";
 import type { EditAction, EditInfo } from "../../shared/ipc";
 import { copyOfPage } from "../../shared/page-grid";
 import { en } from "../../shared/strings/en";
+import { addFile, addImage, replaceUses, slug, usesLabel, usesOf, usingFiles } from "../media/library";
+import type { ImageFinder } from "../media/search";
 import {
   copyName,
   duplicateRange,
@@ -77,7 +80,7 @@ export class Editor {
    * The record the Content tab is writing: each change is on the disk at
    * once, and makes one version only when the maker leaves the record (Q162).
    */
-  private editing?: { file: string; added: boolean };
+  private editing?: { file: string; added: boolean; label?: string };
 
   constructor(private readonly deps: EditorDeps) {}
 
@@ -127,9 +130,10 @@ export class Editor {
     const editing = this.editing;
     this.editing = undefined;
     if (!editing) return undefined;
-    const name = this.recordName(editing.file);
     const t = en.editing.labels;
-    const change = { label: editing.added ? t.recordAdded(name) : t.recordEdited(name), files: [editing.file] };
+    const name = editing.label ? "" : this.recordName(editing.file);
+    const label = editing.label ?? (editing.added ? t.recordAdded(name) : t.recordEdited(name));
+    const change = { label, files: [editing.file] };
     this.deps.changed(change);
     return change;
   }
@@ -172,6 +176,106 @@ export class Editor {
     const change = { label: en.editing.labels.recordRenamed, files };
     this.deps.changed(change);
     return { ...change, file: to };
+  }
+
+  /** Files dropped or chosen from the disk, added to media/ (Q158, Q169): one version. */
+  async addMedia(paths: string[]): Promise<{ label: string; files: string[]; paths: string[] }> {
+    this.ready();
+    const root = this.root();
+    const added: string[] = [];
+    try {
+      for (const path of paths) added.push((await addFile(root, path)).path);
+    } finally {
+      if (added.length) this.deps.changed({ label: en.editing.labels.mediaAdded(added.length), files: added });
+    }
+    return { label: en.editing.labels.mediaAdded(added.length), files: added, paths: added };
+  }
+
+  /** An image found by the maker's search, added with its credits (Q150). */
+  async addFoundImage(finder: ImageFinder, id: string, alt: string): Promise<{ path: string }> {
+    this.ready();
+    const image = finder.found(id);
+    if (!image) throw new EditRefused("This image is no longer in the search's results: search again.");
+    const bytes = await finder.download(image);
+    const added = await addImage(this.root(), image.title, bytes, { alt, credit: image.credit });
+    this.deps.changed({ label: en.editing.labels.imageAdded, files: [added.path, infoFile(added.path)] });
+    return { path: added.path };
+  }
+
+  /** A media file's alt text, written at once; one version when the maker moves on, as a record's values (Q162). */
+  setMediaAlt(path: string, alt: string): void {
+    if (this.deps.busy()) throw new EditRefused(en.editing.busy);
+    this.media(path);
+    const file = infoFile(path);
+    if (this.editing?.file !== file) {
+      this.leaveRecord();
+      this.deps.before();
+      this.editing = { file, added: false, label: en.editing.labels.altChanged(basename(path)) };
+    }
+    let info: Record<string, unknown> = {};
+    try {
+      info = existsSync(this.abs(file)) ? JSON.parse(this.read(file)) : {};
+    } catch {}
+    const next = { ...info, alt: alt.trim() ? alt : undefined };
+    this.write(file, `${JSON.stringify(next, null, 2)}\n`);
+  }
+
+  /** A media file deleted, with the file beside it; refused while a page or a record uses it (Q168). */
+  deleteMedia(path: string, labelOf?: (datasource: string) => string): { label: string; files: string[] } {
+    this.ready();
+    const abs = this.media(path);
+    const uses = usesOf(path, usingFiles(this.root()));
+    if (uses.length) throw new EditRefused(en.editing.mediaInUse(usesLabel(uses, labelOf)));
+    rmSync(abs);
+    const files = [path];
+    const info = join(this.root(), infoFile(path));
+    if (existsSync(info)) {
+      rmSync(info);
+      files.push(infoFile(path));
+    }
+    const change = { label: en.editing.labels.mediaDeleted, files };
+    this.deps.changed(change);
+    return change;
+  }
+
+  /** A media file renamed, and every page, part and record that uses it updated: one version (Q168). */
+  renameMedia(path: string, name: string): { label: string; files: string[]; path: string } {
+    this.ready();
+    const abs = this.media(path);
+    const root = this.root();
+    const ext = extname(path);
+    const to = `media/${slug(name)}${ext}`;
+    if (to === path) return { label: en.editing.labels.mediaRenamed, files: [], path };
+    if (existsSync(join(root, to)) || existsSync(join(root, infoFile(to))))
+      throw new EditRefused(en.editing.mediaNameTaken);
+    renameSync(abs, join(root, to));
+    const files = [path, to];
+    if (existsSync(join(root, infoFile(path)))) {
+      renameSync(join(root, infoFile(path)), join(root, infoFile(to)));
+      files.push(infoFile(path), infoFile(to));
+    }
+    for (const [file, text] of Object.entries(replaceUses(path, to, usingFiles(root)))) {
+      atomicWrite(join(root, file), text);
+      files.push(file);
+    }
+    const change = { label: en.editing.labels.mediaRenamed, files };
+    this.deps.changed(change);
+    return { ...change, path: to };
+  }
+
+  private root(): string {
+    const root = this.deps.root();
+    if (!root) throw new EditRefused("No project is open.");
+    return root;
+  }
+
+  /** A file of the media library, by its path in the project. */
+  private media(path: string): string {
+    if (!/^media\/[\w][\w.-]*$/.test(path) || path.endsWith(".json") || path.includes(".."))
+      throw new EditRefused("This is not a file of the media library.");
+    const abs = join(this.root(), path);
+    if (!existsSync(abs)) throw new EditRefused("This file has changed since it was shown.");
+    return abs;
   }
 
   /** A record's title, or its id. */

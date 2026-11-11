@@ -1,6 +1,6 @@
 // Preload of the app's window. It runs in an isolated world and gives the
 // interface a narrow bridge: only the channels listed in the IPC contract.
-import { contextBridge, ipcRenderer } from "electron";
+import { contextBridge, ipcRenderer, webUtils } from "electron";
 import { type Bridge, channels } from "../shared/ipc";
 
 const allowed = {
@@ -32,6 +32,7 @@ const bridge: Bridge = {
     ipcRenderer.on(channel, wrapped);
     return () => ipcRenderer.off(channel, wrapped);
   },
+  pathOf: (file) => webUtils.getPathForFile(file),
 };
 
 contextBridge.exposeInMainWorld("upstart", bridge);

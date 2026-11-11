@@ -30,6 +30,8 @@ export interface ImageFinder {
   /** An image found by an earlier search. */
   found(id: string): FoundImage | undefined;
   download(image: FoundImage): Promise<Buffer>;
+  /** A small copy for the maker to choose from, if the source gives one quickly. */
+  preview(image: FoundImage): Promise<Buffer | undefined>;
 }
 
 /**
@@ -90,6 +92,13 @@ type CommonsPage = {
   }[];
 };
 
+/** A copy 330 px wide, which Commons keeps for every image wider (it refuses sizes it does not keep). */
+export function commonsThumb(url: string, width: number): string {
+  const m = /^(https:\/\/upload\.wikimedia\.org\/wikipedia\/commons)\/(.+\/([^/]+))$/.exec(url);
+  if (!m || width <= 330) return url;
+  return `${m[1]}/thumb/${m[2]}/330px-${m[3]}`;
+}
+
 export function fromCommons(answer: unknown): FoundImage[] {
   const pages = ((answer as { query?: { pages?: CommonsPage[] } })?.query?.pages ?? [])
     .slice()
@@ -111,6 +120,7 @@ export function fromCommons(answer: unknown): FoundImage[] {
       width: info.width,
       height: info.height,
       url: noTracking(info.thumburl && info.width > 2400 ? info.thumburl : info.url),
+      thumb: commonsThumb(noTracking(info.url), info.width),
       credit: {
         title,
         author: author ? short(author, 120) : undefined,
@@ -236,6 +246,20 @@ export class ImageSearch implements ImageFinder {
     if (!response.ok) throw new Error(`The image could not be downloaded (HTTP ${response.status}).`);
     return Buffer.from(await response.arrayBuffer());
   }
+
+  async preview(image: FoundImage): Promise<Buffer | undefined> {
+    if (!image.thumb) return undefined;
+    const fetch = this.opts.fetch ?? globalThis.fetch;
+    try {
+      const response = await fetch(image.thumb, {
+        headers: { "User-Agent": USER_AGENT },
+        signal: AbortSignal.timeout(5_000),
+      });
+      return response.ok ? Buffer.from(await response.arrayBuffer()) : undefined;
+    } catch {
+      return undefined;
+    }
+  }
 }
 
 /**
@@ -263,6 +287,10 @@ export class FixtureImages implements ImageFinder {
   }
 
   async download(image: FoundImage): Promise<Buffer> {
+    return readFileSync(join(this.dir, image.url));
+  }
+
+  async preview(image: FoundImage): Promise<Buffer | undefined> {
     return readFileSync(join(this.dir, image.url));
   }
 }

@@ -3,8 +3,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import sharp from "sharp";
 import { describe, expect, test } from "vitest";
-import { addImage, freeName, slug, useFoundImage } from "./library";
+import { addImage, freeName, replaceUses, slug, useFoundImage, usesLabel, usesOf } from "./library";
 import {
+  commonsThumb,
   FixtureImages,
   freeLicense,
   fromCommons,
@@ -143,6 +144,7 @@ describe("the sources' answers", () => {
       width: 4000,
       height: 3000,
       url: "https://upload.wikimedia.org/thumb/c/croissants.jpg/2400px-croissants.jpg",
+      thumb: "https://upload.wikimedia.org/c/croissants.jpg",
       credit: {
         title: "Croissants",
         author: "Jane Doe",
@@ -253,5 +255,34 @@ describe("the media library", () => {
     expect(text).toContain("media/croissants.json");
     expect(JSON.parse(readFileSync(join(root, "media/croissants.json"), "utf8")).credit.author).toBe("Jane Doe");
     expect(await useFoundImage(finder, root, "commons:9", "x", "y")).toContain("No image with the id commons:9");
+  });
+});
+
+test("Commons' small copy: 330 px wide, or the image itself when it is narrower", () => {
+  const url = "https://upload.wikimedia.org/wikipedia/commons/d/d4/Lviv_Croissants.jpg";
+  expect(commonsThumb(url, 1427)).toBe(
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Lviv_Croissants.jpg/330px-Lviv_Croissants.jpg",
+  );
+  expect(commonsThumb(url, 300)).toBe(url);
+});
+
+describe("where a media file is used (Q168)", () => {
+  const files = {
+    "pages/index.liquid": '<img src="/media/cafe.jpg"><img src="/media/cafe.jpg.old">',
+    "parts/hero.liquid": "<div style=\"background:url('/media/cafe-2.jpg')\"></div>",
+    "data/posts/a.md": "---\ncover: media/cafe.jpg\n---\n",
+    "data/posts/b.md": "---\ncover: /media/cafe.jpg\n---\n",
+  };
+  test("its uses, and nothing longer that starts the same", () => {
+    expect(usesOf("media/cafe.jpg", files)).toEqual(["pages/index.liquid", "data/posts/a.md", "data/posts/b.md"]);
+    expect(usesLabel(usesOf("media/cafe.jpg", files), (n) => (n === "posts" ? "Posts" : n))).toBe("1 page, Posts (2)");
+    expect(usesLabel(["parts/a.liquid", "parts/b.liquid"])).toBe("2 shared parts");
+  });
+  test("renamed in every file that uses it, the leading slash kept as it was", () => {
+    expect(replaceUses("media/cafe.jpg", "media/shop.jpg", files)).toEqual({
+      "pages/index.liquid": '<img src="/media/shop.jpg"><img src="/media/cafe.jpg.old">',
+      "data/posts/a.md": "---\ncover: media/shop.jpg\n---\n",
+      "data/posts/b.md": "---\ncover: /media/shop.jpg\n---\n",
+    });
   });
 });

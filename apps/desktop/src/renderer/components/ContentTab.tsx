@@ -8,8 +8,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ContentDatasource, ContentField, ContentRecord, ContentRecordSummary } from "../../shared/ipc";
 import { upstart } from "../lib/bridge";
 import { messageOf } from "../lib/errors";
+import { pickImage } from "../lib/picker";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
+import { MediaLibrary, MediaThumb } from "./MediaLibrary";
 import { Button } from "./ui/button";
 
 /** How long typing must stop before a change is written (Q162). */
@@ -20,6 +22,8 @@ export function ContentTab({ working, onAsk }: { working: boolean; onAsk: (text:
   // `key`: the form stays the same while its record gets an id or a new one (Q165).
   const [open, setOpen] = useState<{ datasource: string; record?: string | null; key?: number }>();
   const [error, setError] = useState<string>();
+  // The tab's two parts (Q158): the datasources, the media library.
+  const [section, setSection] = useState<"datasources" | "media">("datasources");
   const [deleted, setDeleted] = useState<{ name: string; at: number }>();
   const load = useCallback(
     () =>
@@ -82,38 +86,63 @@ export function ContentTab({ working, onAsk }: { working: boolean; onAsk: (text:
           onAsk={onAsk}
         />
       ) : (
-        <div className="flex-1 overflow-y-auto px-4 py-3">
-          <h2 className="mb-2 text-xs font-medium text-muted-foreground">{t.content.datasources}</h2>
-          {list.length === 0 ? (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">{t.content.none}</p>
-              <Button size="sm" variant="outline" onClick={() => onAsk(t.content.askForOneMessage)}>
-                {t.content.askForOne}
-              </Button>
-            </div>
+        <>
+          <div role="tablist" className="flex shrink-0 gap-1 px-4 pt-3 pb-2">
+            {(["datasources", "media"] as const).map((name) => (
+              <button
+                key={name}
+                type="button"
+                role="tab"
+                aria-selected={section === name}
+                data-testid={`content-${name}`}
+                onClick={() => setSection(name)}
+                className={cn(
+                  "rounded-md px-2 py-1 text-xs font-medium",
+                  section === name ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {t.content.sections[name]}
+              </button>
+            ))}
+          </div>
+          {section === "media" ? (
+            <MediaLibrary onError={setError} />
           ) : (
-            <ul className="-mx-2">
-              {list.map((d) => (
-                <li key={d.name}>
-                  <button
-                    type="button"
-                    data-testid="datasource"
-                    data-name={d.name}
-                    onClick={() => setOpen({ datasource: d.name })}
-                    className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-accent"
-                  >
-                    <span className="font-medium">{d.label}</span>
-                    {(d.problem || d.records.some((r) => r.problems.length)) && (
-                      <AlertTriangle className="size-3.5 text-amber-600" />
-                    )}
-                    <span className="ml-auto text-xs text-muted-foreground">{t.content.records(d.records.length)}</span>
-                    <ChevronRight className="size-4 text-muted-foreground" />
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <div className="flex-1 overflow-y-auto px-4 pb-3">
+              {list.length === 0 ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">{t.content.none}</p>
+                  <Button size="sm" variant="outline" onClick={() => onAsk(t.content.askForOneMessage)}>
+                    {t.content.askForOne}
+                  </Button>
+                </div>
+              ) : (
+                <ul className="-mx-2">
+                  {list.map((d) => (
+                    <li key={d.name}>
+                      <button
+                        type="button"
+                        data-testid="datasource"
+                        data-name={d.name}
+                        onClick={() => setOpen({ datasource: d.name })}
+                        className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-accent"
+                      >
+                        <span className="font-medium">{d.label}</span>
+                        {(d.problem || d.records.some((r) => r.problems.length)) && (
+                          <AlertTriangle className="size-3.5 text-amber-600" />
+                        )}
+                        <span className="ml-auto text-xs text-muted-foreground">
+                          {t.content.records(d.records.length)}
+                        </span>
+                        <ChevronRight className="size-4 text-muted-foreground" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           )}
-        </div>
+        </>
       )}
       {deleted && (
         <div
@@ -633,6 +662,37 @@ function FieldInput({
             </option>
           ))}
         </select>
+      );
+      break;
+    case "image":
+      input = (
+        <div className="flex items-center gap-2">
+          {text ? (
+            <MediaThumb path={text} className="h-14 w-20 shrink-0 rounded-md border" />
+          ) : (
+            <div className="h-14 w-20 shrink-0 rounded-md border border-dashed" />
+          )}
+          <span
+            data-testid={`field-${field.name}`}
+            className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground"
+          >
+            {text}
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={disabled}
+            data-testid={`field-${field.name}-choose`}
+            onClick={() => void pickImage().then((path) => path && onChange(path))}
+          >
+            {t.content.choose}
+          </Button>
+          {text && (
+            <Button size="sm" variant="ghost" disabled={disabled} onClick={() => onChange("")}>
+              {t.content.clear}
+            </Button>
+          )}
+        </div>
       );
       break;
     default:

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { isWorking } from "../shared/conversation";
 import type { SettingsPage } from "../shared/ipc";
 import { Conversation } from "./components/Conversation";
+import { MediaPicker } from "./components/MediaPicker";
 import { PreviewPane } from "./components/PreviewPane";
 import { Sidebar } from "./components/Sidebar";
 import { SiteSettings } from "./components/SiteSettings";
@@ -15,6 +16,7 @@ import {
   useSkills,
 } from "./hooks/useMain";
 import { upstart } from "./lib/bridge";
+import { usePickRequest } from "./lib/picker";
 import { SettingsPanel } from "./settings/SettingsPanel";
 
 export function App() {
@@ -31,6 +33,8 @@ export function App() {
   const siteShown = siteOpen && !!current;
   // The settings for every website, in a panel over the window (Q123); they open again at the last page.
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // The media picker over the window (Q158).
+  const picking = usePickRequest();
   const [settingsPage, setSettingsPage] = useState<SettingsPage>("general");
   useEffect(
     () =>
@@ -74,7 +78,7 @@ export function App() {
         project={current}
         state={preview}
         working={isWorking(items)}
-        covered={siteShown || settingsOpen}
+        covered={siteShown || settingsOpen || !!picking}
         layoutKey={sidebarOpen}
         history={history}
       />
@@ -87,6 +91,7 @@ export function App() {
           onClose={() => setSiteOpen(false)}
         />
       )}
+      {picking && <MediaPicker key={picking.id} request={picking} />}
       {settingsOpen && <SettingsPanel page={settingsPage} onPage={setSettingsPage} onClose={closeSettings} />}
     </div>
   );

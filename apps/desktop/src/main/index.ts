@@ -1,9 +1,9 @@
 // Entry point of the app's main process.
-import { existsSync, type FSWatcher, mkdirSync, readFileSync, watch, writeFileSync } from "node:fs";
+import { existsSync, type FSWatcher, mkdirSync, readFileSync, statSync, watch, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { query } from "@anthropic-ai/claude-agent-sdk";
-import { Datasources, readRecordFile, recordFile, recordOf, recordTitle, titleOf } from "@upstart/runtime";
+import { Datasources, mediaInfo, readRecordFile, recordFile, recordOf, recordTitle, titleOf } from "@upstart/runtime";
 import { diskSource } from "@upstart/runtime/node";
 import { app, BrowserWindow, dialog, Menu, Notification, safeStorage, shell } from "electron";
 import {
@@ -12,6 +12,8 @@ import {
   type ContentRecord,
   type ContentRecordSummary,
   type HistoryEntry,
+  type MediaFound,
+  type MediaItem,
   type PageComment,
   type PreviewView,
   type ProjectInfo,
@@ -48,7 +50,7 @@ import { Thumbnails } from "./gallery/thumbnails";
 import { History } from "./history/history";
 import { createIpc } from "./ipc";
 import { FileTap } from "./live/tap";
-import { useFoundImage } from "./media/library";
+import { libraryFiles, mediaKind, useFoundImage, usesLabel, usesOf, usingFiles } from "./media/library";
 import { FixtureImages, type ImageFinder, ImageSearch, imagesAnswer } from "./media/search";
 import { Preview } from "./preview/preview";
 import { isEffort, Projects } from "./projects";
@@ -901,6 +903,89 @@ async function main() {
     const renamed = editor.renameRecord(contentRecordFile(datasource, id), to);
     return { id: recordOf(renamed.file)!.id };
   });
+  // The media library (Q158, Q168) and the maker's image search (Q150).
+  const mediaRoot = () => {
+    if (!current) throw new Error("No project is open.");
+    return current.path;
+  };
+  const datasourceLabel = (name: string) => {
+    try {
+      return contentSource().definition(name).definition?.label ?? titleOf(name);
+    } catch {
+      return titleOf(name);
+    }
+  };
+  const smallCopies = new Map<string, string>();
+  const smallCopy = async (bytes: Buffer, key?: string) => {
+    if (key && smallCopies.has(key)) return smallCopies.get(key)!;
+    const { default: sharp } = await import("sharp");
+    const out = await sharp(bytes, { animated: false })
+      .rotate()
+      .resize({ width: 320, withoutEnlargement: true })
+      .webp({ quality: 70 })
+      .toBuffer();
+    const url = `data:image/webp;base64,${out.toString("base64")}`;
+    if (key) smallCopies.set(key, url);
+    return url;
+  };
+  ipc.handle("media:list", () => {
+    if (!current) return [];
+    const root = mediaRoot();
+    const files = usingFiles(root);
+    return libraryFiles(root).map((path): MediaItem => {
+      const info = mediaInfo(diskSource(root), path);
+      const uses = usesOf(path, files);
+      return {
+        path,
+        name: path.slice("media/".length),
+        size: statSync(join(root, path)).size,
+        image: mediaKind(path) === "image",
+        ...(info?.alt ? { alt: info.alt } : {}),
+        ...(info?.credit ? { credit: info.credit } : {}),
+        uses,
+        usesLabel: usesLabel(uses, datasourceLabel),
+      };
+    });
+  });
+  ipc.handle("media:thumbnail", async (path) => {
+    const root = mediaRoot();
+    if (!/^media\/[\w][\w.-]*$/.test(path) || mediaKind(path) !== "image") return null;
+    const abs = join(root, path);
+    if (!existsSync(abs)) return null;
+    if (path.toLowerCase().endsWith(".svg")) return `data:image/svg+xml;base64,${readFileSync(abs).toString("base64")}`;
+    return smallCopy(readFileSync(abs), `${abs}:${statSync(abs).mtimeMs}`).catch(() => null);
+  });
+  ipc.handle("media:add-files", (paths) => editor.addMedia(paths));
+  ipc.handle("media:choose-files", async () => {
+    if (env.background) return null;
+    const answer = await dialog.showOpenDialog(dialogParent(), { properties: ["openFile", "multiSelections"] });
+    if (answer.canceled || !answer.filePaths.length) return null;
+    return editor.addMedia(answer.filePaths);
+  });
+  ipc.handle("media:search", async (query) => {
+    const result = await images.search(query, 12);
+    const found = await Promise.all(
+      result.images.map(async (image): Promise<MediaFound> => {
+        const bytes = await images.preview(image);
+        const thumb = bytes ? await smallCopy(bytes).catch(() => undefined) : undefined;
+        return {
+          id: image.id,
+          title: image.title,
+          width: image.width,
+          height: image.height,
+          credit: image.credit,
+          ...(thumb ? { thumb } : {}),
+        };
+      }),
+    );
+    return { images: found, failed: result.failed };
+  });
+  ipc.handle("media:add-found", (id, alt) => editor.addFoundImage(images, id, alt));
+  ipc.handle("media:set-alt", (path, alt) => editor.setMediaAlt(path, alt));
+  ipc.handle("media:delete", (path) => {
+    editor.deleteMedia(path, datasourceLabel);
+  });
+  ipc.handle("media:rename", (path, name) => ({ path: editor.renameMedia(path, name).path }));
   ipc.handle("gallery:add", (id) => {
     const route = preview.state().route;
     const file = route !== null ? preview.runtime?.resolve(route) : undefined;

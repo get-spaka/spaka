@@ -1,0 +1,33 @@
+[
+  {
+    "id": "commons:101",
+    "title": "Croissants on a counter",
+    "description": "Fresh croissants on a bakery counter.",
+    "width": 2600,
+    "height": 1700,
+    "url": "croissants.jpg",
+    "credit": {
+      "title": "Croissants on a counter",
+      "author": "Jane Doe",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "source": "Wikimedia Commons",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Croissants.jpg"
+    }
+  },
+  {
+    "id": "openverse:202",
+    "title": "Bakery shop front",
+    "description": "A small bakery's window in the morning.",
+    "width": 1200,
+    "height": 800,
+    "url": "shop-front.jpg",
+    "credit": {
+      "title": "Bakery shop front",
+      "author": "Sam",
+      "license": "CC0 1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "source": "Openverse (Flickr)"
+    }
+  }
+]
