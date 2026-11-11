@@ -135,3 +135,15 @@ _Avoid_: Server, backend, engine
 **Builder**:
 Packages a project for one kind of hosting.
 _Avoid_: Exporter, adapter, deployer
+
+**Published site**:
+A project once a builder's output has been deployed by the maker, at the address the maker gives the app. A published site keeps the records visitors send.
+_Avoid_: Production, live site, deployment
+
+**Management token**:
+The secret the app generates for a published site, which lets the app, and nothing else, read, approve and delete the records that site has collected.
+_Avoid_: API key, password, admin token
+
+**Form service**:
+A third-party service that receives the forms of a static export, which cannot store them itself.
+_Avoid_: Form backend, form provider
