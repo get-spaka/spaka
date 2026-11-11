@@ -167,7 +167,7 @@ async function main() {
     // The "All pages" thumbnails (Q132): a click opens the page; the pointer over one raises it.
     onThumb: (route, action) => {
       if (action === "click") {
-        preview.setView("page");
+        void preview.setView("page", { route });
         void preview.navigate(route, true);
       } else if (action === "enter") ipc.emit("preview:hover", route);
       else if (action === "leave") ipc.emit("preview:hover", null);
@@ -175,12 +175,13 @@ async function main() {
     },
     onPicture: (route, url) => ipc.emit("preview:picture", { route, url }),
     onView: (view) => writeViewData({ ...viewData(), view }),
+    onZoom: (zoom) => ipc.emit("preview:zoom", zoom),
     // Once per website, the preview goes to all its pages when the agent begins the second (Q131).
     onManyPages: () => {
       const data = viewData();
       if (data.switched || !current) return;
       writeViewData({ ...data, switched: true });
-      preview.setView("pages");
+      void preview.setView("pages");
     },
     invokes: {
       "preview:edit": (action) => editor.apply(action),
@@ -448,7 +449,7 @@ async function main() {
     agent.open(project);
     preview.setPaused(agent.isWorking(project.id));
     // The view the maker left this website in (Q131).
-    preview.setView(viewData().view ?? "page");
+    void preview.setView(viewData().view ?? "page", { animate: false });
     await preview.open(project);
     commentsChanged(comments.list(project.id));
     tap = tapFor(project);
@@ -551,7 +552,7 @@ async function main() {
       {
         label: m.open,
         click: () => {
-          preview.setView("page");
+          void preview.setView("page", { route });
           void preview.navigate(route, true);
         },
       },
@@ -781,7 +782,7 @@ async function main() {
   ipc.handle("comments:send", () => sendComments());
   ipc.handle("comments:discard", () => void discardComments());
   ipc.handle("preview:page-menu", (route) => pageMenu(route));
-  ipc.handle("preview:set-view", (view) => preview.setView(view === "pages" ? "pages" : "page"));
+  ipc.handle("preview:set-view", (view, route) => preview.setView(view === "pages" ? "pages" : "page", { route }));
   ipc.handle("preview:set-mode", (mode) => preview.setMode(mode === "visitor" || mode === "comment" ? mode : "edit"));
   ipc.handle("agent:status", () => agent.status());
   ipc.handle("agent:sign-in", (method) => {

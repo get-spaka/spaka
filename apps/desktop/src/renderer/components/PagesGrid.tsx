@@ -7,8 +7,8 @@
 // the shadow of the one the pointer is over. A click opens a page; a right
 // click shows its menu (Q132, Q136).
 import { Loader2 } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { GridCell, PreviewState } from "../../shared/ipc";
+import { type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { GridCell, PreviewState, Rect } from "../../shared/ipc";
 import { GRID_GAP, GRID_PADDING, gridColumns, thumbnailScreen } from "../../shared/page-grid";
 import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
@@ -20,6 +20,8 @@ export function PagesGrid({
   landscape,
   hidden,
   layoutKey,
+  seen,
+  landing,
 }: {
   state: PreviewState;
   device: { width: number; height: number } | undefined;
@@ -27,22 +29,34 @@ export function PagesGrid({
   /** Something covers the preview: the thumbnails are hidden. */
   hidden: boolean;
   layoutKey: unknown;
+  /** Where each thumbnail last was and its picture, for the zoom to a page once the grid is gone (Q133). */
+  seen: RefObject<{ rects: Record<string, Rect>; pictures: Record<string, string> }>;
+  /** The page the zoom from the page view lands on: its cell waits, the others fade in. */
+  landing?: string;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
   const cells = useRef(new Map<string, HTMLElement>());
   const [columns, setColumns] = useState(3);
   // The pointer over the live view, which the interface cannot see (the pictures use :hover).
   const [hovered, setHovered] = useState<string | null>(null);
-  const [pictures, setPictures] = useState<Record<string, string>>({});
+  // The pictures already received, so that the grid shows them at once when it comes back.
+  const [pictures, setPictures] = useState<Record<string, string>>(() => ({ ...seen.current.pictures }));
   // Once the maker scrolls during a turn, the grid no longer moves to the page being written.
   const makerScrolled = useRef(false);
   const screen = thumbnailScreen(device, landscape);
   const routes = state.routes.map((r) => r.route);
 
   useEffect(() => upstart.on("preview:hover", setHovered), []);
-  useEffect(() => upstart.on("preview:picture", ({ route, url }) => setPictures((p) => ({ ...p, [route]: url }))), []);
+  useEffect(
+    () =>
+      upstart.on("preview:picture", ({ route, url }) => {
+        seen.current.pictures[route] = url;
+        setPictures((p) => ({ ...p, [route]: url }));
+      }),
+    [seen],
+  );
   const open = (route: string) =>
-    void upstart.invoke("preview:set-view", "page").then(() => upstart.invoke("preview:navigate", route));
+    void upstart.invoke("preview:set-view", "page", route).then(() => upstart.invoke("preview:navigate", route));
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: the cells move when any of these change
   useLayoutEffect(() => {
@@ -63,6 +77,7 @@ export function PagesGrid({
           const cell = cells.current.get(route);
           if (!cell) continue;
           const r = cell.getBoundingClientRect();
+          seen.current.rects[route] = { x: r.x, y: r.y, width: r.width, height: r.height };
           // A thumbnail partly scrolled out is cut to what shows, its page moved up by what is hidden.
           const top = Math.max(r.top, box.top);
           const bottom = Math.min(r.bottom, box.bottom);
@@ -123,7 +138,15 @@ export function PagesGrid({
         {state.routes.map(({ route }) => {
           const writing = state.writing === route;
           return (
-            <figure key={route} className="group m-0 flex flex-col gap-2" data-testid="page-thumb" data-route={route}>
+            <figure
+              key={route}
+              className={cn(
+                "group m-0 flex flex-col gap-2",
+                landing !== undefined && route !== landing && "animate-in fade-in duration-300",
+              )}
+              data-testid="page-thumb"
+              data-route={route}
+            >
               <button
                 type="button"
                 ref={(el) => {
@@ -141,7 +164,10 @@ export function PagesGrid({
                   hovered === route && "-translate-y-0.5 shadow-lg",
                   writing && "outline-2 outline-offset-3 outline-primary",
                 )}
-                style={{ aspectRatio: `${screen.width} / ${screen.height}` }}
+                style={{
+                  aspectRatio: `${screen.width} / ${screen.height}`,
+                  visibility: route === landing ? "hidden" : undefined,
+                }}
               >
                 {pictures[route] ? (
                   <img src={pictures[route]} alt="" className="size-full object-cover object-top" draggable={false} />

@@ -151,6 +151,24 @@ describe("all pages as thumbnails", () => {
     expect(await launched.window.getByTestId("page-deleted").count()).toBe(0);
   });
 
+  test("the zoom from a thumbnail to its page, and back", async () => {
+    const w = launched.window;
+    const zoom = w.getByTestId("preview-zoom");
+    await until(async () => (await w.locator('[data-testid="page-thumb"] img').count()) === 4);
+    await w.locator('[data-testid="page-thumb"][data-route="/about"] button').click();
+    await zoom.waitFor({ timeout: 2000 });
+    await zoom.waitFor({ state: "detached", timeout: 2000 });
+    expect(await main((u) => u.preview.currentView)).toBe("page");
+    await until(async () => (await main((u) => u.preview.state())).route === "/about");
+    // Back to the thumbnails: the page shrinks into its cell, the other thumbnails fade in.
+    await w.getByTestId("view-pages").click();
+    await zoom.waitFor({ timeout: 2000 });
+    await new Promise((r) => setTimeout(r, 120));
+    await launched.capture("pages-zoom");
+    await zoom.waitFor({ state: "detached", timeout: 2000 });
+    await until(async () => (await thumbs().count()) === 4);
+  });
+
   test("asking the agent about a page starts the message with its address", async () => {
     await click("/menu", "Ask the agent about it");
     const input = launched.window.getByTestId("message-input");

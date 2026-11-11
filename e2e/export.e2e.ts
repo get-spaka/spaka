@@ -62,6 +62,8 @@ describe("exporting the website", () => {
     await launched.window.getByTestId("conversation").waitFor();
     await invoke("conversation:send", "A bakery in Lyon. Warm colours please.");
     await until(() => launched.window.locator('[data-testid="agent-message"][data-status="done"]').count(), 30_000);
+    // The bakery has two pages: the preview went to all of them (Q131); these checks are on one.
+    await invoke("preview:set-view", "page");
   }, 60_000);
   afterAll(async () => {
     await launched?.close();

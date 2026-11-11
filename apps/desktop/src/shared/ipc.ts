@@ -110,6 +110,12 @@ export type PreviewState = {
 
 export type PreviewView = "page" | "pages";
 
+/**
+ * A zoom between the page and the thumbnails (Q133): to the thumbnails, from a
+ * picture of the page shown (`url`); to a page, from its thumbnail.
+ */
+export type PreviewZoom = { to: PreviewView; route: string; url?: string };
+
 /** A page's thumbnail in the "All pages" view: where it goes, and whether it is on screen (Q130). */
 export type GridCell = {
   route: string;
@@ -240,7 +246,8 @@ export type Invokes = {
   "preview:reload": () => void;
   "preview:set-mode": (mode: PreviewMode) => void;
   /** One page or every page (Q128). */
-  "preview:set-view": (view: PreviewView) => void;
+  /** `route`: the page opened, for the zoom from its thumbnail (Q133). */
+  "preview:set-view": (view: PreviewView, route?: string) => void;
   /** A page's right-click menu in the "All pages" view (Q136). */
   "preview:page-menu": (route: string) => void;
   "comments:list": () => PageComment[];
@@ -331,6 +338,8 @@ export type Events = {
   "preview:hover": (route: string | null) => void;
   /** A page's picture in the "All pages" view, as a data URL (Q141). */
   "preview:picture": (picture: { route: string; url: string }) => void;
+  /** The preview goes between one page and all of them: the interface zooms (Q133). */
+  "preview:zoom": (zoom: PreviewZoom) => void;
   /** A page was deleted from its thumbnail's menu: a note offers to undo it (Q137). */
   "preview:page-deleted": (page: { route: string }) => void;
   /** Text to put in the message field, which takes the keyboard ("Ask the agent about it", Q136). */
@@ -419,6 +428,7 @@ export const channels = {
     "preview:hover",
     "preview:picture",
     "preview:page-deleted",
+    "preview:zoom",
     "conversation:prefill",
     "conversation:event",
     "agent:status",

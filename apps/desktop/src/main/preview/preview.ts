@@ -17,6 +17,7 @@ import type {
   PreviewMode,
   PreviewState,
   PreviewView,
+  PreviewZoom,
   ProjectInfo,
   Rect,
   ToPreview,
@@ -53,6 +54,8 @@ export type PreviewOptions = {
   onPicture?: (route: string, url: string) => void;
   /** The preview went to one page or to all of them, by the maker or on its own (Q131). */
   onView?: (view: PreviewView) => void;
+  /** The interface is to zoom between the page and the thumbnails (Q133). */
+  onZoom?: (zoom: PreviewZoom) => void;
   /** The agent began writing a website's second page, or a later one (Q131). */
   onManyPages?: () => void;
 };
@@ -253,9 +256,24 @@ export class Preview {
     this.grid.setCells(this.site ? cells : null, screen);
   }
 
-  /** One page, or every page as thumbnails (Q128). */
-  setView(view: PreviewView) {
+  /**
+   * One page, or every page as thumbnails (Q128). With `animate`, the interface
+   * zooms between them (Q133): going to the thumbnails, it is first given a
+   * picture of the page shown; going to a page, which page it opens.
+   */
+  async setView(view: PreviewView, { route, animate = true }: { route?: string; animate?: boolean } = {}) {
     if (view === this.viewMode) return;
+    if (animate && view === "pages" && this.bounds && this.shown && this.site) {
+      const image = await this.view.webContents.capturePage().catch(() => undefined);
+      if (this.viewMode === view) return;
+      if (image && !image.isEmpty())
+        this.options.onZoom?.({
+          to: "pages",
+          route: this.route ?? "/",
+          url: `data:image/jpeg;base64,${image.toJPEG(85).toString("base64")}`,
+        });
+    }
+    if (animate && view === "page") this.options.onZoom?.({ to: "page", route: route ?? this.route ?? "/" });
     this.viewMode = view;
     this.options.onView?.(view);
     this.emit();

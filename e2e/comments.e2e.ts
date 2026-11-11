@@ -23,6 +23,8 @@ describe("comments on the page", () => {
     await launched.window.getByTestId("conversation").waitFor();
     await invoke("conversation:send", "A bakery in Lyon. Warm colours please.");
     await until(() => launched.window.locator('[data-testid="agent-message"][data-status="done"]').count(), 30_000);
+    // The bakery has two pages: the preview went to all of them (Q131); these checks are on one.
+    await invoke("preview:set-view", "page");
     await invoke("preview:navigate", "/");
     await until(() => page("!!document.querySelector('upstart-editor') && location.pathname === '/'"));
   }, 60_000);

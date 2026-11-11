@@ -15,7 +15,7 @@ import {
   Upload,
 } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { DeviceView, HistoryEntry, PreviewState, ProjectInfo } from "../../shared/ipc";
+import type { DeviceView, HistoryEntry, PreviewState, PreviewZoom, ProjectInfo, Rect } from "../../shared/ipc";
 import { useComments } from "../hooks/useMain";
 import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
@@ -95,6 +95,21 @@ export function PreviewPane({
     const timer = setTimeout(() => setDeleted(undefined), 8000);
     return () => clearTimeout(timer);
   }, [deleted]);
+  // The zoom between the page and the thumbnails (Q133): a picture moved from one place to the other.
+  const pendingZoom = useRef<PreviewZoom>(undefined);
+  const [zoom, setZoom] = useState<Zoom>();
+  const seen = useRef({ rects: {} as Record<string, Rect>, pictures: {} as Record<string, string> });
+  // biome-ignore lint/correctness/useExhaustiveDependencies: another website's pictures are not this one's
+  useLayoutEffect(() => {
+    seen.current = { rects: {}, pictures: {} };
+  }, [project?.id]);
+  useEffect(
+    () =>
+      upstart.on("preview:zoom", (z) => {
+        pendingZoom.current = z;
+      }),
+    [],
+  );
   // Where the device's frame is drawn, under the native view, relative to the area.
   const [frame, setFrame] = useState<{ x: number; y: number; width: number; height: number; radius: number }>();
   const comments = useComments(project?.id);
@@ -109,7 +124,7 @@ export function PreviewPane({
     const element = area.current;
     if (!element) return;
     // The native page view would cover the dialog: it is hidden while the dialog is open.
-    if (dialogOpen || covered || pagesView) {
+    if (dialogOpen || covered || pagesView || zoom) {
       setFrame(undefined);
       upstart.send("preview:bounds", null);
       return;
@@ -152,7 +167,38 @@ export function PreviewPane({
       window.removeEventListener("resize", send);
     };
     // The area also moves when the columns before it change width.
-  }, [layoutKey, dialogOpen, covered, width, landscape, historyOpen, pagesView]);
+  }, [layoutKey, dialogOpen, covered, width, landscape, historyOpen, pagesView, !!zoom]);
+
+  // Where the page is shown in the page view, in the window.
+  const pageRect = (): Rect | undefined => {
+    const r = area.current?.getBoundingClientRect();
+    if (!r) return undefined;
+    const device = DEVICES[width];
+    return device ? deviceLayout(r, device, landscape).rect : { x: r.x, y: r.y, width: r.width, height: r.height };
+  };
+  // On going between the page and the thumbnails, the zoom the main process announced (Q133).
+  const wasPagesView = useRef(pagesView);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only when the view changes
+  useLayoutEffect(() => {
+    const was = wasPagesView.current;
+    wasPagesView.current = pagesView;
+    const z = pendingZoom.current;
+    if (was === pagesView || !z) return;
+    pendingZoom.current = undefined;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const page = pageRect();
+    if (!page) return;
+    if (pagesView && z.to === "pages" && z.url) {
+      const cell = area.current?.querySelector(`[data-route="${CSS.escape(z.route)}"] button`);
+      if (!cell) return;
+      const r = cell.getBoundingClientRect();
+      setZoom({ src: z.url, from: page, to: { x: r.x, y: r.y, width: r.width, height: r.height }, landing: z.route });
+    } else if (!pagesView && z.to === "page") {
+      const from = seen.current.rects[z.route];
+      const src = seen.current.pictures[z.route];
+      if (from && src) setZoom({ src, from, to: page });
+    }
+  }, [pagesView]);
 
   return (
     <main data-testid="preview" className="flex min-w-0 flex-1 flex-col bg-muted/40">
@@ -360,10 +406,12 @@ export function PreviewPane({
               state={state}
               device={DEVICES[width]}
               landscape={landscape}
-              hidden={dialogOpen || covered}
+              hidden={dialogOpen || covered || !!zoom}
               layoutKey={`${String(layoutKey)}-${historyOpen}`}
+              seen={seen}
+              landing={zoom?.landing}
             />
-          ) : (
+          ) : zoom ? null : (
             <>
               <h2 className="text-base font-medium">{project ? t.preview.emptyTitle : t.preview.noProjectTitle}</h2>
               <p className="max-w-80 text-sm text-muted-foreground">
@@ -371,6 +419,7 @@ export function PreviewPane({
               </p>
             </>
           )}
+          {zoom && <ZoomPicture zoom={zoom} onDone={() => setZoom(undefined)} />}
           {dialogOpen && <ExportDialog project={project} working={working} onClose={() => setExporting(false)} />}
         </div>
         {project && historyOpen && (
@@ -378,5 +427,46 @@ export function PreviewPane({
         )}
       </div>
     </main>
+  );
+}
+
+type Zoom = { src: string; from: Rect; to: Rect; landing?: string };
+
+/** A picture of the page moved and resized from where it was to where it goes, in 300 ms (Q133). */
+function ZoomPicture({ zoom, onDone }: { zoom: Zoom; onDone: () => void }) {
+  const box = useRef<HTMLDivElement>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: one animation per zoom
+  useLayoutEffect(() => {
+    const element = box.current;
+    if (!element) return;
+    const at = (r: Rect, radius: number) => ({
+      left: `${r.x}px`,
+      top: `${r.y}px`,
+      width: `${r.width}px`,
+      height: `${r.height}px`,
+      borderRadius: `${radius}px`,
+    });
+    const toGrid = zoom.landing !== undefined;
+    const animation = element.animate([at(zoom.from, toGrid ? 0 : 6), at(zoom.to, toGrid ? 6 : 0)], {
+      duration: 300,
+      easing: "cubic-bezier(0.2, 0, 0, 1)",
+      fill: "forwards",
+    });
+    animation.onfinish = onDone;
+    return () => {
+      animation.onfinish = null;
+      animation.cancel();
+    };
+  }, [zoom]);
+  return (
+    <div
+      ref={box}
+      data-testid="preview-zoom"
+      aria-hidden
+      className="pointer-events-none fixed z-40 overflow-hidden bg-white shadow-lg ring-1 ring-black/10"
+      style={{ left: zoom.from.x, top: zoom.from.y, width: zoom.from.width, height: zoom.from.height }}
+    >
+      <img src={zoom.src} alt="" draggable={false} className="block h-auto w-full" />
+    </div>
   );
 }
