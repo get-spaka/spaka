@@ -43,6 +43,21 @@ describe("the gallery of blocks", () => {
     await launched.window.screenshot({ path: join(__dirname, ".runs/gallery-tab.png") });
   }, 40_000);
 
+  test("the search bar narrows the blocks as one types, in English or French", async () => {
+    const search = launched.window.getByTestId("blocks-search");
+    const cards = launched.window.getByTestId("block");
+    await search.fill("Pricing");
+    await until(async () => (await cards.count()) < blocks.length);
+    const pricing = blocks.filter((b) => b.kind === "pricing").length;
+    expect(await cards.count()).toBe(pricing);
+    await search.fill("tarif");
+    await until(async () => (await cards.count()) === pricing);
+    await search.fill("zzzz");
+    await launched.window.getByTestId("blocks-none").waitFor();
+    await search.press("Escape");
+    await until(async () => (await cards.count()) === blocks.length);
+  });
+
   test("resting on a block shows it large over the top of the preview, rendered for real (Q109)", async () => {
     const hero = blocks.find((b) => b.kind === "hero")!;
     const peek = () =>
@@ -80,10 +95,10 @@ describe("the gallery of blocks", () => {
     await until(async () => !(await peek()).visible, 5_000);
   });
 
-  test("Add puts a block where its kind usually goes, as a part of its own", async () => {
+  test("a block added goes where its kind usually goes, as a part of its own", async () => {
     const before = home();
     const cta = blocks.find((b) => b.kind === "cta")!;
-    await launched.window.locator(`[data-block="${cta.id}"] [data-testid="block-add"]`).click();
+    await invoke("gallery:add", cta.id);
     await until(async () => home() !== before);
     expect(home()).toContain(`{% render '${cta.id}' %}`);
     expect(existsSync(join(path, `parts/${cta.id}.liquid`))).toBe(true);
@@ -92,7 +107,7 @@ describe("the gallery of blocks", () => {
     // The page shows it.
     await until(() => page(`!!document.querySelector('[data-up-src^="parts/${cta.id}.liquid"]')`));
     // Added again: a second, independent part.
-    await launched.window.locator(`[data-block="${cta.id}"] [data-testid="block-add"]`).click();
+    await invoke("gallery:add", cta.id);
     await until(async () => home().includes(`{% render '${cta.id}-2' %}`));
   });
 

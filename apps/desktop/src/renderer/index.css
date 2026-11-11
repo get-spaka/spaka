@@ -82,6 +82,28 @@
   }
 }
 
+/* Thin, quiet scrollbars: a slim thumb, shown while the pointer is over what scrolls. */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  background-clip: padding-box;
+  background-color: transparent;
+}
+:hover::-webkit-scrollbar-thumb {
+  background-color: color-mix(in oklab, var(--foreground) 18%, transparent);
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in oklab, var(--foreground) 32%, transparent);
+}
+
 @utility drag-region {
   -webkit-app-region: drag;
 }

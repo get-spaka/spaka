@@ -120,6 +120,8 @@ export class Preview {
     this.site = site;
     site.watcher = this.watch(site);
     this.shown = runtime.routes().length > 0;
+    // Hidden by close() above: a project with pages is shown again at once.
+    this.layout();
     await this.navigate(runtime.routes()[0]?.route ?? "/");
   }
 

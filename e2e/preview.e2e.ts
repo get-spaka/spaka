@@ -112,7 +112,23 @@ describe("a project folder in the preview", () => {
     );
   });
 
-  test("the project is listed and reopens", async () => {
+  test("the project is listed and reopens, its page shown", async () => {
     await expect(launched.window.getByTestId("project-item").allTextContents()).resolves.toEqual(["Chez Margot"]);
+    const visible = () =>
+      launched.app.evaluate(() =>
+        // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+        (globalThis as any).upstart.preview.view.getVisible(),
+      );
+    expect(await visible()).toBe(true);
+    // Another project, then back to this one from the list.
+    await launched.window.evaluate(() =>
+      // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
+      (window as any).upstart.invoke("projects:create", "Second"),
+    );
+    await launched.window.getByTestId("project-item").filter({ hasText: "Chez Margot" }).click();
+    await until("document.title.length > 0 && location.pathname === '/'");
+    const started = Date.now();
+    while (!(await visible()) && Date.now() - started < 3000) await new Promise((r) => setTimeout(r, 50));
+    expect(await visible()).toBe(true);
   });
 });

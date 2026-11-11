@@ -171,7 +171,11 @@ export const en = {
     noProject: "The theme appears once the agent has written it.",
   },
   gallery: {
-    intro: "Drag a block into the page, or add it. It becomes a shared part you can edit in place.",
+    intro:
+      "Drag a block into the page, where a line shows where it goes. It becomes a shared part you can edit in place.",
+    search: "Search blocks",
+    clearSearch: "Clear the search",
+    noMatch: (query: string) => `No block matches “${query}”.`,
     kinds: {
       header: "Headers",
       hero: "Heroes",
@@ -182,8 +186,6 @@ export const en = {
       cta: "Calls to action",
       footer: "Footers",
     },
-    add: "Add",
-    addTitle: (name: string) => `Add “${name}” to the page`,
     drawing: "Drawing…",
     noPage: "Open a page of the website to add blocks to it.",
     busy: "The agent is working: blocks can be added once it is done.",
