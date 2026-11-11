@@ -102,6 +102,22 @@ export type PreviewState = {
   mode: PreviewMode;
   /** A short hash of the project's theme: the gallery's thumbnails are drawn again when it changes. */
   theme: string;
+  /** One page, or every page as thumbnails (Q128). */
+  view: PreviewView;
+  /** The page the agent is writing, while it is (Q134). */
+  writing: string | null;
+};
+
+export type PreviewView = "page" | "pages";
+
+/** A page's thumbnail in the "All pages" view: where it goes, and whether it is on screen (Q130). */
+export type GridCell = {
+  route: string;
+  /** What shows of it: a thumbnail partly scrolled out is cut to the part on screen. */
+  rect: Rect;
+  visible: boolean;
+  /** How much of its top is scrolled out, in the interface's pixels: its page moves up by as much. */
+  clipTop?: number;
 };
 
 /** A model the maker can pick, with the effort levels it accepts. */
@@ -223,6 +239,10 @@ export type Invokes = {
   "preview:navigate": (route: string) => void;
   "preview:reload": () => void;
   "preview:set-mode": (mode: PreviewMode) => void;
+  /** One page or every page (Q128). */
+  "preview:set-view": (view: PreviewView) => void;
+  /** A page's right-click menu in the "All pages" view (Q136). */
+  "preview:page-menu": (route: string) => void;
   "comments:list": () => PageComment[];
   /** Sends the open project's comments to the agent as one message (Q95). */
   "comments:send": () => void;
@@ -292,6 +312,11 @@ export type Sends = {
   /** Where the preview sits in the window, in CSS pixels; null to hide it. */
   /** `area` is the whole of the preview's column, when a device is shown smaller inside it. */
   "preview:bounds": (rect: Rect | null, device?: DeviceView, area?: Rect) => void;
+  /**
+   * The thumbnails of the "All pages" view, in CSS pixels, and the screen their
+   * pages are laid out on (Q129); null hides them.
+   */
+  "preview:grid": (cells: GridCell[] | null, screen?: { width: number; height: number; mobile: boolean }) => void;
   /** Shows a gallery block large over the preview while the pointer rests on it (Q109); null hides it. */
   "gallery:peek": (id: string | null) => void;
 };
@@ -302,6 +327,10 @@ export type Events = {
   /** A project was opened, or null when none is open any more. */
   "project:opened": (project: ProjectInfo | null) => void;
   "preview:state": (state: PreviewState) => void;
+  /** The pointer is over a page's thumbnail, or left it (Q132). */
+  "preview:hover": (route: string | null) => void;
+  /** A page's picture in the "All pages" view, as a data URL (Q141). */
+  "preview:picture": (picture: { route: string; url: string }) => void;
   "conversation:event": (message: { projectId: string; event: ConversationEvent }) => void;
   "agent:status": (status: AgentStatus) => void;
   "history:changed": (message: { projectId: string; entries: HistoryEntry[] }) => void;
@@ -335,6 +364,8 @@ export const channels = {
     "preview:navigate",
     "preview:reload",
     "preview:set-mode",
+    "preview:set-view",
+    "preview:page-menu",
     "comments:list",
     "comments:send",
     "comments:discard",
@@ -376,11 +407,13 @@ export const channels = {
     "theme:show",
     "theme:apply",
   ],
-  send: ["app:ready", "preview:bounds", "gallery:peek"],
+  send: ["app:ready", "preview:bounds", "preview:grid", "gallery:peek"],
   events: [
     "projects:changed",
     "project:opened",
     "preview:state",
+    "preview:hover",
+    "preview:picture",
     "conversation:event",
     "agent:status",
     "history:changed",
@@ -422,7 +455,9 @@ export type ToPreview =
   /** The maker's comments, all pages included, so the page can show its own. */
   | { type: "comments"; comments: PageComment[] }
   /** Hides Upstart's own drawings in the page while a capture is taken; answered by "chrome-hidden". */
-  | { type: "chrome"; hidden: boolean };
+  | { type: "chrome"; hidden: boolean }
+  /** A thumbnail partly scrolled out at the top: its page moves up by this many of its own pixels. */
+  | { type: "clip"; top: number };
 
 /**
  * Edit: a click selects, a double click edits a text. Comment: a click opens
@@ -450,7 +485,9 @@ export type FromPreview =
   | { type: "loaded"; path: string; title: string }
   | { type: "rendered"; ms: number }
   | { type: "error"; message: string; source?: string }
-  | { type: "chrome-hidden" };
+  | { type: "chrome-hidden" }
+  /** A thumbnail of the "All pages" view was clicked, right-clicked, or the pointer came or left (Q132). */
+  | { type: "thumb"; action: "click" | "menu" | "enter" | "leave" };
 
 /** Calls from the preview's script that get an answer (the edits it asks for). */
 export type PreviewInvokes = {

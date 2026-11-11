@@ -11,14 +11,17 @@ import { type BrowserWindow, shell, WebContentsView } from "electron";
 import type {
   DeviceView,
   FromPreview,
+  GridCell,
   PageComment,
   PreviewInvokes,
   PreviewMode,
   PreviewState,
+  PreviewView,
   ProjectInfo,
   Rect,
   ToPreview,
 } from "../../shared/ipc";
+import { PageGrid, pictureKey, type ThumbnailAction, type ThumbnailScreen } from "./grid";
 import { PreviewServer, VENDOR_BASE } from "./server";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
@@ -44,6 +47,10 @@ export type PreviewOptions = {
   block?: (id: string) => string | undefined;
   /** A shipped font's file, from its path under /__up/fonts/, for a theme shown before it is written. */
   font?: (path: string) => string | undefined;
+  /** A page's thumbnail in the "All pages" view was clicked, right-clicked or hovered (Q132). */
+  onThumb?: (route: string, action: ThumbnailAction) => void;
+  /** A page's picture in the "All pages" view, new or taken again (Q141). */
+  onPicture?: (route: string, url: string) => void;
 };
 
 export class Preview {
@@ -67,6 +74,13 @@ export class Preview {
   private mode: PreviewMode = "edit";
   private paused = false;
   private chromeHidden: (() => void) | undefined;
+  /** Every page as thumbnails (Q128): their views, and which view is shown. */
+  readonly grid: PageGrid;
+  private viewMode: PreviewView = "page";
+  /** The page the agent is writing (Q134). */
+  private writing: string | null = null;
+  /** For checks: how long the last renderings took, in milliseconds, thumbnails included. */
+  readonly pushTimes: number[] = [];
 
   constructor(
     private readonly win: BrowserWindow,
@@ -91,6 +105,20 @@ export class Preview {
     this.view.setVisible(false);
     win.contentView.addChildView(this.view);
     this.guard();
+    this.grid = new PageGrid(win, {
+      origin: () => this.origin,
+      preload: join(here, "../preload/preview.cjs"),
+      background: options.background,
+      onAction: (route, action) => options.onThumb?.(route, action),
+      wantsRendering: () => this.refresh(true),
+      keyOf: (route) => {
+        const site = this.site;
+        if (!site?.runtime.resolve(route)) return undefined;
+        const result = site.runtime.renderRoute(route);
+        return result.status === 200 ? pictureKey(result.html, site.runtime.theme()) : undefined;
+      },
+      onPicture: (route, url) => options.onPicture?.(route, url),
+    });
   }
 
   async start() {
@@ -129,6 +157,8 @@ export class Preview {
     this.site?.watcher?.close();
     this.site = undefined;
     this.route = null;
+    this.writing = null;
+    this.grid.clear();
     this.shown = false;
     this.layout();
     this.emit();
@@ -214,8 +244,38 @@ export class Preview {
     }, wait);
   }
 
+  /** The "All pages" thumbnails, where the interface put them; null hides them. */
+  setGrid(cells: GridCell[] | null, screen?: ThumbnailScreen) {
+    this.grid.setCells(this.site ? cells : null, screen);
+  }
+
+  /** One page, or every page as thumbnails (Q128). */
+  setView(view: PreviewView) {
+    if (view === this.viewMode) return;
+    this.viewMode = view;
+    this.emit();
+  }
+
+  get currentView() {
+    return this.viewMode;
+  }
+
+  /** The agent's turn is over: no page is being written. */
+  doneWriting() {
+    if (this.writing === null) return;
+    this.writing = null;
+    this.grid.setWriting(null);
+    this.emit();
+  }
+
   /** Points the preview at a page, when the agent starts writing it. */
   follow(file: string) {
+    const writing = this.site?.runtime.routeOf(file);
+    if (writing !== undefined && writing !== this.writing) {
+      this.writing = writing;
+      this.grid.setWriting(writing);
+      this.emit();
+    }
     if (!this.following) return;
     const route = this.site?.runtime.routeOf(file);
     if (route !== undefined && route !== this.route) {
@@ -317,10 +377,19 @@ export class Preview {
       loading: this.loading,
       mode: this.mode,
       theme: this.site ? createHash("sha256").update(this.site.runtime.theme()).digest("hex").slice(0, 12) : "",
+      view: this.viewMode,
+      writing: this.site ? this.writing : null,
     };
   }
 
   private push() {
+    const started = performance.now();
+    this.pushNow();
+    this.pushTimes.push(Math.round((performance.now() - started) * 10) / 10);
+    if (this.pushTimes.length > 500) this.pushTimes.shift();
+  }
+
+  private pushNow() {
     const site = this.site;
     const pending = this.pending;
     this.pending = undefined;
@@ -328,6 +397,10 @@ export class Preview {
     this.lastPush = Date.now();
     const theme = site.runtime.theme();
     this.send({ type: "theme", css: theme });
+    this.grid.setTheme(theme);
+    this.pushGrid(site, pending.final);
+    // A file is complete: the pictures of the pages it changed are taken again (Q141).
+    if (pending.final) this.grid.filesChanged();
     // A theme is the first thing the agent writes: the empty page in the
     // site's colours is shown at once, before the first text (decisions).
     if (!this.shown && /--theme-[\w-]+\s*:[^;]+;/.test(theme)) {
@@ -357,6 +430,17 @@ export class Preview {
       this.layout();
     }
     this.emit();
+  }
+
+  /** Each page on screen in the "All pages" view gets its rendering (Q130), by the same rules as the page. */
+  private pushGrid(site: OpenSite, final: boolean) {
+    for (const route of this.grid.live()) {
+      if (!site.runtime.resolve(route)) continue;
+      const result = site.runtime.renderRoute(route);
+      if (result.status !== 200) continue;
+      if (site.overlay.size > 0 && !hasVisibleBody(result.html)) continue;
+      this.grid.render(route, result.html, final && site.overlay.size === 0);
+    }
   }
 
   private send(message: ToPreview) {

@@ -2,6 +2,7 @@ import {
   ChevronDown,
   Eye,
   Globe,
+  LayoutGrid,
   MessageSquarePlus,
   Monitor,
   MousePointer2,
@@ -9,6 +10,7 @@ import {
   RotateCwSquare,
   Send,
   Smartphone,
+  Square,
   Tablet,
   Upload,
 } from "lucide-react";
@@ -20,6 +22,7 @@ import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { ExportDialog } from "./ExportDialog";
 import { HistoryButtons, HistoryList } from "./HistoryPanel";
+import { PagesGrid } from "./PagesGrid";
 import { Button } from "./ui/button";
 
 /**
@@ -88,6 +91,8 @@ export function PreviewPane({
   const [frame, setFrame] = useState<{ x: number; y: number; width: number; height: number; radius: number }>();
   const comments = useComments(project?.id);
   const dialogOpen = exporting && project !== null;
+  // Every page as thumbnails (Q128), once the website has two (Q140).
+  const pagesView = !!project && state.view === "pages" && state.routes.length >= 2;
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new project closes the dialog
   useLayoutEffect(() => setExporting(false), [project?.id]);
 
@@ -96,7 +101,8 @@ export function PreviewPane({
     const element = area.current;
     if (!element) return;
     // The native page view would cover the dialog: it is hidden while the dialog is open.
-    if (dialogOpen || covered) {
+    if (dialogOpen || covered || pagesView) {
+      setFrame(undefined);
       upstart.send("preview:bounds", null);
       return;
     }
@@ -138,7 +144,7 @@ export function PreviewPane({
       window.removeEventListener("resize", send);
     };
     // The area also moves when the columns before it change width.
-  }, [layoutKey, dialogOpen, covered, width, landscape, historyOpen]);
+  }, [layoutKey, dialogOpen, covered, width, landscape, historyOpen, pagesView]);
 
   return (
     <main data-testid="preview" className="flex min-w-0 flex-1 flex-col bg-muted/40">
@@ -150,7 +156,10 @@ export function PreviewPane({
               aria-label={t.preview.pages}
               data-testid="page-select"
               value={state.route ?? ""}
-              onChange={(event) => void upstart.invoke("preview:navigate", event.target.value)}
+              onChange={(event) => {
+                const route = event.target.value;
+                void upstart.invoke("preview:set-view", "page").then(() => upstart.invoke("preview:navigate", route));
+              }}
               className="h-7 appearance-none rounded-md border bg-background pr-7 pl-7 text-xs font-medium outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/30"
             >
               {state.route !== null && !state.routes.some((r) => r.route === state.route) && (
@@ -166,6 +175,30 @@ export function PreviewPane({
           </label>
         )}
         <div className="flex-1" />
+        {project && state.routes.length >= 2 && (
+          <div className="no-drag flex items-center rounded-md border p-0.5" data-testid="preview-view">
+            {(
+              [
+                ["page", Square, t.preview.pageView],
+                ["pages", LayoutGrid, t.preview.allPages],
+              ] as const
+            ).map(([view, Icon, title]) => (
+              <Button
+                key={view}
+                variant="ghost"
+                size="icon-sm"
+                className={cn("size-6", state.view === view && "bg-accent")}
+                title={title}
+                aria-label={title}
+                aria-pressed={state.view === view}
+                data-testid={`view-${view}`}
+                onClick={() => void upstart.invoke("preview:set-view", view)}
+              >
+                <Icon />
+              </Button>
+            ))}
+          </div>
+        )}
         {project && state.routes.length > 0 && (
           <>
             <div className="no-drag flex items-center rounded-md border p-0.5" data-testid="preview-mode">
@@ -295,10 +328,22 @@ export function PreviewPane({
               }}
             />
           )}
-          <h2 className="text-base font-medium">{project ? t.preview.emptyTitle : t.preview.noProjectTitle}</h2>
-          <p className="max-w-80 text-sm text-muted-foreground">
-            {project ? t.preview.emptyText : t.preview.noProjectText}
-          </p>
+          {pagesView ? (
+            <PagesGrid
+              state={state}
+              device={DEVICES[width]}
+              landscape={landscape}
+              hidden={dialogOpen || covered}
+              layoutKey={`${String(layoutKey)}-${historyOpen}`}
+            />
+          ) : (
+            <>
+              <h2 className="text-base font-medium">{project ? t.preview.emptyTitle : t.preview.noProjectTitle}</h2>
+              <p className="max-w-80 text-sm text-muted-foreground">
+                {project ? t.preview.emptyText : t.preview.noProjectText}
+              </p>
+            </>
+          )}
           {dialogOpen && <ExportDialog project={project} working={working} onClose={() => setExporting(false)} />}
         </div>
         {project && historyOpen && (

@@ -14,25 +14,64 @@ const send = (message: FromPreview) => ipcRenderer.send("preview:event", message
 const invoke = <C extends keyof PreviewInvokes>(channel: C, ...args: Parameters<PreviewInvokes[C]>) =>
   ipcRenderer.invoke(channel, ...args) as Promise<ReturnType<PreviewInvokes[C]>>;
 
-const editor = new Editor(
-  {
-    edit: (action) => invoke("preview:edit", action),
-    info: (file, at) => invoke("preview:edit-info", file, at),
-    save: (comment) => invoke("preview:comment-save", comment),
-    remove: (id) => invoke("preview:comment-remove", id),
-    send: () => invoke("preview:comments-send"),
-    discard: () => invoke("preview:comments-discard"),
-  },
-  process.argv.includes("--upstart-checks"),
-);
+/**
+ * A thumbnail of the "All pages" view (Q129–Q132): the page as it renders,
+ * nothing else. It takes no click on its content; the click, the right click
+ * and the pointer coming and going are passed on.
+ */
+const thumbnail = process.argv.includes("--upstart-thumbnail");
+
+const editor = thumbnail
+  ? undefined
+  : new Editor(
+      {
+        edit: (action) => invoke("preview:edit", action),
+        info: (file, at) => invoke("preview:edit-info", file, at),
+        save: (comment) => invoke("preview:comment-save", comment),
+        remove: (id) => invoke("preview:comment-remove", id),
+        send: () => invoke("preview:comments-send"),
+        discard: () => invoke("preview:comments-discard"),
+      },
+      process.argv.includes("--upstart-checks"),
+    );
+
+if (thumbnail) {
+  const stop = (event: Event) => {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  };
+  for (const type of ["mousedown", "mouseup", "dblclick", "auxclick", "keydown", "submit"])
+    addEventListener(type, stop, true);
+  addEventListener("wheel", stop, { capture: true, passive: false });
+  addEventListener(
+    "click",
+    (event) => {
+      stop(event);
+      send({ type: "thumb", action: "click" });
+    },
+    true,
+  );
+  addEventListener(
+    "contextmenu",
+    (event) => {
+      stop(event);
+      send({ type: "thumb", action: "menu" });
+    },
+    true,
+  );
+  // The pointer comes from, or goes to, outside the page.
+  addEventListener("mouseover", (event) => !event.relatedTarget && send({ type: "thumb", action: "enter" }));
+  addEventListener("mouseout", (event) => !event.relatedTarget && send({ type: "thumb", action: "leave" }));
+}
 
 ipcRenderer.on("preview:message", (_event, message: ToPreview) => {
   if (message.type === "render") render(message.html, message.final);
   else if (message.type === "theme") setTheme(message.css);
-  else if (message.type === "editor") editor.set(message.mode, message.paused);
-  else if (message.type === "comments") editor.setComments(message.comments);
+  else if (message.type === "clip") thumbStyle(message.top);
+  else if (message.type === "editor") editor?.set(message.mode, message.paused);
+  else if (message.type === "comments") editor?.setComments(message.comments);
   else if (message.type === "chrome") {
-    editor.setHidden(message.hidden);
+    editor?.setHidden(message.hidden);
     // Answered once the page has drawn itself without them.
     requestAnimationFrame(() => requestAnimationFrame(() => send({ type: "chrome-hidden" })));
   }
@@ -43,7 +82,8 @@ const ran = new WeakSet<Element>();
 
 window.addEventListener("DOMContentLoaded", () => {
   for (const script of document.querySelectorAll("script")) ran.add(script);
-  editor.attach();
+  editor?.attach();
+  if (thumbnail) thumbStyle(clipped);
   send({ type: "loaded", path: location.pathname, title: document.title });
 });
 window.addEventListener("error", (event) => {
@@ -86,7 +126,7 @@ function render(html: string, final: boolean) {
     // htmx lives in the page's world: ask it, from there, to take the new elements in hand.
     pageWorld("window.htmx && htmx.process(document.body)");
   }
-  editor.rendered();
+  editor?.rendered();
   send({ type: "rendered", ms: performance.now() - started });
 }
 
@@ -134,6 +174,24 @@ function pageWorld(code: string) {
   script.textContent = code;
   document.documentElement.append(script);
   script.remove();
+}
+
+/**
+ * A thumbnail stays at the top of its page, without scrollbars; one partly
+ * scrolled out of the grid moves its page up by what is hidden. In a style of
+ * its own in the head, which the renderings leave alone.
+ */
+let clipped = 0;
+function thumbStyle(top: number) {
+  clipped = top;
+  if (!document.head) return;
+  let style = document.getElementById("up-thumb");
+  if (!style) {
+    style = document.createElement("style");
+    style.id = "up-thumb";
+    document.head.append(style);
+  }
+  style.textContent = `html{overflow:hidden!important;scrollbar-width:none!important${top ? `;translate:0 ${-top}px` : ""}}`;
 }
 
 function setTheme(css: string) {

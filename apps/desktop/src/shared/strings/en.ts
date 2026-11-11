@@ -90,6 +90,12 @@ export const en = {
     failed: "Signing in did not finish. Try again.",
   },
   preview: {
+    pageView: "Page",
+    allPages: "All pages",
+    views: "Page or all pages",
+    home: "Home",
+    writing: "Writing…",
+    openPage: (name: string) => `Open ${name}`,
     emptyTitle: "Your website appears here",
     emptyText: "As soon as the agent starts writing, you see the page take shape.",
     noProjectTitle: "Start a new website",

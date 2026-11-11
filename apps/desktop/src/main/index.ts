@@ -9,6 +9,7 @@ import {
   type HistoryEntry,
   type PageComment,
   type ProjectInfo,
+  type Rect,
   SETTINGS_PAGES,
   type SettingsPage,
 } from "../shared/ipc";
@@ -161,6 +162,16 @@ async function main() {
     font: (path) => fonts.path(path),
     background: env.background,
     onState: (state) => ipc.emit("preview:state", state),
+    // The "All pages" thumbnails (Q132): a click opens the page; the pointer over one raises it.
+    onThumb: (route, action) => {
+      if (action === "click") {
+        preview.setView("page");
+        void preview.navigate(route, true);
+      } else if (action === "enter") ipc.emit("preview:hover", route);
+      else if (action === "leave") ipc.emit("preview:hover", null);
+      else if (action === "menu") pageMenu(route);
+    },
+    onPicture: (route, url) => ipc.emit("preview:picture", { route, url }),
     invokes: {
       "preview:edit": (action) => editor.apply(action),
       "preview:edit-info": (file, at) => editor.info(file, at),
@@ -238,6 +249,7 @@ async function main() {
       // Editing by hand waits while the agent works on the project shown (Q91).
       if (projectId === current?.id && (event.type === "turn-start" || event.type === "turn-end"))
         preview.setPaused(event.type === "turn-start");
+      if (projectId === current?.id && event.type === "turn-end") preview.doneWriting();
       // A version of the project after each turn of the agent (decisions: history).
       if (event.type === "turn-end" && history?.projectId === projectId) {
         history.store.snapshot("turn", history.lastMessage ?? "");
@@ -478,18 +490,24 @@ async function main() {
   });
   ipc.handle("preview:navigate", (route) => preview.navigate(route, true));
   ipc.handle("preview:reload", () => preview.reload());
-  ipc.on("preview:bounds", (rect, device, area) => {
-    // The interface measures in its own pixels, drawn larger or smaller by the text size.
+  // The interface measures in its own pixels, drawn larger or smaller by the text size.
+  const scaled = <R extends Rect | null>(r: R): R => {
     const zoom = win.webContents.getZoomFactor();
-    const scaled = (r: typeof rect) =>
-      r && {
-        x: Math.round(r.x * zoom),
-        y: Math.round(r.y * zoom),
-        width: Math.round(r.width * zoom),
-        height: Math.round(r.height * zoom),
-      };
+    return (r && {
+      x: Math.round(r.x * zoom),
+      y: Math.round(r.y * zoom),
+      width: Math.round(r.width * zoom),
+      height: Math.round(r.height * zoom),
+    }) as R;
+  };
+  ipc.on("preview:bounds", (rect, device, area) => {
     preview.setBounds(scaled(rect), device);
     peek.setArea(scaled(rect && (area ?? rect)));
+  });
+  // A thumbnail's right-click menu (Q136), built in the next slice.
+  const pageMenu = (_route: string) => {};
+  ipc.on("preview:grid", (cells, screen) => {
+    preview.setGrid(cells?.map((c) => ({ ...c, rect: scaled(c.rect) })) ?? null, screen);
   });
 
   ipc.handle("conversation:get", () =>
@@ -622,6 +640,7 @@ async function main() {
   win.on("closed", () => {
     thumbnails.close();
     peek.close();
+    preview.grid.close();
   });
   ipc.handle("gallery:list", () => gallery.list().map(described));
   ipc.handle("gallery:thumbnail", (id) => {
@@ -674,6 +693,8 @@ async function main() {
   ipc.handle("comments:list", () => (current ? comments.list(current.id) : []));
   ipc.handle("comments:send", () => sendComments());
   ipc.handle("comments:discard", () => void discardComments());
+  ipc.handle("preview:page-menu", (route) => pageMenu(route));
+  ipc.handle("preview:set-view", (view) => preview.setView(view === "pages" ? "pages" : "page"));
   ipc.handle("preview:set-mode", (mode) => preview.setMode(mode === "visitor" || mode === "comment" ? mode : "edit"));
   ipc.handle("agent:status", () => agent.status());
   ipc.handle("agent:sign-in", (method) => {
