@@ -110,6 +110,7 @@ describe("in pages", () => {
       file: "pages/blog/[posts].liquid",
       record: { datasource: "posts", id: "hello-world" },
       group: "Posts",
+      title: "Hello world",
     });
     const result = runtime.renderRoute("/blog/hello-world");
     expect(result.status).toBe(200);

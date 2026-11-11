@@ -34,6 +34,8 @@ export type Route = {
   record?: { datasource: string; id: string };
   /** The label of the datasource a record's page belongs to, for grouping (Q164). */
   group?: string;
+  /** A record's page's name: its first text field (Q164). */
+  title?: string;
   /** A page the runtime makes, with no file of the project's: the image credits (Q157). */
   generated?: boolean;
 };
@@ -113,12 +115,14 @@ export class Runtime {
       // pages/blog/[posts].liquid: a page per record, at its id (Q147).
       const ds = this.datasource(bracket.name, false);
       if (!ds || ds.standIns) continue;
+      const named = ds.definition?.fields.find((f) => f.kind === "text")?.name ?? "title";
       for (const record of ds.records)
         records.push({
           route: `/${route.slice(0, bracket.at)}${record.id}${route.slice(bracket.end)}`.replace(/\/+$/, "") || "/",
           file,
           record: { datasource: bracket.name, id: record.id },
           group: ds.definition?.label ?? titleOf(bracket.name),
+          title: typeof record[named] === "string" && record[named] ? (record[named] as string) : record.id,
         });
     }
     pages.sort((a, b) => (a.route === "/" ? -1 : b.route === "/" ? 1 : a.route.localeCompare(b.route)));

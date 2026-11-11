@@ -56,6 +56,8 @@ export const en = {
       theme: "Theme changed",
       pageDuplicated: "Page duplicated",
       pageDeleted: "Page deleted",
+      recordDuplicated: "Record duplicated",
+      recordDeleted: "Record deleted",
     },
     homeKept: "The home page cannot be deleted.",
   },

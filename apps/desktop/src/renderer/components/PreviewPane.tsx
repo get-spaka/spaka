@@ -96,8 +96,11 @@ export function PreviewPane({
   const [landscape, setLandscape] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   // "Menu deleted · Undo" (Q137), for a few seconds after a page is deleted from its thumbnail.
-  const [deleted, setDeleted] = useState<{ route: string; at: number }>();
-  useEffect(() => upstart.on("preview:page-deleted", ({ route }) => setDeleted({ route, at: Date.now() })), []);
+  const [deleted, setDeleted] = useState<{ route: string; name?: string; at: number }>();
+  useEffect(
+    () => upstart.on("preview:page-deleted", ({ route, name }) => setDeleted({ route, name, at: Date.now() })),
+    [],
+  );
   useEffect(() => {
     if (!deleted) return;
     const timer = setTimeout(() => setDeleted(undefined), 8000);
@@ -169,7 +172,8 @@ export function PreviewPane({
   const comments = useComments(project?.id);
   const dialogOpen = exporting && project !== null;
   // Every page as thumbnails (Q128), once the website has two (Q140).
-  const pagesView = !!project && state.view === "pages" && state.routes.length >= 2;
+  const pageCount = state.routes.filter((r) => !r.generated).length;
+  const pagesView = !!project && state.view === "pages" && pageCount >= 2;
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new project closes the dialog
   useLayoutEffect(() => setExporting(false), [project?.id]);
 
@@ -301,10 +305,23 @@ export function PreviewPane({
               {state.route !== null && !state.routes.some((r) => r.route === state.route) && (
                 <option value={state.route}>{state.route}</option>
               )}
-              {state.routes.map((r) => (
-                <option key={r.route} value={r.route}>
-                  {r.route}
-                </option>
+              {state.routes
+                .filter((r) => !r.group)
+                .map((r) => (
+                  <option key={r.route} value={r.route}>
+                    {r.route}
+                  </option>
+                ))}
+              {[...new Set(state.routes.flatMap((r) => (r.group ? [r.group] : [])))].map((group) => (
+                <optgroup key={group} label={group}>
+                  {state.routes
+                    .filter((r) => r.group === group)
+                    .map((r) => (
+                      <option key={r.route} value={r.route}>
+                        {r.route}
+                      </option>
+                    ))}
+                </optgroup>
               ))}
             </select>
             <ChevronDown className="pointer-events-none absolute right-2 size-3.5 text-muted-foreground" />
@@ -316,7 +333,7 @@ export function PreviewPane({
             data-testid="page-deleted"
             className="no-drag flex items-center gap-2 rounded-md bg-foreground py-1 pr-1 pl-2.5 text-xs text-background"
           >
-            {t.preview.pageDeleted(pageName(deleted.route))}
+            {t.preview.pageDeleted(pageName(deleted.route, deleted.name))}
             <button
               type="button"
               data-testid="page-deleted-undo"
@@ -330,7 +347,7 @@ export function PreviewPane({
             </button>
           </div>
         )}
-        {project && state.routes.length >= 2 && (
+        {project && pageCount >= 2 && (
           <div className="no-drag flex items-center rounded-md border p-0.5" data-testid="preview-view">
             {(
               [

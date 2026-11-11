@@ -333,7 +333,12 @@ export class Preview {
       this.writing = writing;
       this.grid.setWriting(writing);
       this.emit();
-      const routes = new Set(this.site?.runtime.routes().map((r) => r.route));
+      const routes = new Set(
+        this.site?.runtime
+          .routes()
+          .filter((r) => !r.generated)
+          .map((r) => r.route),
+      );
       routes.add(writing);
       if (routes.size >= 2) this.options.onManyPages?.();
     }

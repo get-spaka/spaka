@@ -3,6 +3,7 @@ import { existsSync, type FSWatcher, mkdirSync, readFileSync, watch, writeFileSy
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { query } from "@anthropic-ai/claude-agent-sdk";
+import { recordFile } from "@upstart/runtime";
 import { app, BrowserWindow, dialog, Menu, Notification, safeStorage, shell } from "electron";
 import {
   type ConnectorInfo,
@@ -548,20 +549,30 @@ async function main() {
         void dialog.showMessageBox(win, { type: "info", message: error.message });
       }
     };
+    // A record's page: its menu's Duplicate and Delete act on the record (Q164).
+    const page = preview.state().routes.find((r) => r.route === route);
+    if (page?.generated) return [];
+    const record = page?.record && recordFile(page.record.datasource, page.record.id);
+    const shown = record ?? file;
     return [
       {
         label: m.open,
         click: () => void preview.openPage(route),
       },
       { type: "separator" },
-      { label: m.duplicate, enabled: !busy, click: () => edit(() => editor.duplicatePage(file)) },
+      {
+        label: m.duplicate,
+        enabled: !busy,
+        click: () => edit(() => (record ? editor.duplicateRecord(record) : editor.duplicatePage(file))),
+      },
       {
         label: m.delete,
         enabled: !busy && route !== "/",
         click: () =>
           edit(() => {
-            editor.deletePage(file, route === "/");
-            ipc.emit("preview:page-deleted", { route });
+            if (record) editor.deleteRecord(record);
+            else editor.deletePage(file, route === "/");
+            ipc.emit("preview:page-deleted", { route, name: page?.title });
           }),
       },
       { type: "separator" },
@@ -582,7 +593,7 @@ async function main() {
       {
         label: m.finder,
         click: () => {
-          if (!env.background) shell.showItemInFolder(join(project.path, file));
+          if (!env.background) shell.showItemInFolder(join(project.path, shown));
         },
       },
     ];

@@ -96,8 +96,8 @@ export type PreviewState = {
   /** The page's address inside the project ("/", "/menu"), or null when nothing is shown. */
   route: string | null;
   title: string;
-  /** The project's pages. */
-  routes: { route: string; file: string }[];
+  /** The project's pages, a page per record among them (Q147, Q164). */
+  routes: PageRoute[];
   loading: boolean;
   mode: PreviewMode;
   /** A short hash of the project's theme: the gallery's thumbnails are drawn again when it changes. */
@@ -109,6 +109,20 @@ export type PreviewState = {
 };
 
 export type PreviewView = "page" | "pages";
+
+/**
+ * A page of the project: its address and file; for a record's page, its
+ * record, the datasource's label it is grouped under and its name (Q164);
+ * `generated` for a page the runtime makes, the image credits (Q157).
+ */
+export type PageRoute = {
+  route: string;
+  file: string;
+  record?: { datasource: string; id: string };
+  group?: string;
+  title?: string;
+  generated?: boolean;
+};
 
 /**
  * A zoom between the page and the thumbnails (Q133): to the thumbnails, from a
@@ -355,7 +369,7 @@ export type Events = {
   /** The page view was put in its place on screen: what the interface drew under it is covered. */
   "preview:placed": () => void;
   /** A page was deleted from its thumbnail's menu: a note offers to undo it (Q137). */
-  "preview:page-deleted": (page: { route: string }) => void;
+  "preview:page-deleted": (page: { route: string; name?: string }) => void;
   /** Text to put in the message field, which takes the keyboard ("Ask the agent about it", Q136). */
   "conversation:prefill": (text: string) => void;
   "conversation:event": (message: { projectId: string; event: ConversationEvent }) => void;

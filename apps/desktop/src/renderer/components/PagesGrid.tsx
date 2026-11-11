@@ -50,7 +50,9 @@ export function PagesGrid({
     !device && panel
       ? { ...panel, mobile: false, panel: true }
       : { ...thumbnailScreen(device, landscape), panel: false };
-  const routes = state.routes.map((r) => r.route);
+  // The pages a maker made, not the credits the runtime adds (Q157).
+  const pages = state.routes.filter((r) => !r.generated);
+  const routes = pages.map((r) => r.route);
 
   useEffect(() => upstart.on("preview:hover", setHovered), []);
   useEffect(
@@ -140,9 +142,21 @@ export function PagesGrid({
       style={{ padding: GRID_PADDING }}
     >
       <div className="grid" style={{ gap: GRID_GAP, gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
-        {state.routes.map(({ route }) => {
+        {pages.map((page, i) => {
+          const { route } = page;
           const writing = state.writing === route;
-          return (
+          // Records' pages come after the others, under their datasource's name (Q164).
+          const heading = page.group && page.group !== pages[i - 1]?.group ? page.group : undefined;
+          return [
+            heading && (
+              <h3
+                key={`group:${heading}`}
+                data-testid="page-group"
+                className="col-span-full mt-2 -mb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase"
+              >
+                {heading}
+              </h3>
+            ),
             <figure
               key={route}
               className={cn(
@@ -158,7 +172,7 @@ export function PagesGrid({
                   if (el) cells.current.set(route, el);
                   else cells.current.delete(route);
                 }}
-                aria-label={t.preview.openPage(pageName(route))}
+                aria-label={t.preview.openPage(pageName(route, page.title))}
                 onClick={() => open(route)}
                 onContextMenu={(event) => {
                   event.preventDefault();
@@ -181,7 +195,7 @@ export function PagesGrid({
                 )}
               </button>
               <figcaption className="flex min-w-0 items-center gap-1.5 px-0.5 text-xs">
-                <span className="truncate font-medium">{pageName(route)}</span>
+                <span className="truncate font-medium">{pageName(route, page.title)}</span>
                 <span
                   className={cn(
                     "hidden truncate text-muted-foreground group-hover:inline",
@@ -200,16 +214,17 @@ export function PagesGrid({
                   </span>
                 )}
               </figcaption>
-            </figure>
-          );
+            </figure>,
+          ];
         })}
       </div>
     </div>
   );
 }
 
-/** "/" is the home page; "/menu" is "Menu", "/shop/cakes" is "Cakes". */
-export function pageName(route: string): string {
+/** "/" is the home page; "/menu" is "Menu", "/shop/cakes" is "Cakes"; a record's page, its title (Q164). */
+export function pageName(route: string, title?: string): string {
+  if (title) return title;
   if (route === "/") return t.preview.home;
   const last = route.split("/").filter(Boolean).at(-1) ?? route;
   const words = decodeURIComponent(last).replace(/[-_]+/g, " ");

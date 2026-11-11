@@ -33,8 +33,14 @@ function sectionIndex(src: string, at: number | null): number {
   return index;
 }
 
-/** A template the maker may edit: a page, a shared part or a fragment. */
-const EDITABLE = /^(pages|parts|fragments)\/[\w./-]+\.liquid$/;
+/**
+ * A file the maker may edit: a page, a shared part or a fragment; a record of
+ * a datasource, or its definition's order; what is kept beside a media file.
+ */
+const EDITABLE =
+  /^((pages|parts|fragments)\/[\w./[\]-]+\.liquid|data\/[a-z0-9][\w-]*\/([a-z0-9][\w-]*\.md|_datasource\.yaml)|media\/[\w.-]+\.json)$/i;
+/** A record's file. */
+const RECORD = /^data\/[a-z0-9][\w-]*\/[a-z0-9][\w-]*\.md$/i;
 
 export type EditorDeps = {
   /** The open project's folder. */
@@ -132,6 +138,31 @@ export class Editor {
     this.read(file);
     rmSync(this.abs(file));
     const change = { label: en.editing.labels.pageDeleted, files: [file] };
+    this.deps.changed(change);
+    return change;
+  }
+
+  /** Copies a record beside it, at the next free id (hello-2), from the Content tab or its page's menu (Q164). */
+  duplicateRecord(file: string): { label: string; files: string[]; file: string } {
+    this.ready();
+    if (!RECORD.test(file)) throw new EditRefused("Only a record can be duplicated here.");
+    const src = this.read(file);
+    const dir = dirname(this.abs(file));
+    const taken = readdirSync(dir).map((name) => `${file.slice(0, file.lastIndexOf("/"))}/${name}`);
+    const copy = copyOfPage(file, taken);
+    this.write(copy, src);
+    const change = { label: en.editing.labels.recordDuplicated, files: [copy] };
+    this.deps.changed(change);
+    return { ...change, file: copy };
+  }
+
+  /** Deletes a record's file, which the history can bring back (Q164, Q137). */
+  deleteRecord(file: string): { label: string; files: string[] } {
+    this.ready();
+    if (!RECORD.test(file)) throw new EditRefused("Only a record can be deleted here.");
+    this.read(file);
+    rmSync(this.abs(file));
+    const change = { label: en.editing.labels.recordDeleted, files: [file] };
     this.deps.changed(change);
     return change;
   }

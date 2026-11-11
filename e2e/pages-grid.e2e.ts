@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
@@ -221,5 +221,48 @@ describe("all pages as thumbnails", () => {
     const input = launched.window.getByTestId("message-input");
     await until(async () => (await input.inputValue()) === "On the page /menu: ");
     expect(await input.evaluate((el) => el === document.activeElement)).toBe(true);
+  });
+
+  test("a page per record, after the others under its datasource's name, named by its title (Q147, Q164)", async () => {
+    const w = launched.window;
+    mkdirSync(join(path, "data/posts"), { recursive: true });
+    mkdirSync(join(path, "pages/blog"), { recursive: true });
+    writeFileSync(
+      join(path, "data/posts/_datasource.yaml"),
+      "label: Posts\nfields:\n  - name: title\n    kind: text\n  - name: date\n    kind: date\nsort: -date\n",
+    );
+    writeFileSync(join(path, "data/posts/first.md"), "---\ntitle: First post\ndate: 2026-11-01\n---\nHello.\n");
+    writeFileSync(join(path, "data/posts/second.md"), "---\ntitle: Second post\ndate: 2026-11-05\n---\nAgain.\n");
+    writeFileSync(
+      join(path, "pages/blog/[posts].liquid"),
+      "<!doctype html><html><head><title>Post</title></head><body><h1>{{ record.title }}</h1></body></html>",
+    );
+    await until(async () => (await thumbs().count()) === 6);
+    expect(await thumbs().evaluateAll((els) => els.map((e) => e.getAttribute("data-route")))).toEqual([
+      "/",
+      "/about",
+      "/menu",
+      "/menu-2",
+      "/blog/second",
+      "/blog/first",
+    ]);
+    expect(await w.getByTestId("page-group").allTextContents()).toEqual(["Posts"]);
+    await expect(
+      w.locator('[data-testid="page-thumb"][data-route="/blog/second"] figcaption').textContent(),
+    ).resolves.toContain("Second post");
+    const groups = await w
+      .getByTestId("page-select")
+      .evaluate((el) => [...el.querySelectorAll("optgroup")].map((g) => [g.label, g.children.length]));
+    expect(groups).toEqual([["Posts", 2]]);
+    // Its menu acts on the record's file.
+    await click("/blog/second", "Duplicate");
+    expect(readFileSync(join(path, "data/posts/second-2.md"), "utf8")).toContain("Second post");
+    await until(async () => (await thumbs().count()) === 7);
+    await click("/blog/second-2", "Delete");
+    expect(existsSync(join(path, "data/posts/second-2.md"))).toBe(false);
+    await until(async () => (await thumbs().count()) === 6);
+    await expect(w.getByTestId("page-deleted").textContent()).resolves.toContain("Second post deleted");
+    const labels = ((await invoke("history:list")) as { label: string }[]).map((e) => e.label);
+    expect(labels).toEqual(expect.arrayContaining(["Record duplicated", "Record deleted"]));
   });
 });
