@@ -527,6 +527,10 @@ async function main() {
     mkdirSync(env.projectsDir, { recursive: true });
     if (!env.background) void shell.openPath(env.projectsDir);
   });
+  ipc.handle("app:open-link", (url) => {
+    if (typeof url !== "string" || !/^https?:\/\//i.test(url)) throw new Error("Only a web address can be opened.");
+    if (!env.background) void shell.openExternal(url);
+  });
   ipc.handle("app:info", () => ({
     version: app.getVersion(),
     platform: process.platform,

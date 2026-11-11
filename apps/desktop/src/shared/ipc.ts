@@ -346,6 +346,8 @@ export type MediaFound = {
 
 export type Invokes = {
   "app:info": () => AppInfo;
+  /** A web address from the agent's message, opened in the maker's browser (http and https only). */
+  "app:open-link": (url: string) => void;
   /** Opens the settings panel over the window (Q123), at a page. */
   "settings:open": (page?: SettingsPage) => void;
   "settings:get": () => AppSettings;
@@ -527,6 +529,7 @@ export type EventChannel = keyof Events;
 export const channels = {
   invoke: [
     "app:info",
+    "app:open-link",
     "settings:open",
     "settings:get",
     "settings:set",

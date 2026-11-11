@@ -6,6 +6,7 @@ import { useAppSettings } from "../hooks/useMain";
 import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
+import { AgentText } from "./AgentText";
 import { BlocksTab } from "./BlocksTab";
 import { ContentTab } from "./ContentTab";
 import { SignInPanel } from "./SignInPanel";
@@ -289,7 +290,7 @@ function AgentParts({ parts, working, style }: { parts: AgentPart[]; working: bo
         <ActivityLine key={part.activity.id} activity={part.activity} detailed={style === "detailed"} />
       ) : (
         // biome-ignore lint/suspicious/noArrayIndexKey: parts only grow at the end
-        <PartText key={index} part={part} />
+        <PartText key={index} part={part} streaming={working && index === shown.length - 1} />
       ),
     );
   // Runs of steps, between the agent's words.
@@ -303,7 +304,7 @@ function AgentParts({ parts, working, style }: { parts: AgentPart[]; working: bo
   return groups.map((group, index) => {
     if (group.kind !== "steps")
       // biome-ignore lint/suspicious/noArrayIndexKey: parts only grow at the end
-      return <PartText key={index} part={group} />;
+      return <PartText key={index} part={group} streaming={working && index === groups.length - 1} />;
     const steps = group.activities;
     if (working && index === groups.length - 1) return <ActivityLine key={steps.at(-1)!.id} activity={steps.at(-1)!} />;
     if (steps.length === 1) return <ActivityLine key={steps[0]!.id} activity={steps[0]!} />;
@@ -311,7 +312,13 @@ function AgentParts({ parts, working, style }: { parts: AgentPart[]; working: bo
   });
 }
 
-function PartText({ part }: { part: { kind: "text" | "thinking"; text: string } }) {
+function PartText({
+  part,
+  streaming = false,
+}: {
+  part: { kind: "text" | "thinking"; text: string };
+  streaming?: boolean;
+}) {
   if (part.kind === "thinking")
     return (
       <p
@@ -321,7 +328,7 @@ function PartText({ part }: { part: { kind: "text" | "thinking"; text: string } 
         {part.text.trim()}
       </p>
     );
-  return <p className="whitespace-pre-wrap leading-relaxed">{part.text.trim()}</p>;
+  return <AgentText text={part.text.trim()} streaming={streaming} />;
 }
 
 function Steps({ activities }: { activities: Activity[] }) {
