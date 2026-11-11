@@ -14,7 +14,7 @@
 import type { EditAction, EditInfo, PageComment, PreviewMode } from "../../shared/ipc";
 import { en } from "../../shared/strings/en";
 import { COMMENT_STYLE, CommentLayer, type CommentsBridge } from "./comments";
-import { type Origin, originOf, sectionList, sectionTarget, textsOf, tracedFrom } from "./trace";
+import { insertionPoint, type Origin, originOf, sectionList, sectionTarget, textsOf, tracedFrom } from "./trace";
 
 const t = en.editor;
 
@@ -24,6 +24,7 @@ export type EditorBridge = CommentsBridge & {
 };
 
 const ICONS = {
+  drag: '<circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/>',
   up: '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
   down: '<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>',
   duplicate:
@@ -59,6 +60,9 @@ const STYLE = `
 .pop button.secondary { background: #f4f4f5; color: #3f3f46; }
 .toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); max-width: 80%; padding: 8px 12px;
   background: #18181b; color: #fafafa; border-radius: 8px; display: none; pointer-events: none; }
+.line { position: fixed; left: 0; right: 0; height: 3px; margin-top: -1px; background: #4f46e5; border-radius: 2px; display: none;
+  box-shadow: 0 0 0 2px rgb(255 255 255 / .8); }
+.bar button[data-act="drag"] { cursor: grab; }
 .editing-note { position: fixed; display: none; padding: 3px 7px; background: #fef3c7; color: #92400e; border-radius: 5px; white-space: nowrap; }
 `;
 
@@ -76,6 +80,7 @@ export class Editor {
   private readonly pop: HTMLElement;
   private readonly toastEl: HTMLElement;
   private readonly note: HTMLElement;
+  private readonly line: HTMLElement;
   private hovered: HTMLElement | undefined;
   private selected: Selected | undefined;
   private editing: { el: HTMLElement; before: string; origin: Origin } | undefined;
@@ -100,6 +105,7 @@ export class Editor {
       <div class="bar" data-testid="editor-bar"></div>
       <div class="pop"><input type="text"><button class="secondary" data-act="cancel"></button><button data-act="save"></button></div>
       <div class="editing-note"></div>
+      <div class="line" data-testid="insertion-line"></div>
       <div class="toast" role="status"></div></div>`;
     const q = <T extends HTMLElement>(sel: string) => this.root.querySelector(sel) as T;
     this.hover = q(".hover");
@@ -108,6 +114,7 @@ export class Editor {
     this.pop = q(".pop");
     this.toastEl = q(".toast");
     this.note = q(".editing-note");
+    this.line = q(".line");
     q<HTMLButtonElement>('[data-act="cancel"]').textContent = t.cancel;
     q<HTMLButtonElement>('[data-act="save"]').textContent = t.save;
     this.comments = new CommentLayer(q(".layer"), bridge, (text) => this.toast(text));
@@ -330,6 +337,7 @@ export class Editor {
     const parent = tracedFrom(s.el.parentElement);
     button("parent", "parent", t.parent, !!parent);
     if (s.section) {
+      button("drag", "drag", t.drag, !!s.sectionInfo?.movable);
       button("up", "up", t.moveUp, index > 0 && same(index - 1));
       button("down", "down", t.moveDown, index >= 0 && index < sections.length - 1 && same(index + 1));
       buttons.push('<span class="sep"></span>');
@@ -343,7 +351,44 @@ export class Editor {
     if (shared > 0) buttons.push(`<span class="chip" data-testid="editor-shared">${t.shared(shared)}</span>`);
     this.bar.innerHTML = buttons.join("");
     for (const b of this.bar.querySelectorAll<HTMLButtonElement>("button[data-act]"))
-      b.addEventListener("click", () => void this.act(b.dataset.act!));
+      if (b.dataset.act === "drag") this.dragFrom(b);
+      else b.addEventListener("click", () => void this.act(b.dataset.act!));
+  }
+
+  /** Reordering by dragging the handle (decisions: drag and drop reorders a page's sections). */
+  private dragFrom(handle: HTMLElement) {
+    handle.addEventListener("pointerdown", (e) => {
+      const target = this.selected?.section;
+      if (!target || handle.hasAttribute("disabled")) return;
+      e.preventDefault();
+      handle.setPointerCapture(e.pointerId);
+      let point: ReturnType<typeof insertionPoint>;
+      const move = (ev: PointerEvent) => {
+        point = insertionPoint(ev.clientY);
+        this.showLine(point && point.file === target.file ? point.top : undefined);
+      };
+      const up = async () => {
+        handle.removeEventListener("pointermove", move);
+        handle.removeEventListener("pointerup", up);
+        this.showLine(undefined);
+        if (!point || point.file !== target.file) return;
+        // Dropped where it already is: nothing to write.
+        const list = sectionList();
+        const i = list.findIndex((x) => x.target.file === target.file && x.target.at === target.at);
+        const next = list[i + 1]?.target.at ?? null;
+        if (point.before?.at === target.at || (point.before?.at ?? null) === next) return;
+        if (await this.run({ type: "move", file: target.file, at: target.at, before: point.before?.at ?? null }))
+          this.select(undefined);
+      };
+      handle.addEventListener("pointermove", move);
+      handle.addEventListener("pointerup", up);
+    });
+  }
+
+  /** The insertion line, at a height in the window, or hidden. */
+  showLine(top: number | undefined) {
+    this.line.style.display = top === undefined ? "none" : "block";
+    if (top !== undefined) this.line.style.top = `${top}px`;
   }
 
   private async act(act: string) {

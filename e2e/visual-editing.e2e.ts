@@ -81,6 +81,45 @@ describe("editing in the preview", () => {
     expect(order(home())).toEqual([order(before)[1], order(before)[0], ...order(before).slice(2)]);
   });
 
+  test("a section dragged by its handle goes where the line shows", async () => {
+    const before = home();
+    const order = (src: string) => [...src.matchAll(/<section[^>]*>/g)].map((m) => m[0]);
+    // The first section, reached from its heading.
+    await click("section h1, section h2");
+    await until(() => drawn(".bar"));
+    for (let i = 0; i < 4; i++) {
+      if (
+        await page(`!!document.querySelector('upstart-editor').shadowRoot.querySelector('[data-testid="editor-drag"]')`)
+      )
+        break;
+      await click('[data-testid="editor-parent"]', true);
+      await new Promise((r) => setTimeout(r, 150));
+    }
+    const from = await center('[data-testid="editor-drag"]', true);
+    const bottom = (await page(
+      "Math.round(document.querySelector('section:last-of-type').getBoundingClientRect().bottom - 4)",
+    )) as number;
+    const steps = [0.25, 0.5, 0.75, 1].map((f) => ({
+      type: "mouseMove",
+      x: from.x,
+      y: Math.round(from.y + (bottom - from.y) * f),
+      button: "left",
+      modifiers: ["leftButtonDown"],
+    }));
+    await input([
+      { type: "mouseMove", ...from },
+      { type: "mouseDown", ...from, button: "left", clickCount: 1 },
+      ...steps,
+    ]);
+    await until(() => drawn('[data-testid="insertion-line"]'));
+    await picture("editor-drag-line");
+    await input([{ type: "mouseUp", x: from.x, y: bottom, button: "left", clickCount: 1 }]);
+    await until(async () => home() !== before);
+    const was = order(before);
+    expect(order(home())).toEqual([...was.slice(1), was[0]]);
+    expect(await drawn('[data-testid="insertion-line"]')).toBe(false);
+  });
+
   test("an element of a shared part shows that it changes every page using it", async () => {
     mkdirSync(join(path, "parts"), { recursive: true });
     writeFileSync(join(path, "parts/notice.liquid"), '<p id="notice">Closed on Mondays</p>\n');

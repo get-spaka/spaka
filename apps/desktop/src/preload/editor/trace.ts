@@ -77,3 +77,21 @@ export function textsOf(el: Element): { tags: string[]; texts: string[] } {
   texts.push(current);
   return { tags, texts };
 }
+
+/**
+ * Where something dropped at height `y` (in the window) goes among the page's
+ * sections: before the first section whose middle is below it, or after the
+ * last one (`before` null). `top` is where to draw the insertion line.
+ */
+export function insertionPoint(y: number): { file: string; before: Origin | null; top: number } | undefined {
+  const list = sectionList();
+  const file = list[0]?.target.file ?? originOf(sectionContainer())?.file;
+  if (!file) return undefined;
+  const pageSections = list.filter((s) => s.target.file === file);
+  for (const s of pageSections) {
+    const r = s.el.getBoundingClientRect();
+    if (y < r.top + r.height / 2) return { file, before: s.target, top: r.top };
+  }
+  const last = pageSections.at(-1)?.el.getBoundingClientRect();
+  return { file, before: null, top: last ? last.bottom : sectionContainer().getBoundingClientRect().top };
+}

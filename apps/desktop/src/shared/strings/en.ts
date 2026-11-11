@@ -103,6 +103,7 @@ export const en = {
   },
   editor: {
     parent: "Select what contains it",
+    drag: "Drag to move this section",
     moveUp: "Move this section up",
     moveDown: "Move this section down",
     duplicate: "Duplicate",
