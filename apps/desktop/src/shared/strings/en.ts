@@ -99,8 +99,10 @@ export const en = {
     visitorMode: "See the page as a visitor: links, buttons and forms work",
     commentMode: "Comment: click an element to tell the agent what to change",
     desktop: "Desktop width",
-    tablet: "Tablet width (768 px)",
-    phone: "Phone width (390 px)",
+    tablet: "Tablet (820 × 1180)",
+    phone: "Phone (393 × 852)",
+    portrait: "Turn upright",
+    landscape: "Turn sideways",
   },
   editor: {
     parent: "Select what contains it",

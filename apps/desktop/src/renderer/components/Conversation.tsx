@@ -1,12 +1,11 @@
 import { ArrowUp, Check, CircleSlash, Eraser, Loader2, PanelLeft, Square, X } from "lucide-react";
 import { type KeyboardEvent, useLayoutEffect, useRef, useState } from "react";
 import { type Activity, type ConversationItem, isWorking } from "../../shared/conversation";
-import type { AgentStatus, Effort, HistoryEntry, PreviewState, ProjectInfo } from "../../shared/ipc";
+import type { AgentStatus, Effort, PreviewState, ProjectInfo } from "../../shared/ipc";
 import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { BlocksTab } from "./BlocksTab";
-import { HistoryControls } from "./HistoryPanel";
 import { SignInPanel } from "./SignInPanel";
 import { ThemeTab } from "./ThemeTab";
 import { Button } from "./ui/button";
@@ -14,7 +13,6 @@ import { Button } from "./ui/button";
 export function Conversation({
   project,
   items,
-  history,
   status,
   sidebarOpen,
   onExpandSidebar,
@@ -22,7 +20,6 @@ export function Conversation({
 }: {
   project: ProjectInfo | null;
   items: ConversationItem[];
-  history: HistoryEntry[];
   status: AgentStatus;
   sidebarOpen: boolean;
   onExpandSidebar: () => void;
@@ -68,7 +65,6 @@ export function Conversation({
           </span>
         )}
         <div className="ml-auto" />
-        {project && <HistoryControls entries={history} disabled={working} />}
         {project && items.length > 0 && (
           <Button
             variant="ghost"

@@ -84,6 +84,11 @@ export type ConnectorDraft = {
 export type ExportResult = { folder: string; pages: string[]; files: number; warnings: string[] };
 
 export type Rect = { x: number; y: number; width: number; height: number };
+/**
+ * A tablet or a phone shown in the preview (Q110): the page is laid out at the
+ * device's size, drawn at `scale` to fit the column, its corners rounded.
+ */
+export type DeviceView = { width: number; height: number; scale: number; radius: number };
 
 export type PreviewState = {
   /** The page's address inside the project ("/", "/menu"), or null when nothing is shown. */
@@ -239,7 +244,10 @@ export type Invokes = {
 export type Sends = {
   "app:ready": () => void;
   /** Where the preview sits in the window, in CSS pixels; null to hide it. */
-  "preview:bounds": (rect: Rect | null) => void;
+  /** `area` is the whole of the preview's column, when a device is shown smaller inside it. */
+  "preview:bounds": (rect: Rect | null, device?: DeviceView, area?: Rect) => void;
+  /** Shows a gallery block large over the preview while the pointer rests on it (Q109); null hides it. */
+  "gallery:peek": (id: string | null) => void;
 };
 
 /** One-way messages from the main process to the interface. */
@@ -315,7 +323,7 @@ export const channels = {
     "theme:show",
     "theme:apply",
   ],
-  send: ["app:ready", "preview:bounds"],
+  send: ["app:ready", "preview:bounds", "gallery:peek"],
   events: [
     "projects:changed",
     "project:opened",

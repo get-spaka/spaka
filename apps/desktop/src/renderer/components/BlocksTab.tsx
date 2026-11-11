@@ -67,13 +67,31 @@ function BlockCard({
   onAdd: () => void;
 }) {
   const thumbnail = useThumbnail(block.id, theme);
+  // Resting on a thumbnail shows the block large over the preview (Q109).
+  const resting = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const peek = (on: boolean) => {
+    clearTimeout(resting.current);
+    if (on) resting.current = setTimeout(() => upstart.send("gallery:peek", block.id), 250);
+    else upstart.send("gallery:peek", null);
+  };
+  // Leaving the tab while resting on a block hides it.
+  useEffect(
+    () => () => {
+      clearTimeout(resting.current);
+      upstart.send("gallery:peek", null);
+    },
+    [],
+  );
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: dragging is for the pointer; the Add button does the same from the keyboard
     <div
       data-testid="block"
       data-block={block.id}
       draggable={!disabled}
+      onMouseEnter={() => peek(true)}
+      onMouseLeave={() => peek(false)}
       onDragStart={(event) => {
+        peek(false);
         event.dataTransfer.setData(BLOCK_DRAG_TYPE, block.id);
         event.dataTransfer.effectAllowed = "copy";
       }}

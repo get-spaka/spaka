@@ -46,15 +46,7 @@ export class Thumbnails {
     const win = this.window();
     win.setContentSize(WIDTH, 800);
     await win.webContents.loadURL(`${this.origin()}/__up/block/${id}`);
-    // Tailwind compiles in the page: wait for its stylesheet and two frames.
-    const height = (await win.webContents.executeJavaScript(`new Promise((done) => {
-      const started = Date.now();
-      const ready = () => [...document.querySelectorAll("style")].some((s) => !s.hasAttribute("data-up-runtime") && s.textContent.length > 0);
-      const wait = () => ready() || Date.now() - started > 3000
-        ? requestAnimationFrame(() => requestAnimationFrame(() => done((document.body.firstElementChild ?? document.body).getBoundingClientRect().height)))
-        : setTimeout(wait, 30);
-      wait();
-    })`)) as number;
+    const height = (await win.webContents.executeJavaScript(BLOCK_HEIGHT)) as number;
     const h = Math.max(40, Math.min(MAX_HEIGHT, Math.ceil(height)));
     win.setContentSize(WIDTH, h);
     // An offscreen window gives its frames as they are painted (capturePage does not work on it).
@@ -101,6 +93,16 @@ export class Thumbnails {
     return this.win;
   }
 }
+
+/** In a block's page: its height once Tailwind, which compiles in the page, has styled it. */
+export const BLOCK_HEIGHT = `new Promise((done) => {
+  const started = Date.now();
+  const ready = () => [...document.querySelectorAll("style")].some((s) => !s.hasAttribute("data-up-runtime") && s.textContent.length > 0);
+  const wait = () => ready() || Date.now() - started > 3000
+    ? requestAnimationFrame(() => requestAnimationFrame(() => done((document.body.firstElementChild ?? document.body).getBoundingClientRect().height)))
+    : setTimeout(wait, 30);
+  wait();
+})`;
 
 function dataUrl(png: Buffer): string {
   return `data:image/png;base64,${png.toString("base64")}`;

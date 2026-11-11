@@ -43,6 +43,43 @@ describe("the gallery of blocks", () => {
     await launched.window.screenshot({ path: join(__dirname, ".runs/gallery-tab.png") });
   }, 40_000);
 
+  test("resting on a block shows it large over the top of the preview, rendered for real (Q109)", async () => {
+    const hero = blocks.find((b) => b.kind === "hero")!;
+    const peek = () =>
+      launched.app.evaluate(() => {
+        // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+        const u = (globalThis as any).upstart;
+        const v = u.peek.view;
+        return {
+          shown: u.peek.shown as string | undefined,
+          visible: !!v?.getVisible(),
+          bounds: v?.getBounds(),
+          preview: u.preview.view.getBounds(),
+          top: u.win.contentView.children.at(-1) === v,
+        };
+      });
+    await launched.window.locator(`[data-block="${hero.id}"]`).hover();
+    await until(async () => (await peek()).shown === hero.id, 10_000);
+    const p = await peek();
+    expect(p.visible).toBe(true);
+    expect(p.top).toBe(true);
+    // Inside the preview, near its top, almost its width.
+    expect(p.bounds.x).toBeGreaterThan(p.preview.x);
+    expect(p.bounds.x + p.bounds.width).toBeLessThan(p.preview.x + p.preview.width);
+    expect(p.bounds.width).toBeGreaterThan(p.preview.width - 40);
+    expect(p.bounds.y - p.preview.y).toBeLessThan(20);
+    expect(p.bounds.height).toBeGreaterThan(100);
+    const text = await launched.app.evaluate(() =>
+      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+      (globalThis as any).upstart.peek.view.webContents.executeJavaScript("document.body.innerText"),
+    );
+    expect(text.trim().length).toBeGreaterThan(20);
+    // The site under it is untouched.
+    expect(await page("document.body.innerText")).not.toContain(text.trim().slice(0, 40));
+    await launched.window.getByTestId("tab-blocks").hover();
+    await until(async () => !(await peek()).visible, 5_000);
+  });
+
   test("Add puts a block where its kind usually goes, as a part of its own", async () => {
     const before = home();
     const cta = blocks.find((b) => b.kind === "cta")!;

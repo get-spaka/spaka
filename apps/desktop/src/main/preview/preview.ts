@@ -9,6 +9,7 @@ import { Overlay, previewHead, Runtime } from "@upstart/runtime";
 import { diskSource } from "@upstart/runtime/node";
 import { type BrowserWindow, shell, WebContentsView } from "electron";
 import type {
+  DeviceView,
   FromPreview,
   PageComment,
   PreviewInvokes,
@@ -50,6 +51,7 @@ export class Preview {
   private readonly server: PreviewServer;
   private site: OpenSite | undefined;
   private bounds: Rect | null = null;
+  private device: DeviceView | undefined;
   private route: string | null = null;
   private title = "";
   private loading = false;
@@ -146,9 +148,44 @@ export class Preview {
     this.view.webContents.reload();
   }
 
-  setBounds(rect: Rect | null) {
+  setBounds(rect: Rect | null, device?: DeviceView) {
     this.bounds = rect;
+    const changed = JSON.stringify(device) !== JSON.stringify(this.device);
+    this.device = device;
+    if (changed) this.emulate();
     this.layout();
+  }
+
+  /**
+   * The page laid out at the device's size and drawn smaller to fit, or at the
+   * view's own size. As DevTools does it, so that the page's viewport meta tag
+   * counts as on a phone.
+   */
+  private emulate() {
+    const d = this.device;
+    const tools = this.view.webContents.debugger;
+    try {
+      if (!tools.isAttached()) tools.attach("1.3");
+    } catch {
+      return;
+    }
+    if (!d) {
+      void tools.sendCommand("Emulation.clearDeviceMetricsOverride").catch(() => {});
+      this.view.setBorderRadius(0);
+      return;
+    }
+    void tools
+      .sendCommand("Emulation.setDeviceMetricsOverride", {
+        width: d.width,
+        height: d.height,
+        deviceScaleFactor: 0,
+        mobile: true,
+        scale: d.scale,
+        screenWidth: d.width,
+        screenHeight: d.height,
+      })
+      .catch(() => {});
+    this.view.setBorderRadius(Math.round(d.radius));
   }
 
   /** The files that the agent is writing, in front of the disk's (ADR 0009). */
@@ -369,6 +406,13 @@ export class Preview {
       this.emit();
     };
     contents.on("did-navigate", (_event, url) => navigated(url));
+    // A new document may come with a new renderer, which starts without the device's size.
+    contents.on("did-start-navigation", (details) => {
+      if (details.isMainFrame && !details.isSameDocument && this.device) this.emulate();
+    });
+    contents.on("dom-ready", () => {
+      if (this.device) this.emulate();
+    });
     contents.on("did-navigate-in-page", (_event, url) => navigated(url));
     contents.on("did-stop-loading", () => {
       this.loading = false;

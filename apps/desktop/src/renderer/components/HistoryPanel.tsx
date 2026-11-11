@@ -16,9 +16,21 @@ export function entryLabel(entry: HistoryEntry): string {
   return entry.label;
 }
 
-/** The undo button and the list of the project's versions (decisions: history). */
-export function HistoryControls({ entries, disabled }: { entries: HistoryEntry[]; disabled: boolean }) {
-  const [open, setOpen] = useState(false);
+/**
+ * The undo button and the button that shows the project's versions (decisions:
+ * history), in the preview's bar (Q111): they are the versions of the site shown there.
+ */
+export function HistoryButtons({
+  entries,
+  disabled,
+  open,
+  onToggle,
+}: {
+  entries: HistoryEntry[];
+  disabled: boolean;
+  open: boolean;
+  onToggle: () => void;
+}) {
   const canUndo = !disabled && entries.length > 0 && !(entries.length === 1 && entries[0]!.current);
   return (
     <>
@@ -37,29 +49,42 @@ export function HistoryControls({ entries, disabled }: { entries: HistoryEntry[]
         variant="ghost"
         size="icon-sm"
         className={cn("no-drag text-muted-foreground", open && "bg-accent")}
-        onClick={() => setOpen((o) => !o)}
+        onClick={onToggle}
         title={t.history.title}
+        aria-pressed={open}
         data-testid="history"
       >
         <HistoryIcon />
       </Button>
-      {open && (
-        <div
-          data-testid="history-panel"
-          className="no-drag absolute top-12 right-3 left-3 z-10 max-h-[60vh] overflow-y-auto rounded-xl border bg-popover p-1 shadow-lg"
-        >
-          <div className="px-3 pt-2 pb-1 text-xs font-medium text-muted-foreground">{t.history.title}</div>
-          {entries.length === 0 && <p className="px-3 py-2 text-sm text-muted-foreground">{t.history.empty}</p>}
-          {groups(entries).map((group) =>
-            group.length === 1 ? (
-              <Row key={group[0]!.id} entry={group[0]!} disabled={disabled} onRestore={() => setOpen(false)} />
-            ) : (
-              <HandGroup key={group[0]!.id} entries={group} disabled={disabled} onRestore={() => setOpen(false)} />
-            ),
-          )}
-        </div>
-      )}
     </>
+  );
+}
+
+/**
+ * The list of the project's versions, as a column beside the page: the page is
+ * a native view that would cover anything drawn over it.
+ */
+export function HistoryList({
+  entries,
+  disabled,
+  onRestore,
+}: {
+  entries: HistoryEntry[];
+  disabled: boolean;
+  onRestore: () => void;
+}) {
+  return (
+    <aside data-testid="history-panel" className="no-drag w-72 shrink-0 overflow-y-auto border-l bg-background p-1">
+      <div className="px-3 pt-2 pb-1 text-xs font-medium text-muted-foreground">{t.history.title}</div>
+      {entries.length === 0 && <p className="px-3 py-2 text-sm text-muted-foreground">{t.history.empty}</p>}
+      {groups(entries).map((group) =>
+        group.length === 1 ? (
+          <Row key={group[0]!.id} entry={group[0]!} disabled={disabled} onRestore={onRestore} />
+        ) : (
+          <HandGroup key={group[0]!.id} entries={group} disabled={disabled} onRestore={onRestore} />
+        ),
+      )}
+    </aside>
   );
 }
 

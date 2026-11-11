@@ -18,6 +18,7 @@ import { AgentNotes } from "./editing/notes";
 import { readEnvironment } from "./environment";
 import { exportProject } from "./export";
 import { described, Gallery } from "./gallery/catalogue";
+import { BlockPeek } from "./gallery/peek";
 import { BlockIndex } from "./gallery/search";
 import { Thumbnails } from "./gallery/thumbnails";
 import { History } from "./history/history";
@@ -109,6 +110,7 @@ async function main() {
       "preview:comments-discard": () => void discardComments(),
     },
   });
+  const peek = new BlockPeek(win, () => preview.origin);
   await preview.start();
 
   // The agent (ADR 0002, 0007, 0010). Its configuration, sign-in and
@@ -398,7 +400,10 @@ async function main() {
   });
   ipc.handle("preview:navigate", (route) => preview.navigate(route, true));
   ipc.handle("preview:reload", () => preview.reload());
-  ipc.on("preview:bounds", (rect) => preview.setBounds(rect));
+  ipc.on("preview:bounds", (rect, device, area) => {
+    preview.setBounds(rect, device);
+    peek.setArea(rect && (area ?? rect));
+  });
 
   ipc.handle("conversation:get", () =>
     current ? { projectId: current.id, items: agent.conversation(current.id) } : null,
@@ -522,8 +527,15 @@ async function main() {
   ipc.handle("history:undo", () => goBack(history?.store.undoTarget()?.id));
   ipc.handle("editing:apply", (action) => editor.apply(action));
   const thumbnails = new Thumbnails(join(userData, "gallery-thumbnails"), () => preview.origin);
+  ipc.on("gallery:peek", (id) => {
+    if (id && gallery.get(id)) void peek.show(id);
+    else peek.hide();
+  });
   // Its hidden window must not keep the app open once the maker's window is closed.
-  win.on("closed", () => thumbnails.close());
+  win.on("closed", () => {
+    thumbnails.close();
+    peek.close();
+  });
   ipc.handle("gallery:list", () => gallery.list().map(described));
   ipc.handle("gallery:thumbnail", (id) => {
     const block = gallery.get(id);
@@ -587,7 +599,7 @@ async function main() {
   });
 
   // For automated checks: the main process's objects, reachable from Playwright's evaluate().
-  if (env.background) Object.assign(globalThis, { upstart: { win, projects, preview, agent } });
+  if (env.background) Object.assign(globalThis, { upstart: { win, projects, preview, agent, peek } });
 
   const devUrl = process.env.ELECTRON_RENDERER_URL;
   if (devUrl) await win.loadURL(devUrl);

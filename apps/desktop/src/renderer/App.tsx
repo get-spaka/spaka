@@ -40,7 +40,6 @@ export function App() {
       <Conversation
         project={current}
         items={items}
-        history={history}
         status={status}
         sidebarOpen={sidebarOpen}
         onExpandSidebar={() => setSidebarOpen(true)}
@@ -52,6 +51,7 @@ export function App() {
         working={isWorking(items)}
         covered={settingsOpen}
         layoutKey={sidebarOpen}
+        history={history}
       />
       {settingsOpen && (
         <SettingsDialog

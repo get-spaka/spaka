@@ -40,7 +40,9 @@ describe("editing in the preview", () => {
 
   test("the selection's outline follows its element as the page scrolls", async () => {
     // The recorded page is short: room below it to scroll.
-    await page("document.body.insertAdjacentHTML('beforeend', '<div id=\"room\" style=\"height: 3000px\"></div>'), true");
+    await page(
+      "document.body.insertAdjacentHTML('beforeend', '<div id=\"room\" style=\"height: 3000px\"></div>'), true",
+    );
     await click("section:nth-of-type(2) p");
     await until(() => drawn(".selected"));
     const gap = () =>
@@ -171,16 +173,36 @@ describe("editing in the preview", () => {
     }
   });
 
-  test("the phone width narrows the page, centred", async () => {
+  test("a phone and a tablet at their own size, whole in the column, upright or sideways (Q110)", async () => {
     // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
     const bounds = () => launched.app.evaluate(() => (globalThis as any).upstart.preview.view.getBounds());
     const wide = await bounds();
+    const sized = async (w: number, h: number) => {
+      await until(async () => (await page("innerWidth")) === w && (await page("innerHeight")) === h, 5_000);
+      const b = await bounds();
+      // Drawn smaller to fit, keeping the device's proportions, centred.
+      expect(Math.abs(b.width / b.height - w / h)).toBeLessThan(0.02);
+      expect(b.width).toBeLessThanOrEqual(w);
+      expect(b.height).toBeLessThan(wide.height);
+      expect(Math.abs(b.x + b.width / 2 - (wide.x + wide.width / 2))).toBeLessThanOrEqual(1);
+    };
     await launched.window.getByTestId("width-phone").click();
-    await until(async () => (await bounds()).width === 390);
-    const narrow = await bounds();
-    expect(narrow.x).toBe(Math.round(wide.x + (wide.width - 390) / 2));
+    await sized(393, 852);
+    await launched.window.getByTestId("rotate").click();
+    await sized(852, 393);
+    await launched.capture("preview-phone-sideways");
+    await launched.window.getByTestId("width-tablet").click();
+    await sized(1180, 820);
+    await launched.window.getByTestId("rotate").click();
+    await sized(820, 1180);
+    // A page loaded anew keeps the device's size.
+    await invoke("preview:reload");
+    await new Promise((r) => setTimeout(r, 300));
+    await sized(820, 1180);
+    await launched.capture("preview-tablet");
     await launched.window.getByTestId("width-desktop").click();
     await until(async () => (await bounds()).width === wide.width);
+    await until(async () => (await page("innerWidth")) === wide.width);
   });
 
   test("while the agent works nothing is selected; a capture for the agent leaves the drawings out", async () => {
