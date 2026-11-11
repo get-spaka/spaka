@@ -3,16 +3,34 @@
 // the project's scripts can neither break it nor reach it (ADR 0008).
 //
 // It morphs the page into each new rendering the main process sends while
-// the agent writes (ADR 0009), and reports what the page does.
+// the agent writes (ADR 0009), reports what the page does, and carries the
+// editing the maker does in the page (editor/).
 import { ipcRenderer } from "electron";
 import { Idiomorph } from "idiomorph";
-import type { FromPreview, ToPreview } from "../shared/ipc";
+import type { FromPreview, PreviewInvokes, ToPreview } from "../shared/ipc";
+import { Editor } from "./editor/editor";
 
 const send = (message: FromPreview) => ipcRenderer.send("preview:event", message);
+const invoke = <C extends keyof PreviewInvokes>(channel: C, ...args: Parameters<PreviewInvokes[C]>) =>
+  ipcRenderer.invoke(channel, ...args) as Promise<ReturnType<PreviewInvokes[C]>>;
+
+const editor = new Editor(
+  {
+    edit: (action) => invoke("preview:edit", action),
+    info: (file, at) => invoke("preview:edit-info", file, at),
+  },
+  process.argv.includes("--upstart-checks"),
+);
 
 ipcRenderer.on("preview:message", (_event, message: ToPreview) => {
   if (message.type === "render") render(message.html, message.final);
   else if (message.type === "theme") setTheme(message.css);
+  else if (message.type === "editor") editor.set(message.mode, message.paused);
+  else if (message.type === "chrome") {
+    editor.setHidden(message.hidden);
+    // Answered once the page has drawn itself without them.
+    requestAnimationFrame(() => requestAnimationFrame(() => send({ type: "chrome-hidden" })));
+  }
 });
 
 /** Scripts that have run: those of the page as loaded, and those this script re-created. */
@@ -20,6 +38,7 @@ const ran = new WeakSet<Element>();
 
 window.addEventListener("DOMContentLoaded", () => {
   for (const script of document.querySelectorAll("script")) ran.add(script);
+  editor.attach();
   send({ type: "loaded", path: location.pathname, title: document.title });
 });
 window.addEventListener("error", (event) => {
@@ -62,6 +81,7 @@ function render(html: string, final: boolean) {
     // htmx lives in the page's world: ask it, from there, to take the new elements in hand.
     pageWorld("window.htmx && htmx.process(document.body)");
   }
+  editor.rendered();
   send({ type: "rendered", ms: performance.now() - started });
 }
 

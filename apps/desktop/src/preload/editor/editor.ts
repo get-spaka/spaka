@@ -1,0 +1,488 @@
+// Editing in the preview (decisions: Editing, Q90, Q91, Q99). Runs in the
+// preview script's isolated world and draws in a closed shadow root that the
+// page can neither style nor read (ADR 0008), laid over the page and moved
+// with it as it scrolls.
+//
+// - Edit mode: hovering outlines an element, a click selects it and shows a
+//   bar of actions, a double click on a text edits it in place. Links,
+//   buttons and forms do nothing.
+// - Visitor mode: the page behaves as it will online; nothing is drawn.
+// - While the agent works, editing waits (Q91).
+//
+// The edits are written by the main process (main/editing); this script only
+// says what the maker did, where, as the trace gives it.
+import type { EditAction, EditInfo, PreviewMode } from "../../shared/ipc";
+import { en } from "../../shared/strings/en";
+import { type Origin, originOf, sectionList, sectionTarget, textsOf, tracedFrom } from "./trace";
+
+const t = en.editor;
+
+export type EditorBridge = {
+  edit(action: EditAction): Promise<unknown>;
+  info(file: string, at: number): Promise<EditInfo>;
+};
+
+const ICONS = {
+  up: '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
+  down: '<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>',
+  duplicate:
+    '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+  delete:
+    '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
+  text: '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>',
+  parent: '<path d="M14 9 9 4 4 9"/><path d="M20 20h-7a4 4 0 0 1-4-4V4"/>',
+  link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+};
+
+const STYLE = `
+:host { all: initial; }
+.layer { position: fixed; inset: 0; pointer-events: none; z-index: 2147483647;
+  font: 12px/1.3 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #18181b; }
+.box { position: fixed; box-sizing: border-box; border-radius: 3px; display: none; }
+.hover { border: 1px solid #6366f1; }
+.selected { border: 2px solid #4f46e5; }
+.tag { position: absolute; left: -2px; top: -18px; background: #6366f1; color: #fff; padding: 1px 5px;
+  border-radius: 3px 3px 0 0; font-size: 10px; white-space: nowrap; }
+.bar { position: fixed; display: none; align-items: center; gap: 2px; padding: 3px; background: #fff;
+  border: 1px solid #e4e4e7; border-radius: 8px; box-shadow: 0 4px 16px rgb(0 0 0 / .12); pointer-events: auto; }
+.bar button { all: unset; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 5px; cursor: default; color: #3f3f46; }
+.bar button:hover { background: #f4f4f5; }
+.bar button[disabled] { opacity: .35; }
+.bar button svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.bar .sep { width: 1px; height: 18px; background: #e4e4e7; margin: 0 2px; }
+.chip { padding: 0 6px; color: #92400e; background: #fef3c7; border-radius: 5px; height: 22px; display: flex; align-items: center; white-space: nowrap; }
+.pop { position: fixed; display: none; gap: 4px; padding: 6px; background: #fff; border: 1px solid #e4e4e7;
+  border-radius: 8px; box-shadow: 0 4px 16px rgb(0 0 0 / .12); pointer-events: auto; }
+.pop input { all: unset; width: 240px; padding: 4px 6px; border: 1px solid #d4d4d8; border-radius: 5px; font-size: 12px; }
+.pop button { all: unset; padding: 4px 8px; border-radius: 5px; background: #4f46e5; color: #fff; }
+.pop button.secondary { background: #f4f4f5; color: #3f3f46; }
+.toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); max-width: 80%; padding: 8px 12px;
+  background: #18181b; color: #fafafa; border-radius: 8px; display: none; pointer-events: none; }
+.editing-note { position: fixed; display: none; padding: 3px 7px; background: #fef3c7; color: #92400e; border-radius: 5px; white-space: nowrap; }
+`;
+
+type Selected = { el: HTMLElement; origin: Origin; section?: Origin; info?: EditInfo; sectionInfo?: EditInfo };
+
+export class Editor {
+  private mode: PreviewMode = "edit";
+  private paused = false;
+  private hidden = false;
+  private readonly host = document.createElement("upstart-editor");
+  private readonly root: ShadowRoot;
+  private readonly hover: HTMLElement;
+  private readonly selectedBox: HTMLElement;
+  private readonly bar: HTMLElement;
+  private readonly pop: HTMLElement;
+  private readonly toastEl: HTMLElement;
+  private readonly note: HTMLElement;
+  private hovered: HTMLElement | undefined;
+  private selected: Selected | undefined;
+  private editing: { el: HTMLElement; before: string; origin: Origin } | undefined;
+  private toastTimer: ReturnType<typeof setTimeout> | undefined;
+  private frame = 0;
+  private observed = false;
+  private follow: () => void = () => {};
+
+  /** `open`: the drawings can be read by the app's own checks, run in the background. */
+  constructor(
+    private readonly bridge: EditorBridge,
+    open = false,
+  ) {
+    this.host.setAttribute("data-up-runtime", "");
+    // Whatever the page's stylesheets say about unknown elements, the host takes no room.
+    this.host.style.cssText =
+      "all: initial; position: fixed; top: 0; left: 0; width: 0; height: 0; z-index: 2147483647;";
+    this.root = this.host.attachShadow({ mode: open ? "open" : "closed" });
+    this.root.innerHTML = `<style>${STYLE}</style><div class="layer">
+      <div class="box hover"><span class="tag"></span></div>
+      <div class="box selected"></div>
+      <div class="bar" data-testid="editor-bar"></div>
+      <div class="pop"><input type="text"><button class="secondary" data-act="cancel"></button><button data-act="save"></button></div>
+      <div class="editing-note"></div>
+      <div class="toast" role="status"></div></div>`;
+    const q = <T extends HTMLElement>(sel: string) => this.root.querySelector(sel) as T;
+    this.hover = q(".hover");
+    this.selectedBox = q(".selected");
+    this.bar = q(".bar");
+    this.pop = q(".pop");
+    this.toastEl = q(".toast");
+    this.note = q(".editing-note");
+    q<HTMLButtonElement>('[data-act="cancel"]').textContent = t.cancel;
+    q<HTMLButtonElement>('[data-act="save"]').textContent = t.save;
+    this.listen();
+  }
+
+  /** Puts the drawings back in the page: a rendering may have replaced what was around them. */
+  attach() {
+    if (this.host.isConnected) return;
+    document.documentElement.append(this.host);
+    // The page's own size changes (a font, an image) move what is drawn over it.
+    if (!this.observed) new ResizeObserver(() => this.follow()).observe(document.documentElement);
+    this.observed = true;
+  }
+
+  set(mode: PreviewMode, paused: boolean) {
+    this.mode = mode;
+    this.paused = paused;
+    if (mode !== "edit" || paused) {
+      this.commitEdit();
+      this.select(undefined);
+      this.setHover(undefined);
+    }
+    if (paused && mode === "edit") this.toast(t.paused);
+  }
+
+  setHidden(hidden: boolean) {
+    this.hidden = hidden;
+    this.host.style.display = hidden ? "none" : "";
+  }
+
+  /** After a new rendering: the selected element may have been replaced, found again by its origin. */
+  rendered() {
+    this.attach();
+    const s = this.selected;
+    if (s && !s.el.isConnected) {
+      const again = document.querySelector<HTMLElement>(
+        `[data-up-src$=":${s.origin.at}"][data-up-src^="${s.origin.file}:"]`,
+      );
+      if (again) void this.select(again);
+      else this.select(undefined);
+    }
+    this.place();
+  }
+
+  private get active() {
+    return this.mode === "edit" && !this.paused && !this.hidden;
+  }
+
+  // ---- events --------------------------------------------------------------
+
+  private listen() {
+    const ours = (e: Event) => e.composedPath().includes(this.host);
+    const inEdit = (e: Event) => this.editing?.el.contains(e.target as Node);
+    window.addEventListener(
+      "mousemove",
+      (e) => {
+        if (!this.active || ours(e) || this.editing) return this.setHover(undefined);
+        this.setHover(tracedFrom(e.target));
+      },
+      { capture: true, passive: true },
+    );
+    document.addEventListener("mouseleave", () => this.setHover(undefined));
+    for (const type of ["click", "auxclick", "submit", "pointerup", "mouseup"] as const)
+      window.addEventListener(
+        type,
+        (e) => {
+          if (this.mode !== "edit" || ours(e) || inEdit(e)) return;
+          // In edit mode, the page's own links, buttons and htmx do nothing.
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          if (type === "click" && this.active) {
+            if (this.editing) this.commitEdit();
+            void this.select(tracedFrom(e.target));
+          }
+        },
+        { capture: true },
+      );
+    for (const type of ["mousedown", "pointerdown"] as const)
+      window.addEventListener(
+        type,
+        (e) => {
+          if (this.mode !== "edit" || ours(e) || inEdit(e)) return;
+          // Keeps the page from taking the focus or starting a drag of its own.
+          e.preventDefault();
+          e.stopImmediatePropagation();
+        },
+        { capture: true },
+      );
+    window.addEventListener(
+      "dblclick",
+      (e) => {
+        if (!this.active || ours(e) || inEdit(e)) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        const el = tracedFrom(e.target);
+        if (el) void this.startEdit(el);
+      },
+      { capture: true },
+    );
+    window.addEventListener(
+      "keydown",
+      (e) => {
+        if (this.editing) {
+          if (e.key === "Escape") {
+            e.preventDefault();
+            this.cancelEdit();
+          } else if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            this.commitEdit();
+          }
+          return;
+        }
+        if (!this.active || !this.selected || ours(e)) return;
+        if (e.key === "Escape") this.select(undefined);
+        else if ((e.key === "Backspace" || e.key === "Delete") && this.canDelete()) {
+          e.preventDefault();
+          void this.act("delete");
+        }
+      },
+      { capture: true },
+    );
+    window.addEventListener(
+      "focusout",
+      (e) => {
+        if (this.editing && e.target === this.editing.el) this.commitEdit();
+      },
+      { capture: true },
+    );
+    const follow = () => {
+      cancelAnimationFrame(this.frame);
+      this.frame = requestAnimationFrame(() => this.place());
+    };
+    window.addEventListener("scroll", follow, { capture: true, passive: true });
+    window.addEventListener("resize", follow, { passive: true });
+    this.follow = follow;
+    this.pop.addEventListener("click", (e) => {
+      const act = (e.target as HTMLElement).dataset.act;
+      if (act === "cancel") this.closePop();
+      if (act === "save") void this.saveLink();
+    });
+    this.pop.querySelector("input")!.addEventListener("keydown", (e) => {
+      e.stopPropagation();
+      if (e.key === "Enter") void this.saveLink();
+      if (e.key === "Escape") this.closePop();
+    });
+  }
+
+  // ---- selection -----------------------------------------------------------
+
+  private setHover(el: HTMLElement | undefined) {
+    this.hovered = el && el !== this.selected?.el ? el : undefined;
+    this.place();
+  }
+
+  private async select(el: HTMLElement | undefined) {
+    this.closePop();
+    const origin = el && originOf(el);
+    if (!el || !origin) {
+      this.selected = undefined;
+      this.place();
+      return;
+    }
+    const section = sectionTarget(el);
+    const selected: Selected = { el, origin, section };
+    this.selected = selected;
+    this.hovered = undefined;
+    this.place();
+    const [info, sectionInfo] = await Promise.all([
+      this.bridge.info(origin.file, origin.at).catch(() => undefined),
+      section && (section.file !== origin.file || section.at !== origin.at)
+        ? this.bridge.info(section.file, section.at).catch(() => undefined)
+        : undefined,
+    ]);
+    if (this.selected !== selected) return;
+    selected.info = info;
+    selected.sectionInfo = sectionInfo ?? info;
+    this.drawBar();
+    this.place();
+  }
+
+  /** What duplicate, delete and move act on: the section when the element is one, else the element. */
+  private target(): Origin | undefined {
+    return this.selected?.section ?? this.selected?.origin;
+  }
+
+  private canDelete(): boolean {
+    return !!this.selected?.sectionInfo?.movable;
+  }
+
+  private drawBar() {
+    const s = this.selected;
+    if (!s) return;
+    const sections = s.section ? sectionList() : [];
+    const index = sections.findIndex((x) => x.target.file === s.section?.file && x.target.at === s.section?.at);
+    const same = (i: number) => sections[i]?.target.file === s.section?.file;
+    const buttons: string[] = [];
+    const button = (act: string, icon: keyof typeof ICONS, title: string, enabled = true) =>
+      buttons.push(
+        `<button data-act="${act}" data-testid="editor-${act}" title="${title}" aria-label="${title}"${enabled ? "" : " disabled"}><svg viewBox="0 0 24 24">${ICONS[icon]}</svg></button>`,
+      );
+    const parent = tracedFrom(s.el.parentElement);
+    button("parent", "parent", t.parent, !!parent);
+    if (s.section) {
+      button("up", "up", t.moveUp, index > 0 && same(index - 1));
+      button("down", "down", t.moveDown, index >= 0 && index < sections.length - 1 && same(index + 1));
+      buttons.push('<span class="sep"></span>');
+    }
+    const movable = !!s.sectionInfo?.movable;
+    button("duplicate", "duplicate", t.duplicate, movable);
+    button("delete", "delete", t.delete, movable);
+    if (s.info?.text) button("text", "text", t.editText);
+    if (s.el.localName === "a") button("link", "link", t.link);
+    const shared = s.info?.sharedBy ?? 0;
+    if (shared > 0) buttons.push(`<span class="chip" data-testid="editor-shared">${t.shared(shared)}</span>`);
+    this.bar.innerHTML = buttons.join("");
+    for (const b of this.bar.querySelectorAll<HTMLButtonElement>("button[data-act]"))
+      b.addEventListener("click", () => void this.act(b.dataset.act!));
+  }
+
+  private async act(act: string) {
+    const s = this.selected;
+    const target = this.target();
+    if (!s || !target) return;
+    if (act === "text") return this.startEdit(s.el);
+    if (act === "parent") return this.select(tracedFrom(s.el.parentElement));
+    if (act === "link") return this.openPop();
+    if (act === "up" || act === "down") {
+      const sections = sectionList();
+      const i = sections.findIndex((x) => x.target.file === target.file && x.target.at === target.at);
+      const before = act === "up" ? sections[i - 1] : sections[i + 2];
+      const ok = await this.run({ type: "move", file: target.file, at: target.at, before: before?.target.at ?? null });
+      if (ok) this.select(undefined);
+      return;
+    }
+    if (act === "duplicate" || act === "delete") {
+      const ok = await this.run({ type: act, file: target.file, at: target.at });
+      if (ok) this.select(undefined);
+    }
+  }
+
+  private async run(action: EditAction): Promise<boolean> {
+    try {
+      await this.bridge.edit(action);
+      return true;
+    } catch (error) {
+      this.toast(reason(error));
+      return false;
+    }
+  }
+
+  // ---- editing a text in place ---------------------------------------------
+
+  private async startEdit(el: HTMLElement) {
+    const origin = originOf(el);
+    if (!origin || this.editing) return;
+    const info = await this.bridge.info(origin.file, origin.at).catch(() => undefined);
+    if (!info?.text) return this.toast(info?.computed ? t.computed : t.notText);
+    await this.select(el);
+    this.editing = { el, before: el.innerHTML, origin };
+    el.setAttribute("contenteditable", "plaintext-only");
+    el.setAttribute("spellcheck", "true");
+    el.focus();
+    // The caret at the end of the text, unless the double click already selected a word.
+    const selection = getSelection();
+    if (selection && (selection.isCollapsed || !el.contains(selection.anchorNode))) {
+      selection.selectAllChildren(el);
+      selection.collapseToEnd();
+    }
+    if (info.sharedBy > 0) this.showNote(t.shared(info.sharedBy));
+    this.place();
+  }
+
+  private stopEditing() {
+    const editing = this.editing;
+    if (!editing) return undefined;
+    this.editing = undefined;
+    editing.el.removeAttribute("contenteditable");
+    editing.el.removeAttribute("spellcheck");
+    this.note.style.display = "none";
+    return editing;
+  }
+
+  private commitEdit() {
+    const editing = this.stopEditing();
+    if (!editing || editing.el.innerHTML === editing.before) return;
+    const { tags, texts } = textsOf(editing.el);
+    void this.run({ type: "text", file: editing.origin.file, at: editing.origin.at, texts, tags }).then((ok) => {
+      if (!ok) editing.el.innerHTML = editing.before;
+    });
+  }
+
+  private cancelEdit() {
+    const editing = this.stopEditing();
+    if (editing) editing.el.innerHTML = editing.before;
+  }
+
+  private showNote(text: string) {
+    this.note.textContent = text;
+    this.note.style.display = "block";
+  }
+
+  // ---- the link's address --------------------------------------------------
+
+  private openPop() {
+    const s = this.selected;
+    if (!s) return;
+    const input = this.pop.querySelector("input")!;
+    input.placeholder = t.linkPlaceholder;
+    input.value = s.el.getAttribute("href") ?? "";
+    this.pop.style.display = "flex";
+    this.place();
+    input.focus();
+    input.select();
+  }
+
+  private closePop() {
+    this.pop.style.display = "none";
+  }
+
+  private async saveLink() {
+    const s = this.selected;
+    if (!s) return;
+    const href = this.pop.querySelector("input")!.value;
+    if (await this.run({ type: "link", file: s.origin.file, at: s.origin.at, href })) this.closePop();
+  }
+
+  // ---- drawing -------------------------------------------------------------
+
+  private toast(text: string) {
+    this.toastEl.textContent = text;
+    this.toastEl.style.display = "block";
+    clearTimeout(this.toastTimer);
+    this.toastTimer = setTimeout(() => {
+      this.toastEl.style.display = "none";
+    }, 3500);
+  }
+
+  /** Lays the outlines, the bar and the box over the elements, where they are now. */
+  private place() {
+    const fit = (box: HTMLElement, el: Element | undefined) => {
+      if (!el?.isConnected) {
+        box.style.display = "none";
+        return undefined;
+      }
+      const r = el.getBoundingClientRect();
+      Object.assign(box.style, {
+        display: "block",
+        left: `${r.left}px`,
+        top: `${r.top}px`,
+        width: `${r.width}px`,
+        height: `${r.height}px`,
+      });
+      return r;
+    };
+    const hoverRect = fit(this.hover, this.active ? this.hovered : undefined);
+    if (hoverRect && this.hovered) this.hover.querySelector(".tag")!.textContent = this.hovered.localName;
+    const r = fit(this.selectedBox, this.active ? this.selected?.el : undefined);
+    const showBar = !!r && !!this.selected?.info && !this.editing;
+    this.bar.style.display = showBar ? "flex" : "none";
+    if (!r) {
+      this.pop.style.display = "none";
+      return;
+    }
+    const barHeight = 34;
+    const above = r.top - barHeight - 6;
+    const top = above >= 4 ? above : Math.min(r.bottom + 6, innerHeight - barHeight - 4);
+    const left = Math.max(4, Math.min(r.left, innerWidth - (this.bar.offsetWidth || 220) - 4));
+    if (showBar) Object.assign(this.bar.style, { top: `${top}px`, left: `${left}px` });
+    if (this.pop.style.display !== "none")
+      Object.assign(this.pop.style, { top: `${Math.min(r.bottom + 6, innerHeight - 44)}px`, left: `${left}px` });
+    if (this.editing) Object.assign(this.note.style, { top: `${Math.max(4, r.top - 26)}px`, left: `${left}px` });
+  }
+}
+
+/** The reason an edit was refused, without what Electron puts around it. */
+function reason(error: unknown): string {
+  const text = error instanceof Error ? error.message : String(error);
+  return text.replace(/^Error invoking remote method '[^']+': (\w*Error: )?/, "");
+}

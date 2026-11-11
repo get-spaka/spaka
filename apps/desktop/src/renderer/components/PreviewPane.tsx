@@ -1,10 +1,15 @@
-import { ChevronDown, Globe, RotateCw, Upload } from "lucide-react";
+import { ChevronDown, Eye, Globe, Monitor, MousePointer2, RotateCw, Smartphone, Tablet, Upload } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
 import type { PreviewState, ProjectInfo } from "../../shared/ipc";
 import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
+import { cn } from "../lib/utils";
 import { ExportDialog } from "./ExportDialog";
 import { Button } from "./ui/button";
+
+/** The widths the preview can take (decisions: a responsive view). */
+const WIDTHS = { desktop: undefined, tablet: 768, phone: 390 } as const;
+type Width = keyof typeof WIDTHS;
 
 /**
  * The preview column. The page itself is a native view the main process lays
@@ -26,6 +31,7 @@ export function PreviewPane({
 }) {
   const area = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
+  const [width, setWidth] = useState<Width>("desktop");
   const dialogOpen = exporting && project !== null;
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new project closes the dialog
   useLayoutEffect(() => setExporting(false), [project?.id]);
@@ -41,10 +47,12 @@ export function PreviewPane({
     }
     const send = () => {
       const r = element.getBoundingClientRect();
+      // A narrower view, centred in the column, for the tablet and phone widths.
+      const w = Math.min(WIDTHS[width] ?? r.width, r.width);
       upstart.send("preview:bounds", {
-        x: Math.round(r.x),
+        x: Math.round(r.x + (r.width - w) / 2),
         y: Math.round(r.y),
-        width: Math.round(r.width),
+        width: Math.round(w),
         height: Math.round(r.height),
       });
     };
@@ -57,7 +65,7 @@ export function PreviewPane({
       window.removeEventListener("resize", send);
     };
     // The area also moves when the columns before it change width.
-  }, [layoutKey, dialogOpen, covered]);
+  }, [layoutKey, dialogOpen, covered, width]);
 
   return (
     <main data-testid="preview" className="flex min-w-0 flex-1 flex-col bg-muted/40">
@@ -85,6 +93,55 @@ export function PreviewPane({
           </label>
         )}
         <div className="flex-1" />
+        {project && state.routes.length > 0 && (
+          <>
+            <div className="no-drag flex items-center rounded-md border p-0.5" data-testid="preview-mode">
+              {(
+                [
+                  ["edit", MousePointer2, t.preview.editMode],
+                  ["visitor", Eye, t.preview.visitorMode],
+                ] as const
+              ).map(([mode, Icon, title]) => (
+                <Button
+                  key={mode}
+                  variant="ghost"
+                  size="icon-sm"
+                  className={cn("size-6", state.mode === mode && "bg-accent")}
+                  title={title}
+                  aria-label={title}
+                  aria-pressed={state.mode === mode}
+                  data-testid={`mode-${mode}`}
+                  onClick={() => void upstart.invoke("preview:set-mode", mode)}
+                >
+                  <Icon />
+                </Button>
+              ))}
+            </div>
+            <div className="no-drag flex items-center rounded-md border p-0.5" data-testid="preview-width">
+              {(
+                [
+                  ["desktop", Monitor, t.preview.desktop],
+                  ["tablet", Tablet, t.preview.tablet],
+                  ["phone", Smartphone, t.preview.phone],
+                ] as const
+              ).map(([w, Icon, title]) => (
+                <Button
+                  key={w}
+                  variant="ghost"
+                  size="icon-sm"
+                  className={cn("size-6", width === w && "bg-accent")}
+                  title={title}
+                  aria-label={title}
+                  aria-pressed={width === w}
+                  data-testid={`width-${w}`}
+                  onClick={() => setWidth(w)}
+                >
+                  <Icon />
+                </Button>
+              ))}
+            </div>
+          </>
+        )}
         {project && state.routes.length > 0 && (
           <Button
             variant="outline"

@@ -67,6 +67,7 @@ export type PreviewState = {
   /** The project's pages. */
   routes: { route: string; file: string }[];
   loading: boolean;
+  mode: PreviewMode;
 };
 
 /** A model the maker can pick, with the effort levels it accepts. */
@@ -140,6 +141,7 @@ export type Invokes = {
   "projects:close": () => void;
   "preview:navigate": (route: string) => void;
   "preview:reload": () => void;
+  "preview:set-mode": (mode: PreviewMode) => void;
   /** The open project's conversation; empty when no project is open. */
   "conversation:get": () => ConversationState | null;
   /** Sends a message to the agent. Without an open project, a new one is created from it. */
@@ -222,6 +224,7 @@ export const channels = {
     "projects:close",
     "preview:navigate",
     "preview:reload",
+    "preview:set-mode",
     "conversation:get",
     "conversation:send",
     "conversation:stop",
@@ -290,10 +293,24 @@ export type ToPreview =
   /** A new rendering of the page shown: morph the document into it. `final` once the files are complete. */
   | { type: "render"; html: string; final: boolean }
   /** The theme changed: replace it in place. */
-  | { type: "theme"; css: string };
+  | { type: "theme"; css: string }
+  /** How the page answers the pointer (Q99), and whether editing waits for the agent (Q91). */
+  | { type: "editor"; mode: PreviewMode; paused: boolean }
+  /** Hides Upstart's own drawings in the page while a capture is taken; answered by "chrome-hidden". */
+  | { type: "chrome"; hidden: boolean };
+
+/** Edit: a click selects, a double click edits a text. Visitor: the page behaves as online. */
+export type PreviewMode = "edit" | "visitor";
 
 /** From the preview's script to the main process. */
 export type FromPreview =
   | { type: "loaded"; path: string; title: string }
   | { type: "rendered"; ms: number }
-  | { type: "error"; message: string; source?: string };
+  | { type: "error"; message: string; source?: string }
+  | { type: "chrome-hidden" };
+
+/** Calls from the preview's script that get an answer (the edits it asks for). */
+export type PreviewInvokes = {
+  "preview:edit": (action: EditAction) => { label: string; files: string[] };
+  "preview:edit-info": (file: string, at: number) => EditInfo;
+};

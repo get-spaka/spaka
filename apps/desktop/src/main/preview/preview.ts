@@ -7,7 +7,16 @@ import { fileURLToPath } from "node:url";
 import { Overlay, previewHead, Runtime } from "@upstart/runtime";
 import { diskSource } from "@upstart/runtime/node";
 import { type BrowserWindow, shell, WebContentsView } from "electron";
-import type { FromPreview, PreviewState, ProjectInfo, Rect, ToPreview } from "../../shared/ipc";
+import type {
+  EditAction,
+  EditInfo,
+  FromPreview,
+  PreviewMode,
+  PreviewState,
+  ProjectInfo,
+  Rect,
+  ToPreview,
+} from "../../shared/ipc";
 import { PreviewServer, VENDOR_BASE } from "./server";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
@@ -27,6 +36,9 @@ export type PreviewOptions = {
   background: boolean;
   onState: (state: PreviewState) => void;
   onPageEvent?: (event: FromPreview) => void;
+  /** An edit the maker made in the page (Q90). */
+  onEdit?: (action: EditAction) => unknown;
+  onEditInfo?: (file: string, at: number) => EditInfo;
 };
 
 export class Preview {
@@ -45,6 +57,10 @@ export class Preview {
   /** Whether the preview moves to the page the agent writes; off once the maker navigates. */
   private following = true;
   readonly errors: { message: string; source?: string; at: number }[] = [];
+  /** How the page answers the pointer (Q99), and whether editing waits for the agent (Q91). */
+  private mode: PreviewMode = "edit";
+  private paused = false;
+  private chromeHidden: (() => void) | undefined;
 
   constructor(
     private readonly win: BrowserWindow,
@@ -58,6 +74,8 @@ export class Preview {
         sandbox: true,
         partition: "preview",
         backgroundThrottling: !options.background,
+        // The app's checks, run in the background, read the editor's drawings.
+        additionalArguments: options.background ? ["--upstart-checks"] : [],
       },
     });
     this.view.setVisible(false);
@@ -161,12 +179,50 @@ export class Preview {
     }
   }
 
-  /** A picture of the page as the maker sees it, taken without the window being on screen. */
+  /** Edit or visitor (Q99). */
+  setMode(mode: PreviewMode) {
+    this.mode = mode;
+    this.sendEditor();
+    this.emit();
+  }
+
+  /** While the agent works, editing by hand waits (Q91). */
+  setPaused(paused: boolean) {
+    if (paused === this.paused) return;
+    this.paused = paused;
+    this.sendEditor();
+  }
+
+  private sendEditor() {
+    this.send({ type: "editor", mode: this.mode, paused: this.paused });
+  }
+
+  /**
+   * A picture of the page as the maker sees it, taken without the window
+   * being on screen, without Upstart's own drawings over the page.
+   */
   async capture(params: Record<string, unknown> = {}): Promise<Buffer> {
     const contents = this.view.webContents;
     if (!contents.debugger.isAttached()) contents.debugger.attach("1.3");
-    const { data } = await contents.debugger.sendCommand("Page.captureScreenshot", { format: "png", ...params });
-    return Buffer.from(data, "base64");
+    await this.hideChrome(true);
+    try {
+      const { data } = await contents.debugger.sendCommand("Page.captureScreenshot", { format: "png", ...params });
+      return Buffer.from(data, "base64");
+    } finally {
+      this.send({ type: "chrome", hidden: false });
+    }
+  }
+
+  private hideChrome(hidden: boolean): Promise<void> {
+    return new Promise((resolve) => {
+      const timer = setTimeout(done, 300);
+      function done() {
+        clearTimeout(timer);
+        resolve();
+      }
+      this.chromeHidden = done;
+      this.send({ type: "chrome", hidden });
+    });
   }
 
   /**
@@ -198,6 +254,7 @@ export class Preview {
       title: this.title,
       routes: this.site?.runtime.routes() ?? [],
       loading: this.loading,
+      mode: this.mode,
     };
   }
 
@@ -311,14 +368,28 @@ export class Preview {
     });
     // Nothing in the preview may ask for a permission (camera, location, notifications…).
     contents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
+    // The edits the maker makes in the page, from the preview's own script only.
+    contents.ipc.handle("preview:edit", (event, action: EditAction) => {
+      if (event.sender !== contents || !this.options.onEdit) throw new Error("Editing is not available.");
+      return this.options.onEdit(action);
+    });
+    contents.ipc.handle("preview:edit-info", (event, file: string, at: number) => {
+      if (event.sender !== contents || !this.options.onEditInfo) throw new Error("Editing is not available.");
+      return this.options.onEditInfo(file, at);
+    });
     contents.ipc.on("preview:event", (event, message: FromPreview) => {
       if (event.sender !== contents) return;
       if (message.type === "error") {
         this.errors.push({ message: message.message, source: message.source, at: Date.now() });
         if (this.errors.length > 50) this.errors.shift();
       }
+      if (message.type === "chrome-hidden") {
+        this.chromeHidden?.();
+        this.chromeHidden = undefined;
+      }
       if (message.type === "loaded") {
         this.title = message.title;
+        this.sendEditor();
         // Anything that changed while the page was loading.
         this.refresh(true);
       }

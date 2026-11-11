@@ -83,6 +83,8 @@ async function main() {
   const preview = new Preview(win, {
     background: env.background,
     onState: (state) => ipc.emit("preview:state", state),
+    onEdit: (action) => editor.apply(action),
+    onEditInfo: (file, at) => editor.info(file, at),
   });
   await preview.start();
 
@@ -142,6 +144,9 @@ async function main() {
     dataFor: (id) => projects.dataFor(id),
     emitConversation: (projectId, event) => {
       ipc.emit("conversation:event", { projectId, event });
+      // Editing by hand waits while the agent works on the project shown (Q91).
+      if (projectId === current?.id && (event.type === "turn-start" || event.type === "turn-end"))
+        preview.setPaused(event.type === "turn-start");
       // A version of the project after each turn of the agent (decisions: history).
       if (event.type === "turn-end" && history?.projectId === projectId) {
         history.store.snapshot("turn", history.lastMessage ?? "");
@@ -280,6 +285,7 @@ async function main() {
     current = project;
     watchSkills(project);
     agent.open(project);
+    preview.setPaused(agent.isWorking(project.id));
     await preview.open(project);
     tap = tapFor(project);
     history = { projectId: project.id, store: new History(projects.dataFor(project.id), project.path) };
@@ -443,6 +449,7 @@ async function main() {
   ipc.handle("history:restore", (id) => goBack(id));
   ipc.handle("history:undo", () => goBack(history?.store.undoTarget()?.id));
   ipc.handle("editing:apply", (action) => editor.apply(action));
+  ipc.handle("preview:set-mode", (mode) => preview.setMode(mode === "visitor" ? "visitor" : "edit"));
   ipc.handle("agent:status", () => agent.status());
   ipc.handle("agent:sign-in", (method) => {
     if (!env.background) agent.signIn(method);

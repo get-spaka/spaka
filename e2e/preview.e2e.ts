@@ -93,8 +93,11 @@ describe("a project folder in the preview", () => {
     await expect
       .poll(() => launched.window.getByTestId("page-select").locator("option").allTextContents())
       .toEqual(["/", "/menu"]);
+    // A link is followed in the visitor's view; in the edit mode it selects (Q99).
+    await launched.window.getByTestId("mode-visitor").click();
     await inPage("document.querySelector('header a').click()");
     await until("location.pathname === '/menu' && document.querySelector('h1')?.textContent === 'Our breads'");
+    await launched.window.getByTestId("mode-edit").click();
     await expect.poll(() => launched.window.getByTestId("page-select").inputValue()).toBe("/menu");
     await launched.window.getByTestId("page-select").selectOption("/");
     await until("location.pathname === '/' && document.querySelector('h1')?.textContent === 'Bread since 1952'");
