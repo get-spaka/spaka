@@ -559,6 +559,7 @@ async function main() {
   };
   ipc.on("preview:bounds", (rect, device, area, parked) => {
     preview.setBounds(scaled(rect), device, parked);
+    if (rect && !parked) ipc.emit("preview:placed");
     peek.setArea(parked ? null : scaled(rect && (area ?? rect)));
   });
   // A thumbnail's right-click menu (Q136). Duplicating and deleting are edits by hand:

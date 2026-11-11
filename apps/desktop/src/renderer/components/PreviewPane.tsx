@@ -123,11 +123,22 @@ export function PreviewPane({
         pendingReady.current = r;
         setZoom((z) => (z && !z.toGrid && z.route === r.route ? { ...z, ready: true, shot: r.url } : z));
       }),
+      // The page view is in place, over the zoom's picture: two frames later the picture goes.
+      upstart.on("preview:placed", () =>
+        requestAnimationFrame(() => requestAnimationFrame(() => setZoom((z) => (z?.landed ? undefined : z)))),
+      ),
     ];
     return () => {
       for (const off of offs) off();
     };
   }, []);
+  // A page view that is never said to be in place does not keep the picture.
+  const landed = !!zoom?.landed;
+  useEffect(() => {
+    if (!landed) return;
+    const timer = setTimeout(() => setZoom((z) => (z?.landed ? undefined : z)), 400);
+    return () => clearTimeout(timer);
+  }, [landed]);
   // The preview's own size, for thumbnails pictured at it (Q142, being tried); not followed while it is being resized.
   const [panel, setPanel] = useState<{ width: number; height: number }>();
   useLayoutEffect(() => {
@@ -173,7 +184,7 @@ export function PreviewPane({
       return;
     }
     // Under the thumbnails and during a zoom, the page is kept drawn at its size, out of sight (Q142).
-    const parked = pagesView || !!zoom;
+    const parked = pagesView || (!!zoom && !zoom.landed);
     const send = () => {
       const r = element.getBoundingClientRect();
       const device = DEVICES[width];
@@ -228,7 +239,7 @@ export function PreviewPane({
       window.removeEventListener("resize", send);
     };
     // The area also moves when the columns before it change width.
-  }, [layoutKey, dialogOpen, covered, width, landscape, historyOpen, pagesView, !!zoom]);
+  }, [layoutKey, dialogOpen, covered, width, landscape, historyOpen, pagesView, !!zoom && !zoom.landed]);
 
   // Where the page is shown in the page view, in the window.
   const pageRect = (): Rect | undefined => {
@@ -492,7 +503,13 @@ export function PreviewPane({
               </p>
             </>
           )}
-          {zoom && <ZoomPicture zoom={zoom} onDone={() => setZoom(undefined)} />}
+          {zoom && (
+            <ZoomPicture
+              zoom={zoom}
+              // To the grid it is over; to a page, the page view is put in place first, over the picture.
+              onDone={() => setZoom((z) => (z && !z.toGrid ? { ...z, landed: true } : undefined))}
+            />
+          )}
           {dialogOpen && <ExportDialog project={project} working={working} onClose={() => setExporting(false)} />}
         </div>
         {project && historyOpen && (
@@ -517,6 +534,8 @@ type Zoom = {
   thumb?: string;
   ready: boolean;
   landing?: string;
+  /** The movement is over and the page view is being put in place: the picture stays under it until it is. */
+  landed?: boolean;
 };
 
 /**
@@ -604,12 +623,12 @@ function ZoomPicture({ zoom, onDone }: { zoom: Zoom; onDone: () => void }) {
   }, [topSrc, zoom.toGrid]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: onDone is new at each rendering of the pane
   useEffect(() => {
-    if (!moved) return;
+    if (!moved || zoom.landed) return;
     if (zoom.ready && (!topSrc || faded)) return onDone();
     // A page that never says it is drawn is shown all the same.
     const timer = setTimeout(onDone, 1500);
     return () => clearTimeout(timer);
-  }, [moved, faded, zoom.ready, topSrc]);
+  }, [moved, faded, zoom.ready, zoom.landed, topSrc]);
   const thumbPicture = zoom.thumb && (
     <img
       ref={thumb}

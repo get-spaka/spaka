@@ -196,7 +196,15 @@ describe("all pages as thumbnails", () => {
     await w.locator('[data-testid="page-thumb"][data-route="/about"] button').click();
     const zoom = w.getByTestId("preview-zoom");
     await zoom.waitFor({ timeout: 2000 });
-    await zoom.waitFor({ state: "detached", timeout: 2000 });
+    // The picture goes only once the page view is in its place over it: nothing shows between them.
+    for (const started = Date.now(); ; ) {
+      const [shown, x] = await Promise.all([zoom.count(), main((u) => u.preview.view.getBounds().x)]);
+      if (!shown) {
+        expect(x).toBeGreaterThanOrEqual(0);
+        break;
+      }
+      if (Date.now() - started > 2000) throw new Error("The zoom did not land.");
+    }
     expect(await main((u) => u.preview.landings.at(-1))).toMatchObject({ route: "/about", picture: false });
     await invoke("preview:set-view", "pages");
     await main((u) => u.preview.setZoomTrial("crossfade"));

@@ -364,6 +364,8 @@ export type Events = {
   "preview:zoom": (zoom: PreviewZoom) => void;
   /** The page zoomed to is drawn, out of sight: the zoom may land (Q142). */
   "preview:zoom-ready": (ready: PreviewZoomReady) => void;
+  /** The page view was put in its place on screen: what the interface drew under it is covered. */
+  "preview:placed": () => void;
   /** A page was deleted from its thumbnail's menu: a note offers to undo it (Q137). */
   "preview:page-deleted": (page: { route: string }) => void;
   /** Text to put in the message field, which takes the keyboard ("Ask the agent about it", Q136). */
@@ -455,6 +457,7 @@ export const channels = {
     "preview:page-deleted",
     "preview:zoom",
     "preview:zoom-ready",
+    "preview:placed",
     "conversation:prefill",
     "conversation:event",
     "agent:status",
