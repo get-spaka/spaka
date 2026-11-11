@@ -227,6 +227,11 @@ export const en = {
     remove: "Remove",
     save: "Save",
     approve: "Turn it on",
+    signIn: "Sign in…",
+    signInWaiting: "Sign in in the page that opened in your browser. Upstart never sees your password.",
+    signInNotReady: "The agent is still starting; try again in a moment.",
+    signInUnknown: "This connector is not on for this website.",
+    signInUnsupported: "This version of the agent cannot sign in to a connector.",
     approvalWarning:
       "This website asks to run a program on your computer, with your access and outside the agent's sandbox. Turn it on only if you trust this command:",
     state: {
@@ -239,7 +244,7 @@ export const en = {
       connected: "Connected",
       pending: "Connecting…",
       failed: "Could not connect",
-      "needs-auth": "Asks to sign in, which Upstart cannot do yet",
+      "needs-auth": "Asks you to sign in",
       disabled: "Off",
     },
   },

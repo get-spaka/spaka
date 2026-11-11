@@ -209,6 +209,8 @@ export type Invokes = {
   "connectors:set-secrets": (scope: ConnectorScope, name: string, values: Record<string, string>) => void;
   /** Turns on a project's local connector on this machine, as its command is now. */
   "connectors:approve": (name: string) => void;
+  /** Starts signing in to a connector; the address opened in the browser, if one was needed. */
+  "connectors:sign-in": (name: string) => { url?: string };
   "history:list": () => HistoryEntry[];
   /** Puts the project back as a version had it (a new version is added). */
   "history:restore": (id: string) => HistoryEntry[];
@@ -297,6 +299,7 @@ export const channels = {
     "connectors:remove",
     "connectors:set-secrets",
     "connectors:approve",
+    "connectors:sign-in",
     "history:list",
     "history:restore",
     "history:undo",

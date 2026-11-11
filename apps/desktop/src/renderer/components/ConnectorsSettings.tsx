@@ -66,6 +66,7 @@ function ConnectorGroup({
 function ConnectorRow({ connector: c }: { connector: ConnectorInfo }) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
+  const [signingIn, setSigningIn] = useState(false);
   const run = async (action: () => Promise<unknown>) => {
     setError(null);
     try {
@@ -124,6 +125,27 @@ function ConnectorRow({ connector: c }: { connector: ConnectorInfo }) {
               {t.connectors.approve}
             </Button>
           </div>
+        </div>
+      )}
+      {c.state === "on" && c.status === "needs-auth" && (
+        <div className="flex flex-col gap-2 text-xs">
+          <div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7"
+              onClick={() =>
+                void run(async () => {
+                  await upstart.invoke("connectors:sign-in", c.name);
+                  setSigningIn(true);
+                })
+              }
+              data-testid="connector-sign-in"
+            >
+              {t.connectors.signIn}
+            </Button>
+          </div>
+          {signingIn && <p className="text-muted-foreground">{t.connectors.signInWaiting}</p>}
         </div>
       )}
       {c.state === "needs-secret" && (

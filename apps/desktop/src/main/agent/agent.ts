@@ -6,6 +6,7 @@ import { join } from "node:path";
 import type { ModelInfo } from "@anthropic-ai/claude-agent-sdk";
 import { applyEvent, type ConversationEvent, type ConversationItem } from "../../shared/conversation";
 import type { AgentStatus, Effort, ModelChoice, ProjectInfo, SignInMethod } from "../../shared/ipc";
+import { en } from "../../shared/strings/en";
 import type { AgentAuth, AuthState } from "./auth";
 import { AgentSession, type SessionDeps } from "./session";
 import type { AgentEvent } from "./stream";
@@ -71,6 +72,13 @@ export class Agent {
   /** The open project's connectors as its agent's kit sees them. */
   async connectorStatus(projectId: string) {
     return (await this.sessions.get(projectId)?.connectorStatus()) ?? [];
+  }
+
+  /** Starts signing in to a connector of the open project; the address to open in the browser, if any. */
+  async signInConnector(projectId: string, name: string) {
+    const session = this.sessions.get(projectId);
+    if (!session) throw new Error(en.connectors.signInNotReady);
+    return session.signInConnector(name);
   }
 
   isWorking(projectId: string) {

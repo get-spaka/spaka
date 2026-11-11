@@ -307,6 +307,16 @@ async function main() {
       await new Promise((r) => setTimeout(r, 500));
     }
   };
+  /** While the maker signs in in their browser, the interface follows the connector until it no longer asks. */
+  const followSignIn = async (name: string) => {
+    for (let i = 0; i < 300; i++) {
+      const list = await connectorList();
+      ipc.emit("connectors:changed", list);
+      const status = list.find((c) => c.name === name)?.status;
+      if (status && status !== "needs-auth" && status !== "pending") return;
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+  };
   const watchSkills = (project: ProjectInfo | undefined) => {
     for (const watcher of skillWatchers) watcher.close();
     skillWatchers = [];
@@ -499,6 +509,13 @@ async function main() {
     if (!current) throw new Error("No project is open.");
     connectors.approveByName(name, current);
     connectorsChanged();
+  });
+  ipc.handle("connectors:sign-in", async (name) => {
+    if (!current) throw new Error("No project is open.");
+    const url = await agent.signInConnector(current.id, name);
+    if (url && !env.background) void shell.openExternal(url);
+    void followSignIn(name);
+    return { url };
   });
   ipc.handle("history:list", () => historyEntries());
   ipc.handle("history:restore", (id) => goBack(id));

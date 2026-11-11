@@ -60,6 +60,11 @@ export type SessionHandlers = {
   onIdle?: () => void;
 };
 
+/** The kit's sign-in for a connector: present in the kit, not yet in its published types. */
+type ConnectorSignIn = {
+  mcpAuthenticate(serverName: string): Promise<{ authUrl?: string; requiresUserAction?: boolean } | undefined>;
+};
+
 export class AgentSession {
   private q: Query | undefined;
   private inbox: Inbox<SDKUserMessage> | undefined;
@@ -212,6 +217,23 @@ export class AgentSession {
       if (live) this.serverStatus = live.map((s) => ({ name: s.name, status: s.status, error: s.error }));
     }
     return this.serverStatus.filter((s) => this.connectors?.names.includes(s.name));
+  }
+
+  /**
+   * Starts signing in to one of the maker's connectors that asks for it, by
+   * the agent's kit's own sign-in (the official program keeps the token, in
+   * the agent's data; Upstart never sees it). Answers the address the maker
+   * opens in their browser, or nothing when no sign-in is needed any more.
+   */
+  async signInConnector(name: string): Promise<string | undefined> {
+    const q = this.q as (Query & Partial<ConnectorSignIn>) | undefined;
+    if (!q || !this.started) throw new Error(en.connectors.signInNotReady);
+    if (!this.connectors?.names.includes(name)) throw new Error(en.connectors.signInUnknown);
+    if (!q.mcpAuthenticate) throw new Error(en.connectors.signInUnsupported);
+    const answer = await q.mcpAuthenticate(name);
+    if (answer?.authUrl && /^https?:\/\//.test(answer.authUrl)) return answer.authUrl;
+    await q.reconnectMcpServer(name).catch(() => undefined);
+    return undefined;
   }
 
   private extensionsChanged() {
