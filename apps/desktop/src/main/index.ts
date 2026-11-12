@@ -738,10 +738,14 @@ async function main() {
     });
     return answer.canceled ? null : (answer.filePaths[0] ?? null);
   });
-  ipc.handle("export:run", async (folder) => {
+  ipc.handle("export:run", async (folder, builder = "static") => {
     if (!current) throw new Error("No project is open.");
     if (agent.isWorking(current.id)) throw new Error("The agent is working: export once it is done.");
-    const result = await exportProject(current.path, folder);
+    const result = await exportProject(current.path, folder, {
+      builder,
+      name: current.name,
+      hostsDir: app.isPackaged ? join(process.resourcesPath, "hosts") : join(here, "../hosts"),
+    });
     writeFileSync(lastExportFile()!, JSON.stringify({ folder: result.folder }));
     return result;
   });

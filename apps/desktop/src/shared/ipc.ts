@@ -83,7 +83,17 @@ export type ConnectorDraft = {
   oauth?: { clientId?: string; callbackPort?: string; authServerMetadataUrl?: string };
 };
 
-export type ExportResult = { folder: string; pages: string[]; files: number; warnings: string[] };
+/** One step of putting an export online, worded by the app under its builder's id and its own. */
+export type GuideStep = { id: string; command?: string };
+export type ExportResult = {
+  folder: string;
+  /** "static", "node", "cloudflare". */
+  builder: string;
+  pages: string[];
+  files: number;
+  warnings: string[];
+  guide: GuideStep[];
+};
 
 export type Rect = { x: number; y: number; width: number; height: number };
 /**
@@ -422,7 +432,7 @@ export type Invokes = {
   "export:choose-folder": () => string | null;
   /** Where the open project was last exported on this machine. */
   "export:last": () => string | null;
-  "export:run": (folder: string) => ExportResult;
+  "export:run": (folder: string, builder?: string) => ExportResult;
   "export:reveal": (folder: string) => void;
   /** Opens one of the hosting services the export guide names. */
   "export:open-host": (host: "netlify" | "cloudflare" | "github") => void;

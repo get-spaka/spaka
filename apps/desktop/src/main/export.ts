@@ -1,7 +1,8 @@
-// Exporting a project as a static website into a folder the maker picks.
+// Exporting a project into a folder the maker picks, with one of the
+// builders (Q181, Q186): the app knows only their common interface.
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { basename, join, relative } from "node:path";
-import { buildStatic } from "@upstart/builder";
+import { builderById } from "@upstart/builder";
 import { diskSource } from "@upstart/runtime/node";
 import type { ExportResult } from "../shared/ipc";
 import { published } from "./history/history";
@@ -25,22 +26,58 @@ export function exportFolder(chosen: string, projectDir: string): string {
   return folder;
 }
 
-export async function exportProject(projectDir: string, chosen: string): Promise<ExportResult> {
-  const folder = exportFolder(chosen, projectDir);
-  // A previous export is replaced as a whole: no page that no longer exists is left behind.
-  if (existsSync(join(folder, MARKER)))
-    for (const entry of readdirSync(folder)) rmSync(join(folder, entry), { recursive: true, force: true });
-  mkdirSync(folder, { recursive: true });
+/**
+ * What a new export keeps of the one it replaces: what a server keeps (its
+ * SQLite records, run on this machine), what installing and deploying made,
+ * and the Worker's configuration, which holds the database's id.
+ */
+const KEPT = new Set(["data", "node_modules", ".wrangler", ".git", "wrangler.jsonc"]);
+
+export type ExportOptions = {
+  builder: string;
+  /** The website's name, for the names an export gives. */
+  name: string;
+  /** Where the app keeps the servers it ships (server.mjs, worker.mjs). */
+  hostsDir: string;
+  formServices?: Record<string, string>;
+};
+
+export async function exportProject(projectDir: string, chosen: string, options: ExportOptions): Promise<ExportResult> {
+  const builder = builderById(options.builder);
+  if (!builder) throw new Error(`There is no ${options.builder} export.`);
   const files = listFiles(projectDir);
-  const result = await buildStatic({
+  const project = {
+    name: options.name,
     source: diskSource(projectDir),
-    outDir: folder,
     files,
-    readFile: (path) => readFileSync(join(projectDir, path)),
+    readFile: (path: string) => readFileSync(join(projectDir, path)),
+  };
+  const checked = builder.check(project);
+  if (!checked.ok)
+    throw new Error(
+      `A static site cannot show what visitors send (${checked.refusal.datasources.join(", ")}): choose the Node or Cloudflare export.`,
+    );
+  const folder = exportFolder(chosen, projectDir);
+  // A previous export is replaced: no page that no longer exists is left behind.
+  if (existsSync(join(folder, MARKER)))
+    for (const entry of readdirSync(folder))
+      if (!KEPT.has(entry)) rmSync(join(folder, entry), { recursive: true, force: true });
+  mkdirSync(folder, { recursive: true });
+  const result = await builder.build(project, {
+    outDir: folder,
     images: webpCopies,
+    ...(builder.server ? { serverBundle: readFileSync(join(options.hostsDir, builder.server), "utf8") } : {}),
+    ...(options.formServices ? { formServices: options.formServices } : {}),
   });
   writeFileSync(join(folder, MARKER), "This folder was exported by Upstart. A new export replaces what it holds.\n");
-  return { folder, pages: result.pages, files: result.files.length, warnings: result.warnings };
+  return {
+    folder,
+    builder: builder.id,
+    pages: result.pages,
+    files: result.files.length,
+    warnings: result.warnings,
+    guide: builder.guide(result),
+  };
 }
 
 function listFiles(root: string): string[] {

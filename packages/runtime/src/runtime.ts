@@ -34,7 +34,7 @@ import {
   titleOf,
 } from "./data.ts";
 import { escapeHtml } from "./escape.ts";
-import { addCreditsLink, CREDITS_ROUTE, creditedMedia, creditsPage, fillAlts } from "./media.ts";
+import { addCreditsLink, CREDITS_ROUTE, creditedMedia, creditsPage, fillAlts, withSrcset } from "./media.ts";
 import { recordTitle } from "./records.ts";
 import type { ProjectSource } from "./source.ts";
 import { injectTrace, repairTemplate } from "./template.ts";
@@ -52,6 +52,8 @@ export type RenderResult = {
   /** What the runtime had to do to render: a repair, a missing part, an error. */
   notes: Note[];
   ms: number;
+  /** The datasources the render read: an export tells from it which pages show what visitors sent. */
+  datasources?: string[];
 };
 
 export type Route = {
@@ -88,6 +90,8 @@ export type RuntimeOptions = {
   collected?: CollectedStore;
   /** The published site's management token; without one there is no management API. */
   managementToken?: string;
+  /** The widths of the WebP copies an export made of each image (Q156), given to every <img> of it as a srcset. */
+  images?: Record<string, number[]>;
   /** The current time, for tests. */
   now?: () => Date;
 };
@@ -104,6 +108,7 @@ export class Runtime {
   /** The datasources the render in progress read, so that their notes are added once. */
   private read = new Set<string>();
   readonly data: Datasources;
+  private readonly images: Map<string, number[]>;
 
   constructor(
     readonly source: ProjectSource,
@@ -111,6 +116,7 @@ export class Runtime {
   ) {
     this.repair = options.repair ?? true;
     this.trace = options.trace ?? true;
+    this.images = new Map(Object.entries(options.images ?? {}));
     this.data = new Datasources(source, {
       standIns: options.standIns ?? false,
       ...(options.testRecords ? { testRecords: options.testRecords } : {}),
@@ -224,7 +230,9 @@ export class Runtime {
     if (!route) return this.notFound(pathname);
     if (route.generated) {
       const started = performance.now();
-      const html = this.decorate(fillAlts(creditsPage(creditedMedia(this.source)), this.source));
+      const html = this.decorate(
+        withSrcset(fillAlts(creditsPage(creditedMedia(this.source)), this.source), this.images),
+      );
       return { status: 200, html, file: route.file, notes: [], ms: performance.now() - started };
     }
     return this.renderPage(route.file, route.route, query, route.record);
@@ -245,6 +253,8 @@ export class Runtime {
       scope.record = ds?.records.find((r) => r.id === chosen?.id) ?? ds?.records[0];
     }
     const result = this.render(file, scope);
+    if (bracket && !result.datasources?.includes(bracket.name))
+      result.datasources = [...(result.datasources ?? []), bracket.name];
     // Its datasource's notes are the page's: a record left out is said where its page is looked at.
     for (const note of ds?.notes ?? [])
       if (!result.notes.some((n) => n.file === note.file && n.note === note.note)) result.notes.push(note);
@@ -268,7 +278,7 @@ export class Runtime {
     if (this.source.read(file) === undefined)
       return { status: 404, html: "", file, notes: [{ file, note: "no such fragment" }], ms: 0 };
     const result = this.render(file, scope);
-    if (result.status === 200) result.html = addTrapFields(fillAlts(result.html, this.source));
+    if (result.status === 200) result.html = withSrcset(addTrapFields(fillAlts(result.html, this.source)), this.images);
     return result;
   }
 
@@ -427,7 +437,7 @@ export class Runtime {
 
   /** What every page gets once rendered: alt texts kept beside images, and the credits' link (Q155, Q157). */
   private finish(html: string): string {
-    const filled = addTrapFields(fillAlts(html, this.source));
+    const filled = withSrcset(addTrapFields(fillAlts(html, this.source)), this.images);
     return creditedMedia(this.source).length ? addCreditsLink(filled) : filled;
   }
 
@@ -443,7 +453,14 @@ export class Runtime {
     try {
       // Shared parts see only what is passed to them, plus these globals ("page").
       const html = this.liquid.parseAndRenderSync(this.prepare(raw, file), scope, { globals: scope });
-      return { status: 200, html, file, notes: this.notes, ms: performance.now() - started };
+      return {
+        status: 200,
+        html,
+        file,
+        notes: this.notes,
+        ms: performance.now() - started,
+        datasources: [...this.read],
+      };
     } catch (error) {
       this.notes.push({ file, note: `render error: ${error instanceof Error ? error.message : String(error)}` });
       return { status: 500, html: renderError(error), file, notes: this.notes, ms: performance.now() - started };

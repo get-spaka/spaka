@@ -35,7 +35,7 @@ export {
   TEST_RECORDS_DIR,
   titleOf,
 } from "./data.ts";
-export { previewHead, VENDOR } from "./head.ts";
+export { ASSETS, exportHead, previewHead, VENDOR } from "./head.ts";
 export {
   decodeText,
   encodeText,
@@ -54,14 +54,17 @@ export {
   addCreditsLink,
   CREDITS_ROUTE,
   type Credit,
+  copyAddress,
   creditedMedia,
   creditsPage,
   fillAlts,
+  imagesIn,
   infoFile,
   type MediaInfo,
   mediaFiles,
   mediaInfo,
   needsCredit,
+  withSrcset,
 } from "./media.ts";
 export {
   newRecordText,

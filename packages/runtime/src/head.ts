@@ -29,3 +29,17 @@ export function previewHead({ vendorBase, theme }: { vendorBase: string; theme: 
     `<script src="${base}/htmx.js" data-up-runtime></script>`,
   ].join("");
 }
+
+/** Where an export puts the site's own assets: the compiled stylesheet and htmx. */
+export const ASSETS = "assets";
+
+/** The head of every page of an exported or published site: its compiled stylesheet, its theme, htmx. */
+export function exportHead(hasTheme: boolean): string {
+  return [
+    `<meta charset="utf-8">`,
+    `<meta name="viewport" content="width=device-width, initial-scale=1">`,
+    hasTheme ? `<link rel="stylesheet" href="/theme.css">` : "",
+    `<link rel="stylesheet" href="/${ASSETS}/site.css">`,
+    `<script src="/${ASSETS}/htmx.js" defer></script>`,
+  ].join("");
+}

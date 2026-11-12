@@ -23,6 +23,7 @@
     "@types/node": "26.6.6",
     "playwright": "1.65.0",
     "typescript": "7.0.2",
-    "vitest": "5.1.0"
+    "vitest": "5.1.0",
+    "wrangler": "4.160.1"
   }
 }

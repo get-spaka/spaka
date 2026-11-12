@@ -115,3 +115,53 @@ ${items}
 </body>
 </html>`;
 }
+
+/** The media files an HTML page shows in an <img>, as project paths. */
+export function imagesIn(html: string): string[] {
+  const out = new Set<string>();
+  for (const tag of html.match(/<img\b[^>]*>/gi) ?? []) {
+    const path = mediaPath(tag);
+    if (path) out.add(path);
+  }
+  return [...out];
+}
+
+function srcOf(tag: string): string | undefined {
+  return /\ssrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i
+    .exec(tag)
+    ?.slice(1)
+    .find((v) => v !== undefined);
+}
+
+function mediaPath(tag: string): string | undefined {
+  const src = srcOf(tag);
+  if (!src || !/^\/?media\/[^?#]+$/i.test(src)) return undefined;
+  try {
+    return decodeURI(src.replace(/^\//, ""));
+  } catch {
+    return undefined;
+  }
+}
+
+/** A copy's address beside its image's: /media/cafe.jpg at 960 gives /media/cafe-960w.webp. */
+export function copyAddress(src: string, width: number): string {
+  return `${src.replace(/\.[^./]+$/, "")}-${width}w.webp`;
+}
+
+/**
+ * Gives each <img> of an image with copies a srcset of them, and sizes="100vw"
+ * when it has none; its src stays the original, for browsers without WebP
+ * (Q156). An <img> with a srcset of its own is left as it is.
+ */
+export function withSrcset(html: string, copies: ReadonlyMap<string, number[]>): string {
+  if (!copies.size) return html;
+  return html.replace(/<img\b[^>]*>/gi, (tag) => {
+    const path = mediaPath(tag);
+    const widths = path ? copies.get(path) : undefined;
+    if (!widths?.length || /\ssrcset\s*=/i.test(tag)) return tag;
+    const src = srcOf(tag)!;
+    const srcset = widths.map((w) => `${copyAddress(src, w)} ${w}w`).join(", ");
+    const sizes = /\ssizes\s*=/i.test(tag) ? "" : ' sizes="100vw"';
+    return tag.replace(/^<img\b/i, `<img srcset="${srcset}"${sizes}`);
+  });
+}
