@@ -1,11 +1,15 @@
+import { type ChildProcess, spawn } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { createServer } from "node:http";
+import { createServer as createHttpServer } from "node:http";
 import type { AddressInfo } from "node:net";
+import { createServer } from "node:net";
 import { extname, join, normalize } from "node:path";
 import { describe, expect, test } from "vitest";
+import { parse } from "yaml";
 import { PALETTES } from "../apps/desktop/src/shared/palettes.ts";
 import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
 import { buildBlog } from "./blog-check.ts";
+import { buildGuestbook, sampleValues } from "./guestbook-check.ts";
 import { previewDriver } from "./preview-driver.ts";
 
 const built = existsSync(join(import.meta.dirname, "../apps/desktop/dist/mac-arm64/Upstart.app"));
@@ -38,7 +42,7 @@ const done = (launched: LaunchedApp, n: number, timeout: number) =>
 
 /** Serves a folder as a static host would. */
 async function serve(folder: string) {
-  const server = createServer((req, res) => {
+  const server = createHttpServer((req, res) => {
     const path = normalize(decodeURIComponent(new URL(req.url ?? "/", "http://x").pathname));
     let file = join(folder, path);
     if (existsSync(file) && statSync(file).isDirectory()) file = join(file, "index.html");
@@ -459,6 +463,126 @@ describe.runIf(built && process.platform === "darwin")("the packaged app", () =>
         );
         expect(problems).toEqual([]);
       } finally {
+        await launched.close();
+      }
+    },
+    1_200_000,
+  );
+
+  // Build step 4 in the packaged app (the "Guestbook" scenario): the real
+  // agent writes a guestbook and a contact form; the Node export, made with
+  // the server the app ships, runs on this machine and is sent two entries;
+  // the Content tab then lists them with the test records, one is approved,
+  // the other deleted for good, the rest saved as CSV.
+  test.runIf(real)(
+    "step 4 with the real agent: a guestbook, the Node export run, what it collected in the Content tab",
+    async () => {
+      const dataDir = join(import.meta.dirname, "../.cache/packaged-step4-data");
+      rmSync(dataDir, { recursive: true, force: true });
+      const launched = await launchApp({
+        packaged: true,
+        env: {
+          UPSTART_AGENT_REPLAY: "",
+          UPSTART_AGENT_CONFIG_DIR: configDir,
+          UPSTART_AGENT_RECORD: join(runsDir, "packaged-step4.jsonl"),
+          UPSTART_DATA_DIR: dataDir,
+        },
+      });
+      const log = (line: string) => process.stdout.write(`[step4] ${line}\n`);
+      const w = launched.window;
+      let server: ChildProcess | undefined;
+      try {
+        const invoke = invokeIn(launched);
+        await w.getByTestId("conversation").waitFor();
+        await until(async () => (await invoke("agent:status")).auth === "signed-in", 30_000);
+        const report = await buildGuestbook(launched);
+        writeFileSync(join(runsDir, "packaged-step4.json"), JSON.stringify(report, null, 2));
+        log(`guestbook: ${JSON.stringify(report)}`);
+        const name = report.guestbook!;
+
+        // The Node export, with the server the packaged app ships.
+        const out = join(runsDir, "packaged-node");
+        rmSync(out, { recursive: true, force: true });
+        const token = (await invoke("site:token")) as string;
+        const choices = await invoke("export:choices");
+        expect(choices.choices.find((c: { id: string }) => c.id === "static").refused).toContain(name);
+        await invoke("export:run", out, "node");
+        const port = await new Promise<number>((resolve) => {
+          const probe = createServer();
+          probe.listen(0, "127.0.0.1", () => {
+            const p = (probe.address() as AddressInfo).port;
+            probe.close(() => resolve(p));
+          });
+        });
+        const base = `http://127.0.0.1:${port}`;
+        server = spawn(process.execPath, ["server.mjs"], {
+          cwd: out,
+          env: { ...process.env, PORT: String(port), HOST: "127.0.0.1", UPSTART_TOKEN: token },
+          stdio: "ignore",
+        });
+        await until(async () => (await fetch(`${base}/`)).ok, 15_000);
+        const definition = readFileSync(
+          join((await invoke("projects:current")).path, "data", name, "_datasource.yaml"),
+          "utf8",
+        );
+        const { fields } = parse(definition) as { fields: { name: string; kind: string }[] };
+        const entry = (who: string) => new URLSearchParams(sampleValues(fields, who));
+        for (const who of ["Anne", "Bruno"]) {
+          const sent = await fetch(`${base}/_data/${name}`, { method: "POST", body: entry(who) });
+          expect(sent.status, await sent.text()).toBe(200);
+        }
+
+        // What it collected, in the Content tab.
+        await invoke("projects:set-site-url", base);
+        expect(await invoke("site:check")).toMatchObject({ ok: true });
+        await w.getByTestId("tab-content").click();
+        await w.locator(`[data-testid="datasource"][data-name="${name}"]`).click();
+        await until(async () => (await w.getByTestId("collected").getAttribute("data-connected")) === "true", 15_000);
+        const rows = () =>
+          w
+            .getByTestId("record")
+            .evaluateAll((els) =>
+              els.map((e) => [e.getAttribute("data-kind"), e.getAttribute("data-id"), e.hasAttribute("data-pending")]),
+            );
+        const listed = (await rows()) as [string, string, boolean][];
+        const published = listed.filter((r) => r[0] === "published");
+        expect(published.length).toBe(2);
+        expect(published.every((r) => r[2])).toBe(true);
+        expect(listed.filter((r) => r[0] === "test").length).toBeGreaterThanOrEqual(3);
+        writeFileSync(join(runsDir, "packaged-step4-content.png"), await w.screenshot());
+        await w.locator(`[data-id="${published[0]![1]}"]`).getByTestId("record-approve").click();
+        await until(
+          async () => !((await rows()) as [string, string, boolean][]).find((r) => r[1] === published[0]![1])?.[2],
+          10_000,
+        );
+        const second = w.locator(`[data-id="${published[1]![1]}"]`);
+        await second.hover();
+        await second.getByTestId("record-delete").click();
+        await second.getByTestId("record-delete-for-good").click();
+        await until(
+          async () => !((await rows()) as [string, string, boolean][]).some((r) => r[1] === published[1]![1]),
+          10_000,
+        );
+        await w.getByTestId("collected-csv").click();
+        await until(async () => (await w.getByTestId("collected-note").count()) === 1, 10_000);
+        const csv = readFileSync(
+          ((await w.getByTestId("collected-note").textContent()) ?? "").replace(/^Saved as /, ""),
+          "utf8",
+        );
+        log(`csv: ${csv}`);
+        expect(csv.split("\r\n").filter(Boolean).length).toBe(2);
+        // The page shows the approved entry, not the deleted one.
+        const home = await (
+          await fetch(
+            `${base}/${report.forms
+              .find((f) => f.datasource === name)!
+              .page.replace(/^pages\/|\.liquid$/g, "")
+              .replace(/^index$/, "")}`,
+          )
+        ).text();
+        log(`page shows Anne: ${home.includes("Anne")}, Bruno: ${home.includes("Bruno")}`);
+      } finally {
+        server?.kill("SIGTERM");
         await launched.close();
       }
     },
