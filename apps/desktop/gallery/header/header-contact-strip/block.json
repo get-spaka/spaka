@@ -1,0 +1,26 @@
+{
+  "name": "Header with contact strip",
+  "kind": "header",
+  "source": "upstart",
+  "description": "A navigation bar under a coloured strip giving the phone number, opening hours, address and email, with the logo, links and an appointment button; links fold into a dropdown menu on mobile.",
+  "tags": ["contact details", "phone", "opening hours", "address", "logo", "mobile menu"],
+  "mood": ["professional", "friendly"],
+  "synonyms": [
+    "navbar",
+    "top bar",
+    "contact bar",
+    "phone number",
+    "opening hours",
+    "local business",
+    "barre de navigation",
+    "en-tête",
+    "bandeau de contact",
+    "horaires d’ouverture",
+    "téléphone",
+    "commerce de proximité"
+  ],
+  "data": {
+    "name": "navigation",
+    "family": "collection"
+  }
+}

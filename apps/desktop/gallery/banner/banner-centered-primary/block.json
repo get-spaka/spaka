@@ -1,0 +1,22 @@
+{
+  "name": "Centred primary strip",
+  "kind": "banner",
+  "source": "hyperui",
+  "description": "A thin full-width strip in the primary colour with one centred line of text and an underlined link, for a sale, free delivery or any short announcement.",
+  "tags": ["one line", "centred", "coloured background", "link", "thin strip"],
+  "mood": ["bold", "minimal"],
+  "synonyms": [
+    "announcement bar",
+    "top bar",
+    "notice",
+    "promo",
+    "free delivery",
+    "sale",
+    "bandeau",
+    "annonce",
+    "bannière d’annonce",
+    "barre d’information",
+    "livraison offerte",
+    "promotion"
+  ]
+}

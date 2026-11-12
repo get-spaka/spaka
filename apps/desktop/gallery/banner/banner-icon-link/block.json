@@ -1,0 +1,21 @@
+{
+  "name": "Strip with icon and arrow link",
+  "kind": "banner",
+  "source": "upstart",
+  "description": "A light strip on the page background with a clock icon in the primary colour, a short notice about new opening hours and a link with an arrow, edged by a thin line below.",
+  "tags": ["icon", "arrow link", "light background", "opening hours", "thin strip"],
+  "mood": ["minimal", "professional"],
+  "synonyms": [
+    "announcement bar",
+    "top bar",
+    "notice",
+    "opening hours",
+    "information strip",
+    "bandeau",
+    "annonce",
+    "barre d’information",
+    "horaires d’ouverture",
+    "nouveaux horaires",
+    "avis"
+  ]
+}

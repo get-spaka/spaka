@@ -1,0 +1,25 @@
+{
+  "name": "Restaurant footer with hours and reservations",
+  "kind": "footer",
+  "source": "upstart",
+  "description": "A dark, centred footer for a restaurant or café with its name and a sentence, three blocks for opening hours, reservations with a book-a-table button and the address, then the page links, social icons and copyright.",
+  "tags": ["restaurant", "opening hours", "reservations", "address", "dark background", "social links"],
+  "mood": ["elegant", "warm", "dark"],
+  "synonyms": [
+    "site footer",
+    "restaurant",
+    "cafe",
+    "book a table",
+    "opening times",
+    "pied de page",
+    "réservation",
+    "réserver une table",
+    "horaires",
+    "bistrot",
+    "adresse"
+  ],
+  "data": {
+    "name": "navigation",
+    "family": "collection"
+  }
+}

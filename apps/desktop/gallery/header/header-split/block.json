@@ -1,0 +1,24 @@
+{
+  "name": "Split header with centred logo",
+  "kind": "header",
+  "source": "upstart",
+  "description": "A one-row header with the links on the left, the logo and business name centred in the middle in spaced capitals, and an outlined booking button on the right; links fold into a dropdown menu on mobile.",
+  "tags": ["centered logo", "split", "links", "button", "mobile menu"],
+  "mood": ["elegant", "editorial"],
+  "synonyms": [
+    "navbar",
+    "centred logo",
+    "logo in the middle",
+    "restaurant header",
+    "boutique header",
+    "barre de navigation",
+    "logo centré",
+    "en-tête élégant",
+    "menu principal",
+    "logo au milieu"
+  ],
+  "data": {
+    "name": "navigation",
+    "family": "collection"
+  }
+}

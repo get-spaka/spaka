@@ -1,0 +1,50 @@
+<footer class="overflow-hidden border-t border-base-300 bg-base-100 text-base-content">
+  <div class="mx-auto max-w-6xl px-4 pt-12 md:pt-20">
+    <div class="grid gap-12 md:grid-cols-12">
+      <div class="md:col-span-5">
+        <p class="text-2xl font-semibold text-balance md:text-3xl">Have a project in mind? We would love to hear about it.</p>
+        <a href="#" class="link link-hover mt-6 inline-flex items-center gap-2 text-lg font-medium"><svg class="size-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>hello@yourbusiness.com</a>
+      </div>
+      <div class="grid grid-cols-2 gap-8 sm:grid-cols-3 md:col-span-7">
+        <nav aria-label="Explore" class="flex flex-col gap-2">
+          <h2 class="text-xs font-semibold tracking-widest text-base-content/70 uppercase">Explore</h2>
+          {% for item in data.navigation %}{% unless item.place == "header" or item.place == "social" or item.place == "footer" or item.links.size > 0 %}
+          <a href="{{ item.href }}" class="link link-hover" {% if page.url == item.href %}aria-current="page"{% endif %}>{{ item.label }}</a>
+          {% endunless %}{% endfor %}
+        </nav>
+        {% for item in data.navigation %}{% unless item.place == "header" or item.place == "social" %}{% if item.links.size > 0 %}
+        <nav aria-label="{{ item.label }}" class="flex flex-col gap-2">
+          <h2 class="text-xs font-semibold tracking-widest text-base-content/70 uppercase">{{ item.label }}</h2>
+          {% for link in item.links %}<a href="{{ link.href }}" class="link link-hover" {% if page.url == link.href %}aria-current="page"{% endif %}>{{ link.label }}</a>{% endfor %}
+        </nav>
+        {% endif %}{% endunless %}{% endfor %}
+        <nav aria-label="Social media" class="flex flex-col gap-2">
+          <h2 class="text-xs font-semibold tracking-widest text-base-content/70 uppercase">Follow</h2>
+          {% for item in data.navigation %}{% if item.place == "social" %}
+          {% assign network = item.label | downcase %}
+          <a href="{{ item.href }}" class="link link-hover inline-flex items-center gap-2">
+            {% case network %}
+            {% when "facebook" %}<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+            {% when "instagram" %}<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><path d="M17.5 6.5h.01"/></svg>
+            {% when "linkedin" %}<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>
+            {% when "x", "twitter" %}<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4l11.733 16h4.267l-11.733-16z"/><path d="M4 20l6.768-6.768m2.46-2.46L20 4"/></svg>
+            {% when "youtube" %}<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17"/><path d="m10 15 5-3-5-3z"/></svg>
+            {% else %}<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            {% endcase %}<span class="text-sm">{{ item.label }}</span>
+          </a>
+          {% endif %}{% endfor %}
+        </nav>
+      </div>
+    </div>
+    <p class="mt-16 text-center text-6xl leading-none font-black tracking-tighter select-none sm:text-8xl lg:text-[10rem]" aria-hidden="true">Your business</p>
+    <div class="mt-8 flex flex-col gap-4 border-t border-base-300 py-6 text-sm text-base-content/70 sm:flex-row sm:items-center sm:justify-between">
+      <p>© 2026 Your business. All rights reserved.</p>
+      <nav aria-label="Legal" class="flex flex-wrap gap-x-6 gap-y-2">
+        {% for item in data.navigation %}{% if item.place == "footer" %}{% unless item.links.size > 0 %}
+        <a href="{{ item.href }}" class="link link-hover" {% if page.url == item.href %}aria-current="page"{% endif %}>{{ item.label }}</a>
+        {% endunless %}{% endif %}{% endfor %}
+        <a href="#" class="link link-hover inline-flex items-center gap-1">Back to top<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg></a>
+      </nav>
+    </div>
+  </div>
+</footer>

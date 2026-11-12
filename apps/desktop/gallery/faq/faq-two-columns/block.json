@@ -4,7 +4,7 @@
   "source": "hyperui",
   "description": "Two columns: a heading, short intro and contact button on the left, and a list of expandable questions separated by thin lines on the right.",
   "tags": ["two columns", "questions", "expandable", "contact button", "dividers"],
-  "mood": ["corporate", "minimal"],
+  "mood": ["professional", "minimal"],
   "synonyms": [
     "questions",
     "help",

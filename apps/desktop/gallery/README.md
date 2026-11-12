@@ -3,7 +3,7 @@
 Ready-made page sections the maker drags into a page and the agent finds with `find_blocks`. Each block lives in `<kind>/<id>/` (id = `<kind>-<slug>`, also the folder name), with:
 
 - `block.liquid`, copied into the project as `parts/<id>.liquid`;
-- `block.json`: `name`, `kind`, `source` (where its layout comes from), `description`, `tags`, `mood` and `synonyms` (English and French) for the search, and `data` for a data block;
+- `block.json`: `name`, `kind`, `source` (where its layout comes from), `description`, `tags`, `mood` (one to three of minimal, friendly, bold, elegant, playful, warm, professional, editorial, dark, colorful) and `synonyms` (English and French) for the search, and `data` for a data block;
 - for a data block, `data/_datasource.yaml` (its datasource's definition, as in a project) and `data/<id>.md`, three to six sample records (none needed for a form whose records no page shows);
 - for a list of a collection with a page per record (blog, events, products), `detail.liquid`: the record page's section, reading `record`.
 

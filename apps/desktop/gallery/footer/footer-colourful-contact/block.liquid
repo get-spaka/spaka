@@ -1,0 +1,64 @@
+<footer class="bg-primary text-primary-content">
+  <div class="mx-auto max-w-6xl px-4 py-12 md:py-16">
+    <div class="grid gap-10 lg:grid-cols-12">
+      <div class="lg:col-span-4">
+        <a href="/" class="flex items-center gap-2">
+          <svg class="size-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>
+          <span class="text-xl font-bold">Your business</span>
+        </a>
+        <p class="mt-4 max-w-xs text-primary-content">Cheerful help for busy people, close to home and always on time.</p>
+        <nav aria-label="Social media" class="mt-6 flex gap-2">
+          {% for item in data.navigation %}{% if item.place == "social" %}
+          {% assign network = item.label | downcase %}
+          <a href="{{ item.href }}" class="btn btn-circle btn-sm border-0 bg-primary-content/15 text-primary-content shadow-none hover:bg-primary-content/25" aria-label="{{ item.label }}">
+            {% case network %}
+            {% when "facebook" %}<svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+            {% when "instagram" %}<svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><path d="M17.5 6.5h.01"/></svg>
+            {% when "linkedin" %}<svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>
+            {% when "x", "twitter" %}<svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4l11.733 16h4.267l-11.733-16z"/><path d="M4 20l6.768-6.768m2.46-2.46L20 4"/></svg>
+            {% when "youtube" %}<svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17"/><path d="m10 15 5-3-5-3z"/></svg>
+            {% else %}<svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            {% endcase %}
+          </a>
+          {% endif %}{% endfor %}
+        </nav>
+      </div>
+      <div class="grid grid-cols-2 gap-8 lg:col-span-4">
+        <nav aria-label="Explore" class="flex flex-col gap-2">
+          <h2 class="font-bold">Explore</h2>
+          {% for item in data.navigation %}{% unless item.place == "header" or item.place == "social" or item.place == "footer" or item.links.size > 0 %}
+          <a href="{{ item.href }}" class="link link-hover text-primary-content hover:text-primary-content" {% if page.url == item.href %}aria-current="page"{% endif %}>{{ item.label }}</a>
+          {% endunless %}{% endfor %}
+        </nav>
+        {% for item in data.navigation %}{% unless item.place == "header" or item.place == "social" %}{% if item.links.size > 0 %}
+        <nav aria-label="{{ item.label }}" class="flex flex-col gap-2">
+          <h2 class="font-bold">{{ item.label }}</h2>
+          {% for link in item.links %}<a href="{{ link.href }}" class="link link-hover text-primary-content hover:text-primary-content" {% if page.url == link.href %}aria-current="page"{% endif %}>{{ link.label }}</a>{% endfor %}
+        </nav>
+        {% endif %}{% endunless %}{% endfor %}
+      </div>
+      <div class="lg:col-span-4">
+        <div class="card bg-base-100 text-base-content shadow-lg">
+          <div class="card-body gap-3">
+            <h2 class="card-title">Questions? Talk to us</h2>
+            <p class="text-base-content/70">We answer every message within one working day.</p>
+            <a href="#" class="link link-hover flex items-center gap-2"><svg class="size-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>+1 555 0142</a>
+            <a href="#" class="link link-hover flex items-center gap-2"><svg class="size-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>hello@yourbusiness.com</a>
+            <div class="card-actions mt-2">
+              <a href="#" class="btn btn-primary btn-block">Send us a message</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mt-12 flex flex-col gap-4 rounded-box bg-primary-content/10 px-5 py-4 text-sm sm:flex-row sm:items-center sm:justify-between">
+      <p class="text-primary-content">© 2026 Your business</p>
+      <nav aria-label="Legal" class="flex flex-wrap items-center gap-x-6 gap-y-2">
+        {% for item in data.navigation %}{% if item.place == "footer" %}{% unless item.links.size > 0 %}
+        <a href="{{ item.href }}" class="link link-hover" {% if page.url == item.href %}aria-current="page"{% endif %}>{{ item.label }}</a>
+        {% endunless %}{% endif %}{% endfor %}
+        <a href="#" class="link link-hover inline-flex items-center gap-1 font-semibold">Back to top<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg></a>
+      </nav>
+    </div>
+  </div>
+</footer>

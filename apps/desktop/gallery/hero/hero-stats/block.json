@@ -4,7 +4,7 @@
   "source": "hyperui",
   "description": "A small badge above a centred headline and subtitle with two buttons, followed by a row of key figures, each from a record.",
   "tags": ["badge", "headline", "buttons", "stats", "numbers", "centered"],
-  "mood": ["bold", "corporate"],
+  "mood": ["bold", "professional"],
   "synonyms": [
     "banner",
     "intro",

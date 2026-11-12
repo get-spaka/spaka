@@ -1,0 +1,20 @@
+{
+  "name": "Playful hero with benefits",
+  "kind": "hero",
+  "source": "upstart",
+  "description": "A cheerful hero with a badge, a headline with a wavy underlined phrase, three benefits each with a round tick, two rounded buttons and a tilted picture with a rating sticker.",
+  "tags": ["headline", "badge", "benefits", "checklist", "image", "rating"],
+  "mood": ["playful", "friendly", "colorful"],
+  "synonyms": [
+    "banner",
+    "benefits",
+    "checklist",
+    "why choose us",
+    "selling points",
+    "bannière",
+    "avantages",
+    "liste à cocher",
+    "points forts",
+    "accroche ludique"
+  ]
+}

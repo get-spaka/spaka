@@ -1,0 +1,24 @@
+{
+  "name": "Colourful footer with contact card",
+  "kind": "footer",
+  "source": "upstart",
+  "description": "A footer in the primary colour with the logo, a sentence and round social buttons, columns of links, a light contact card with phone, email and a button, and a bottom band with legal links and a back-to-top link.",
+  "tags": ["primary colour", "contact card", "columns", "social links", "back to top"],
+  "mood": ["colorful", "playful", "friendly"],
+  "synonyms": [
+    "site footer",
+    "coloured footer",
+    "contact us",
+    "get in touch",
+    "back to top",
+    "pied de page",
+    "pied de page coloré",
+    "nous contacter",
+    "carte de contact",
+    "retour en haut"
+  ],
+  "data": {
+    "name": "navigation",
+    "family": "collection"
+  }
+}

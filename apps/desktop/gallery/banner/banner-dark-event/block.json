@@ -1,0 +1,21 @@
+{
+  "name": "Dark event strip",
+  "kind": "banner",
+  "source": "upstart",
+  "description": "A dark neutral strip announcing an event with a calendar icon, its name and date set apart by a thin divider, and an underlined link to book a place.",
+  "tags": ["dark background", "event", "date", "calendar icon", "thin strip"],
+  "mood": ["dark", "elegant"],
+  "synonyms": [
+    "announcement bar",
+    "top bar",
+    "event notice",
+    "open evening",
+    "save the date",
+    "bandeau",
+    "annonce",
+    "barre d’information",
+    "événement",
+    "soirée portes ouvertes",
+    "rendez-vous"
+  ]
+}

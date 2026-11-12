@@ -1,0 +1,20 @@
+{
+  "name": "Full-bleed gradient hero",
+  "kind": "hero",
+  "source": "upstart",
+  "description": "A full-width hero on a vivid gradient from the primary to the secondary colour, with soft glowing shapes, a large centred headline, a subtitle, a light and an outlined button and a line of trust.",
+  "tags": ["headline", "gradient", "full width", "centered", "buttons"],
+  "mood": ["colorful", "bold"],
+  "synonyms": [
+    "banner",
+    "gradient background",
+    "colour banner",
+    "full-bleed",
+    "splash",
+    "bannière",
+    "dégradé",
+    "fond coloré",
+    "pleine largeur",
+    "accroche"
+  ]
+}

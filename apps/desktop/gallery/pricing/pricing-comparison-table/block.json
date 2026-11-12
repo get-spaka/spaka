@@ -4,7 +4,7 @@
   "source": "hyperui",
   "description": "A heading above a table that compares three plans column by column, with prices in the header row, ticks and dashes for each feature, and a button per plan.",
   "tags": ["table", "comparison", "three plans", "ticks", "monthly", "buttons"],
-  "mood": ["corporate", "minimal"],
+  "mood": ["professional", "minimal"],
   "synonyms": [
     "plans",
     "prices",

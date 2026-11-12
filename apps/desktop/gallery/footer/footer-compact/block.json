@@ -1,0 +1,24 @@
+{
+  "name": "Compact one-line footer",
+  "kind": "footer",
+  "source": "upstart",
+  "description": "A slim footer on a single line with a small logo and copyright, the page links in the middle and small social icons on the right, stacking on a phone.",
+  "tags": ["compact", "one line", "slim", "links", "social links", "copyright"],
+  "mood": ["minimal", "professional"],
+  "synonyms": [
+    "site footer",
+    "small footer",
+    "thin footer",
+    "simple footer",
+    "minimal footer",
+    "pied de page",
+    "pied de page simple",
+    "barre du bas",
+    "discret",
+    "une ligne"
+  ],
+  "data": {
+    "name": "navigation",
+    "family": "collection"
+  }
+}

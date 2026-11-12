@@ -1,0 +1,22 @@
+{
+  "name": "Soft strip with a dismiss button",
+  "kind": "banner",
+  "source": "hyperui",
+  "description": "A soft grey strip with a centred notice, here that the site uses no cookies, a link to the privacy note and a small cross on the right that hides the strip without JavaScript.",
+  "tags": ["dismissible", "close button", "soft background", "privacy", "thin strip"],
+  "mood": ["minimal", "warm"],
+  "synonyms": [
+    "announcement bar",
+    "top bar",
+    "notice",
+    "cookie-free notice",
+    "privacy notice",
+    "dismissible banner",
+    "bandeau",
+    "annonce",
+    "barre d’information",
+    "sans cookies",
+    "bandeau refermable",
+    "confidentialité"
+  ]
+}

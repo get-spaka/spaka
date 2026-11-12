@@ -14,6 +14,20 @@ import { BLOCK_SOURCES, type Block, readGallery } from "./catalogue";
 const GALLERY = join(__dirname, "../../../gallery");
 const blocks = readGallery(GALLERY);
 
+/** The moods a block is searched by, one spelling each. */
+const MOODS = [
+  "minimal",
+  "friendly",
+  "bold",
+  "elegant",
+  "playful",
+  "warm",
+  "professional",
+  "editorial",
+  "dark",
+  "colorful",
+];
+
 /** Tailwind's own colours, which do not follow the theme: `bg-blue-600`, `text-white`, `bg-[#fff]`. */
 const FIXED_COLOUR =
   /(?:^|[\s"':])(?:[a-z]+:)*!?(?:bg|text|border|ring|ring-offset|from|via|to|fill|stroke|outline|divide|shadow|decoration|placeholder|accent|caret)-(?:(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}|black|white|\[(?:#|rgb|hsl|oklch|color))/;
@@ -58,6 +72,7 @@ describe.each(blocks.map((b) => [b.id, b] as const))("%s", (_id, b) => {
     expect(b.id).toMatch(new RegExp(`^${b.kind}-[a-z0-9-]+$`));
     expect(b.tags.length).toBeGreaterThan(0);
     expect(b.mood.length).toBeGreaterThan(0);
+    for (const mood of b.mood) expect(MOODS, mood).toContain(mood);
     // English and French words the maker or the agent may search with.
     expect(b.synonyms.length).toBeGreaterThanOrEqual(4);
   });

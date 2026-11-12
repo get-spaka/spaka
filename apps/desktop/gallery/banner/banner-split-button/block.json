@@ -1,0 +1,21 @@
+{
+  "name": "Two-part strip with button",
+  "kind": "banner",
+  "source": "upstart",
+  "description": "A strip in the secondary colour with the notice on the left and a small button on the right, here for a holiday closure; the button drops below the text on a narrow phone.",
+  "tags": ["two parts", "button", "coloured background", "holiday closure", "thin strip"],
+  "mood": ["friendly", "colorful"],
+  "synonyms": [
+    "announcement bar",
+    "top bar",
+    "notice",
+    "holiday closure",
+    "closed",
+    "bandeau",
+    "annonce",
+    "bannière d’annonce",
+    "fermeture exceptionnelle",
+    "congés",
+    "barre d’information"
+  ]
+}

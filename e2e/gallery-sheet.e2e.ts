@@ -6,7 +6,7 @@ import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
 import { previewDriver } from "./preview-driver.ts";
 
 // The gallery's review sheets (Q203): each block of a kind drawn by the app's
-// own thumbnails under three palettes, light, dark and colourful, side by
+// own thumbnails under three palettes, light, dark and colorful, side by
 // side, one picture per kind in e2e/.runs/gallery-sheets/. Run only when asked:
 //   UPSTART_GALLERY_SHEET=1 (every kind) or UPSTART_GALLERY_SHEET=hero,faq
 const asked = process.env.UPSTART_GALLERY_SHEET ?? "";

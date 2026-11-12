@@ -1,0 +1,24 @@
+{
+  "name": "Footer with a big wordmark",
+  "kind": "footer",
+  "source": "upstart",
+  "description": "An editorial footer with a short invitation and email link, columns of links and a list of social networks, closed by the business name set huge across the full width above a thin legal bar.",
+  "tags": ["wordmark", "large type", "columns", "social links", "legal links"],
+  "mood": ["bold", "editorial", "minimal"],
+  "synonyms": [
+    "site footer",
+    "big name",
+    "brand name",
+    "oversized logo",
+    "large text",
+    "pied de page",
+    "grand logo",
+    "nom de la marque",
+    "typographie géante",
+    "bas de page"
+  ],
+  "data": {
+    "name": "navigation",
+    "family": "collection"
+  }
+}

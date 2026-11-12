@@ -4,7 +4,7 @@
   "source": "hyperui",
   "description": "A soft footer with the logo, a short description and social icons, three columns of links, and a bottom bar with copyright and legal links.",
   "tags": ["columns", "logo", "links", "social links", "legal links", "copyright"],
-  "mood": ["corporate", "minimal"],
+  "mood": ["professional", "minimal"],
   "synonyms": [
     "bottom",
     "site footer",
