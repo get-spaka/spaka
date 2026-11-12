@@ -115,8 +115,19 @@ The colour values of a theme. A project has one palette, and may add a second th
 _Avoid_: Colour scheme, mode
 
 **Block**:
-A ready-made piece of a page (a hero, a pricing table, a form bound to a datasource…) that is copied from the gallery into a project, where it becomes a shared part, and from then on belongs to that project.
+A ready-made piece of a page (a hero, a pricing table, a form bound to a datasource…) that is copied from the gallery into a project, where it becomes a shared part, and from then on belongs to that project. A block that lists things brings its datasource with it, with sample records.
 _Avoid_: Component, brick, widget
+
+**Collection**:
+A datasource of things the site has whatever page shows them (team members, posts, events, dishes, products, pictures, testimonials), shared by every page that lists it.
+
+**Section list**:
+A datasource that belongs to one section of one page (its questions, features, plans, figures, logos or steps), named after that page, so that two pages never share it by accident.
+_Avoid_: Local datasource
+
+**Navigation**:
+The site's datasource of links, read by every header and footer: each link has its label, its address, where it shows and, for a menu, its own links.
+_Avoid_: Menu (one menu is one navigation link with links of its own)
 
 **Gallery**:
 The catalogue of blocks that ships with Upstart.
