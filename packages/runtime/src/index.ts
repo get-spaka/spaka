@@ -1,4 +1,21 @@
 export {
+  addTrapFields,
+  type CollectedStore,
+  DATA_ROUTE,
+  type FormValues,
+  fingerprint,
+  formValues,
+  MANAGEMENT_ROUTE,
+  problemsAlert,
+  readSubmission,
+  SHOWN_RECORDS,
+  sameToken,
+  submissionId,
+  TRAP_FIELD,
+  VISITOR_LIMIT,
+  VISITOR_WINDOW_MS,
+} from "./collected.ts";
+export {
   type DataRecord,
   type Datasource,
   Datasources,
@@ -7,10 +24,15 @@ export {
   FIELD_KINDS,
   type Field,
   type FieldKind,
+  type FormMessages,
+  paragraphs,
   type RecordProblem,
+  readCollected,
   recordFile,
   recordOf,
+  type StoredRecord,
   splitRecord,
+  TEST_RECORDS_DIR,
   titleOf,
 } from "./data.ts";
 export { previewHead, VENDOR } from "./head.ts";
@@ -58,10 +80,12 @@ export {
   injectHead,
   type Note,
   type RenderResult,
+  type RequestInfo,
   type Route,
   Runtime,
   type RuntimeOptions,
 } from "./runtime.ts";
 export { memorySource, Overlay, type ProjectSource } from "./source.ts";
+export { MissingTable, RECORDS_SCHEMA, type SqlDatabase, SqlStore } from "./sql.ts";
 export { injectTrace, type Repair, repairTemplate, type Scan, scan } from "./template.ts";
 export { BRIDGE_CSS, repairCss, TAILWIND_THEME, THEME_MAP, THEME_VARIABLES } from "./theme.ts";

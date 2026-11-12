@@ -6,7 +6,33 @@
 // Rendering is synchronous: a render reads only the source, and the notes it
 // collects belong to that render alone.
 import { Liquid } from "liquidjs";
-import { type Datasource, Datasources, recordOf, titleOf } from "./data.ts";
+import {
+  addTrapFields,
+  type CollectedStore,
+  DATA_ROUTE,
+  fingerprint,
+  formValues,
+  MANAGEMENT_ROUTE,
+  message,
+  problemsAlert,
+  readSubmission,
+  SHOWN_RECORDS,
+  sameToken,
+  sentAlert,
+  submissionId,
+  TRAP_FIELD,
+  VISITOR_LIMIT,
+  VISITOR_WINDOW_MS,
+} from "./collected.ts";
+import {
+  type Datasource,
+  Datasources,
+  type Definition,
+  readCollected,
+  recordOf,
+  type StoredRecord,
+  titleOf,
+} from "./data.ts";
 import { escapeHtml } from "./escape.ts";
 import { addCreditsLink, CREDITS_ROUTE, creditedMedia, creditsPage, fillAlts } from "./media.ts";
 import { recordTitle } from "./records.ts";
@@ -56,7 +82,18 @@ export type RuntimeOptions = {
   markPageStyles?: boolean;
   /** Stand-in records while a datasource is being written (the preview, Q161). Default false. */
   standIns?: boolean;
+  /** The preview's test records, `<name>/<id>.md` under .upstart/test-records/ (Q172). */
+  testRecords?: ProjectSource;
+  /** Where what visitors send is kept: the test records' writer in the preview, SQLite once published. */
+  collected?: CollectedStore;
+  /** The published site's management token; without one there is no management API. */
+  managementToken?: string;
+  /** The current time, for tests. */
+  now?: () => Date;
 };
+
+/** Who sent a request, as the host knows it: the visitor's address, for the per-visitor limit. */
+export type RequestInfo = { visitor?: string };
 
 export class Runtime {
   private readonly liquid: Liquid;
@@ -74,7 +111,10 @@ export class Runtime {
   ) {
     this.repair = options.repair ?? true;
     this.trace = options.trace ?? true;
-    this.data = new Datasources(source, { standIns: options.standIns ?? false });
+    this.data = new Datasources(source, {
+      standIns: options.standIns ?? false,
+      ...(options.testRecords ? { testRecords: options.testRecords } : {}),
+    });
     this.liquid = new Liquid({
       root: ["/pages", "/fragments"],
       partials: ["/parts"],
@@ -108,6 +148,8 @@ export class Runtime {
       let route = file.slice("pages/".length, -ext.length);
       if (route === "index") route = "";
       else if (route.endsWith("/index")) route = route.slice(0, -"/index".length);
+      // Addresses starting with an underscore are the runtime's own (Q188).
+      if (route.split("/").some((part) => part.startsWith("_"))) continue;
       const bracket = bracketOf(route);
       if (!bracket) {
         pages.push({ route: `/${route}`, file });
@@ -130,6 +172,28 @@ export class Runtime {
     if (!all.some((r) => r.route === CREDITS_ROUTE) && creditedMedia(this.source).length)
       all.push({ route: CREDITS_ROUTE, file: "media", generated: true });
     return all;
+  }
+
+  /** What the agent is told about page files that get no address (Q188). */
+  pageNotes(): Note[] {
+    return this.source
+      .list("pages")
+      .filter((file) => PAGE_EXTENSIONS.some((e) => file.endsWith(e)))
+      .filter((file) =>
+        file
+          .slice("pages/".length)
+          .split("/")
+          .some((part) => part.startsWith("_")),
+      )
+      .map((file) => ({
+        file,
+        note: "gets no address: addresses starting with an underscore are Upstart's own (/_data/, /_upstart/); rename it",
+      }));
+  }
+
+  /** The collected datasources' names (Q171). */
+  collectedNames(): string[] {
+    return this.data.names().filter((name) => this.data.definition(name).definition?.collected);
   }
 
   /** The route serving an address, if any. */
@@ -204,7 +268,7 @@ export class Runtime {
     if (this.source.read(file) === undefined)
       return { status: 404, html: "", file, notes: [{ file, note: "no such fragment" }], ms: 0 };
     const result = this.render(file, scope);
-    if (result.status === 200) result.html = fillAlts(result.html, this.source);
+    if (result.status === 200) result.html = addTrapFields(fillAlts(result.html, this.source));
     return result;
   }
 
@@ -214,14 +278,22 @@ export class Runtime {
     return this.repair ? repairCss(css) : css;
   }
 
-  /** Answers a standard web request: pages, fragments and the theme. */
-  async fetch(request: Request): Promise<Response> {
+  /** Answers a standard web request: pages, fragments, the theme, form submissions and the management API. */
+  async fetch(request: Request, info: RequestInfo = {}): Promise<Response> {
     const url = new URL(request.url);
+    if (url.pathname.startsWith(MANAGEMENT_ROUTE)) return this.manage(request, url);
+    if (url.pathname.startsWith(DATA_ROUTE)) {
+      if (request.method !== "POST")
+        return new Response("Method not allowed", { status: 405, headers: { allow: "POST" } });
+      return this.submit(request, url.pathname.slice(DATA_ROUTE.length).replace(/\/+$/, ""), info);
+    }
     if (request.method !== "GET" && request.method !== "HEAD")
       return new Response("Method not allowed", { status: 405, headers: { allow: "GET, HEAD" } });
     const query = Object.fromEntries(url.searchParams);
     if (url.pathname === "/theme.css")
       return new Response(this.theme(), { headers: { "content-type": "text/css; charset=utf-8" } });
+    const unavailable = await this.loadCollected();
+    if (unavailable) return unavailable;
     const fragment = /^\/fragments\/([\w-]+)\/?$/.exec(url.pathname);
     const result = fragment
       ? this.renderFragment(fragment[1]!, { params: query })
@@ -230,6 +302,97 @@ export class Runtime {
       status: result.status,
       headers: { "content-type": "text/html; charset=utf-8" },
     });
+  }
+
+  /**
+   * Reads the records a published site keeps for each collected datasource,
+   * before rendering, which is synchronous. The preview reads its test
+   * records from files instead.
+   */
+  private async loadCollected(): Promise<Response | undefined> {
+    const store = this.options.collected;
+    if (!store || this.options.testRecords) return undefined;
+    try {
+      for (const name of this.collectedNames()) this.data.stored.set(name, await store.list(name, SHOWN_RECORDS));
+      return undefined;
+    } catch (error) {
+      return new Response(escapeHtml(error instanceof Error ? error.message : String(error)), {
+        status: 503,
+        headers: { "content-type": "text/html; charset=utf-8" },
+      });
+    }
+  }
+
+  /** A form's submission (Q173): kept and answered with the definition's fragment, or 422 with what is wrong. */
+  private async submit(request: Request, name: string, info: RequestInfo): Promise<Response> {
+    const html = (body: string, status = 200) =>
+      new Response(body, { status, headers: { "content-type": "text/html; charset=utf-8" } });
+    const definition = /^[a-z0-9][\w-]*$/i.test(name) ? this.data.definition(name).definition : undefined;
+    if (!definition?.collected) return html(problemsAlert([`There is no form named ${name}.`]), 404);
+    const values = await formValues(request);
+    const read = readSubmission(definition, values);
+    const trapped = (values.get(TRAP_FIELD) ?? []).some((v) => v.trim());
+    const now = this.options.now?.() ?? new Date();
+    const record: StoredRecord = {
+      id: submissionId(now),
+      submitted: now.toISOString(),
+      status: definition.review ? "pending" : "published",
+      fields: "fields" in read ? read.fields : {},
+    };
+    // What a robot filled in is answered as if it were kept, and dropped (Q180).
+    if (trapped)
+      return html("fields" in read ? this.answer(name, definition, record) : sentAlert(message(definition, "sent")));
+    if ("problems" in read) return html(problemsAlert(read.problems), 422);
+    const store = this.options.collected;
+    if (!store) return html(problemsAlert(["This site cannot keep what visitors send."]), 503);
+    try {
+      let visitor: string | undefined;
+      if (info.visitor) {
+        visitor = await fingerprint(info.visitor, this.options.managementToken ?? "");
+        const since = new Date(now.getTime() - VISITOR_WINDOW_MS).toISOString();
+        if ((await store.sentSince(name, visitor, since)) >= VISITOR_LIMIT)
+          return html(problemsAlert([message(definition, "too_many")]), 429);
+      }
+      await store.add(name, record, visitor);
+    } catch (error) {
+      return html(problemsAlert([error instanceof Error ? error.message : String(error)]), 503);
+    }
+    return html(this.answer(name, definition, record));
+  }
+
+  /** The definition's answer fragment with the new record, or the built-in thanks. */
+  private answer(name: string, definition: Definition, record: StoredRecord): string {
+    if (definition.answer) {
+      const shown = readCollected(name, record, definition).record;
+      const result = this.renderFragment(definition.answer, { record: shown, params: {} });
+      if (result.status === 200) return result.html;
+    }
+    return sentAlert(message(definition, "sent"));
+  }
+
+  /** The management API (Q177, Q183): the app reads, approves and deletes what a published site collected. */
+  private async manage(request: Request, url: URL): Promise<Response> {
+    const json = (body: unknown, status = 200) =>
+      new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+    const token = this.options.managementToken;
+    const store = this.options.collected;
+    if (!token || !store) return json({ error: "not found" }, 404);
+    const sent = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+    if (!sameToken(sent, token)) return json({ error: "wrong token" }, 401);
+    const [what, name, id, action] = url.pathname.slice(MANAGEMENT_ROUTE.length).split("/").filter(Boolean);
+    const collected = this.collectedNames();
+    try {
+      if (what === "ping" && request.method === "GET") return json({ ok: true, datasources: collected });
+      if (what !== "records" || !name || !collected.includes(name)) return json({ error: "not found" }, 404);
+      if (!id && request.method === "GET") return json({ records: await store.list(name, 10_000) });
+      if (id && action === "approve" && request.method === "POST")
+        return (await store.approve(name, id)) ? json({ ok: true }) : json({ error: "not found" }, 404);
+      if (id && !action && request.method === "DELETE")
+        return (await store.delete(name, id)) ? json({ ok: true }) : json({ error: "not found" }, 404);
+      return json({ error: "not found" }, 404);
+    } catch (error) {
+      return json({ error: error instanceof Error ? error.message : String(error) }, 503);
+    }
   }
 
   /** Puts the runtime's head into a rendered page. */
@@ -264,7 +427,7 @@ export class Runtime {
 
   /** What every page gets once rendered: alt texts kept beside images, and the credits' link (Q155, Q157). */
   private finish(html: string): string {
-    const filled = fillAlts(html, this.source);
+    const filled = addTrapFields(fillAlts(html, this.source));
     return creditedMedia(this.source).length ? addCreditsLink(filled) : filled;
   }
 
