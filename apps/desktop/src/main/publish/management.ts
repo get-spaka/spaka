@@ -108,8 +108,14 @@ export async function publishedRecords(siteUrl?: string, token?: string, datasou
   return records;
 }
 
-/** The records as CSV, one column per field, with when each was sent and whether it waits for review. */
-export function recordsCsv(fields: string[], records: StoredRecord[]): string {
+/** A row of the CSV: a published record, or a test record (status "test"). */
+export type CsvRecord = Omit<StoredRecord, "status"> & { status: StoredRecord["status"] | "test" };
+
+/**
+ * The records as the Content tab lists them (Q190), as CSV: one column per
+ * field, with when each was sent and its status (published, pending or test).
+ */
+export function recordsCsv(fields: string[], records: CsvRecord[]): string {
   const cell = (value: unknown) => {
     const text = Array.isArray(value) ? value.join(", ") : value === undefined || value === null ? "" : String(value);
     // A cell a spreadsheet would read as a formula is written as text.

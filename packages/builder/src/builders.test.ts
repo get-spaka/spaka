@@ -91,7 +91,11 @@ describe("the static site", () => {
 
 describe("the Node export", () => {
   test("server.mjs, site.json, public/, a Dockerfile and its guide", async () => {
-    const result = await builderById("node")!.build(contact(), { outDir: out, serverBundle: "// the server" });
+    const result = await builderById("node")!.build(contact(), {
+      outDir: out,
+      serverBundle: "// the server",
+      managementToken: "the-token",
+    });
     expect(result.name).toBe("chez-margot");
     expect(readFileSync(join(out, "server.mjs"), "utf8")).toBe("// the server");
     const site = JSON.parse(readFileSync(join(out, "site.json"), "utf8"));
@@ -104,7 +108,12 @@ describe("the Node export", () => {
     const docker = readFileSync(join(out, "Dockerfile"), "utf8");
     expect(docker).toContain("FROM node:24-slim");
     expect(docker).toContain("VOLUME /data");
-    expect(readFileSync(join(out, "GUIDE.md"), "utf8")).toContain("docker build -t chez-margot .");
+    expect(readFileSync(join(out, "README.md"), "utf8")).toContain("--env-file .env chez-margot");
+    // The token is in .env, which git and the Docker image leave out (Q191).
+    expect(readFileSync(join(out, ".env"), "utf8")).toMatch(/^UPSTART_TOKEN=the-token$/m);
+    expect(readFileSync(join(out, ".dockerignore"), "utf8")).toContain(".env");
+    expect(readFileSync(join(out, ".gitignore"), "utf8")).toContain(".env");
+    expect(builderById("node")!.guide(result)[0]).toEqual({ id: "try", command: "node server.mjs" });
     await expect(builderById("node")!.build(contact(), { outDir: out })).rejects.toThrow(/server\.mjs/);
   });
 });
@@ -116,6 +125,7 @@ describe("the Cloudflare export", () => {
     await builderById("cloudflare")!.build(contact(), {
       outDir: out,
       serverBundle: "// the worker",
+      managementToken: "the-token",
       today: new Date("2026-11-12T10:00:00Z"),
     });
     const config = JSON.parse(read("wrangler.jsonc").replace(/^\s*\/\/.*$/gm, ""));
@@ -131,7 +141,11 @@ describe("the Cloudflare export", () => {
     });
     expect(config.compatibility_flags).toBeUndefined();
     expect(read("worker.mjs")).toBe("// the worker");
-    expect(JSON.parse(read("package.json")).devDependencies.wrangler).toMatch(/^\d+\.\d+\.\d+$/);
+    const pkg = JSON.parse(read("package.json"));
+    expect(pkg.devDependencies.wrangler).toMatch(/^\d+\.\d+\.\d+$/);
+    // The deploy sends the token in .env as the Worker's secret (Q191).
+    expect(pkg.scripts.deploy).toBe("wrangler deploy --secrets-file .env");
+    expect(read(".env")).toMatch(/^UPSTART_TOKEN=the-token$/m);
     expect(read("migrations/0001_records.sql")).toContain("CREATE TABLE IF NOT EXISTS records");
     const kept = '{\n  "d1_databases": [{ "binding": "DB", "database_id": "0f2c-11ab" }]\n}';
     await builderById("cloudflare")!.build(contact(), { outDir: out, serverBundle: "//" });

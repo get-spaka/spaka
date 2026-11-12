@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -92,6 +92,23 @@ describe("what a published site collected", () => {
     await until(async () => (await w().getByTestId("collected-site").count()) === 1);
     expect(await w().getByTestId("collected-site").getAttribute("data-reason")).toBe("no-address");
     expect(await rows()).toEqual(["test:2026-11-11-0800-bbbb"]);
+    // The CSV holds what the list shows (Q190).
+    expect(await w().getByTestId("collected-csv").isDisabled()).toBe(false);
+  });
+
+  test("a new test record is written when saved, not as it is typed", async () => {
+    const path = (await invoke("projects:current")).path as string;
+    const files = () => readdirSync(join(path, ".upstart/test-records/guestbook"));
+    await w().getByTestId("record-add").click();
+    await w().getByTestId("field-name").fill("Typed person");
+    await new Promise((r) => setTimeout(r, 1500));
+    expect(files()).toEqual(["2026-11-11-0800-bbbb.md"]);
+    await w().getByTestId("record-save").click();
+    await until(async () => (await rows()).length === 2);
+    const added = files().find((f) => f !== "2026-11-11-0800-bbbb.md")!;
+    expect(readFileSync(join(path, ".upstart/test-records/guestbook", added), "utf8")).toContain("name: Typed person");
+    rmSync(join(path, ".upstart/test-records/guestbook", added));
+    await until(async () => (await rows()).length === 1);
     await w().getByTestId("content-back").click();
   });
 
@@ -129,7 +146,7 @@ describe("what a published site collected", () => {
     await until(async () => (await w().getByTestId("collected-note").count()) === 1);
     const path = ((await w().getByTestId("collected-note").textContent()) ?? "").replace(/^Saved as /, "");
     expect(readFileSync(path, "utf8")).toBe(
-      'id,submitted,status,name,message\r\n2026-11-12-0800-cccc,2026-11-12T08:00:00.000Z,published,\'=Waiting,Hello\r\n2026-11-10-0800-aaaa,2026-11-10T08:00:00.000Z,published,Anne,"Lovely, ""really"""\r\n',
+      'id,submitted,status,name,message\r\n2026-11-12-0800-cccc,2026-11-12T08:00:00.000Z,published,\'=Waiting,Hello\r\n2026-11-11-0800-bbbb,2026-11-11T08:00:00.000Z,test,Test person,A test.\r\n2026-11-10-0800-aaaa,2026-11-10T08:00:00.000Z,published,Anne,"Lovely, ""really"""\r\n',
     );
   });
 

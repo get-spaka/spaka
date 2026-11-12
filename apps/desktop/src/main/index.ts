@@ -75,7 +75,14 @@ import { FixtureImages, type ImageFinder, ImageSearch, imagesAnswer } from "./me
 import { Preview } from "./preview/preview";
 import { testRecordFile } from "./preview/test-records";
 import { isEffort, Projects, readProjectFile } from "./projects";
-import { callSite, ManagementTokens, publishedRecords, recordsCsv, SiteUnavailable } from "./publish/management";
+import {
+  type CsvRecord,
+  callSite,
+  ManagementTokens,
+  publishedRecords,
+  recordsCsv,
+  SiteUnavailable,
+} from "./publish/management";
 import { Skills } from "./skills/skills";
 import { Fonts } from "./theme/fonts";
 import { readTheme, type ThemeValues, themeColors, writeTheme } from "./theme/theme-file";
@@ -722,20 +729,24 @@ async function main() {
   ipc.handle("conversation:start-over", () => current && agent.startOver(current));
   // The static export (decisions): into a folder the maker picks, remembered per project on this machine.
   const lastExportFile = () => current && join(projects.dataFor(current.id), "export.json");
-  // The last folder of each builder's export: { folders: { static, node, cloudflare } }.
-  const lastExports = (): Record<string, string> => {
+  // How the website was last published on this machine: the way chosen, and each way's folder.
+  const lastExport = (): { builder?: string; folders: Record<string, string> } => {
     const file = lastExportFile();
     try {
       const raw = file ? JSON.parse(readFileSync(file, "utf8")) : {};
-      return { ...(raw.folder ? { static: raw.folder } : {}), ...(raw.folders ?? {}) };
+      return {
+        ...(typeof raw.builder === "string" ? { builder: raw.builder } : {}),
+        folders: { ...(raw.folder ? { static: raw.folder } : {}), ...(raw.folders ?? {}) },
+      };
     } catch {
-      return {};
+      return { folders: {} };
     }
   };
-  ipc.handle("export:last", (builder) => lastExports()[builder] ?? null);
+  ipc.handle("export:last", (builder) => lastExport().folders[builder] ?? null);
   ipc.handle("export:choices", () => {
     if (!current) throw new Error("No project is open.");
-    return publishChoices(current.path, current.name);
+    const last = lastExport().builder;
+    return { ...publishChoices(current.path, current.name), ...(last ? { last } : {}) };
   });
   ipc.handle("projects:set-form-service", (datasource, url) => {
     if (!current) throw new Error("No project is open.");
@@ -763,8 +774,12 @@ async function main() {
       name: current.name,
       hostsDir: app.isPackaged ? join(process.resourcesPath, "hosts") : join(here, "../hosts"),
       ...(formServices ? { formServices } : {}),
+      managementToken: () => tokens.ensure(current!.id),
     });
-    writeFileSync(lastExportFile()!, JSON.stringify({ folders: { ...lastExports(), [builder]: result.folder } }));
+    writeFileSync(
+      lastExportFile()!,
+      JSON.stringify({ builder, folders: { ...lastExport().folders, [builder]: result.folder } }),
+    );
     return result;
   });
   ipc.handle("export:reveal", (folder) => {
@@ -1043,12 +1058,25 @@ async function main() {
   ipc.handle("content:csv", async (datasource) => {
     const { url, token } = site();
     const name = collectedName(datasource);
-    const records = await publishedRecords(url, token, name);
-    const fields =
-      contentSource()
-        .definition(name)
-        .definition?.fields.map((f) => f.name) ?? [];
-    const csv = recordsCsv(fields, records);
+    const { definition } = contentSource().definition(name);
+    const fields = definition?.fields.map((f) => f.name) ?? [];
+    // What the list shows (Q190): the published records when the site answers, and the test records.
+    const published = url && token ? await publishedRecords(url, token, name).catch(() => []) : [];
+    const dir = join(current!.path, TEST_RECORDS_DIR, name);
+    const tests: CsvRecord[] = (
+      existsSync(dir) ? readdirSync(dir).filter((f) => /^[a-z0-9][\w-]*\.md$/i.test(f)) : []
+    ).map((f) => {
+      const { values, body } = readRecordFile(readFileSync(join(dir, f), "utf8"));
+      const { submitted, status: _status, ...rest } = values;
+      return {
+        id: f.slice(0, -3),
+        submitted: submitted instanceof Date ? submitted.toISOString() : String(submitted ?? ""),
+        status: "test",
+        fields: definition?.body ? { ...rest, [definition.body]: body.trim() } : rest,
+      };
+    });
+    const rows = [...published, ...tests].sort((a, b) => b.submitted.localeCompare(a.submitted));
+    const csv = recordsCsv(fields, rows);
     const fileName = `${name}-${new Date().toISOString().slice(0, 10)}.csv`;
     // A check saves beside the website's own data instead of asking where.
     let target: string | undefined;

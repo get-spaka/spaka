@@ -190,6 +190,15 @@ export function templateTexts(project: BuildProject): string[] {
   );
 }
 
+/** The export's .env: the website's management token (Q191), read by the server or sent by wrangler at deploy. */
+export function writeEnv(out: Output, token: string | undefined) {
+  if (!token) return;
+  out.write(
+    ".env",
+    `# The website's management token, with which Upstart reads what visitors send. Keep it private.\nUPSTART_TOKEN=${token}\n`,
+  );
+}
+
 /** A name for what an export creates: lower case, letters, digits and dashes. */
 export function slug(name: string, fallback = "website"): string {
   const s = name

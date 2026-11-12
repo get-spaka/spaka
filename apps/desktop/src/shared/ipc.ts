@@ -100,6 +100,8 @@ export type PublishInfo = {
   choices: PublishChoice[];
   /** The collected datasources the pages have a form for. */
   forms: string[];
+  /** The way this website was last published on this machine, chosen again when the dialog opens. */
+  last?: string;
 };
 /** One step of putting an export online, worded by the app under its builder's id and its own. */
 export type GuideStep = { id: string; command?: string };

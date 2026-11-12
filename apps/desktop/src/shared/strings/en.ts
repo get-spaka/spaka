@@ -222,8 +222,9 @@ export const en = {
     collected: {
       label: "Sent by visitors",
       addTest: "Add a test record",
+      save: "Save",
       csv: "CSV",
-      csvTitle: "Download the published site's records as CSV",
+      csvTitle: "Download the records listed as CSV, the test records marked as such",
       csvSaved: (path: string) => `Saved as ${path}`,
       reading: "Reading the published site…",
       test: "Test",
@@ -474,7 +475,7 @@ export const en = {
     published: {
       title: "Published site",
       caption:
-        "Once a Node or Cloudflare export is online, give its address here: the Content tab then lists what visitors send. The management token stays on this computer; the site is given it as the Publish guide says.",
+        "Once a Node or Cloudflare export is online, give its address here: the Content tab then lists what visitors send. Publish writes the website's management token into the exported folder, so the site has it once deployed.",
       address: "Address",
       addressPlaceholder: "https://www.example.com",
       save: "Save",
@@ -482,13 +483,13 @@ export const en = {
       checking: "Checking…",
       ok: "The site answers with this website's token.",
       token: "Management token",
-      tokenDetail: "Give it to the published site as UPSTART_TOKEN.",
+      tokenDetail: "Publish writes it into the exported folder's .env, as UPSTART_TOKEN.",
       show: "Show",
       hide: "Hide",
       copy: "Copy",
       copied: "Copied",
       newToken: "New token",
-      newTokenConfirm: "Make a new token? The published site must then be given the new one.",
+      newTokenConfirm: "Make a new token? Publish and deploy again so that the published site has it.",
     },
   },
   skills: {
@@ -585,15 +586,6 @@ export const en = {
       save: "Save",
       saved: "Saved",
     },
-    token: {
-      title: "The website's management token",
-      intro:
-        "The published site needs it so that Upstart can read what visitors send. The steps below say where it goes.",
-      show: "Show",
-      hide: "Hide",
-      copy: "Copy",
-      copied: "Copied",
-    },
     step2: "2. Export the website into a folder",
     choose: "Choose a folder…",
     again: "Export again",
@@ -603,7 +595,7 @@ export const en = {
     reveal: "Show in Finder",
     step3: "3. Put it online",
     inFolder: "In a terminal, in the exported folder:",
-    guideFile: "GUIDE.md, in the folder, has these steps and more.",
+    guideFile: "README.md, in the folder, has these steps and more.",
     copy: "Copy",
     copied: "Copied",
     guides: {
@@ -612,18 +604,19 @@ export const en = {
         forms: "The forms send to the form services' addresses given above. Export again after changing one.",
       },
       node: {
-        try: "Try it on this computer, then open http://localhost:3000 (put the token in place of <token>):",
-        docker: "With Docker, what visitors send kept in a volume:",
+        try: "Try it on this computer, then open http://localhost:3000:",
+        docker:
+          "With Docker, what visitors send kept in a volume. The website's management token is in the folder's .env, kept out of the image:",
         server:
-          "Or on a server of your own: run server.mjs as a service, behind a reverse proxy such as Caddy for HTTPS. Keep the data folder: it holds what visitors sent.",
+          "Or on a server of your own: copy the folder, .env included (it holds the website's management token), and run server.mjs as a service behind a reverse proxy such as Caddy for HTTPS. Keep the data folder: it holds what visitors sent.",
         address:
           "Once it is online, give its address in the website's settings: the Content tab then lists what visitors send.",
       },
       cloudflare: {
         install: "Install wrangler, Cloudflare's tool:",
         login: "Sign in to Cloudflare:",
-        secret: "Give the Worker the management token (answer yes when wrangler offers to create the Worker):",
-        deploy: "Deploy. The first deploy creates the database; export into this same folder next time:",
+        deploy:
+          "Deploy. It also gives the Worker the website's management token, from the folder's .env. The first deploy creates the database: export into this same folder next time.",
         migrate: "Create the database's table:",
         address:
           "Once it is online, give its address in the website's settings: the Content tab then lists what visitors send.",

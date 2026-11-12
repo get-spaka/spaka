@@ -163,7 +163,7 @@ describe("exporting the website", () => {
     expect(diff.differing).toBeLessThan(0.01);
   });
 
-  test("Publish: three ways, none chosen; the static one exports again into its last folder and shows the hosts", async () => {
+  test("Publish: three ways, the last one chosen again; the static one exports again into its last folder and shows the hosts", async () => {
     const w = launched.window;
     await w.getByTestId("export-open").click();
     await w.getByTestId("export-dialog").waitFor();
@@ -174,11 +174,12 @@ describe("exporting the website", () => {
         .getByTestId("publish-choice")
         .evaluateAll((els) => els.map((e) => [e.getAttribute("data-id"), e.getAttribute("aria-pressed")])),
     ).toEqual([
-      ["static", "false"],
+      ["static", "true"],
       ["node", "false"],
       ["cloudflare", "false"],
     ]);
-    expect(await w.getByTestId("export-choose").isDisabled()).toBe(true);
+    // The way it was exported last time is chosen again.
+    expect(await w.getByTestId("export-choose").isDisabled()).toBe(false);
     await w.locator('[data-testid="publish-choice"][data-id="static"]').click();
     await w.getByTestId("export-again").click();
     await expect(w.getByTestId("export-result").textContent()).resolves.toContain("Exported 2 pages");

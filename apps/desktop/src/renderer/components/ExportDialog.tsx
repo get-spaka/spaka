@@ -34,10 +34,11 @@ function CopyButton({ text, label, testid }: { text: string; label: string; test
 
 /**
  * Publishing the website (Q181, Q187): the three ways shown equally, none
- * chosen in advance, the static one refused, saying why, when a page shows
- * what visitors send; what the chosen way needs (the form services'
- * addresses, the website's management token); the export into a folder, then
- * the steps that put it online. Shown over the preview column, whose native
+ * chosen the first time and the last one chosen again after (it can be
+ * changed), the static one refused, saying why, when a page shows what
+ * visitors send; the form services' addresses for the static one; the export
+ * into a folder, the management token written into it (Q191), then the steps
+ * that put it online. Shown over the preview column, whose native
  * view is hidden meanwhile.
  */
 export function ExportDialog({
@@ -55,13 +56,19 @@ export function ExportDialog({
   const [result, setResult] = useState<ExportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [token, setToken] = useState<string | null>(null);
-  const [tokenShown, setTokenShown] = useState(false);
 
   useEffect(() => {
     void upstart
       .invoke("export:choices")
-      .then(setInfo)
+      .then((loaded) => {
+        setInfo(loaded);
+        // How it was published last time is chosen again; another can be picked.
+        const last = loaded.choices.find((c) => c.id === loaded.last && !c.refused?.length);
+        if (last) {
+          setChoice(last.id);
+          void upstart.invoke("export:last", last.id).then(setFolder);
+        }
+      })
       .catch((e) => setError(messageOf(e)));
   }, []);
   useEffect(() => {
@@ -77,8 +84,6 @@ export function ExportDialog({
     setError(null);
     setFolder(null);
     void upstart.invoke("export:last", id).then(setFolder);
-    if (info?.choices.find((c) => c.id === id)?.needs.managementToken && !token)
-      void upstart.invoke("site:token").then(setToken);
   };
 
   const run = async (target: string) => {
@@ -153,28 +158,6 @@ export function ExportDialog({
               {info!.forms.map((name) => (
                 <FormService key={name} name={name} initial={project.formServices?.[name] ?? ""} />
               ))}
-            </div>
-          )}
-
-          {chosen?.needs.managementToken && token && (
-            <div className="flex flex-col gap-2 rounded-lg border bg-muted/40 p-3" data-testid="publish-token">
-              <h4 className="text-sm font-medium">{t.export.token.title}</h4>
-              <p className="text-xs text-muted-foreground">{t.export.token.intro}</p>
-              <div className="flex items-center gap-1">
-                <code data-testid="publish-token-value" className="min-w-0 flex-1 truncate font-mono text-xs">
-                  {tokenShown ? token : "•".repeat(24)}
-                </code>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7"
-                  onClick={() => setTokenShown((s) => !s)}
-                  data-testid="publish-token-show"
-                >
-                  {tokenShown ? t.export.token.hide : t.export.token.show}
-                </Button>
-                <CopyButton text={token} label={t.export.token.copy} testid="publish-token-copy" />
-              </div>
             </div>
           )}
         </section>

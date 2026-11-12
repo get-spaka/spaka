@@ -35,6 +35,11 @@ export type BuildOptions = {
   serverBundle?: string;
   /** Where each collected datasource's form sends, for a static site (Q178): a form service's address. */
   formServices?: Record<string, string>;
+  /**
+   * The website's management token, for the builders that need one: written
+   * into the export's .env (Q191), which git and the Docker image leave out.
+   */
+  managementToken?: string;
   /** The day of the export, for the Worker's compatibility date. */
   today?: Date;
 };

@@ -9,7 +9,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { RECORDS_SCHEMA } from "@upstart/runtime";
 import type { Builder } from "../builder.ts";
-import { Output, slug, writePublishedSite } from "../shared.ts";
+import { Output, slug, writeEnv, writePublishedSite } from "../shared.ts";
 
 /** The wrangler the export installs, the one Upstart is tested with. */
 export const WRANGLER_VERSION = "4.160.1";
@@ -31,7 +31,7 @@ export function databaseIdIn(config: string | undefined): string | undefined {
 }
 
 export function wranglerConfig(name: string, date: string, databaseId?: string): string {
-  return `// Upstart's Cloudflare export: see GUIDE.md.
+  return `// Upstart's Cloudflare export: see README.md.
 ${JSON.stringify(
   {
     $schema: "./node_modules/wrangler/config-schema.json",
@@ -71,21 +71,18 @@ You need Node.js and a Cloudflare account (the free plan is enough).
        npm install
        npx wrangler login
 
-2. Give the Worker the website's management token, shown in Upstart (answer
-   yes when wrangler offers to create the Worker):
-
-       npx wrangler secret put UPSTART_TOKEN
-
-3. Deploy. The first deploy creates the database and writes its id into
-   wrangler.jsonc: keep this folder, and deploy the next exports from it.
+2. Deploy. \`npm run deploy\` also gives the Worker the website's management
+   token, which Upstart wrote into \`.env\` (keep that file private: git leaves
+   it out). The first deploy creates the database and writes its id into
+   wrangler.jsonc: keep this folder, and export into it next time.
 
        npm run deploy
 
-4. Create the database's table:
+3. Create the database's table:
 
        npx wrangler d1 migrations apply DB --remote
 
-5. Give the site's address (\`https://${name}.<your-subdomain>.workers.dev\`, or
+4. Give the site's address (\`https://${name}.<your-subdomain>.workers.dev\`, or
    your own domain once added in Cloudflare) in the website's settings in
    Upstart, to see what visitors sent.
 
@@ -117,7 +114,7 @@ export const cloudflareBuilder: Builder = {
           name,
           private: true,
           type: "module",
-          scripts: { dev: "wrangler dev", deploy: "wrangler deploy" },
+          scripts: { dev: "wrangler dev", deploy: "wrangler deploy --secrets-file .env" },
           devDependencies: { wrangler: WRANGLER_VERSION },
         },
         null,
@@ -129,14 +126,14 @@ export const cloudflareBuilder: Builder = {
       "",
     );
     out.write(".dev.vars", `# A token for trying the site on this machine only.\nUPSTART_TOKEN=${local}\n`);
-    out.write(".gitignore", "node_modules/\n.wrangler/\n.dev.vars\n");
-    out.write("GUIDE.md", guide(name));
+    writeEnv(out, options.managementToken);
+    out.write(".gitignore", "node_modules/\n.wrangler/\n.dev.vars\n.env\n");
+    out.write("README.md", guide(name));
     return { ...site, files: out.files, name };
   },
   guide: () => [
     { id: "install", command: "npm install" },
     { id: "login", command: "npx wrangler login" },
-    { id: "secret", command: "npx wrangler secret put UPSTART_TOKEN" },
     { id: "deploy", command: "npm run deploy" },
     { id: "migrate", command: "npx wrangler d1 migrations apply DB --remote" },
     { id: "address" },

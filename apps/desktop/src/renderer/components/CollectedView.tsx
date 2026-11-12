@@ -84,7 +84,7 @@ export function CollectedView({
           <Button
             size="sm"
             variant="outline"
-            disabled={!connected}
+            disabled={!published || rows.length === 0}
             title={t.content.collected.csvTitle}
             data-testid="collected-csv"
             onClick={() =>

@@ -40,6 +40,8 @@ export type ExportOptions = {
   /** Where the app keeps the servers it ships (server.mjs, worker.mjs). */
   hostsDir: string;
   formServices?: Record<string, string>;
+  /** The website's management token, made when a builder first needs it (Q191). */
+  managementToken: () => string;
 };
 
 function buildProject(projectDir: string, name: string): BuildProject {
@@ -84,6 +86,7 @@ export async function exportProject(projectDir: string, chosen: string, options:
     images: webpCopies,
     ...(builder.server ? { serverBundle: readFileSync(join(options.hostsDir, builder.server), "utf8") } : {}),
     ...(options.formServices ? { formServices: options.formServices } : {}),
+    ...(builder.needs.managementToken ? { managementToken: options.managementToken() } : {}),
   });
   writeFileSync(join(folder, MARKER), "This folder was exported by Upstart. A new export replaces what it holds.\n");
   return {

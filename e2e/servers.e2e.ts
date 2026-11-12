@@ -73,6 +73,14 @@ describe("the Node and Cloudflare exports, run", () => {
   });
 
   test("a static export is refused: a page shows what visitors send", async () => {
+    // Never published: Publish has no way chosen in advance (Q181).
+    const w = launched.window;
+    await w.getByTestId("export-open").click();
+    await until(async () => (await w.getByTestId("publish-choice").count()) === 3);
+    expect(
+      await w.getByTestId("publish-choice").evaluateAll((els) => els.map((e) => e.getAttribute("aria-pressed"))),
+    ).toEqual(["false", "false", "false"]);
+    await w.getByTestId("export-close").click();
     await expect(invoke("export:run", join(runsDir, "static-guestbook"), "static")).rejects.toThrow(
       /cannot show what visitors send \(guestbook\)/,
     );
@@ -89,8 +97,9 @@ describe("the Node and Cloudflare exports, run", () => {
     const server = run(process.execPath, ["server.mjs"], out, {
       PORT: String(port),
       HOST: "127.0.0.1",
-      UPSTART_TOKEN: token,
     });
+    // The token is not given: the server reads the .env the export wrote (Q191).
+    expect(readFileSync(join(out, ".env"), "utf8")).toContain(`UPSTART_TOKEN=${token}`);
     await until(() => answers(`${base}/guestbook`), 15_000).catch(() => {
       throw new Error(server.output());
     });
@@ -116,17 +125,19 @@ describe("the Node and Cloudflare exports, run", () => {
     expect(readFileSync(join(out, "data/data.sqlite")).length).toBeGreaterThan(0);
   }, 60_000);
 
-  test("Publish: the static way refused, saying why; the Node way shows the token and its guide", async () => {
+  test("Publish: the static way refused, saying why; the last way, Node, chosen again, with its guide", async () => {
     const w = launched.window;
     await w.getByTestId("export-open").click();
     await until(async () => (await w.getByTestId("publish-choice").count()) === 3);
     const staticChoice = w.locator('[data-testid="publish-choice"][data-id="static"]');
     expect(await staticChoice.isDisabled()).toBe(true);
     expect(await staticChoice.getByTestId("publish-refused").textContent()).toContain("(guestbook)");
-    await w.locator('[data-testid="publish-choice"][data-id="node"]').click();
-    await w.getByTestId("publish-token").waitFor();
-    await w.getByTestId("publish-token-show").click();
-    expect(await w.getByTestId("publish-token-value").textContent()).toBe(token);
+    await until(
+      async () =>
+        (await w.locator('[data-testid="publish-choice"][data-id="node"]').getAttribute("aria-pressed")) === "true",
+    );
+    // The token is written into the export, not shown (Q191).
+    expect(await w.getByTestId("publish-token").count()).toBe(0);
     await w.getByTestId("export-again").click();
     await w.getByTestId("publish-guide").waitFor();
     expect(await w.getByTestId("guide-step").evaluateAll((els) => els.map((e) => e.getAttribute("data-id")))).toEqual([
@@ -135,9 +146,7 @@ describe("the Node and Cloudflare exports, run", () => {
       "server",
       "address",
     ]);
-    expect(await w.locator('[data-testid="guide-step"][data-id="try"] code').textContent()).toBe(
-      "UPSTART_TOKEN=<token> node server.mjs",
-    );
+    expect(await w.locator('[data-testid="guide-step"][data-id="try"] code').textContent()).toBe("node server.mjs");
     await launched.capture("publish-node");
     await w.getByTestId("export-close").click();
   });
@@ -146,14 +155,7 @@ describe("the Node and Cloudflare exports, run", () => {
     const out = join(runsDir, "export-cloudflare");
     rmSync(out, { recursive: true, force: true });
     const result = await invoke("export:run", out, "cloudflare");
-    expect(result.guide.map((s: { id: string }) => s.id)).toEqual([
-      "install",
-      "login",
-      "secret",
-      "deploy",
-      "migrate",
-      "address",
-    ]);
+    expect(result.guide.map((s: { id: string }) => s.id)).toEqual(["install", "login", "deploy", "migrate", "address"]);
     const wrangler = join(import.meta.dirname, "../node_modules/.bin/wrangler");
     const quiet = { WRANGLER_SEND_METRICS: "false", CI: "1", NO_UPDATE_NOTIFIER: "1" };
     const migrate = run(wrangler, ["d1", "migrations", "apply", "DB", "--local"], out, quiet);

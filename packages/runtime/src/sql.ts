@@ -89,7 +89,7 @@ export class SqlStore implements CollectedStore {
 function missing(error: unknown): unknown {
   const text = error instanceof Error ? error.message : String(error);
   return /no such table/i.test(text)
-    ? new MissingTable("The records table does not exist yet: apply the database migration (see GUIDE.md).")
+    ? new MissingTable("The records table does not exist yet: apply the database migration (see README.md).")
     : error;
 }
 

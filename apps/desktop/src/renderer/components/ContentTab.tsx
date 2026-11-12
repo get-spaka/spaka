@@ -374,6 +374,8 @@ function RecordForm({
   const lastWrite = useRef(0);
   const opened = useRef(onOpened);
   opened.current = onOpened;
+  // A new test record is written when the maker saves it, not as they type.
+  const onSave = !initialId && ds.collected;
 
   const read = useCallback(() => {
     if (!id.current) return;
@@ -422,6 +424,7 @@ function RecordForm({
 
   const change = (field: string, value: unknown) => {
     setValues((v) => ({ ...v, [field]: value }));
+    if (onSave) return;
     // A new record is written with everything typed so far.
     if (!id.current) for (const [k, v] of Object.entries({ ...values, [field]: value })) pending.current.set(k, v);
     else pending.current.set(field, value);
@@ -434,6 +437,13 @@ function RecordForm({
   flushing.current = flush;
   useEffect(() => () => void flushing.current().then(() => upstart.invoke("content:leave")), []);
 
+  const save = () => {
+    for (const [k, v] of Object.entries(values)) pending.current.set(k, v);
+    void flush().then(() => {
+      if (id.current) onBack();
+    });
+  };
+
   const fields = ds.fields.filter((f) => f.name !== body);
   const bodyField = body ? ds.fields.find((f) => f.name === body) : undefined;
   const title =
@@ -445,9 +455,21 @@ function RecordForm({
   return (
     <>
       <Header title={title || t.content.newRecord} onBack={onBack}>
-        <span data-testid="record-status" className="text-[11px] text-muted-foreground">
-          {status === "saving" ? t.content.saving : status === "saved" ? t.content.saved : ""}
-        </span>
+        {onSave ? (
+          <Button
+            size="sm"
+            className="h-7"
+            disabled={working || status === "saving" || !Object.keys(values).length}
+            onClick={save}
+            data-testid="record-save"
+          >
+            {t.content.collected.save}
+          </Button>
+        ) : (
+          <span data-testid="record-status" className="text-[11px] text-muted-foreground">
+            {status === "saving" ? t.content.saving : status === "saved" ? t.content.saved : ""}
+          </span>
+        )}
         {record?.route && (
           <Button
             variant="ghost"
