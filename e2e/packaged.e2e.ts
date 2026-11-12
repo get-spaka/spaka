@@ -90,7 +90,7 @@ describe.runIf(built && process.platform === "darwin")("the packaged app", () =>
       // The builder finds Tailwind, daisyUI and htmx inside the archive.
       const out = join(runsDir, "packaged-export");
       rmSync(out, { recursive: true, force: true });
-      const result = await invoke("export:run", out);
+      const result = await invoke("export:run", out, "static");
       expect(result.pages.sort()).toEqual(["/", "/menu"]);
       const site = await serve(out);
       try {
@@ -160,7 +160,7 @@ describe.runIf(built && process.platform === "darwin")("the packaged app", () =>
 
         const out = join(runsDir, "packaged-real-export");
         rmSync(out, { recursive: true, force: true });
-        const result = await invoke("export:run", out);
+        const result = await invoke("export:run", out, "static");
         process.stdout.write(`[packaged] exported ${result.pages.join(", ")}; warnings: ${result.warnings.length}\n`);
         const site = await serve(out);
         try {
@@ -283,7 +283,7 @@ describe.runIf(built && process.platform === "darwin")("the packaged app", () =>
 
         const out = join(runsDir, "packaged-step2-export");
         rmSync(out, { recursive: true, force: true });
-        const result = await invoke("export:run", out);
+        const result = await invoke("export:run", out, "static");
         log(`exported ${result.pages.join(", ")}; warnings: ${result.warnings.length}`);
         const site = await serve(out);
         try {
@@ -434,7 +434,7 @@ describe.runIf(built && process.platform === "darwin")("the packaged app", () =>
         // Exported with sharp inside the packaged app, served.
         const out = join(runsDir, "packaged-step3-export");
         rmSync(out, { recursive: true, force: true });
-        const result = await invoke("export:run", out);
+        const result = await invoke("export:run", out, "static");
         log(`exported ${result.pages.join(", ")}; warnings: ${result.warnings.join(" | ")}`);
         for (const r of report.recordRoutes) expect(result.pages).toContain(r);
         if (report.credits) expect(result.pages).toContain("/credits");

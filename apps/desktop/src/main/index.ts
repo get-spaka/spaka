@@ -62,7 +62,7 @@ import { Editor } from "./editing/editor";
 import { EditRefused } from "./editing/edits";
 import { AgentNotes } from "./editing/notes";
 import { readEnvironment } from "./environment";
-import { exportProject } from "./export";
+import { exportProject, publishChoices } from "./export";
 import { described, Gallery } from "./gallery/catalogue";
 import { BlockPeek } from "./gallery/peek";
 import { BlockIndex } from "./gallery/search";
@@ -74,7 +74,7 @@ import { libraryFiles, mediaKind, useFoundImage, usesLabel, usesOf, usingFiles }
 import { FixtureImages, type ImageFinder, ImageSearch, imagesAnswer } from "./media/search";
 import { Preview } from "./preview/preview";
 import { testRecordFile } from "./preview/test-records";
-import { isEffort, Projects } from "./projects";
+import { isEffort, Projects, readProjectFile } from "./projects";
 import { callSite, ManagementTokens, publishedRecords, recordsCsv, SiteUnavailable } from "./publish/management";
 import { Skills } from "./skills/skills";
 import { Fonts } from "./theme/fonts";
@@ -722,13 +722,29 @@ async function main() {
   ipc.handle("conversation:start-over", () => current && agent.startOver(current));
   // The static export (decisions): into a folder the maker picks, remembered per project on this machine.
   const lastExportFile = () => current && join(projects.dataFor(current.id), "export.json");
-  ipc.handle("export:last", () => {
+  // The last folder of each builder's export: { folders: { static, node, cloudflare } }.
+  const lastExports = (): Record<string, string> => {
     const file = lastExportFile();
     try {
-      return file ? (JSON.parse(readFileSync(file, "utf8")).folder ?? null) : null;
+      const raw = file ? JSON.parse(readFileSync(file, "utf8")) : {};
+      return { ...(raw.folder ? { static: raw.folder } : {}), ...(raw.folders ?? {}) };
     } catch {
-      return null;
+      return {};
     }
+  };
+  ipc.handle("export:last", (builder) => lastExports()[builder] ?? null);
+  ipc.handle("export:choices", () => {
+    if (!current) throw new Error("No project is open.");
+    return publishChoices(current.path, current.name);
+  });
+  ipc.handle("projects:set-form-service", (datasource, url) => {
+    if (!current) throw new Error("No project is open.");
+    const clean = url.trim();
+    if (clean && !/^https?:\/\/[^\s]+$/i.test(clean)) throw new Error("This is not a web address.");
+    const services = { ...(readProjectFile(current.path)?.formServices ?? {}) };
+    if (clean) services[datasource] = clean;
+    else delete services[datasource];
+    return changed(projects.update(current.id, { formServices: services }));
   });
   ipc.handle("export:choose-folder", async () => {
     if (env.background) return null;
@@ -738,15 +754,17 @@ async function main() {
     });
     return answer.canceled ? null : (answer.filePaths[0] ?? null);
   });
-  ipc.handle("export:run", async (folder, builder = "static") => {
+  ipc.handle("export:run", async (folder, builder) => {
     if (!current) throw new Error("No project is open.");
     if (agent.isWorking(current.id)) throw new Error("The agent is working: export once it is done.");
+    const formServices = readProjectFile(current.path)?.formServices;
     const result = await exportProject(current.path, folder, {
       builder,
       name: current.name,
       hostsDir: app.isPackaged ? join(process.resourcesPath, "hosts") : join(here, "../hosts"),
+      ...(formServices ? { formServices } : {}),
     });
-    writeFileSync(lastExportFile()!, JSON.stringify({ folder: result.folder }));
+    writeFileSync(lastExportFile()!, JSON.stringify({ folders: { ...lastExports(), [builder]: result.folder } }));
     return result;
   });
   ipc.handle("export:reveal", (folder) => {

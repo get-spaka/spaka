@@ -84,7 +84,7 @@ describe("the theme", () => {
     await until(() => page("document.fonts.load('700 32px Fraunces').then((f) => f.length > 0)"));
     expect(await page("getComputedStyle(document.querySelector('h1')).fontFamily")).toMatch(/^"?Fraunces/);
     const out = mkdtempSync(join(tmpdir(), "upstart-export-"));
-    await invoke("export:run", out);
+    await invoke("export:run", out, "static");
     expect(existsSync(join(out, "fonts/fraunces/normal.woff2"))).toBe(true);
   });
 

@@ -24,7 +24,7 @@ export {
   wranglerConfig,
 } from "./builders/cloudflare.ts";
 export { buildStatic, formsToServices } from "./builders/static.ts";
-export { candidates, IMAGE_WIDTHS, slug } from "./shared.ts";
+export { candidates, collectedUse, formsIn, IMAGE_WIDTHS, slug } from "./shared.ts";
 export { cloudflareBuilder, nodeBuilder, staticBuilder };
 
 /** Every way of exporting, in the order the Publish dialog lists them. */

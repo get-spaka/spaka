@@ -21,7 +21,13 @@ export type Effort = "low" | "medium" | "high" | "xhigh" | "max";
 export type ProjectSummary = { id: string; name: string; path: string };
 
 /** An open project. `siteUrl` is where the maker put the exported site online. */
-export type ProjectInfo = ProjectSummary & { model: string; effort: Effort; siteUrl?: string };
+export type ProjectInfo = ProjectSummary & {
+  model: string;
+  effort: Effort;
+  siteUrl?: string;
+  /** Where each collected datasource's form sends in a static export (Q178). */
+  formServices?: Record<string, string>;
+};
 
 /** Where a skill comes from (ADR 0010): shipped with Upstart, the maker's for all projects, or the project's. */
 export type SkillOrigin = "upstart" | "app" | "project";
@@ -83,6 +89,18 @@ export type ConnectorDraft = {
   oauth?: { clientId?: string; callbackPort?: string; authServerMetadataUrl?: string };
 };
 
+/** A way of exporting, as the Publish dialog lists it (Q181): whether this website can use it and what it needs. */
+export type PublishChoice = {
+  id: string;
+  needs: { managementToken: boolean; formServices: boolean };
+  /** Why this website cannot use it: the collected datasources a page shows. */
+  refused?: string[];
+};
+export type PublishInfo = {
+  choices: PublishChoice[];
+  /** The collected datasources the pages have a form for. */
+  forms: string[];
+};
 /** One step of putting an export online, worded by the app under its builder's id and its own. */
 export type GuideStep = { id: string; command?: string };
 export type ExportResult = {
@@ -431,8 +449,10 @@ export type Invokes = {
   /** Asks the maker for the folder to export into. Null when they cancel. */
   "export:choose-folder": () => string | null;
   /** Where the open project was last exported on this machine. */
-  "export:last": () => string | null;
-  "export:run": (folder: string, builder?: string) => ExportResult;
+  "export:last": (builder: string) => string | null;
+  "export:choices": () => PublishInfo;
+  "export:run": (folder: string, builder: string) => ExportResult;
+  "projects:set-form-service": (datasource: string, url: string) => ProjectInfo;
   "export:reveal": (folder: string) => void;
   /** Opens one of the hosting services the export guide names. */
   "export:open-host": (host: "netlify" | "cloudflare" | "github") => void;
@@ -611,6 +631,8 @@ export const channels = {
     "agent:set-effort",
     "export:choose-folder",
     "export:last",
+    "export:choices",
+    "projects:set-form-service",
     "export:run",
     "export:reveal",
     "export:open-host",

@@ -10,7 +10,15 @@ export const DEFAULT_MODEL = "claude-sonnet-5-5";
 export const DEFAULT_EFFORT: Effort = "medium";
 
 /** .upstart/project.json */
-export type ProjectFile = { id: string; name: string; model: string; effort: Effort; siteUrl?: string };
+export type ProjectFile = {
+  id: string;
+  name: string;
+  model: string;
+  effort: Effort;
+  siteUrl?: string;
+  /** Where each collected datasource's form sends in a static export: a form service's address (Q178). */
+  formServices?: Record<string, string>;
+};
 
 type Entry = { id: string; path: string; name: string; openedAt: number };
 
@@ -131,10 +139,19 @@ export function readProjectFile(folder: string): ProjectFile | undefined {
       model: typeof raw.model === "string" ? raw.model : DEFAULT_MODEL,
       effort: isEffort(raw.effort) ? raw.effort : DEFAULT_EFFORT,
       ...(typeof raw.siteUrl === "string" && raw.siteUrl ? { siteUrl: raw.siteUrl } : {}),
+      ...(formServices(raw.formServices) ? { formServices: formServices(raw.formServices) } : {}),
     };
   } catch {
     return undefined;
   }
+}
+
+function formServices(value: unknown): Record<string, string> | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const kept = Object.entries(value).filter(
+    (entry): entry is [string, string] => typeof entry[1] === "string" && !!entry[1],
+  );
+  return kept.length ? Object.fromEntries(kept) : undefined;
 }
 
 function writeProjectFile(folder: string, file: ProjectFile) {

@@ -136,7 +136,7 @@ export const en = {
     reload: "Reload the page",
     pages: "Pages",
     loading: "Loading…",
-    publish: "Put online",
+    publish: "Publish",
     editMode: "Edit the page: click to select, double-click a text to change it",
     visitorMode: "See the page as a visitor: links, buttons and forms work",
     commentMode: "Comment: click an element to tell the agent what to change",
@@ -474,7 +474,7 @@ export const en = {
     published: {
       title: "Published site",
       caption:
-        "Once a Node or Cloudflare export is online, give its address here: the Content tab then lists what visitors send. The management token stays on this computer; the site is given it as the publishing guide says.",
+        "Once a Node or Cloudflare export is online, give its address here: the Content tab then lists what visitors send. The management token stays on this computer; the site is given it as the Publish guide says.",
       address: "Address",
       addressPlaceholder: "https://www.example.com",
       save: "Save",
@@ -557,18 +557,78 @@ export const en = {
     },
   },
   export: {
-    title: "Put your website online",
-    intro: "Upstart turns your website into plain files that any web host can serve, for free with the hosts below.",
+    title: "Publish your website",
+    intro: "Choose how to put it online. Upstart writes it into a folder, then shows the steps that follow.",
     close: "Close",
-    step1: "1. Export the website into a folder",
+    step1: "1. Choose how",
+    builders: {
+      static: {
+        name: "Static files",
+        line: "Plain files that any web host serves, several for free. Forms send to a form service; what visitors send cannot be shown on a page.",
+      },
+      node: {
+        name: "Node.js server",
+        line: "For a server of your own or a platform that runs Docker. Keeps what visitors send, and lets you read it here.",
+      },
+      cloudflare: {
+        name: "Cloudflare Worker",
+        line: "On Cloudflare, free for a small site. Keeps what visitors send, and lets you read it here. Needs a Cloudflare account and Node.js.",
+      },
+    } as Record<string, { name: string; line: string }>,
+    refused: (names: string) =>
+      `Not for this website: a page shows what visitors send (${names}). Choose a server instead.`,
+    forms: {
+      title: "Where the forms send",
+      intro:
+        "A static site cannot keep what visitors send: give each form the address of a form service (Formspree, Basin, Getform…), which e-mails or lists what is sent.",
+      label: (name: string) => `The ${name} form`,
+      save: "Save",
+      saved: "Saved",
+    },
+    token: {
+      title: "The website's management token",
+      intro:
+        "The published site needs it so that Upstart can read what visitors send. The steps below say where it goes.",
+      show: "Show",
+      hide: "Hide",
+      copy: "Copy",
+      copied: "Copied",
+    },
+    step2: "2. Export the website into a folder",
     choose: "Choose a folder…",
     again: "Export again",
     running: "Exporting…",
     agentWorking: "The agent is working. You can export once it is done.",
     done: (pages: number) => `Exported ${pages} ${pages === 1 ? "page" : "pages"} into:`,
     reveal: "Show in Finder",
-    step2: "2. Put the folder online",
-    hostsIntro: "Each of these hosts the folder for free. Pick one and follow its steps.",
+    step3: "3. Put it online",
+    inFolder: "In a terminal, in the exported folder:",
+    guideFile: "GUIDE.md, in the folder, has these steps and more.",
+    copy: "Copy",
+    copied: "Copied",
+    guides: {
+      static: {
+        upload: "Each of these hosts the folder for free. Pick one and follow its steps.",
+        forms: "The forms send to the form services' addresses given above. Export again after changing one.",
+      },
+      node: {
+        try: "Try it on this computer, then open http://localhost:3000 (put the token in place of <token>):",
+        docker: "With Docker, what visitors send kept in a volume:",
+        server:
+          "Or on a server of your own: run server.mjs as a service, behind a reverse proxy such as Caddy for HTTPS. Keep the data folder: it holds what visitors sent.",
+        address:
+          "Once it is online, give its address in the website's settings: the Content tab then lists what visitors send.",
+      },
+      cloudflare: {
+        install: "Install wrangler, Cloudflare's tool:",
+        login: "Sign in to Cloudflare:",
+        secret: "Give the Worker the management token (answer yes when wrangler offers to create the Worker):",
+        deploy: "Deploy. The first deploy creates the database; export into this same folder next time:",
+        migrate: "Create the database's table:",
+        address:
+          "Once it is online, give its address in the website's settings: the Content tab then lists what visitors send.",
+      },
+    } as Record<string, Record<string, string>>,
     hosts: {
       netlify: {
         name: "Netlify Drop",
@@ -583,10 +643,6 @@ export const en = {
         how: "Put the exported files in a repository and turn on Pages in its settings.",
       },
     },
-    step3: "3. Note where your website is",
-    siteUrl: "Your website's address",
-    save: "Save",
-    siteUrlHelp: "Upstart keeps it with the project, so you find it again here.",
   },
 } as const;
 

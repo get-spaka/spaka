@@ -2,9 +2,9 @@
 // builders (Q181, Q186): the app knows only their common interface.
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { basename, join, relative } from "node:path";
-import { builderById } from "@upstart/builder";
+import { BUILDERS, type BuildProject, builderById, collectedUse } from "@upstart/builder";
 import { diskSource } from "@upstart/runtime/node";
-import type { ExportResult } from "../shared/ipc";
+import type { ExportResult, PublishInfo } from "../shared/ipc";
 import { published } from "./history/history";
 import { webpCopies } from "./media/library";
 
@@ -42,16 +42,32 @@ export type ExportOptions = {
   formServices?: Record<string, string>;
 };
 
+function buildProject(projectDir: string, name: string): BuildProject {
+  return {
+    name,
+    source: diskSource(projectDir),
+    files: listFiles(projectDir),
+    readFile: (path: string) => readFileSync(join(projectDir, path)),
+  };
+}
+
+/** The ways of exporting, as the Publish dialog lists them (Q181), and the forms that need a form service. */
+export function publishChoices(projectDir: string, name: string): PublishInfo {
+  const project = buildProject(projectDir, name);
+  const use = collectedUse(project);
+  return {
+    choices: BUILDERS.map((b) => {
+      const checked = b.check(project);
+      return { id: b.id, needs: { ...b.needs }, ...(checked.ok ? {} : { refused: checked.refusal.datasources }) };
+    }),
+    forms: use.forms,
+  };
+}
+
 export async function exportProject(projectDir: string, chosen: string, options: ExportOptions): Promise<ExportResult> {
   const builder = builderById(options.builder);
   if (!builder) throw new Error(`There is no ${options.builder} export.`);
-  const files = listFiles(projectDir);
-  const project = {
-    name: options.name,
-    source: diskSource(projectDir),
-    files,
-    readFile: (path: string) => readFileSync(join(projectDir, path)),
-  };
+  const project = buildProject(projectDir, options.name);
   const checked = builder.check(project);
   if (!checked.ok)
     throw new Error(

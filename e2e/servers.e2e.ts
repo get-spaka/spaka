@@ -116,6 +116,32 @@ describe("the Node and Cloudflare exports, run", () => {
     expect(readFileSync(join(out, "data/data.sqlite")).length).toBeGreaterThan(0);
   }, 60_000);
 
+  test("Publish: the static way refused, saying why; the Node way shows the token and its guide", async () => {
+    const w = launched.window;
+    await w.getByTestId("export-open").click();
+    await until(async () => (await w.getByTestId("publish-choice").count()) === 3);
+    const staticChoice = w.locator('[data-testid="publish-choice"][data-id="static"]');
+    expect(await staticChoice.isDisabled()).toBe(true);
+    expect(await staticChoice.getByTestId("publish-refused").textContent()).toContain("(guestbook)");
+    await w.locator('[data-testid="publish-choice"][data-id="node"]').click();
+    await w.getByTestId("publish-token").waitFor();
+    await w.getByTestId("publish-token-show").click();
+    expect(await w.getByTestId("publish-token-value").textContent()).toBe(token);
+    await w.getByTestId("export-again").click();
+    await w.getByTestId("publish-guide").waitFor();
+    expect(await w.getByTestId("guide-step").evaluateAll((els) => els.map((e) => e.getAttribute("data-id")))).toEqual([
+      "try",
+      "docker",
+      "server",
+      "address",
+    ]);
+    expect(await w.locator('[data-testid="guide-step"][data-id="try"] code').textContent()).toBe(
+      "UPSTART_TOKEN=<token> node server.mjs",
+    );
+    await launched.capture("publish-node");
+    await w.getByTestId("export-close").click();
+  });
+
   test("the Cloudflare export runs with wrangler on this machine, the records in a local D1", async () => {
     const out = join(runsDir, "export-cloudflare");
     rmSync(out, { recursive: true, force: true });
@@ -152,4 +178,42 @@ describe("the Node and Cloudflare exports, run", () => {
     const { records: kept } = await (await records(local!)).json();
     expect(kept.map((r: { fields: { name: string } }) => r.fields.name)).toEqual(["Anne"]);
   }, 120_000);
+
+  test("a static site's form sends to the form service given in Publish (Q178)", async () => {
+    const path = (await invoke("projects:current")).path as string;
+    rmSync(join(path, "pages/guestbook.liquid"));
+    mkdirSync(join(path, "data/contact"), { recursive: true });
+    writeFileSync(
+      join(path, "data/contact/_datasource.yaml"),
+      "label: Contact\ncollected: true\nfields:\n  - name: email\n    kind: email\n",
+    );
+    writeFileSync(
+      join(path, "pages/contact.liquid"),
+      '<!doctype html><html lang="en"><head><title>Contact</title></head><body><form hx-post="/_data/contact"><input name="email"><button>Send</button></form></body></html>',
+    );
+    const info = await invoke("export:choices");
+    expect(info.forms).toEqual(["contact"]);
+    expect(info.choices.find((c: { id: string }) => c.id === "static").refused).toBeUndefined();
+
+    const w = launched.window;
+    await w.getByTestId("export-open").click();
+    await until(async () => (await w.getByTestId("publish-choice").count()) === 3);
+    await w.locator('[data-testid="publish-choice"][data-id="static"]').click();
+    const service = w.locator('[data-testid="form-service"][data-name="contact"]');
+    await service.locator("input").fill("https://formspree.io/f/abc");
+    await service.getByTestId("form-service-save").click();
+    await until(async () => (await invoke("projects:current")).formServices?.contact === "https://formspree.io/f/abc");
+    expect(JSON.parse(readFileSync(join(path, ".upstart/project.json"), "utf8")).formServices).toEqual({
+      contact: "https://formspree.io/f/abc",
+    });
+    await launched.capture("publish-static-forms");
+    await w.getByTestId("export-close").click();
+
+    const out = join(runsDir, "export-static-forms");
+    rmSync(out, { recursive: true, force: true });
+    await invoke("export:run", out, "static");
+    expect(readFileSync(join(out, "contact/index.html"), "utf8")).toContain(
+      '<form action="https://formspree.io/f/abc" method="post">',
+    );
+  });
 });

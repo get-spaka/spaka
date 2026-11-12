@@ -85,11 +85,29 @@ export function renderSite(source: ProjectSource) {
   return { runtime, pages, fragments, warnings };
 }
 
+/** The datasources the forms of some HTML send to (/_data/<name>). */
+export function formsIn(html: string): string[] {
+  const names = new Set<string>();
+  for (const tag of html.match(/<form\b[^>]*>/gi) ?? []) {
+    const name = /\s(?:hx-post|action)\s*=\s*["']?\/_data\/([\w-]+)/i.exec(tag)?.[1];
+    if (name) names.add(name);
+  }
+  return [...names];
+}
+
+/** What a project's pages do with what visitors send: the collected datasources they show, and those they have a form for. */
+export function collectedUse(project: BuildProject): { shown: string[]; forms: string[] } {
+  const { runtime, pages, fragments } = renderSite(project.source);
+  const collected = (name: string) => !!runtime.data.definition(name).definition?.collected;
+  const all = [...pages, ...fragments];
+  const shown = new Set(all.flatMap((p) => p.datasources).filter(collected));
+  const forms = new Set(all.flatMap((p) => formsIn(p.html)).filter(collected));
+  return { shown: [...shown].sort(), forms: [...forms].sort() };
+}
+
 /** The collected datasources (Q171) a rendered page or fragment shows. */
 export function shownCollected(project: BuildProject): string[] {
-  const { runtime, pages, fragments } = renderSite(project.source);
-  const read = new Set([...pages, ...fragments].flatMap((p) => p.datasources));
-  return [...read].filter((name) => runtime.data.definition(name).definition?.collected).sort();
+  return collectedUse(project).shown;
 }
 
 /** The WebP copies of the images the pages show, written beside them; their widths by image. */

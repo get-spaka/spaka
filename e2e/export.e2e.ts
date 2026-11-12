@@ -73,7 +73,7 @@ describe("exporting the website", () => {
   });
 
   test("every page, the stylesheet and the theme are written; nothing of the preview", async () => {
-    const result = await invoke("export:run", out);
+    const result = await invoke("export:run", out, "static");
     expect(result.folder).toBe(out);
     expect(result.pages.sort()).toEqual(["/", "/menu"]);
     for (const file of ["index.html", "menu/index.html", "theme.css", "assets/site.css", "assets/htmx.js"])
@@ -90,19 +90,19 @@ describe("exporting the website", () => {
 
   test("an export replaces the previous one; a folder of the maker's is never written over", async () => {
     writeFileSync(join(out, "stale.html"), "old");
-    await invoke("export:run", out);
+    await invoke("export:run", out, "static");
     expect(existsSync(join(out, "stale.html"))).toBe(false);
 
     const theirs = join(runsDir, "export-theirs");
     rmSync(theirs, { recursive: true, force: true });
     mkdirSync(theirs, { recursive: true });
     writeFileSync(join(theirs, "notes.txt"), "mine");
-    const result = await invoke("export:run", theirs);
+    const result = await invoke("export:run", theirs, "static");
     expect(result.folder).toBe(join(theirs, `${await projectFolderName()}-site`));
     expect(readFileSync(join(theirs, "notes.txt"), "utf8")).toBe("mine");
     expect(existsSync(join(result.folder, "index.html"))).toBe(true);
     // Back to the first folder, for the next checks.
-    await invoke("export:run", out);
+    await invoke("export:run", out, "static");
   });
 
   test("the exported page, served as files, looks like the preview", async () => {
@@ -163,21 +163,31 @@ describe("exporting the website", () => {
     expect(diff.differing).toBeLessThan(0.01);
   });
 
-  test("the dialog exports again into the last folder, hides the page and keeps the site's address", async () => {
+  test("Publish: three ways, none chosen; the static one exports again into its last folder and shows the hosts", async () => {
     const w = launched.window;
     await w.getByTestId("export-open").click();
     await w.getByTestId("export-dialog").waitFor();
     await until(async () => !(await main((u) => u.preview.view.getVisible())));
+    await until(async () => (await w.getByTestId("publish-choice").count()) === 3);
+    expect(
+      await w
+        .getByTestId("publish-choice")
+        .evaluateAll((els) => els.map((e) => [e.getAttribute("data-id"), e.getAttribute("aria-pressed")])),
+    ).toEqual([
+      ["static", "false"],
+      ["node", "false"],
+      ["cloudflare", "false"],
+    ]);
+    expect(await w.getByTestId("export-choose").isDisabled()).toBe(true);
+    await w.locator('[data-testid="publish-choice"][data-id="static"]').click();
     await w.getByTestId("export-again").click();
     await expect(w.getByTestId("export-result").textContent()).resolves.toContain("Exported 2 pages");
+    expect(await w.getByTestId("guide-step").evaluateAll((els) => els.map((e) => e.getAttribute("data-id")))).toEqual([
+      "upload",
+    ]);
     await launched.capture("export-dialog");
-    await w.getByTestId("export-site-url").fill("https://chez-margot.netlify.app");
-    await w.getByTestId("export-site-url-save").click();
-    await until(async () => (await invoke("projects:current")).siteUrl === "https://chez-margot.netlify.app");
-    const { path } = await invoke("projects:current");
-    expect(JSON.parse(readFileSync(join(path, ".upstart/project.json"), "utf8")).siteUrl).toBe(
-      "https://chez-margot.netlify.app",
-    );
+    // The site's address is given in the website's settings now (Q183).
+    expect(await w.getByTestId("export-site-url").count()).toBe(0);
     await w.getByTestId("export-close").click();
     await until(() => main((u) => u.preview.view.getVisible()));
   });
@@ -217,7 +227,7 @@ describe("exporting the website", () => {
       "<!doctype html><html><head><title>{{ record.title }}</title></head><body><h1>{{ record.title }}</h1>{{ record.body }}</body></html>",
     );
     const started = Date.now();
-    const result = await invoke("export:run", out);
+    const result = await invoke("export:run", out, "static");
     process.stdout.write(`[export] with 4 WebP copies of a 2600 px image: ${Date.now() - started} ms\n`);
     expect(result.pages).toEqual(expect.arrayContaining(["/blog", "/blog/opening", "/credits"]));
     expect(readFileSync(join(out, "blog/opening/index.html"), "utf8")).toContain(
