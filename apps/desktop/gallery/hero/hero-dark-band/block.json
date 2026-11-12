@@ -1,6 +1,7 @@
 {
   "name": "Dark hero band",
   "kind": "hero",
+  "source": "hyperui",
   "description": "A bold dark band with a large left-aligned headline, a short subtitle, an email signup field with a button and a line of reassurance.",
   "tags": ["headline", "dark background", "email", "signup", "form"],
   "mood": ["dark", "bold"],

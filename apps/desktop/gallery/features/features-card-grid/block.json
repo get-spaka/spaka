@@ -1,6 +1,7 @@
 {
   "name": "Feature cards grid",
   "kind": "features",
+  "source": "hyperui",
   "description": "A centred heading and intro above three bordered cards, each with an icon in a tinted square, a short title and a sentence.",
   "tags": ["grid", "cards", "icons", "three columns", "centered heading"],
   "mood": ["minimal", "friendly"],

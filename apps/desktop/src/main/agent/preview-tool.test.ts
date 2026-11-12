@@ -11,6 +11,7 @@ const block = (id: string, kind: Block["kind"], name: string): Block => ({
   mood: [],
   synonyms: [],
   source: `<section>\n  <h2>${name}</h2>\n</section>\n`,
+  origin: "hyperui",
 });
 const pricing = block("pricing-three-tiers", "pricing", "Three tiers");
 const faq = block("faq-accordion", "faq", "Accordion");

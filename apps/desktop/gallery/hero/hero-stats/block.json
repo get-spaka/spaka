@@ -1,6 +1,7 @@
 {
   "name": "Hero with badge and stats",
   "kind": "hero",
+  "source": "hyperui",
   "description": "A small badge above a centred headline and subtitle with two buttons, followed by a row of three key figures.",
   "tags": ["badge", "headline", "buttons", "stats", "numbers", "centered"],
   "mood": ["bold", "corporate"],

@@ -33,8 +33,33 @@ export type ProjectInfo = ProjectSummary & {
 export type SkillOrigin = "upstart" | "app" | "project";
 export type SkillInfo = { origin: SkillOrigin; name: string; description: string; path: string };
 
-/** The kinds of the gallery's blocks (Q92), in the order a page usually has them. */
-export const BLOCK_KINDS = ["header", "hero", "features", "testimonials", "pricing", "faq", "cta", "footer"] as const;
+/** The kinds of the gallery's blocks (Q92, Q196), in the order a page usually has them. */
+export const BLOCK_KINDS = [
+  "banner",
+  "header",
+  "hero",
+  "about",
+  "features",
+  "services",
+  "stats",
+  "steps",
+  "logos",
+  "team",
+  "testimonials",
+  "gallery",
+  "blog",
+  "events",
+  "menu",
+  "products",
+  "pricing",
+  "comparison",
+  "faq",
+  "contact",
+  "forms",
+  "newsletter",
+  "cta",
+  "footer",
+] as const;
 export type BlockKind = (typeof BLOCK_KINDS)[number];
 /** The type of the data a block dragged from the Blocks tab carries: its id. */
 export const BLOCK_DRAG_TYPE = "application/x-upstart-block";
@@ -47,6 +72,11 @@ export type GalleryBlock = {
   tags: string[];
   mood: string[];
   synonyms: string[];
+  /**
+   * A data block's datasource (Q194, Q197, Q201): a collection keeps its name
+   * for the whole site; a section list is named after the page it is dropped on.
+   */
+  data?: { name: string; family: "collection" | "section" };
 };
 
 /** Values of the theme's core variables, by name ("--theme-color-primary" → "#9a3412"). */

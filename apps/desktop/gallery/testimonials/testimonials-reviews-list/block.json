@@ -1,6 +1,7 @@
 {
   "name": "Star reviews with summary",
   "kind": "testimonials",
+  "source": "hyperui",
   "description": "An average star rating and review count on the left, and a stacked list of customer reviews with stars, a title, text and author on the right.",
   "tags": ["stars", "rating", "reviews", "list", "two columns", "summary"],
   "mood": ["friendly", "warm"],

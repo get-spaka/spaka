@@ -1,6 +1,7 @@
 {
   "name": "Single featured quote",
   "kind": "testimonials",
+  "source": "hyperui",
   "description": "One large centred customer quote under a quotation-mark icon, with the person’s initials avatar, name and role below.",
   "tags": ["quote", "centered", "avatar", "single", "large text"],
   "mood": ["elegant", "minimal"],

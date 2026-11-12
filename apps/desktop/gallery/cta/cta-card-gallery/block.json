@@ -1,6 +1,7 @@
 {
   "name": "Call to action with image grid",
   "kind": "cta",
+  "source": "hyperui",
   "description": "A tinted card with a centred heading, paragraph and button beside a grid of two picture placeholders.",
   "tags": ["images", "grid", "card", "button", "two columns", "gallery"],
   "mood": ["elegant", "warm"],

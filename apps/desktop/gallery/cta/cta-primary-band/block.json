@@ -1,6 +1,7 @@
 {
   "name": "Coloured call-to-action band",
   "kind": "cta",
+  "source": "hyperui",
   "description": "A full-width band in the primary colour with a bold heading and sentence on the left and two buttons on the right; stacks and centres on mobile.",
   "tags": ["band", "coloured background", "buttons", "inline", "full width"],
   "mood": ["bold", "colorful"],

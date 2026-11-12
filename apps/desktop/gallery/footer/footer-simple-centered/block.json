@@ -1,6 +1,7 @@
 {
   "name": "Simple centred footer",
   "kind": "footer",
+  "source": "hyperui",
   "description": "A light centred footer with the logo, a short sentence, a row of links, social icons and the copyright line.",
   "tags": ["centered", "logo", "links", "social links", "copyright"],
   "mood": ["minimal", "friendly"],

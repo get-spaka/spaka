@@ -1,6 +1,7 @@
 {
   "name": "Testimonial cards grid",
   "kind": "testimonials",
+  "source": "hyperui",
   "description": "A centred heading above three cards of customer quotes, each with an initials avatar, name and company at the bottom.",
   "tags": ["cards", "grid", "three columns", "quotes", "avatars"],
   "mood": ["friendly", "minimal"],

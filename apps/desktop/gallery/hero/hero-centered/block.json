@@ -1,6 +1,7 @@
 {
   "name": "Centred hero",
   "kind": "hero",
+  "source": "hyperui",
   "description": "A big headline with a highlighted word and a subtitle centred over a soft background, with a main and a secondary button.",
   "tags": ["headline", "subtitle", "buttons", "centered"],
   "mood": ["minimal", "friendly"],

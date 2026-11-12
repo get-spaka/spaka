@@ -99,6 +99,9 @@ test("a block added without a place goes where its kind usually is", () => {
   expect(placeFor('<body><section id="a"></section></body>', "cta")).toBe(1);
   // With a <main>, sections are its children: the footer outside it is not one.
   expect(placeFor("<body><main></main><footer>f</footer></body>", "cta")).toBe(0);
+  // A banner opens the page; a header goes below it.
+  expect(placeFor(page, "banner")).toBe(0);
+  expect(placeFor(`<body>{% render 'banner-sale' %}${page.replace("<body>", "")}`, "header")).toBe(1);
 });
 
 test("the pages using a shared part, through other parts too", () => {

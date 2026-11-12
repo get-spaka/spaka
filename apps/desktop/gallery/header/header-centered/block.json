@@ -1,6 +1,7 @@
 {
   "name": "Centred header",
   "kind": "header",
+  "source": "hyperui",
   "description": "A two-row header on a soft background: the logo centred on top and the links centred below it, with a simple disclosure menu on mobile.",
   "tags": ["logo", "centered", "links", "two rows", "mobile menu"],
   "mood": ["elegant", "minimal"],

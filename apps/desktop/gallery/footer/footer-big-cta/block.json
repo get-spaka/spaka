@@ -1,6 +1,7 @@
 {
   "name": "Footer with closing call to action",
   "kind": "footer",
+  "source": "hyperui",
   "description": "A footer that opens with a large centred heading, sentence and button, followed by a thin row with legal links, copyright and social icons.",
   "tags": ["call to action", "centered", "button", "legal links", "social links"],
   "mood": ["bold", "friendly"],

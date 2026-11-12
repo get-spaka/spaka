@@ -1,6 +1,7 @@
 {
   "name": "Two plans side by side",
   "kind": "pricing",
+  "source": "hyperui",
   "description": "Two centred pricing cards with plan name, monthly price, checklist of features and a button, the recommended plan outlined in the primary colour.",
   "tags": ["two plans", "cards", "monthly", "checklist", "buttons", "highlighted"],
   "mood": ["minimal", "friendly"],

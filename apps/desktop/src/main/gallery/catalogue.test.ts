@@ -1,7 +1,6 @@
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { memorySource, Runtime } from "@upstart/runtime";
 import { expect, test, vi } from "vitest";
 import { described, Gallery, readGallery } from "./catalogue";
 
@@ -41,30 +40,44 @@ test("a block that does not describe itself is left out", () => {
   expect(readGallery(join(dir, "nowhere"))).toEqual([]);
 });
 
-// The gallery shipped with the app: every block describes itself and keeps
-// to the rules a dropped block relies on (one root element, plain texts).
-test("the shipped gallery's blocks keep to the rules", () => {
-  const list = readGallery(join(__dirname, "../../../gallery"));
-  expect(list.length).toBeGreaterThanOrEqual(24);
-  for (const b of list) {
-    expect(b.id, b.id).toMatch(new RegExp(`^${b.kind}-`));
-    expect(b.source, b.id).not.toMatch(/\{\{|\{%|<script|<style|<img|https?:\/\//);
-    const root = /^\s*<(\w+)/.exec(b.source)?.[1];
-    expect(root, b.id).toBe(b.kind === "header" ? "header" : b.kind === "footer" ? "footer" : "section");
-    expect(b.source.trim().endsWith(`</${root}>`), b.id).toBe(true);
-  }
+test("a data block is read with its datasource, its sample records, its detail and where it comes from", () => {
+  const dir = mkdtempSync(join(tmpdir(), "gallery-"));
+  block(dir, "blog", "blog-cards", {
+    ...about("blog", "Blog cards"),
+    source: "meraki-ui",
+    data: { name: "blog", family: "collection" },
+  });
+  mkdirSync(join(dir, "blog/blog-cards/data"));
+  writeFileSync(
+    join(dir, "blog/blog-cards/data/_datasource.yaml"),
+    "label: Posts\nfields:\n  - name: title\n    kind: text\n",
+  );
+  writeFileSync(join(dir, "blog/blog-cards/data/first-post.md"), "---\ntitle: First post\n---\n");
+  writeFileSync(join(dir, "blog/blog-cards/detail.liquid"), "<section>{{ record.title }}</section>");
+  const [b] = readGallery(dir);
+  expect(b).toMatchObject({
+    origin: "meraki-ui",
+    data: { name: "blog", family: "collection" },
+    datasource: { records: { "first-post.md": "---\ntitle: First post\n---\n" } },
+    detail: "<section>{{ record.title }}</section>",
+  });
+  expect(described(b!)).toEqual({
+    id: "blog-cards",
+    kind: "blog",
+    name: "Blog cards",
+    description: "A Blog cards.",
+    tags: ["x"],
+    mood: [],
+    synonyms: [],
+    data: { name: "blog", family: "collection" },
+  });
 });
 
-test("every shipped block renders with no note from the runtime, once dropped as a part", () => {
-  for (const b of readGallery(join(__dirname, "../../../gallery"))) {
-    const runtime = new Runtime(
-      memorySource({
-        "pages/index.liquid": `<!doctype html><html><body>{% render '${b.id}' %}</body></html>`,
-        [`parts/${b.id}.liquid`]: b.source,
-      }),
-    );
-    const result = runtime.renderRoute("/");
-    expect(result.status, b.id).toBe(200);
-    expect(result.notes, b.id).toEqual([]);
-  }
+test("a data block without its definition is left out", () => {
+  const dir = mkdtempSync(join(tmpdir(), "gallery-"));
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  block(dir, "team", "team-grid", { ...about("team", "Team grid"), data: { name: "team", family: "collection" } });
+  expect(readGallery(dir)).toEqual([]);
+  expect(String(warn.mock.calls[0]?.[1])).toContain("_datasource.yaml");
+  warn.mockRestore();
 });

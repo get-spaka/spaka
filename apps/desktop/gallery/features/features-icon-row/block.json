@@ -1,6 +1,7 @@
 {
   "name": "Row of four features",
   "kind": "features",
+  "source": "hyperui",
   "description": "A short centred heading over four centred features in a row, each a round coloured icon with a title and a short line.",
   "tags": ["icons", "four columns", "centered", "row", "short texts"],
   "mood": ["friendly", "colorful"],

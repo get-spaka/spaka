@@ -1,6 +1,7 @@
 {
   "name": "Dark footer with newsletter",
   "kind": "footer",
+  "source": "hyperui",
   "description": "A dark footer opening with a newsletter heading and email signup, then contact details and link columns, and a copyright line with social icons.",
   "tags": ["dark background", "newsletter", "email", "columns", "contact details", "social links"],
   "mood": ["dark", "elegant"],

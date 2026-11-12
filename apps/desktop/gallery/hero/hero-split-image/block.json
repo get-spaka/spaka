@@ -1,6 +1,7 @@
 {
   "name": "Split hero with image",
   "kind": "hero",
+  "source": "hyperui",
   "description": "A left-aligned headline, subtitle and two buttons on one side and a large picture placeholder on the other; stacks on mobile.",
   "tags": ["headline", "image", "two columns", "buttons", "split"],
   "mood": ["friendly", "corporate"],

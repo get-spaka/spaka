@@ -24,11 +24,16 @@ export class Thumbnails {
   get(id: string, source: string, theme: string): Promise<string> {
     const key = createHash("sha256").update(theme).update("\0").update(source).digest("hex").slice(0, 32);
     const file = join(this.dir, `${key}.png`);
-    if (existsSync(file)) return Promise.resolve(dataUrl(readFileSync(file)));
+    const kept = cached(file);
+    if (kept) return Promise.resolve(dataUrl(kept));
     // One at a time: a single hidden window draws them all.
     const next = this.queue.then(async () => {
-      if (existsSync(file)) return dataUrl(readFileSync(file));
-      const png = await this.draw(id);
+      const now = cached(file);
+      if (now) return dataUrl(now);
+      // A picture that came out empty is drawn again once, and never kept.
+      let png = await this.draw(id);
+      if (!png.length) png = await this.draw(id);
+      if (!png.length) throw new Error("The block was drawn empty.");
       mkdirSync(this.dir, { recursive: true });
       writeFileSync(file, png);
       return dataUrl(png);
@@ -56,7 +61,9 @@ export class Thumbnails {
       const paint = (_event: unknown, _dirty: Electron.Rectangle, frame: Electron.NativeImage) => {
         const size = frame.getSize();
         // The first frames may still be at the old size.
-        if (++frames < 2 || size.height < (h * size.width) / WIDTH - 2) return win.webContents.invalidate();
+        // An empty frame (none painted yet) is not a picture of the block either.
+        if (++frames < 2 || frame.isEmpty() || !size.width || size.height < (h * size.width) / WIDTH - 2)
+          return win.webContents.invalidate();
         clearTimeout(timer);
         win.webContents.off("paint", paint);
         resolve(frame);
@@ -103,6 +110,13 @@ export const BLOCK_HEIGHT = `new Promise((done) => {
     : setTimeout(wait, 30);
   wait();
 })`;
+
+/** A picture kept on disk, unless an empty one was kept by an earlier version. */
+function cached(file: string): Buffer | undefined {
+  if (!existsSync(file)) return undefined;
+  const png = readFileSync(file);
+  return png.length ? png : undefined;
+}
 
 function dataUrl(png: Buffer): string {
   return `data:image/png;base64,${png.toString("base64")}`;

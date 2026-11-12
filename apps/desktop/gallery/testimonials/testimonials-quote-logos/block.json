@@ -1,6 +1,7 @@
 {
   "name": "Quote on a coloured band with logos",
   "kind": "testimonials",
+  "source": "hyperui",
   "description": "A bold coloured band with a large customer quote and author on one side and a grid of customer name wordmarks on the other.",
   "tags": ["quote", "logos", "two columns", "coloured background", "customers"],
   "mood": ["bold", "colorful"],

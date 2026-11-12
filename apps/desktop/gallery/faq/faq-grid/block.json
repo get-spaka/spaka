@@ -1,6 +1,7 @@
 {
   "name": "FAQ grid",
   "kind": "faq",
+  "source": "hyperui",
   "description": "A heading above a two-column grid of questions with their answers always visible, each question marked with a small round icon.",
   "tags": ["grid", "two columns", "questions", "icons", "always open"],
   "mood": ["friendly", "warm"],

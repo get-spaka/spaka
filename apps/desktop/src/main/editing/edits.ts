@@ -137,7 +137,12 @@ function insertSection(src: string, list: ReturnType<typeof sections>, index: nu
  */
 export function placeFor(src: string, kind: string): number {
   const list = sections(src);
-  if (kind === "header") return 0;
+  if (kind === "banner") return 0;
+  if (kind === "header") {
+    // Below a banner the page opens with.
+    const first = list[0];
+    return first && first.kind !== "element" && /^banner/.test(first.name) ? 1 : 0;
+  }
   const last = list.at(-1);
   const isFooter = last && (last.kind === "element" ? last.name === "footer" : /footer/.test(last.name));
   return kind !== "footer" && isFooter ? list.length - 1 : list.length;

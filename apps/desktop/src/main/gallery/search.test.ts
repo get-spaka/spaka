@@ -13,6 +13,7 @@ const b = (id: string, kind: Block["kind"], name: string, more: Partial<Block> =
   mood: [],
   synonyms: [],
   source: "",
+  origin: "upstart",
   ...more,
 });
 

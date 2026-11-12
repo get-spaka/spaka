@@ -6,6 +6,15 @@ import { join } from "node:path";
 import { z } from "zod";
 import { BLOCK_KINDS, type BlockKind, type GalleryBlock } from "../../shared/ipc";
 
+/** Where a block's layout comes from, and the licence file kept beside the gallery for it (Q195, Q202). */
+export const BLOCK_SOURCES = {
+  hyperui: "LICENSE-HyperUI",
+  "meraki-ui": "LICENSE-Meraki-UI",
+  "mamba-ui": "LICENSE-Mamba-UI",
+  "wicked-blocks": "LICENSE-Wicked-Blocks",
+  upstart: undefined,
+} as const;
+
 const Described = z.object({
   name: z.string().min(1),
   kind: z.enum(BLOCK_KINDS),
@@ -13,9 +22,29 @@ const Described = z.object({
   tags: z.array(z.string()).default([]),
   mood: z.array(z.string()).default([]),
   synonyms: z.array(z.string()).default([]),
+  source: z.enum(Object.keys(BLOCK_SOURCES) as [keyof typeof BLOCK_SOURCES]).default("upstart"),
+  data: z
+    .object({
+      name: z.string().regex(/^[a-z][a-z0-9-]*$/),
+      family: z.enum(["collection", "section"]),
+    })
+    .optional(),
 });
 
-export type Block = GalleryBlock & { source: string };
+/**
+ * A block as the app holds it: its template, where its layout comes from and,
+ * for a data block, its datasource's definition and sample records (the
+ * files of its data/ folder, by name) and the detail section of its record
+ * page, when its collection has one (Q199, Q200).
+ */
+export type Block = GalleryBlock & {
+  source: string;
+  origin: keyof typeof BLOCK_SOURCES;
+  datasource?: { definition: string; records: Record<string, string> };
+  detail?: string;
+};
+
+const DEFINITION = "_datasource.yaml";
 
 export class Gallery {
   private blocks: Block[] | undefined;
@@ -43,9 +72,23 @@ export function readGallery(dir: string): Block[] {
       if (!entry.isDirectory() || !/^[a-z0-9-]+$/.test(entry.name)) continue;
       const folder = join(dir, kind.name, entry.name);
       try {
-        const described = Described.parse(JSON.parse(readFileSync(join(folder, "block.json"), "utf8")));
+        const { source: origin, ...described } = Described.parse(
+          JSON.parse(readFileSync(join(folder, "block.json"), "utf8")),
+        );
         const source = readFileSync(join(folder, "block.liquid"), "utf8");
-        out.push({ id: entry.name, ...described, source });
+        const block: Block = { id: entry.name, ...described, source, origin };
+        if (described.data) {
+          const dataDir = join(folder, "data");
+          if (!existsSync(join(dataDir, DEFINITION))) throw new Error(`data/${DEFINITION} is missing`);
+          const records: Record<string, string> = {};
+          for (const file of readdirSync(dataDir).sort()) {
+            if (file.endsWith(".md")) records[file] = readFileSync(join(dataDir, file), "utf8");
+          }
+          block.datasource = { definition: readFileSync(join(dataDir, DEFINITION), "utf8"), records };
+        }
+        if (existsSync(join(folder, "detail.liquid")))
+          block.detail = readFileSync(join(folder, "detail.liquid"), "utf8");
+        out.push(block);
       } catch (error) {
         console.warn(`[upstart] gallery block ${entry.name} left out:`, error instanceof Error ? error.message : error);
       }
@@ -56,6 +99,7 @@ export function readGallery(dir: string): Block[] {
 }
 
 /** What the interface shows of a block: everything but its template. */
-export function described({ source: _source, ...block }: Block): GalleryBlock {
-  return block;
+export function described(block: Block): GalleryBlock {
+  const { id, kind, name, description, tags, mood, synonyms, data } = block;
+  return { id, kind, name, description, tags, mood, synonyms, ...(data ? { data } : {}) };
 }

@@ -1,6 +1,7 @@
 {
   "name": "Single plan card",
   "kind": "pricing",
+  "source": "hyperui",
   "description": "One wide card split in two: plan description and a two-column list of what is included on one side, and the price with a button on a tinted panel on the other.",
   "tags": ["single plan", "card", "two columns", "checklist", "one price"],
   "mood": ["elegant", "warm"],

@@ -1,6 +1,7 @@
 {
   "name": "Call to action with image",
   "kind": "cta",
+  "source": "hyperui",
   "description": "A soft panel split in two: a heading, short paragraph and button on one side and a full-height picture placeholder on the other.",
   "tags": ["image", "two columns", "button", "split", "panel"],
   "mood": ["friendly", "warm"],
