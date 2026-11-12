@@ -2,7 +2,7 @@
 // Q94): checks that the agent is not working, writes the file, takes a
 // snapshot for each action, and keeps a note of it for the agent's next
 // message. The text changes themselves are in edits.ts.
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, extname, join } from "node:path";
 import {
   Datasources,
@@ -49,6 +49,7 @@ import {
   setLink,
   targetAt,
 } from "./edits";
+import { diskView, projectTemplates } from "./use-blocks";
 
 /** The index of the section starting at `at` among a page's sections; their count for null. */
 function sectionIndex(src: string, at: number | null): number {
@@ -621,38 +622,13 @@ export class Editor {
   /** The project as a dropped block's datasource needs to see it. */
   private view(): ProjectView {
     // Read only: a datasource's folder is looked at too, never anything outside the project.
-    const at = (path: string) => (path.split("/").includes("..") ? undefined : join(this.root(), path));
-    return {
-      exists: (path) => {
-        const abs = at(path);
-        return !!abs && existsSync(abs);
-      },
-      read: (path) => {
-        const abs = at(path);
-        return abs && existsSync(abs) && statSync(abs).isFile() ? readFileSync(abs, "utf8") : undefined;
-      },
-      templates: () => this.templates(),
-    };
+    return diskView(this.root());
   }
 
   /** Every template of the project, path → text, to find what uses a part. */
   private templates(): Record<string, string> {
     const root = this.deps.root();
-    const out: Record<string, string> = {};
-    if (!root) return out;
-    for (const dir of ["pages", "parts"]) {
-      const walk = (rel: string) => {
-        const abs = join(root, rel);
-        if (!existsSync(abs)) return;
-        for (const entry of readdirSync(abs, { withFileTypes: true })) {
-          const path = `${rel}/${entry.name}`;
-          if (entry.isDirectory()) walk(path);
-          else if (entry.name.endsWith(".liquid")) out[path] = readFileSync(join(root, path), "utf8");
-        }
-      };
-      walk(dir);
-    }
-    return out;
+    return root ? projectTemplates(root) : {};
   }
 
   private abs(file: string): string {

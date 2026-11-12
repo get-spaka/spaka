@@ -51,6 +51,7 @@ import {
   FIND_IMAGES_TOOL,
   LOOK_TOOL,
   UPSTART_SERVER,
+  USE_BLOCK_TOOL,
   USE_IMAGE_TOOL,
   upstartServer,
 } from "./agent/preview-tool";
@@ -62,6 +63,7 @@ import { NAVIGATION, pageKey } from "./editing/data-drop";
 import { Editor } from "./editing/editor";
 import { EditRefused } from "./editing/edits";
 import { AgentNotes } from "./editing/notes";
+import { samplesLeftNote, unchangedSamples, useBlocks } from "./editing/use-blocks";
 import { readEnvironment } from "./environment";
 import { exportProject, publishChoices } from "./export";
 import { described, Gallery } from "./gallery/catalogue";
@@ -301,33 +303,57 @@ async function main() {
       binary,
       readable: launcher.readable,
       instructions: () => instructionsFor(settings.get().replyStyle),
-      extraOptions: (project) => ({
-        mcpServers: {
-          [UPSTART_SERVER]: upstartServer({
-            look: () => preview.look(),
-            findBlocks: (query, kind, limit) => blockIndex().find(query, { kind, limit }),
-            findImages: async (query, count) => imagesAnswer(query, await images.search(query, count)),
-            useImage: (id, name, alt) => useFoundImage(images, project.path, id, name, alt),
-          }),
-        },
-        allowedTools: [LOOK_TOOL, FIND_BLOCKS_TOOL, FIND_IMAGES_TOOL, USE_IMAGE_TOOL],
-        // A record that does not read is said to the agent at once, with the tool's answer (Q170).
-        hooks: {
-          PostToolUse: [
-            {
-              matcher: "Write|Edit|Bash",
-              hooks: [
-                async (input: { tool_name?: string; tool_input?: unknown }) => {
-                  const note = dataProblemsAfter(project.path, input.tool_name ?? "", input.tool_input);
-                  return note
-                    ? { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: note } }
-                    : { continue: true };
-                },
-              ],
-            },
-          ],
-        },
-      }),
+      extraOptions: (project) => {
+        // The sample records use_block wrote in this turn, named to the agent once if it leaves them (Q217).
+        const placedSamples = new Set<string>();
+        return {
+          mcpServers: {
+            [UPSTART_SERVER]: upstartServer({
+              look: () => preview.look(),
+              findBlocks: (query, kind, limit) => blockIndex().find(query, { kind, limit }),
+              findImages: async (query, count) => imagesAnswer(query, await images.search(query, count)),
+              useImage: (id, name, alt) => useFoundImage(images, project.path, id, name, alt),
+              useBlocks: (input) => {
+                const { text, samples } = useBlocks(project.path, input, (id) => gallery.get(id));
+                for (const path of samples) placedSamples.add(path);
+                return text;
+              },
+            }),
+          },
+          allowedTools: [LOOK_TOOL, FIND_BLOCKS_TOOL, FIND_IMAGES_TOOL, USE_IMAGE_TOOL, USE_BLOCK_TOOL],
+          // A record that does not read is said to the agent at once, with the tool's answer (Q170).
+          hooks: {
+            PostToolUse: [
+              {
+                matcher: "Write|Edit|Bash",
+                hooks: [
+                  async (input: { tool_name?: string; tool_input?: unknown }) => {
+                    const note = dataProblemsAfter(project.path, input.tool_name ?? "", input.tool_input);
+                    return note
+                      ? { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: note } }
+                      : { continue: true };
+                  },
+                ],
+              },
+            ],
+            Stop: [
+              {
+                hooks: [
+                  async (input: { stop_hook_active?: boolean }) => {
+                    const left = input.stop_hook_active
+                      ? []
+                      : unchangedSamples(project.path).filter((path) => placedSamples.has(path));
+                    placedSamples.clear();
+                    return left.length
+                      ? { decision: "block" as const, reason: samplesLeftNote(left) }
+                      : { continue: true };
+                  },
+                ],
+              },
+            ],
+          },
+        };
+      },
       connectors: [UPSTART_SERVER],
       skills,
       connectorServers: connectors,

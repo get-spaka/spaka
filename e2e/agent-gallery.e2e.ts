@@ -1,8 +1,9 @@
 // The gallery with the real agent (Q97, Q98, Q102, Q88). Opt-in like
 // agent.e2e.ts: UPSTART_REAL_AGENT=1, with .cache/agent-config signed in.
 // One build: a home page asked for in English. The agent searches the
-// gallery, starts a section from a block as a part, writes the site in
+// gallery, puts its blocks in with use_block, writes the site in
 // English; the first section's time is measured against the 10 s target.
+import { createHash } from "node:crypto";
 import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
@@ -78,13 +79,39 @@ describe.skipIf(!real)("the gallery with the real agent", () => {
     path = (await invoke("projects:current")).path;
 
     // The agent searched the gallery.
-    const searches = messages()
-      .filter((m) => m?.type === "assistant")
-      .flatMap((m) => m.message.content)
-      .filter((c: { type: string; name?: string }) => c.type === "tool_use" && c.name === "mcp__upstart__find_blocks")
-      .map((c: { input: unknown }) => c.input);
+    const calls = (name: string) =>
+      messages()
+        .filter((m) => m?.type === "assistant")
+        .flatMap((m) => m.message.content)
+        .filter((c: { type: string; name?: string }) => c.type === "tool_use" && c.name === name)
+        .map((c: { input: unknown }) => c.input);
+    const searches = calls("mcp__upstart__find_blocks");
     report.searches = searches;
     expect(searches.length).toBeGreaterThanOrEqual(1);
+    // It put the blocks in with use_block (Q213), and replaced every sample record (Q217).
+    report.placed = calls("mcp__upstart__use_block");
+    expect((report.placed as unknown[]).length).toBeGreaterThanOrEqual(1);
+    const samples = (() => {
+      try {
+        return JSON.parse(readFileSync(join(path, ".upstart/gallery-samples.json"), "utf8"));
+      } catch {
+        return {};
+      }
+    })();
+    report.samplesLeft = Object.entries(samples as Record<string, string>)
+      .filter(([file, sum]) => {
+        try {
+          return (
+            createHash("sha256")
+              .update(readFileSync(join(path, file), "utf8"))
+              .digest("hex") === sum
+          );
+        } catch {
+          return false;
+        }
+      })
+      .map(([file]) => file);
+    expect(report.samplesLeft).toEqual([]);
 
     // A part of the project started from a block: most of its classes are the block's.
     const blocks = readdirSync(gallery, { withFileTypes: true })

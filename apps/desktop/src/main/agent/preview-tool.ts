@@ -1,10 +1,11 @@
 // The agent's tools of Upstart's own: a look at the preview, to check its
 // work (decisions: a capture, and the page's errors), a search in the
-// gallery of blocks (Q97, Q98), and free images found and added to the
-// project's media (Q150, Q167).
+// gallery of blocks and their placing into a page (Q97, Q98, Q213-Q216), and
+// free images found and added to the project's media (Q150, Q167).
 import { createSdkMcpServer, tool } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
 import { BLOCK_KINDS } from "../../shared/ipc";
+import type { Placing } from "../editing/place-blocks";
 import type { Block } from "../gallery/catalogue";
 
 export const UPSTART_SERVER = "upstart";
@@ -12,6 +13,7 @@ export const LOOK_TOOL = `mcp__${UPSTART_SERVER}__look_at_preview`;
 export const FIND_BLOCKS_TOOL = `mcp__${UPSTART_SERVER}__find_blocks`;
 export const FIND_IMAGES_TOOL = `mcp__${UPSTART_SERVER}__find_images`;
 export const USE_IMAGE_TOOL = `mcp__${UPSTART_SERVER}__use_image`;
+export const USE_BLOCK_TOOL = `mcp__${UPSTART_SERVER}__use_block`;
 
 export type Look = () => Promise<{ route: string | null; png?: Buffer; errors: string[]; notes: string[] }>;
 export type FindBlocks = (query: string, kind: string | undefined, limit: number) => Block[];
@@ -20,100 +22,68 @@ export type Wanted = { kind?: string; query: string };
 export type FindImages = (query: string, count: number) => Promise<string>;
 /** Adds an image found to media/ and answers with its path, or says why not. */
 export type UseImage = (id: string, name: string, alt: string) => Promise<string>;
-export type UpstartTools = { look: Look; findBlocks: FindBlocks; findImages: FindImages; useImage: UseImage };
+/** Puts gallery blocks into a page and answers with what was written, or says why not (Q213-Q216). */
+export type UseBlocks = (input: Placing) => string;
+export type UpstartTools = {
+  look: Look;
+  findBlocks: FindBlocks;
+  findImages: FindImages;
+  useImage: UseImage;
+  useBlocks: UseBlocks;
+};
 
 /**
- * What find_blocks answers: for each section asked for, the blocks found,
- * described, with their templates; a block found twice is shown once.
+ * What find_blocks answers (Q213): for each section asked for, the blocks
+ * found, described by their metadata only — what they hold and look like,
+ * what a data block lists — never their templates: use_block puts the chosen
+ * ones in, and the agent reads the parts it wrote. A block found twice is
+ * described once.
  */
-/**
- * Past about 25,000 tokens the agent's kit puts a tool's answer in a file,
- * which the agent then reads in pieces: the templates in one answer stay
- * under this many characters, beyond the best block of each section.
- */
-export const ANSWER_BUDGET = 24_000;
-
-/**
- * What a data block brings besides its template (Q194-Q206): the datasource
- * it reads and how to name it, its definition, one sample record for its
- * shape, and the section of its page per record.
- */
-export function dataOf(b: Block): string {
-  if (!b.data || !b.datasource) return "";
-  const { name, family } = b.data;
-  const how =
-    name === "navigation"
-      ? "It reads the site's navigation, data.navigation, which every header and footer reads. If data/navigation/ exists, reuse it as it is. Otherwise write it before this part: one record per page in the menu, home first, each with its label and address, place header, footer or both, and links for a menu that opens."
-      : family === "collection"
-        ? `It reads the collection data.${name}, shared by the whole site. If data/${name}/ exists, reuse it, adding to its definition only the fields this template needs; otherwise write this definition, then this site's own records.`
-        : `It reads a list of this section, named after its page: on the home page data/home-${name}/, read as data["home-${name}"] in the part, on /services data/services-${name}/. Write this definition there, then this site's own records.`;
-  const sample = Object.entries(b.datasource.records)[0];
-  return [
-    "",
-    how,
-    `\`\`\`yaml\n${b.datasource.definition.trim()}\n\`\`\``,
-    sample
-      ? `A sample record, ${sample[0]}, for its shape only: write this site's own records, never the samples.\n\`\`\`markdown\n${sample[1].trim()}\n\`\`\``
-      : "",
-    b.detail
-      ? `Its page per record, pages/${name}/[${name}].liquid unless the site has one: the page that lists them, its head, header and footer kept, with this section in place of its own sections and the record's title in its title.\n\`\`\`liquid\n${b.detail.trim()}\n\`\`\``
-      : "",
-  ]
-    .filter((x, i) => i === 0 || x)
-    .join("\n\n");
-}
-
-export function blocksAnswer(wanted: Wanted[], find: FindBlocks, budget = ANSWER_BUDGET): string {
-  const limit = wanted.length > 1 ? 2 : 4;
-  const found = wanted.map(({ kind, query }) => find(query, kind, limit));
-  // Which templates are shown: each section's best first, then the others while the budget lasts.
-  const shown = new Set<string>();
-  let used = 0;
-  for (const rank of [0, 1, 2, 3])
-    for (const blocks of found) {
-      const b = blocks[rank];
-      if (!b || shown.has(b.id)) continue;
-      const size = b.source.length + dataOf(b).length;
-      if (rank > 0 && used + size > budget) continue;
-      shown.add(b.id);
-      used += size;
-    }
-  const written = new Set<string>();
-  const parts = wanted.map(({ kind, query }, i) => {
+export function blocksAnswer(wanted: Wanted[], find: FindBlocks): string {
+  const limit = wanted.length > 1 ? 3 : 5;
+  const described = new Set<string>();
+  const parts = wanted.map(({ kind, query }) => {
     const title = `# ${kind ? `${kind}: ` : ""}"${query}"`;
-    const blocks = found[i]!;
+    const blocks = find(query, kind, limit);
     if (!blocks.length)
       return `${title}
 No block of the gallery fits: write this section yourself.`;
     return [
       title,
       ...blocks.map((b) => {
-        const head = `## ${b.name} (${b.kind}, id ${b.id})`;
-        if (written.has(b.id))
-          return `${head}
-Shown above.`;
-        if (!shown.has(b.id))
-          return `${head}\n${b.description}\nIts template is left out to keep this answer short; ask for this section alone to see it.`;
-        written.add(b.id);
-        return `${head}\n${b.description}\n\n\`\`\`liquid\n${b.source.trim()}\n\`\`\`${dataOf(b)}`;
+        const head = `- ${b.id}: ${b.name} (${b.kind})`;
+        if (described.has(b.id)) return `${head}, described above.`;
+        described.add(b.id);
+        const about = [b.description];
+        if (b.mood.length) about.push(`Mood: ${b.mood.join(", ")}.`);
+        if (b.tags.length) about.push(`Tags: ${b.tags.join(", ")}.`);
+        if (b.data)
+          about.push(
+            b.data.name === "navigation"
+              ? "It reads the site's navigation."
+              : b.data.family === "collection"
+                ? `It lists the collection ${b.data.name}, shared by the whole site${b.detail ? ", with a page per record" : ""}.`
+                : `It lists ${b.data.name}, a list of this section of its own.`,
+          );
+        return `${head}\n  ${about.join(" ")}`;
       }),
-    ].join("\n\n");
+    ].join("\n");
   });
   return [
-    "Blocks of Upstart's gallery. To use one, write it as a shared part, parts/<name>.liquid, keeping its structure and classes, with this project's texts in place of the examples, and include it in the page with {% render '<name>' %}.",
+    "Blocks of Upstart's gallery. Choose one per section, then put them into the page with use_block, in reading order: it writes each as a shared part with its datasource and sample records, and the page's {% render %} lines.",
     ...parts,
   ].join("\n\n");
 }
 
 /** A new in-process server for one agent process. */
-export function upstartServer({ look, findBlocks, findImages, useImage }: UpstartTools) {
+export function upstartServer({ look, findBlocks, findImages, useImage, useBlocks }: UpstartTools) {
   return createSdkMcpServer({
     name: UPSTART_SERVER,
     version: "1.0.0",
     tools: [
       tool(
         "find_blocks",
-        "Searches Upstart's gallery of ready-made sections (banners, headers, heroes, about, features, services, key figures, steps, logos, team, testimonials, pictures, blog, events, menus, products, pricing, comparisons, questions, contact and hours, forms, newsletters, calls to action, footers), styled with daisyUI and the theme. Ask for every section you want in one call: for each, a few words in any language on what it holds and how it looks. Answers with the best blocks for each, with their templates, and for a block that lists things, the datasource it reads.",
+        "Searches Upstart's gallery of ready-made sections (banners, headers, heroes, about, features, services, key figures, steps, logos, team, testimonials, pictures, blog, events, menus, products, pricing, comparisons, questions, contact and hours, forms, newsletters, calls to action, footers), styled with daisyUI and the theme. Ask for every section of a page in one call: for each, a few words in any language on what it holds and how it looks. Answers with the best blocks for each, described: their id, what they hold, their mood, and what a block that lists things lists. Then put the chosen ones in with use_block.",
         {
           sections: z
             .array(
@@ -131,6 +101,35 @@ export function upstartServer({ look, findBlocks, findImages, useImage }: Upstar
           content: [{ type: "text" as const, text: blocksAnswer(sections, findBlocks) }],
         }),
         { annotations: { readOnlyHint: true } },
+      ),
+      tool(
+        "use_block",
+        "Puts blocks of Upstart's gallery, chosen with find_blocks, into one page, as the maker's drag does: each becomes a shared part, parts/<name>.liquid, named after its role; a block that lists things brings its datasource (a collection the site has already is reused), its sample records, and its page per record; a header or footer reads the site's navigation. The page gets the {% render %} lines in the order given, a banner and header at its top and a footer at its end. A page that does not exist yet is created with the site's head, header and footer. Answers with what was written; then read each part and write this site's texts and records in place of the gallery's.",
+        {
+          page: z
+            .string()
+            .describe('The page\'s file, e.g. "pages/index.liquid" for the home page, "pages/menu.liquid"'),
+          title: z
+            .string()
+            .optional()
+            .describe("For a page that does not exist yet: its title, in the site's language"),
+          description: z
+            .string()
+            .optional()
+            .describe("For a page that does not exist yet: its description, one sentence"),
+          lang: z.string().optional().describe('For the site\'s first page: its language, e.g. "fr"'),
+          blocks: z
+            .array(
+              z.object({
+                block: z.string().describe("The block's id, from find_blocks"),
+                name: z.string().describe('Its role on the site, which names its part, e.g. "hero", "menu", "reviews"'),
+              }),
+            )
+            .min(1)
+            .max(20)
+            .describe("In reading order"),
+        },
+        async (input) => ({ content: [{ type: "text" as const, text: useBlocks(input) }] }),
       ),
       tool(
         "find_images",

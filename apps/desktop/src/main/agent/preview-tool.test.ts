@@ -16,53 +16,36 @@ const block = (id: string, kind: Block["kind"], name: string): Block => ({
 const pricing = block("pricing-three-tiers", "pricing", "Three tiers");
 const faq = block("faq-accordion", "faq", "Accordion");
 
-test("one section: up to four blocks, each with its template and how to use it", () => {
+test("one section: up to five blocks, described by their metadata, never their templates (Q213)", () => {
   const limits: number[] = [];
   const text = blocksAnswer([{ kind: "pricing", query: "plans" }], (_q, _k, limit) => {
     limits.push(limit);
-    return [pricing];
+    return [{ ...pricing, mood: ["minimal", "friendly"], tags: ["plans", "monthly"] }];
   });
-  expect(limits).toEqual([4]);
-  expect(text).toMatch(/^Blocks of Upstart's gallery\. To use one, write it as a shared part/);
-  expect(text).toContain(
-    '# pricing: "plans"\n\n## Three tiers (pricing, id pricing-three-tiers)\nThree tiers, side by side.',
+  expect(limits).toEqual([5]);
+  expect(text).toMatch(
+    /^Blocks of Upstart's gallery\. Choose one per section, then put them into the page with use_block/,
   );
-  expect(text).toContain("```liquid\n<section>\n  <h2>Three tiers</h2>\n</section>\n```");
+  expect(text).toContain(
+    '# pricing: "plans"\n- pricing-three-tiers: Three tiers (pricing)\n  Three tiers, side by side. Mood: minimal, friendly. Tags: plans, monthly.',
+  );
+  expect(text).not.toContain("<section>");
 });
 
-test("several sections in one call: two blocks each, a block found twice shown once, none found said so", () => {
+test("several sections in one call: three blocks each, a block found twice described once, none found said so", () => {
   const found: Record<string, Block[]> = { plans: [pricing, faq], questions: [faq], map: [] };
   const text = blocksAnswer(
     [{ query: "plans" }, { kind: "faq", query: "questions" }, { query: "map" }],
     (q, _k, limit) => {
-      expect(limit).toBe(2);
+      expect(limit).toBe(3);
       return found[q]!;
     },
   );
-  expect(text.match(/```liquid/g)).toHaveLength(2);
-  expect(text).toContain('# faq: "questions"\n\n## Accordion (faq, id faq-accordion)\nShown above.');
+  expect(text).toContain('# faq: "questions"\n- faq-accordion: Accordion (faq), described above.');
   expect(text).toContain('# "map"\nNo block of the gallery fits: write this section yourself.');
 });
 
-test("past the budget, a section's second block comes without its template; each section's best always has one", () => {
-  const big = (id: string, kind: Block["kind"]) => ({ ...block(id, kind, id), source: "x".repeat(1000) });
-  const found: Record<string, Block[]> = {
-    a: [big("a1", "hero"), big("a2", "hero")],
-    b: [big("b1", "faq"), big("b2", "faq")],
-    c: [big("c1", "cta"), big("c2", "cta")],
-  };
-  const text = blocksAnswer([{ query: "a" }, { query: "b" }, { query: "c" }], (q) => found[q]!, 3500);
-  expect(text.match(/```liquid/g)).toHaveLength(3);
-  expect(text).toContain("## a1 (hero, id a1)\na1, side by side.\n\n```liquid");
-  expect(text).toContain(
-    "## a2 (hero, id a2)\na2, side by side.\nIts template is left out to keep this answer short; ask for this section alone to see it.",
-  );
-  expect(
-    blocksAnswer([{ query: "a" }, { query: "b" }, { query: "c" }], (q) => found[q]!, 6000).match(/```liquid/g),
-  ).toHaveLength(6);
-});
-
-test("the answer for every kind of section at once stays under the budget", async () => {
+test("the answer for every kind of section at once stays short", async () => {
   const { readGallery } = await import("../gallery/catalogue");
   const { BlockIndex } = await import("../gallery/search");
   const { BLOCK_KINDS } = await import("../../shared/ipc");
@@ -72,28 +55,27 @@ test("the answer for every kind of section at once stays under the budget", asyn
     BLOCK_KINDS.map((kind) => ({ kind, query: kind })),
     (q, kind, limit) => index.find(q, { kind, limit }),
   );
-  // Past about 25,000 tokens the agent's kit puts the answer in a file; markup runs about three characters a token.
-  expect(text.length / 3).toBeLessThan(20_000);
+  expect(text.length / 4).toBeLessThan(6_000);
 });
 
-test("a data block comes with the datasource it reads, how to name it, one sample and its record page (Q194-Q206)", () => {
-  const datasource = {
-    definition: "label: Posts\nfields:\n  - name: title\n    kind: text\n",
-    records: { "first.md": "---\ntitle: First\n---\n", "second.md": "---\ntitle: Second\n---\n" },
-  };
+test("a data block says what it lists: a collection, with its page per record, a section's own list, the navigation", () => {
+  const datasource = { definition: "label: Posts\n", records: {} };
   const blog: Block = {
     ...block("blog-cards", "blog", "Cards"),
     data: { name: "blog", family: "collection" },
     datasource,
-    detail: "<section><h1>{{ record.title }}</h1></section>",
+    detail: "<section></section>",
   };
   const list: Block = { ...faq, data: { name: "faq", family: "section" }, datasource };
-  const text = blocksAnswer([{ query: "posts" }, { query: "questions" }], (q) => [q === "posts" ? blog : list]);
-  expect(text).toContain("It reads the collection data.blog, shared by the whole site. If data/blog/ exists, reuse it");
-  expect(text).toContain("```yaml\nlabel: Posts\nfields:");
-  expect(text).toContain("A sample record, first.md, for its shape only");
-  expect(text).not.toContain("title: Second");
-  expect(text).toContain("Its page per record, pages/blog/[blog].liquid unless the site has one");
-  expect(text).toContain('read as data["home-faq"] in the part');
-  expect(text.match(/Its page per record/g)).toHaveLength(1);
+  const header: Block = {
+    ...block("header-simple", "header", "Simple"),
+    data: { name: "navigation", family: "collection" },
+    datasource,
+  };
+  const text = blocksAnswer([{ query: "posts" }, { query: "questions" }, { query: "menu" }], (q) => [
+    q === "posts" ? blog : q === "questions" ? list : header,
+  ]);
+  expect(text).toContain("It lists the collection blog, shared by the whole site, with a page per record.");
+  expect(text).toContain("It lists faq, a list of this section of its own.");
+  expect(text).toContain("It reads the site's navigation.");
 });

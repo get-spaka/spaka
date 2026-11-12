@@ -79,30 +79,32 @@ const isBottom = (s: { kind: string; name: string }) =>
   s.kind === "element" ? s.name === "footer" : /^footer/.test(s.name);
 
 /**
- * A record page made from the frame of a page (Q200): everything before its
- * first section that is not a banner or a header, the detail section, then
- * everything after its last section that is not a footer. The page's title
- * gains the record's title.
+ * A page's frame with `middle` in place of its own sections (Q200, Q215):
+ * everything before its first section that is not a banner or a header, then
+ * `middle`, then everything after its last section that is not a footer.
  */
-export function framePage(page: string, detail: string, titleField: string): string {
+export function inFrame(page: string, middle: string): string {
   const list = sections(page);
   let first = 0;
   while (first < list.length && isTop(list[first]!)) first++;
   let last = list.length - 1;
   while (last >= first && isBottom(list[last]!)) last--;
-  const section = detail.trim();
-  let out: string;
+  const section = middle.trim();
   if (!list.length) {
     const body = page.search(/<\/body>/i);
-    out = body >= 0 ? `${page.slice(0, body)}${section}\n${page.slice(body)}` : `${page}\n${section}\n`;
-  } else if (first > last) {
-    // Only a header and a footer: the detail goes between them.
-    const at = first > 0 ? list[first - 1]!.outer.end : list[0]!.outer.start;
-    out = `${page.slice(0, at)}\n${section}\n${page.slice(at)}`;
-  } else {
-    out = page.slice(0, list[first]!.outer.start) + section + page.slice(list[last]!.outer.end);
+    return body >= 0 ? `${page.slice(0, body)}${section}\n${page.slice(body)}` : `${page}\n${section}\n`;
   }
-  return out.replace(/<title>([^<{]*)<\/title>/i, (_, title: string) =>
+  if (first > last) {
+    // Only a header and a footer: the middle goes between them.
+    const at = first > 0 ? list[first - 1]!.outer.end : list[0]!.outer.start;
+    return `${page.slice(0, at)}\n${section}\n${page.slice(at)}`;
+  }
+  return page.slice(0, list[first]!.outer.start) + section + page.slice(list[last]!.outer.end);
+}
+
+/** A record page made from the frame of a page (Q200): the detail section in it, the record's title in its title. */
+export function framePage(page: string, detail: string, titleField: string): string {
+  return inFrame(page, detail).replace(/<title>([^<{]*)<\/title>/i, (_, title: string) =>
     title.trim()
       ? `<title>{{ record.${titleField} }} · ${title.trim()}</title>`
       : `<title>{{ record.${titleField} }}</title>`,
