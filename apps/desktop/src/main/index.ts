@@ -1,9 +1,28 @@
 // Entry point of the app's main process.
-import { existsSync, type FSWatcher, mkdirSync, readFileSync, statSync, watch, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  type FSWatcher,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+  watch,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { query } from "@anthropic-ai/claude-agent-sdk";
-import { Datasources, mediaInfo, readRecordFile, recordFile, recordOf, recordTitle, titleOf } from "@upstart/runtime";
+import {
+  Datasources,
+  mediaInfo,
+  readRecordFile,
+  recordFile,
+  recordOf,
+  recordTitle,
+  TEST_RECORDS_DIR,
+  titleField,
+  titleOf,
+} from "@upstart/runtime";
 import { diskSource } from "@upstart/runtime/node";
 import { app, BrowserWindow, dialog, Menu, Notification, safeStorage, shell } from "electron";
 import {
@@ -54,7 +73,9 @@ import { FileTap } from "./live/tap";
 import { libraryFiles, mediaKind, useFoundImage, usesLabel, usesOf, usingFiles } from "./media/library";
 import { FixtureImages, type ImageFinder, ImageSearch, imagesAnswer } from "./media/search";
 import { Preview } from "./preview/preview";
+import { testRecordFile } from "./preview/test-records";
 import { isEffort, Projects } from "./projects";
+import { callSite, ManagementTokens, publishedRecords, recordsCsv, SiteUnavailable } from "./publish/management";
 import { Skills } from "./skills/skills";
 import { Fonts } from "./theme/fonts";
 import { readTheme, type ThemeValues, themeColors, writeTheme } from "./theme/theme-file";
@@ -249,6 +270,8 @@ async function main() {
         decrypt: (data) => safeStorage.decryptString(data),
       };
   const connectors = new Connectors(userData, vault);
+  // Each website's management token, for its published site (Q183).
+  const tokens = new ManagementTokens(userData, vault);
   // Free images for the agent and the maker (Q150); a folder of made-up ones for the checks.
   const images: ImageFinder = env.imagesFixture ? new FixtureImages(env.imagesFixture) : new ImageSearch();
   let agent: Agent;
@@ -843,18 +866,62 @@ async function main() {
   // The Content tab (Q148, Q162-Q166): datasources read from the disk, records written by the editor.
   const contentSource = () => {
     if (!current) throw new Error("No project is open.");
-    return new Datasources(diskSource(current.path));
+    return new Datasources(diskSource(current.path), { testRecords: diskSource(join(current.path, TEST_RECORDS_DIR)) });
   };
+  const isCollected = (datasource: string) => !!contentSource().definition(datasource).definition?.collected;
   const routeOfRecord = (file: string) => preview.runtime?.routeOf(file) ?? undefined;
   const contentRecordFile = (datasource: string, id: string) => {
     if (!/^[a-z0-9][\w-]*$/i.test(datasource) || !/^[a-z0-9][\w-]*$/i.test(id)) throw new Error("No such record.");
-    return recordFile(datasource, id);
+    // A collected datasource's records in the Content tab are the preview's test records (Q172, Q185).
+    return isCollected(datasource) ? testRecordFile(datasource, id) : recordFile(datasource, id);
+  };
+  /** A collected datasource's test records, those waiting for review and those that do not read included. */
+  const testRecordSummaries = (name: string, data: Datasources): ContentRecordSummary[] => {
+    if (!current) return [];
+    const { definition } = data.definition(name);
+    const dir = join(current.path, TEST_RECORDS_DIR, name);
+    const problems = new Map(data.get(name).problems.map((p) => [p.id, p]));
+    const files = existsSync(dir) ? readdirSync(dir).filter((f) => /^[a-z0-9][\w-]*\.md$/i.test(f)) : [];
+    return files
+      .map((f): ContentRecordSummary => {
+        const id = f.slice(0, -3);
+        const { values } = readRecordFile(readFileSync(join(dir, f), "utf8"));
+        const title = values[titleField(definition)];
+        const problem = problems.get(id);
+        return {
+          id,
+          file: testRecordFile(name, id),
+          title: typeof title === "string" && title.trim() ? title.trim() : id,
+          problems: problem?.problems ?? [],
+          skipped: problem?.skipped ?? false,
+          test: true,
+          ...(values.status === "pending" ? { pending: true } : {}),
+          submitted:
+            values.submitted instanceof Date
+              ? values.submitted.toISOString()
+              : typeof values.submitted === "string"
+                ? values.submitted
+                : "",
+        };
+      })
+      .sort((a, b) => (b.submitted ?? "").localeCompare(a.submitted ?? ""));
   };
   ipc.handle("content:list", () => {
     if (!current) return [];
     const data = contentSource();
     return data.names().map((name): ContentDatasource => {
       const { definition, problem } = data.definition(name);
+      if (definition?.collected)
+        return {
+          name,
+          label: definition.label,
+          fields: definition.fields,
+          ...(definition.body ? { body: definition.body } : {}),
+          records: testRecordSummaries(name, data),
+          ...(problem ? { problem } : {}),
+          collected: true,
+          ...(definition.review ? { review: true } : {}),
+        };
       const ds = data.get(name);
       const image = definition?.fields.find((f) => f.kind === "image")?.name;
       const problems = new Map(ds.problems.map((p) => [p.id, p]));
@@ -925,6 +992,69 @@ async function main() {
     const renamed = editor.renameRecord(contentRecordFile(datasource, id), to);
     return { id: recordOf(renamed.file)!.id };
   });
+  // The records the published site collected (Q177, Q184): read when the maker opens the datasource.
+  const site = () => {
+    if (!current) throw new Error("No project is open.");
+    return { url: current.siteUrl, token: tokens.get(current.id) };
+  };
+  const collectedName = (datasource: string) => {
+    if (!/^[a-z0-9][\w-]*$/i.test(datasource) || !isCollected(datasource)) throw new Error("No such datasource.");
+    return datasource;
+  };
+  ipc.handle("content:published", async (datasource) => {
+    const { url, token } = site();
+    try {
+      return { records: await publishedRecords(url, token, collectedName(datasource)) };
+    } catch (error) {
+      if (error instanceof SiteUnavailable) return { error: error.message, reason: error.reason };
+      throw error;
+    }
+  });
+  ipc.handle("content:approve", async (datasource, id) => {
+    const { url, token } = site();
+    await callSite(url, token, `records/${collectedName(datasource)}/${encodeURIComponent(id)}/approve`, "POST");
+  });
+  ipc.handle("content:delete-published", async (datasource, id) => {
+    const { url, token } = site();
+    await callSite(url, token, `records/${collectedName(datasource)}/${encodeURIComponent(id)}`, "DELETE");
+  });
+  ipc.handle("content:csv", async (datasource) => {
+    const { url, token } = site();
+    const name = collectedName(datasource);
+    const records = await publishedRecords(url, token, name);
+    const fields =
+      contentSource()
+        .definition(name)
+        .definition?.fields.map((f) => f.name) ?? [];
+    const csv = recordsCsv(fields, records);
+    const fileName = `${name}-${new Date().toISOString().slice(0, 10)}.csv`;
+    // A check saves beside the website's own data instead of asking where.
+    let target: string | undefined;
+    if (env.background) target = join(projects.dataFor(current!.id), fileName);
+    else {
+      const answer = await dialog.showSaveDialog(dialogParent(), {
+        title: "Save the records as CSV",
+        defaultPath: join(app.getPath("downloads"), fileName),
+        filters: [{ name: "CSV", extensions: ["csv"] }],
+      });
+      if (answer.canceled || !answer.filePath) return null;
+      target = answer.filePath;
+    }
+    writeFileSync(target, csv);
+    return target;
+  });
+  ipc.handle("site:check", async () => {
+    const { url, token } = site();
+    try {
+      await callSite(url, token, "ping");
+      return { ok: true } as const;
+    } catch (error) {
+      if (error instanceof SiteUnavailable) return { ok: false, reason: error.reason, message: error.message } as const;
+      throw error;
+    }
+  });
+  ipc.handle("site:token", () => tokens.ensure(site() && current!.id));
+  ipc.handle("site:new-token", () => tokens.create(site() && current!.id));
   // The media library (Q158, Q168) and the maker's image search (Q150).
   const mediaRoot = () => {
     if (!current) throw new Error("No project is open.");

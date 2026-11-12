@@ -11,6 +11,7 @@ import { messageOf } from "../lib/errors";
 import { pickImage } from "../lib/picker";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
+import { CollectedView } from "./CollectedView";
 import { MediaLibrary, MediaThumb } from "./MediaLibrary";
 import { Button } from "./ui/button";
 
@@ -67,6 +68,20 @@ export function ContentTab({ working, onAsk }: { working: boolean; onAsk: (text:
           working={working}
           onBack={() => setOpen({ datasource: ds.name })}
           onOpened={(id) => setOpen((o) => o && { ...o, record: id })}
+          onAsk={onAsk}
+        />
+      ) : ds?.collected ? (
+        <CollectedView
+          ds={ds}
+          onBack={() => setOpen(undefined)}
+          onOpen={(record) => setOpen({ datasource: ds.name, record, key: Date.now() })}
+          onAdd={() => setOpen({ datasource: ds.name, record: null, key: Date.now() })}
+          onDeleteTest={(record) =>
+            act(async () => {
+              await upstart.invoke("content:delete", ds.name, record.id);
+              setDeleted({ name: record.title, at: Date.now() });
+            })
+          }
           onAsk={onAsk}
         />
       ) : ds ? (
@@ -471,7 +486,8 @@ function RecordForm({
             </Button>
           </div>
         )}
-        {record && id.current && (
+        {/* A test record's id is when it was sent: it is not renamed. */}
+        {record && id.current && !ds.collected && (
           <RecordId
             ds={ds}
             id={id.current}
@@ -697,7 +713,13 @@ function FieldInput({
       break;
     default:
       input = (
-        <input {...common} type="text" value={text} onChange={(e) => onChange(e.target.value)} className={INPUT} />
+        <input
+          {...common}
+          type={field.kind === "email" ? "email" : field.kind === "phone" ? "tel" : "text"}
+          value={text}
+          onChange={(e) => onChange(e.target.value)}
+          className={INPUT}
+        />
       );
   }
   return (

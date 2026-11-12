@@ -21,6 +21,7 @@ import {
   sections,
   setOrder,
   setRecordValue,
+  submissionId,
   validRecordId,
 } from "@upstart/runtime";
 import { diskSource } from "@upstart/runtime/node";
@@ -29,6 +30,7 @@ import { copyOfPage } from "../../shared/page-grid";
 import { en } from "../../shared/strings/en";
 import { addFile, addImage, mediaKind, replaceUses, slug, usesLabel, usesOf, usingFiles } from "../media/library";
 import type { ImageFinder } from "../media/search";
+import { testRecordFile } from "../preview/test-records";
 import {
   copyName,
   duplicateRange,
@@ -112,9 +114,13 @@ export class Editor {
     this.ready();
     const definition = this.datasources().definition(datasource).definition;
     if (!definition) throw new EditRefused("This datasource has no definition yet.");
+    // A collected datasource's record added here is a test record, named after when it was "sent" (Q172).
+    if (definition.collected) values = { ...values, submitted: new Date().toISOString() };
     const title = recordTitle({ id: "", __ref: "", ...values }, definition);
-    const id = recordIdFrom(title, (id) => existsSync(this.abs(recordFile(datasource, id))));
-    const file = recordFile(datasource, id);
+    const id = definition.collected
+      ? submissionId(new Date())
+      : recordIdFrom(title, (id) => existsSync(this.abs(recordFile(datasource, id))));
+    const file = definition.collected ? testRecordFile(datasource, id) : recordFile(datasource, id);
     // The fields in the definition's order.
     const ordered = Object.fromEntries(
       [...definition.fields.map((f) => f.name), ...Object.keys(values)]

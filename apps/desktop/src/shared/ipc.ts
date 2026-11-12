@@ -281,7 +281,30 @@ export type ContentRecordSummary = {
   skipped: boolean;
   /** Its page's address, when the datasource has a page per record. */
   route?: string;
+  /** A collected datasource's test record, which only the preview has (Q172, Q185). */
+  test?: boolean;
+  /** Waiting for the maker's approval (Q174). */
+  pending?: boolean;
+  /** When a visitor sent it, for a collected datasource's records. */
+  submitted?: string;
 };
+
+/** A record a published site collected, as its management API gives it (Q177). */
+export type PublishedRecord = {
+  id: string;
+  submitted: string;
+  status: "published" | "pending";
+  fields: Record<string, unknown>;
+};
+
+/** What the app can tell of the published site (Q183). */
+export type SiteCheck =
+  | { ok: true }
+  | {
+      ok: false;
+      reason: "no-address" | "no-token" | "unreachable" | "wrong-token" | "not-upstart" | "failed";
+      message: string;
+    };
 
 /** A datasource as the Content tab shows it. */
 export type ContentDatasource = {
@@ -295,6 +318,10 @@ export type ContentDatasource = {
   records: ContentRecordSummary[];
   /** The definition itself does not read. */
   problem?: string;
+  /** Records sent by visitors through forms (Q171). */
+  collected?: boolean;
+  /** Visitors' records wait for the maker's approval (Q174). */
+  review?: boolean;
 };
 
 /** A record's values as its file has them, for its form. */
@@ -446,6 +473,18 @@ export type Invokes = {
   "content:delete": (datasource: string, id: string) => void;
   "content:reorder": (datasource: string, ids: string[]) => void;
   "content:rename": (datasource: string, id: string, to: string) => { id: string };
+  /** The records the published site collected, read when the maker opens the datasource (Q184). */
+  "content:published": (datasource: string) => { records: PublishedRecord[] } | { error: string; reason: string };
+  "content:approve": (datasource: string, id: string) => void;
+  "content:delete-published": (datasource: string, id: string) => void;
+  /** Saves the published records as CSV; the file's path, or null when the maker cancelled. */
+  "content:csv": (datasource: string) => string | null;
+  /** Whether the published site answers with this website's token (Q183). */
+  "site:check": () => SiteCheck;
+  /** The website's management token, made the first time it is asked for. */
+  "site:token": () => string;
+  /** A new management token, replacing the old one. */
+  "site:new-token": () => string;
   /** The media library (Q158, Q168). */
   "media:list": () => MediaItem[];
   /** A small copy of an image of the library, as a data: URL. */
@@ -595,6 +634,13 @@ export const channels = {
     "content:delete",
     "content:reorder",
     "content:rename",
+    "content:published",
+    "content:approve",
+    "content:delete-published",
+    "content:csv",
+    "site:check",
+    "site:token",
+    "site:new-token",
     "media:list",
     "media:thumbnail",
     "media:add-files",

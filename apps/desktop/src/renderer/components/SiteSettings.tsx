@@ -3,13 +3,14 @@
 // own skills and connectors, all kept in its folder; and which connectors it
 // also gets from the settings for every website.
 import { House } from "lucide-react";
-import { useEffect } from "react";
-import type { AgentStatus, ConnectorInfo, ProjectInfo, SkillInfo } from "../../shared/ipc";
+import { useEffect, useState } from "react";
+import type { AgentStatus, ConnectorInfo, ProjectInfo, SiteCheck, SkillInfo } from "../../shared/ipc";
 import { upstart } from "../lib/bridge";
+import { messageOf } from "../lib/errors";
 import { t } from "../lib/strings";
 import { ConnectorList, SkillList } from "../settings/lists";
 import { ModelRows } from "../settings/model";
-import { Group, Push } from "../settings/ui";
+import { Group, Push, Row } from "../settings/ui";
 
 export function SiteSettings({
   project,
@@ -95,6 +96,8 @@ export function SiteSettings({
           }
         />
 
+        <PublishedSite project={project} />
+
         <div className="flex justify-end">
           <Push primary onClick={onClose} testid="site-settings-done">
             {t.site.done}
@@ -102,5 +105,98 @@ export function SiteSettings({
         </div>
       </section>
     </div>
+  );
+}
+
+/** The published site (Q183): its address, checked with the website's management token, and that token. */
+function PublishedSite({ project }: { project: ProjectInfo }) {
+  const p = t.site.published;
+  const [address, setAddress] = useState(project.siteUrl ?? "");
+  const [check, setCheck] = useState<SiteCheck | "checking">();
+  const [error, setError] = useState<string>();
+  const [token, setToken] = useState<string>();
+  const [shown, setShown] = useState(false);
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    void upstart.invoke("site:token").then(setToken);
+  }, []);
+  const save = async () => {
+    setError(undefined);
+    setCheck(undefined);
+    try {
+      await upstart.invoke("projects:set-site-url", address);
+      if (address.trim()) {
+        setCheck("checking");
+        setCheck(await upstart.invoke("site:check"));
+      }
+    } catch (e) {
+      setError(messageOf(e));
+    }
+  };
+  return (
+    <Group title={p.title} caption={p.caption} testid="site-published">
+      <Row label={p.address} htmlFor="site-address">
+        <form
+          className="flex items-center gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void save();
+          }}
+        >
+          <input
+            id="site-address"
+            data-testid="site-address"
+            value={address}
+            placeholder={p.addressPlaceholder}
+            onChange={(e) => setAddress(e.target.value)}
+            className="w-64 rounded-md border border-neutral-300 bg-white px-2 py-1 text-[13px] outline-none focus:border-neutral-500"
+          />
+          <Push type="submit" testid="site-address-save">
+            {address.trim() && address.trim() === (project.siteUrl ?? "") ? p.check : p.save}
+          </Push>
+        </form>
+      </Row>
+      {(check || error) && (
+        <div
+          data-testid="site-check"
+          data-ok={check !== "checking" && check?.ok ? "true" : "false"}
+          className={`px-3 py-2 text-[11px] ${error || (check !== "checking" && check && !check.ok) ? "text-red-700" : "text-neutral-600"}`}
+        >
+          {error ?? (check === "checking" ? p.checking : check?.ok ? p.ok : check?.message)}
+        </div>
+      )}
+      <Row label={p.token} detail={p.tokenDetail}>
+        <code data-testid="site-token" className="max-w-48 truncate font-mono text-[12px]">
+          {token ? (shown ? token : "•".repeat(12)) : ""}
+        </code>
+        <Push testid="site-token-show" onClick={() => setShown((s) => !s)}>
+          {shown ? p.hide : p.show}
+        </Push>
+        <Push
+          testid="site-token-copy"
+          onClick={() => {
+            if (!token) return;
+            void navigator.clipboard.writeText(token).then(() => {
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1500);
+            });
+          }}
+        >
+          {copied ? p.copied : p.copy}
+        </Push>
+        <Push
+          testid="site-token-new"
+          onClick={() => {
+            if (!window.confirm(p.newTokenConfirm)) return;
+            void upstart.invoke("site:new-token").then((next) => {
+              setToken(next);
+              setShown(true);
+            });
+          }}
+        >
+          {p.newToken}
+        </Push>
+      </Row>
+    </Group>
   );
 }
