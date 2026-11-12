@@ -144,3 +144,20 @@ test("a record is traced through a shared part and into a fragment; each include
     '<li data-up-src="fragments/books-created.liquid:1:0" data-up-rec="books/2">Emma</li>',
   );
 });
+
+test("inside a loop over a record's links, the trace names the record and which link (Q212)", () => {
+  const src =
+    '{% for item in data.navigation %}<li><a>{{ item.label }}</a>{% for link in item.links %}<a href="{{ link.href }}">{{ link.label }}</a>{% endfor %}</li>{% endfor %}';
+  const traced = injectTrace(src, "parts/header.liquid");
+  assert.match(traced, /<li data-up-src="[^"]+" data-up-rec="\{\{ item\.__ref \}\}">/);
+  assert.match(traced, /<a data-up-src="[^"]+" data-up-rec="\{\{ item\.__ref \}\}#\{\{ forloop\.index0 \}\}" href=/);
+  const html = new Liquid().parseAndRenderSync(traced, {
+    __rec: "",
+    data: {
+      navigation: [
+        { __ref: "navigation/services", label: "Services", links: [{ label: "Bread" }, { label: "Cakes" }] },
+      ],
+    },
+  });
+  assert.match(html, /data-up-rec="navigation\/services#1"[^>]*>Cakes</);
+});

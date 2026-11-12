@@ -59,6 +59,7 @@ Kinds of field:
 | image | `cover: /media/croissants.jpg` | its address |
 | link | `url: https://…` or `/contact` | the address |
 | list | `tags: [news, bakery]` | a list of texts |
+| links | `links:` then one `- label: Bread` / `  href: /bread` per link | links with a label and an address each: a menu's own links, a footer column; loop with `{% for link in item.links %}<a href="{{ link.href }}">{{ link.label }}</a>{% endfor %}` |
 | email | `email: claire@example.com` | the address (collected datasources) |
 | phone | `phone: +33 4 72 00 00 00` | the number as typed (collected datasources) |
 

@@ -42,6 +42,7 @@ export {
   INLINE,
   type Located,
   locate,
+  loopDatasource,
   type Range,
   type RecordField,
   recordFieldAt,
@@ -75,6 +76,7 @@ export {
   renameInOrder,
   setOrder,
   setRecordValue,
+  setRecordValueAt,
   titleField,
   validRecordId,
 } from "./records.ts";

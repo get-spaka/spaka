@@ -57,6 +57,24 @@ export function setRecordValue(text: string, field: string, value: unknown, isBo
   return joinRecord(isMap(doc.contents) && doc.contents.items.length ? write(doc) : "", parts.body);
 }
 
+/**
+ * A record's file with one value inside a list changed, the rest as it was:
+ * `["links", 2, "label"]` is the third link's label (Q212). Refused when that
+ * item is not in the record.
+ */
+export function setRecordValueAt(text: string, path: [string, number, string], value: string): string {
+  const parts = splitRecord(text) ?? { yaml: "", body: text };
+  const doc = parseDocument(parts.yaml);
+  if (doc.errors.length || !isMap(doc.contents))
+    throw new RecordWriteRefused("This record's fields do not read: ask the agent to fix it.");
+  const [field, index] = path;
+  const list = doc.get(field, true);
+  if (!isSeq(list) || !isMap(list.items[index]))
+    throw new RecordWriteRefused("This link is not in the record any more.");
+  doc.setIn(path, value);
+  return joinRecord(write(doc), parts.body);
+}
+
 /** A new record's file, its fields in the definition's order. */
 export function newRecordText(values: Record<string, unknown>, body = ""): string {
   let text = joinRecord("", body);

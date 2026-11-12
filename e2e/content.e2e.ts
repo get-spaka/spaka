@@ -180,4 +180,39 @@ describe("the Content tab", () => {
     await until(async () => (await records()).includes("second"));
     await launched.capture("content-records");
   });
+
+  test("a menu's links edited as rows: changed, added, moved, removed (Q212)", async () => {
+    const write = (name: string, text: string) => {
+      mkdirSync(join(path, name, ".."), { recursive: true });
+      writeFileSync(join(path, name), text);
+    };
+    write(
+      "data/navigation/_datasource.yaml",
+      "label: Navigation\nfields:\n  - name: label\n    kind: text\n  - name: href\n    kind: link\n  - name: links\n    kind: links\n",
+    );
+    write(
+      "data/navigation/services.md",
+      "---\nlabel: Services\nhref: /services\nlinks:\n  - label: Bread\n    href: /bread\n  - label: Cakes\n    href: /cakes\n---\n",
+    );
+    await w().getByTestId("content-back").click().catch(() => {});
+    await until(async () => (await w().locator('[data-testid="datasource"][data-name="navigation"]').count()) === 1);
+    await w().locator('[data-testid="datasource"][data-name="navigation"]').click();
+    await until(async () => (await records()).includes("services"));
+    await w().locator('[data-testid="record"][data-id="services"] button').first().click();
+    const rows = w().getByTestId("link-row");
+    await until(async () => (await rows.count()) === 2);
+    await rows.nth(1).getByTestId("link-label").fill("Pastries");
+    await until(async () => file("data/navigation/services.md").includes("label: Pastries"));
+    await w().getByTestId("link-add").click();
+    await rows.nth(2).getByTestId("link-label").fill("Coffee");
+    await rows.nth(2).getByTestId("link-href").fill("/coffee");
+    await until(async () => file("data/navigation/services.md").includes("href: /coffee"));
+    await rows.nth(0).getByTestId("link-remove").click();
+    await until(async () => !file("data/navigation/services.md").includes("Bread"));
+    expect(file("data/navigation/services.md")).toBe(
+      "---\nlabel: Services\nhref: /services\nlinks:\n  - label: Pastries\n    href: /cakes\n  - label: Coffee\n    href: /coffee\n---\n",
+    );
+    await launched.capture("content-links");
+    await w().getByTestId("content-back").click();
+  });
 });

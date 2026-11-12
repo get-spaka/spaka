@@ -21,6 +21,7 @@ import {
   sections,
   setOrder,
   setRecordValue,
+  setRecordValueAt,
   submissionId,
   validRecordId,
 } from "@upstart/runtime";
@@ -379,9 +380,14 @@ export class Editor {
       case "record-text": {
         // The record's field the element shows alone (Q148).
         const file = this.recordFileFor(action.file, src, action.at, action.record, undefined, en.editor.computed);
-        if (file.kind !== "text") throw new EditRefused(en.editing.fieldNotText);
         const text = action.text.replace(/\s+/g, " ").trim();
-        writes[file.path] = this.recordValue(file.path, file.field, text);
+        if (file.item && file.kind === "links" && file.item.sub === "label") {
+          if (!text) throw new EditRefused(en.editing.fieldNotText);
+          writes[file.path] = this.recordValueAt(file.path, [file.field, file.item.index, "label"], text);
+        } else {
+          if (file.kind !== "text" || file.item) throw new EditRefused(en.editing.fieldNotText);
+          writes[file.path] = this.recordValue(file.path, file.field, text);
+        }
         label = "";
         break;
       }
@@ -492,7 +498,13 @@ export class Editor {
     const el = include ? undefined : locate(src, at);
     const part = /^parts\/(.+)\.liquid$/.exec(file)?.[1];
     const shown = el?.notEditable === "liquid" ? this.recordField(file, src, at) : undefined;
-    const field = shown?.kind === "text" ? shown.field : undefined;
+    // A text field, or a link's label in a list of links (Q212).
+    const field =
+      shown?.kind === "text" && !shown.sub
+        ? shown.field
+        : shown?.kind === "links" && shown.sub === "label"
+          ? `${shown.field}.label`
+          : undefined;
     return {
       text: el ? !el.notEditable || !!field : false,
       computed: el?.notEditable === "liquid" && !field,
@@ -526,7 +538,7 @@ export class Editor {
         .definition(datasource)
         .definition?.fields.find((f) => f.name === found.field)?.kind;
     } catch {}
-    return { datasource, field: found.field, kind };
+    return { datasource, field: found.field, kind, ...(found.sub ? { sub: found.sub } : {}) };
   }
 
   /** The file of the record an edit names, checked against the field the element shows. */
@@ -539,9 +551,26 @@ export class Editor {
     refused: string,
   ) {
     const shown = this.recordField(file, src, at, attribute);
-    const of = /^([a-z0-9][\w-]*)\/([a-z0-9][\w-]*)$/i.exec(record);
-    if (!shown || !of || of[1] !== shown.datasource) throw new EditRefused(refused);
-    return { path: recordFile(of[1]!, of[2]!), field: shown.field, kind: shown.kind };
+    // "team/anna", or "navigation/services#2" for the third of its links.
+    const of = /^([a-z0-9][\w-]*)\/([a-z0-9][\w-]*)(?:#(\d+))?$/i.exec(record);
+    if (!shown || !of || of[1] !== shown.datasource || !!shown.sub !== (of[3] !== undefined))
+      throw new EditRefused(refused);
+    return {
+      path: recordFile(of[1]!, of[2]!),
+      field: shown.field,
+      kind: shown.kind,
+      ...(shown.sub ? { item: { index: Number(of[3]), sub: shown.sub } } : {}),
+    };
+  }
+
+  /** A record's file with one value inside a list changed. */
+  private recordValueAt(file: string, path: [string, number, string], value: string): string {
+    try {
+      return setRecordValueAt(this.read(file), path, value);
+    } catch (error) {
+      if (error instanceof RecordWriteRefused) throw new EditRefused(error.message);
+      throw error;
+    }
   }
 
   /** A record's file with one value changed. */

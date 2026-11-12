@@ -141,6 +141,60 @@ test("a record's text field shown alone is edited in place, in its record (Q148)
   refuse("posts/first", at("<p>"));
 });
 
+test("a link's label in a menu is edited in place, in its record (Q212)", () => {
+  const { root, editor, changes } = project();
+  mkdirSync(join(root, "data/navigation"), { recursive: true });
+  mkdirSync(join(root, "parts"));
+  writeFileSync(
+    join(root, "data/navigation/_datasource.yaml"),
+    "label: Navigation\nfields:\n  - name: label\n    kind: text\n  - name: href\n    kind: link\n  - name: links\n    kind: links\n",
+  );
+  const record =
+    "---\nlabel: Services\nhref: /services\nlinks:\n  - label: Bread\n    href: /bread\n  - label: Cakes\n    href: /cakes\n---\n";
+  writeFileSync(join(root, "data/navigation/services.md"), record);
+  const header = `<header>{% for item in data.navigation %}<a href="{{ item.href }}">{{ item.label }}</a>{% for link in item.links %}<a class="sub" href="{{ link.href }}">{{ link.label }}</a>{% endfor %}{% endfor %}</header>`;
+  writeFileSync(join(root, "parts/header.liquid"), header);
+  const sub = header.indexOf('<a class="sub"');
+  expect(editor.info("parts/header.liquid", sub)).toMatchObject({ text: true, field: "links.label" });
+  editor.apply({
+    type: "record-text",
+    file: "parts/header.liquid",
+    at: sub,
+    record: "navigation/services#1",
+    text: " Pastries ",
+  });
+  expect(readFileSync(join(root, "data/navigation/services.md"), "utf8")).toBe(record.replace("Cakes", "Pastries"));
+  expect(changes.at(-1)?.files).toEqual(["data/navigation/services.md"]);
+  // The menu's own label is a text field of the record, as before.
+  editor.apply({
+    type: "record-text",
+    file: "parts/header.liquid",
+    at: header.indexOf("<a href"),
+    record: "navigation/services",
+    text: "Our services",
+  });
+  expect(readFileSync(join(root, "data/navigation/services.md"), "utf8")).toContain("label: Our services\n");
+  // Without saying which link, or for one that is not there: refused.
+  expect(() =>
+    editor.apply({
+      type: "record-text",
+      file: "parts/header.liquid",
+      at: sub,
+      record: "navigation/services",
+      text: "x",
+    }),
+  ).toThrow(EditRefused);
+  expect(() =>
+    editor.apply({
+      type: "record-text",
+      file: "parts/header.liquid",
+      at: sub,
+      record: "navigation/services#7",
+      text: "x",
+    }),
+  ).toThrow(EditRefused);
+});
+
 test("an image replaced: its address in the template with the new alt text, or the record's field (Q159)", () => {
   const { root, editor, changes, list, at } = withBlog();
   const fixed = at('<img src="/media');

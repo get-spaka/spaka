@@ -323,7 +323,19 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
 /** A field of a datasource, as its definition names it (Q146, Q160). */
 export type ContentField = {
   name: string;
-  kind: "text" | "markdown" | "number" | "boolean" | "date" | "choice" | "image" | "link" | "list" | "email" | "phone";
+  kind:
+    | "text"
+    | "markdown"
+    | "number"
+    | "boolean"
+    | "date"
+    | "choice"
+    | "image"
+    | "link"
+    | "list"
+    | "links"
+    | "email"
+    | "phone";
   label?: string;
   required?: boolean;
   choices?: string[];

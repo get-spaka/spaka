@@ -276,7 +276,19 @@ function liquidBalanced(inside: Token[]): boolean {
 }
 
 /** The record field an element shows (Q148, Q159): which, and from which datasource when the template says. */
-export type RecordField = { field: string; variable: string; datasource?: string };
+/**
+ * A record's field an element shows: `field` of the record `variable` stands
+ * for. Inside a loop over a record's list of links (`{% for link in
+ * item.links %}`), `field` is that list and `sub` the link's own value it
+ * shows (`label`); which link it is comes from the element's trace.
+ */
+export type RecordField = { field: string; variable: string; datasource?: string; sub?: string };
+
+/** The datasource a loop goes over: `data.team`, `data["home-faq"]`. */
+export function loopDatasource(iterable: string): string | undefined {
+  const m = /^data\.([a-z0-9][\w-]*)$|^data\[\s*["']([a-z0-9][\w-]*)["']\s*\]$/i.exec(iterable);
+  return m ? (m[1] ?? m[2]) : undefined;
+}
 
 const LONE_OUTPUT = /^\{\{-?\s*([a-z_]\w*)\.([a-z_]\w*)\s*-?\}\}$/i;
 
@@ -308,17 +320,34 @@ export function recordFieldAt(src: string, offset: number, attribute?: string): 
   if (!m) return undefined;
   const [, variable, field] = m as unknown as [string, string, string];
   // The loops around the element, innermost last.
-  const loops: { variable: string; datasource?: string }[] = [];
+  type Loop = { variable: string; datasource?: string; list?: { of: string; field: string } };
+  const loops: Loop[] = [];
   for (let i = 0; i < index; i++) {
     const t = tokens[i]!;
     if (t.type !== "liquidTag") continue;
     if (t.name === "for") {
       const loop = /^(\w+)\s+in\s+(\S+)/.exec(t.args);
-      loops.push({ variable: loop?.[1] ?? "", datasource: /^data\.(\w+)$/.exec(loop?.[2] ?? "")?.[1] });
+      const iterable = loop?.[2] ?? "";
+      const list = /^([a-z_]\w*)\.([a-z_]\w*)$/i.exec(iterable);
+      loops.push({
+        variable: loop?.[1] ?? "",
+        datasource: loopDatasource(iterable),
+        ...(list && list[1] !== "data" ? { list: { of: list[1]!, field: list[2]! } } : {}),
+      });
     } else if (t.name === "endfor") loops.pop();
   }
   // The trace names the record of the innermost loop, or the page's record outside any.
   const innermost = loops.at(-1);
+  // A link of a record's list of links: the record is the loop's around it, or the page's.
+  if (innermost?.list && innermost.variable === variable) {
+    const parent = loops.at(-2);
+    const { of, field: list } = innermost.list;
+    if (parent)
+      return parent.variable === of && parent.datasource
+        ? { field: list, variable: of, datasource: parent.datasource, sub: field }
+        : undefined;
+    return of === "record" ? { field: list, variable: of, sub: field } : undefined;
+  }
   if (innermost)
     return innermost.variable === variable && innermost.datasource
       ? { field, variable, datasource: innermost.datasource }

@@ -3,7 +3,19 @@
 // second after typing stops and the preview follows; leaving the record
 // makes its one version. The maker adds, duplicates, deletes, reorders and
 // renames records; the fields themselves are the agent's (Q163).
-import { AlertTriangle, ChevronLeft, ChevronRight, Copy, ExternalLink, GripVertical, Plus, Trash2 } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowDown,
+  ArrowUp,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  ExternalLink,
+  GripVertical,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ContentDatasource, ContentField, ContentRecord, ContentRecordSummary } from "../../shared/ipc";
 import { upstart } from "../lib/bridge";
@@ -702,6 +714,17 @@ function FieldInput({
         </select>
       );
       break;
+    case "links":
+      input = (
+        <LinksInput
+          name={field.name}
+          label={label}
+          value={Array.isArray(value) ? (value as Link[]) : []}
+          disabled={disabled}
+          onChange={onChange}
+        />
+      );
+      break;
     case "image":
       input = (
         <div className="flex items-center gap-2">
@@ -752,5 +775,98 @@ function FieldInput({
       </span>
       {input}
     </div>
+  );
+}
+
+type Link = { label: string; href: string };
+
+/** A list of links edited as rows (Q212): a label and an address each, added, moved and removed. */
+function LinksInput({
+  name,
+  label,
+  value,
+  disabled,
+  onChange,
+}: {
+  name: string;
+  label: string;
+  value: Link[];
+  disabled: boolean;
+  onChange: (value: Link[]) => void;
+}) {
+  const rows = value.map((link) => ({ label: String(link?.label ?? ""), href: String(link?.href ?? "") }));
+  const set = (i: number, change: Partial<Link>) =>
+    onChange(rows.map((row, j) => (j === i ? { ...row, ...change } : row)));
+  const move = (i: number, by: number) => {
+    const next = [...rows];
+    const [row] = next.splice(i, 1);
+    next.splice(i + by, 0, row!);
+    onChange(next);
+  };
+  const words = t.content.links;
+  return (
+    <fieldset className="min-w-0 space-y-1.5" data-testid={`field-${name}`} aria-label={label}>
+      {rows.map((row, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: the rows have no identity but their place.
+        <div key={i} className="flex items-center gap-1" data-testid="link-row">
+          <input
+            value={row.label}
+            disabled={disabled}
+            placeholder={words.label}
+            aria-label={`${words.label} ${i + 1}`}
+            data-testid="link-label"
+            onChange={(e) => set(i, { label: e.target.value })}
+            className={cn(INPUT, "min-w-0 flex-1")}
+          />
+          <input
+            value={row.href}
+            disabled={disabled}
+            placeholder={words.href}
+            aria-label={`${words.href} ${i + 1}`}
+            data-testid="link-href"
+            onChange={(e) => set(i, { href: e.target.value })}
+            className={cn(INPUT, "min-w-0 flex-1 font-mono text-xs")}
+          />
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            disabled={disabled || i === 0}
+            title={words.up}
+            onClick={() => move(i, -1)}
+          >
+            <ArrowUp />
+          </Button>
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            disabled={disabled || i === rows.length - 1}
+            title={words.down}
+            onClick={() => move(i, 1)}
+          >
+            <ArrowDown />
+          </Button>
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            disabled={disabled}
+            title={words.remove}
+            data-testid="link-remove"
+            onClick={() => onChange(rows.filter((_, j) => j !== i))}
+          >
+            <X />
+          </Button>
+        </div>
+      ))}
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={disabled}
+        data-testid="link-add"
+        onClick={() => onChange([...rows, { label: "", href: "" }])}
+      >
+        <Plus />
+        {words.add}
+      </Button>
+    </fieldset>
   );
 }

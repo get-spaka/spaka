@@ -123,3 +123,21 @@ describe("a record's field behind an element (Q148, Q159)", () => {
     expect(recordFieldAt(page, at("<h1>"))).toEqual({ field: "title", variable: "record" });
   });
 });
+
+describe("a link of a record's list of links (Q212)", () => {
+  const src = `{% for item in data["home-nav"] %}<a href="{{ item.href }}">{{ item.label }}</a><ul>{% for link in item.links %}<li><a href="{{ link.href }}">{{ link.label }}</a></li>{% endfor %}</ul>{% endfor %}<p>{% for link in record.links %}<b>{{ link.label }}</b>{% endfor %}</p>`;
+  test("names the list, the link's value and the datasource, a hyphen in its name too", () => {
+    expect(recordFieldAt(src, at(src, '<a href="{{ item'))).toEqual({
+      field: "label",
+      variable: "item",
+      datasource: "home-nav",
+    });
+    expect(recordFieldAt(src, at(src, '<a href="{{ link'))).toEqual({
+      field: "links",
+      variable: "item",
+      datasource: "home-nav",
+      sub: "label",
+    });
+    expect(recordFieldAt(src, at(src, "<b>"))).toEqual({ field: "links", variable: "record", sub: "label" });
+  });
+});

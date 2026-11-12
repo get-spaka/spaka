@@ -191,3 +191,50 @@ describe("media (Q155, Q157)", () => {
     expect(plain.renderRoute("/credits").status).toBe(404);
   });
 });
+
+describe("a list of links (Q208, Q212)", () => {
+  const nav = `label: Navigation
+fields:
+  - name: label
+    kind: text
+  - name: href
+    kind: link
+  - name: links
+    kind: links
+`;
+  test("each link keeps its label and address; one lacking either is left out", () => {
+    const data = new Datasources(
+      memorySource({
+        "data/navigation/_datasource.yaml": nav,
+        "data/navigation/services.md":
+          "---\nlabel: Services\nhref: /services\nlinks:\n  - label: Bread\n    href: /bread\n  - label: '  Cakes '\n    href: ' /cakes'\n  - label: No address\n  - href: /no-label\n---\n",
+        "data/navigation/home.md": "---\nlabel: Home\nhref: /\n---\n",
+        "data/navigation/odd.md": "---\nlabel: Odd\nlinks: just a text\n---\n",
+      }),
+    );
+    const ds = data.get("navigation");
+    const byId = Object.fromEntries(ds.records.map((r) => [r.id, r]));
+    expect(byId.services?.links).toEqual([
+      { label: "Bread", href: "/bread" },
+      { label: "Cakes", href: "/cakes" },
+    ]);
+    expect(byId.home?.links).toEqual([]);
+    expect(ds.problems.map((p) => [p.id, p.problems])).toEqual([
+      ["odd", ["links is not a list of links, each with a label and an address"]],
+    ]);
+  });
+  test("a menu's links are looped over in a page, and stand-ins give them a shape", () => {
+    const files = {
+      "data/navigation/_datasource.yaml": nav,
+      "pages/index.liquid": page(
+        '<nav>{% for item in data.navigation %}<a>{{ item.label }}</a>{% for link in item.links %}<a href="{{ link.href }}">{{ link.label }}</a>{% endfor %}{% endfor %}</nav>',
+      ),
+    };
+    // While the agent writes, before any record: stand-ins.
+    const overlay = new Overlay(memorySource(files));
+    overlay.set("theme.css", ":root{}");
+    const shown = new Runtime(overlay, { standIns: true }).renderRoute("/").html;
+    expect(shown).toContain(">First link</a>");
+    expect(shown).toContain(">Second link</a>");
+  });
+});

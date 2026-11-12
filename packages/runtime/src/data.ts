@@ -23,6 +23,8 @@ export const FIELD_KINDS = [
   "image",
   "link",
   "list",
+  // Label-and-address pairs: a menu's links, a footer column (Q208, Q212).
+  "links",
   // Collected datasources only (Q179).
   "email",
   "phone",
@@ -361,17 +363,36 @@ function readRecord(
     }
     const raw = fields[field.name];
     if (raw === undefined || raw === null || raw === "") {
-      record[field.name] = field.kind === "list" ? [] : "";
+      record[field.name] = emptyOf(field);
       if (field.required) wrong.push(`${field.name} is required`);
       continue;
     }
     const value = coerce(field, raw);
     if (value === undefined) {
-      record[field.name] = field.kind === "list" ? [] : "";
+      record[field.name] = emptyOf(field);
       wrong.push(`${field.name} is not ${kindName(field)}`);
     } else record[field.name] = value;
   }
   return { record, wrong };
+}
+
+/** What a field holds when a record gives it no value: a list is empty, anything else an empty text. */
+function emptyOf(field: Field): unknown {
+  return field.kind === "list" || field.kind === "links" ? [] : "";
+}
+
+/** Each link with its label and its address; one that lacks either is left out. */
+function readLinks(raw: unknown): { label: string; href: string }[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const links: { label: string; href: string }[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+    const { label, href } = item as Record<string, unknown>;
+    const text = typeof label === "string" || typeof label === "number" ? String(label).trim() : "";
+    const address = typeof href === "string" ? href.trim() : "";
+    if (text && address) links.push({ label: text, href: address });
+  }
+  return links;
 }
 
 function coerce(field: Field, raw: unknown): unknown {
@@ -403,6 +424,8 @@ function coerce(field: Field, raw: unknown): unknown {
     case "list":
       if (Array.isArray(raw)) return raw.every((x) => typeof x !== "object") ? raw.map(String) : undefined;
       return typeof raw === "string" ? [raw] : undefined;
+    case "links":
+      return readLinks(raw);
     case "email": {
       const text = typeof raw === "string" ? raw.trim() : "";
       return /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(text) ? text : undefined;
@@ -426,6 +449,7 @@ function kindName(field: Field): string {
     image: "an image's address",
     link: "an address",
     list: "a list of texts",
+    links: "a list of links, each with a label and an address",
     email: "an e-mail address",
     phone: "a phone number",
   }[field.kind];
@@ -487,6 +511,11 @@ function standInValue(field: Field, i: number): unknown {
       return "#";
     case "list":
       return text.split(" ").slice(0, 2);
+    case "links":
+      return [
+        { label: "First link", href: "#" },
+        { label: "Second link", href: "#" },
+      ];
     case "email":
       return "name@example.com";
     case "phone":
@@ -536,7 +565,7 @@ export function readCollected(
   for (const field of definition.fields) {
     const raw = stored.fields[field.name];
     if (raw === undefined || raw === null || raw === "" || (Array.isArray(raw) && !raw.length)) {
-      record[field.name] = field.kind === "list" ? [] : "";
+      record[field.name] = emptyOf(field);
       if (field.required) wrong.push(`${field.name} is required`);
       continue;
     }
@@ -547,7 +576,7 @@ export function readCollected(
         ? undefined
         : value;
     if (safe === undefined) {
-      record[field.name] = field.kind === "list" ? [] : "";
+      record[field.name] = emptyOf(field);
       wrong.push(`${field.name} is not ${kindName(field)}`);
     } else
       record[field.name] =

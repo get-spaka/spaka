@@ -267,7 +267,8 @@ export function repairTemplate(src: string): Repair {
 export function injectTrace(src: string, file: string): string {
   const { tokens } = scan(src);
   const inserts: { at: number; text: string }[] = [];
-  const loops: { name: string; item: string | null }[] = [];
+  // A loop's item, and for a loop over a record's own list (`item.links`), the record it belongs to.
+  const loops: { name: string; item: string | null; of?: string }[] = [];
   // Outside a loop, an element of a shared part belongs to the record its caller was looping over
   // (handed down as __rec), and an element of a fragment to the record it was rendered for.
   // So does an element of a record's page, named after its datasource in brackets (Q147).
@@ -284,16 +285,32 @@ export function injectTrace(src: string, file: string): string {
     for (; pos < offset; pos++) if (src.charCodeAt(pos) === 10) line++;
     return line;
   };
+  // The record an element belongs to, as an expression: the innermost loop's item that is a record.
   const record = () => {
-    const loop = [...loops].reverse().find((l) => l.item);
+    const loop = [...loops].reverse().find((l) => l.item && !l.of);
     return loop ? `${loop.item}.__ref` : outer;
+  };
+  // Inside a loop over a record's list, the trace also says which item: "team/anna#2" (Q212).
+  const trace = () => {
+    const inner = loops.at(-1);
+    if (inner?.of) {
+      const owner = inner.of === "record" ? "record.__ref" : `${inner.of}.__ref`;
+      return `{{ ${owner} }}#{{ forloop.index0 }}`;
+    }
+    const rec = record();
+    return rec ? `{{ ${rec} }}` : undefined;
   };
   for (const t of tokens) {
     if (t.type === "liquidTag") {
       if (t.name === "for" || t.name === "tablerow") {
         // {% for item in collection ... %}; a range such as (1..3) has no record to point at.
         const m = /^([\w-]+)\s+in\s+([^\s(][^\s]*)/.exec(t.args);
-        loops.push({ name: t.name, item: m ? m[1]! : null });
+        const list = m && /^([a-z_]\w*)\.[a-z_]\w*$/i.exec(m[2]!);
+        const of =
+          list && list[1] !== "data" && (list[1] === "record" || loops.some((l) => l.item === list[1]))
+            ? list[1]
+            : undefined;
+        loops.push({ name: t.name, item: m ? m[1]! : null, ...(of ? { of } : {}) });
       } else if (t.name === "endfor" || t.name === "endtablerow") loops.pop();
       else if (t.name === "render" || t.name === "include") {
         const marked = !inText;
@@ -312,8 +329,8 @@ export function injectTrace(src: string, file: string): string {
     }
     if (t.type === "htmlOpen" && !UNTRACED.has(t.name)) {
       let text = ` data-up-src="${file}:${lineAt(t.start)}:${t.start}"`;
-      const rec = record();
-      if (rec) text += ` data-up-rec="{{ ${rec} }}"`;
+      const rec = trace();
+      if (rec) text += ` data-up-rec="${rec}"`;
       inserts.push({ at: t.nameEnd, text });
     }
   }

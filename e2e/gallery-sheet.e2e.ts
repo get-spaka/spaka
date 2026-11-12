@@ -38,7 +38,10 @@ describe.skipIf(!asked)("the gallery's review sheets", () => {
     for (const id of SHEET_PALETTES) {
       const colors = PALETTES.find((p) => p.id === id)!.colors;
       await invoke("theme:apply", { ...colors });
-      await until(async () => readFileSync(join(path, "theme.css"), "utf8").includes(colors["--theme-color-primary"]), 5_000);
+      await until(
+        async () => readFileSync(join(path, "theme.css"), "utf8").includes(colors["--theme-color-primary"]),
+        5_000,
+      );
       for (const b of blocks) drawn.set(b.id, [...(drawn.get(b.id) ?? []), await invoke("gallery:thumbnail", b.id)]);
     }
 

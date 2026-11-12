@@ -7,6 +7,7 @@ import {
   renameInOrder,
   setOrder,
   setRecordValue,
+  setRecordValueAt,
   validRecordId,
 } from "./records.ts";
 
@@ -70,5 +71,24 @@ describe("ids and order (Q153, Q160, Q165)", () => {
     expect(ordered).toBe(`${definition}order: [zoe, adam]\n`);
     expect(renameInOrder(ordered, "zoe", "zoe-b")).toContain("order: [zoe-b, adam]");
     expect(renameInOrder(definition, "zoe", "x")).toBe(definition);
+  });
+});
+
+describe("a list of links in a record (Q212)", () => {
+  const text =
+    "---\nlabel: Services # the menu\nlinks:\n  - label: Bread\n    href: /bread\n  - label: Cakes\n    href: /cakes\n---\nA menu.\n";
+  test("written whole as a list of label-and-address pairs", () => {
+    expect(setRecordValue("---\nlabel: Services\n---\n", "links", [{ label: "Bread", href: "/bread" }], false)).toBe(
+      "---\nlabel: Services\nlinks:\n  - label: Bread\n    href: /bread\n---\n",
+    );
+  });
+  test("one label changed, the rest of the file as it was", () => {
+    expect(setRecordValueAt(text, ["links", 1, "label"], "Pastries")).toBe(
+      text.replace("label: Cakes", "label: Pastries"),
+    );
+  });
+  test("refused for a link that is not there", () => {
+    expect(() => setRecordValueAt(text, ["links", 5, "label"], "x")).toThrow(RecordWriteRefused);
+    expect(() => setRecordValueAt("---\nlabel: x\n---\n", ["links", 0, "label"], "x")).toThrow(RecordWriteRefused);
   });
 });
