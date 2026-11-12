@@ -1,0 +1,26 @@
+{
+  "name": "Minimal centred figures",
+  "kind": "stats",
+  "source": "hyperui",
+  "description": "A quiet centred heading over a single row of large light numbers with small capital labels, no boxes or lines.",
+  "tags": ["minimal", "centered", "row", "numbers", "light"],
+  "mood": ["minimal", "elegant"],
+  "synonyms": [
+    "key figures",
+    "numbers",
+    "statistics",
+    "track record",
+    "achievements",
+    "chiffres clés",
+    "statistiques",
+    "en chiffres",
+    "résultats",
+    "réalisations",
+    "chiffres",
+    "facts"
+  ],
+  "data": {
+    "name": "stats",
+    "family": "section"
+  }
+}

@@ -80,11 +80,16 @@ describe("the gallery of blocks", () => {
   test("the search bar narrows the blocks as one types, in English or French", async () => {
     const search = launched.window.getByTestId("blocks-search");
     const cards = launched.window.getByTestId("block");
-    const pricing = blocks.filter((b) => b.kind === "pricing").length;
-    await search.fill("Pricing");
-    await until(async () => (await cards.count()) === pricing);
-    await search.fill("tarif");
-    await until(async () => (await cards.count()) === pricing);
+    const pricing = blocks.filter((b) => b.kind === "pricing").map((b) => b.id);
+    const shown = () => cards.evaluateAll((els) => els.map((e) => e.getAttribute("data-block")));
+    // Every pricing block is found, and only a few others (a price list of services).
+    for (const word of ["Pricing", "tarif"]) {
+      await search.fill(word);
+      await until(async () => {
+        const ids = await shown();
+        return pricing.every((id) => ids.includes(id)) && ids.length < blocks.length / 3;
+      });
+    }
     await search.fill("zzzz");
     await launched.window.getByTestId("blocks-none").waitFor();
     await search.press("Escape");

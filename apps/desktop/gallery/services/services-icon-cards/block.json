@@ -1,0 +1,24 @@
+{
+  "name": "Service cards with icons",
+  "kind": "services",
+  "source": "upstart",
+  "description": "A centred heading and intro above a grid of bordered cards, each service with its icon in a tinted square, a short summary, its price and duration, and a Learn more link.",
+  "tags": ["cards", "grid", "icons", "three columns", "prices"],
+  "mood": ["friendly", "professional"],
+  "synonyms": [
+    "services",
+    "what we offer",
+    "our services",
+    "offers",
+    "treatments",
+    "nos services",
+    "prestations",
+    "nos prestations",
+    "offres",
+    "ce que nous proposons"
+  ],
+  "data": {
+    "name": "services",
+    "family": "collection"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "Numbered features list",
+  "kind": "features",
+  "source": "upstart",
+  "description": "A heading over a list of features separated by thin rules, each led by a large numeral 01, 02, 03, with a small icon, a title and a sentence beside it.",
+  "tags": ["numbered", "list", "large numbers", "rules", "steps"],
+  "mood": ["editorial", "minimal"],
+  "synonyms": [
+    "benefits",
+    "advantages",
+    "why us",
+    "avantages",
+    "atouts",
+    "points forts",
+    "numbers",
+    "steps",
+    "how it works",
+    "numéros",
+    "étapes",
+    "liste numérotée"
+  ],
+  "data": {
+    "name": "features",
+    "family": "section"
+  }
+}

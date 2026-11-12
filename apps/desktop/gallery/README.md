@@ -15,8 +15,8 @@ Ready-made page sections the maker drags into a page and the agent finds with `f
 - Tailwind 4 and daisyUI 5 classes with the theme's colours only (base, primary, secondary, accent, neutral, info, success, warning, error and their `-content`, with an opacity if needed): never `bg-blue-600`, `text-white` or `bg-[#…]`, so blocks follow any palette, light or dark.
 - No script, no style, no remote address. Interactive parts work without JavaScript (`<details>`, daisyUI's collapse and dropdown); mobile first.
 - A block that lists things is a data block (Q197): `"data": { "name": "faq", "family": "section" }`. Its template loops over `data.<name>` and reads no other datasource; every other block holds literal texts only, with no Liquid.
-  - A **collection** (team, blog, events, menu, products, gallery, testimonials, navigation) keeps its name for the whole site: dropping a second block reuses it.
-  - A **section list** (questions, features, plans, figures, logos, steps) is renamed after the page it is dropped on (`home-faq`): write `data.faq`, Upstart rewrites it.
+  - A **collection** (team, services, blog, events, menu, products, gallery, testimonials, navigation) keeps its name for the whole site: dropping a second block reuses it.
+  - A **section list** (questions, features, plans, figures, logos, steps, values, milestones) is renamed after the page it is dropped on (`home-faq`): write `data.faq`, Upstart rewrites it.
 - Nothing floats over the rest: no badge, sticker, rating or card placed over a picture or straddling its edge, no tilted or stacked pictures. An absolutely placed element is only ever a hidden decoration (`aria-hidden="true"`), such as a blurred shape behind a hero.
 - Images come only from records, with a placeholder in theme colours when the field is empty:
   `{% if member.photo %}<img src="{{ member.photo }}" class="…">{% else %}<div class="… bg-gradient-to-br from-primary/20 to-accent/20">…</div>{% endif %}`.

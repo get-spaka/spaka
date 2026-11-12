@@ -1,0 +1,26 @@
+<section class="bg-base-100 text-base-content">
+  <div class="mx-auto max-w-2xl px-4 py-16 md:py-24">
+    <div class="text-center">
+      <p class="text-sm font-semibold tracking-widest uppercase text-base-content/70">Prices</p>
+      <h2 class="mt-2 font-serif text-3xl font-bold text-balance md:text-4xl">Our services</h2>
+      <p class="mt-4 text-pretty text-base-content/70">Every price includes a short chat beforehand, so you know exactly what to expect.</p>
+    </div>
+    <ul class="mt-12 space-y-7">
+      {% for item in data.services %}
+        <li>
+          <div class="flex items-end">
+            <h3 class="text-lg font-semibold">{% if item.href %}<a href="{{ item.href }}" class="link link-hover">{{ item.name }}</a>{% else %}{{ item.name }}{% endif %}</h3>
+            <span class="mx-3 mb-1.5 min-w-6 flex-1 border-b-2 border-dotted border-base-content/30" aria-hidden="true"></span>
+            {% if item.price %}<span class="text-lg font-semibold whitespace-nowrap">{{ item.price }}</span>{% endif %}
+          </div>
+          {% if item.duration or item.summary %}
+            <p class="mt-1 text-sm text-base-content/70">
+              {% if item.duration %}<span class="font-medium">{{ item.duration }}</span>{% if item.summary %} · {% endif %}{% endif %}
+              {% if item.summary %}{{ item.summary }}{% endif %}
+            </p>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>

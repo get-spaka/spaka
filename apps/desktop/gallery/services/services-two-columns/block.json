@@ -1,0 +1,24 @@
+{
+  "name": "Two-column services with durations",
+  "kind": "services",
+  "source": "upstart",
+  "description": "A heading and intro above a two-column list of services, each with a small icon, its name, a summary and how long it takes beside its price, on a soft base background.",
+  "tags": ["two columns", "list", "icons", "durations", "prices"],
+  "mood": ["minimal", "professional"],
+  "synonyms": [
+    "services",
+    "durations",
+    "appointments",
+    "sessions",
+    "how long it takes",
+    "nos services",
+    "durée",
+    "rendez-vous",
+    "séances",
+    "prestations"
+  ],
+  "data": {
+    "name": "services",
+    "family": "collection"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "Compact service tiles",
+  "kind": "services",
+  "source": "upstart",
+  "description": "A short heading above a dense grid of small tiles on a soft base background, each service an icon, its name and its price, the whole tile a link when it has one.",
+  "tags": ["tiles", "grid", "compact", "icons", "six columns"],
+  "mood": ["friendly", "minimal"],
+  "synonyms": [
+    "services",
+    "quick overview",
+    "all services",
+    "categories",
+    "at a glance",
+    "nos services",
+    "en un coup d'œil",
+    "catégories",
+    "toutes nos prestations",
+    "aperçu"
+  ],
+  "data": {
+    "name": "services",
+    "family": "collection"
+  }
+}

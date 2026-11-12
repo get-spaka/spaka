@@ -1,0 +1,11 @@
+label: Values
+fields:
+  - name: title
+    kind: text
+    required: true
+  - name: text
+    kind: text
+  - name: icon
+    kind: choice
+    choices: [spark, heart, leaf, handshake, star, shield, users, sun]
+order: [care, close-to-home, straight-talk, done-properly]

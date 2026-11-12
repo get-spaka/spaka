@@ -1,0 +1,24 @@
+{
+  "name": "Timeline of milestones",
+  "kind": "about",
+  "source": "hyperui",
+  "description": "A centred heading above a vertical timeline of the business's milestones, each with its year, a title and a sentence, alternating left and right on a wide screen and in one column on a phone.",
+  "tags": ["timeline", "history", "milestones", "years", "vertical"],
+  "mood": ["professional", "minimal"],
+  "synonyms": [
+    "history",
+    "timeline",
+    "milestones",
+    "key dates",
+    "our journey",
+    "historique",
+    "chronologie",
+    "frise",
+    "dates clés",
+    "notre parcours"
+  ],
+  "data": {
+    "name": "milestones",
+    "family": "section"
+  }
+}

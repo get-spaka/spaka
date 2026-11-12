@@ -1,0 +1,17 @@
+<section class="bg-base-100 text-base-content">
+  <div class="mx-auto max-w-6xl px-4 py-16 md:py-24">
+    <div class="mx-auto max-w-3xl text-center">
+      <h2 class="text-3xl font-bold text-balance md:text-4xl">A studio couples recommend</h2>
+      <p class="mt-4 text-lg text-pretty text-base-content/70">Every story is different, and we have been telling them for over a decade.</p>
+    </div>
+    <dl class="mt-12 grid gap-4 sm:grid-cols-2 lg:auto-cols-fr lg:grid-flow-col lg:grid-cols-none">
+      {% for stat in data.stats %}
+        <div class="flex flex-col rounded-box border border-base-300 bg-base-200 px-4 py-8 text-center">
+          <dt class="order-2 mt-2 text-base font-medium text-base-content/70">{{ stat.label }}</dt>
+          <dd class="order-1 text-4xl font-extrabold text-primary md:text-5xl">{{ stat.value }}</dd>
+          {% if stat.note %}<dd class="order-3 mt-1 text-sm text-base-content/70">{{ stat.note }}</dd>{% endif %}
+        </div>
+      {% endfor %}
+    </dl>
+  </div>
+</section>

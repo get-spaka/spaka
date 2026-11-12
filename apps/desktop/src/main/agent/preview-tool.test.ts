@@ -72,7 +72,8 @@ test("the answer for every kind of section at once stays under the budget", asyn
     BLOCK_KINDS.map((kind) => ({ kind, query: kind })),
     (q, kind, limit) => index.find(q, { kind, limit }),
   );
-  expect(text.length).toBeLessThan(40_000);
+  // Past about 25,000 tokens the agent's kit puts the answer in a file; markup runs about three characters a token.
+  expect(text.length / 3).toBeLessThan(20_000);
 });
 
 test("a data block comes with the datasource it reads, how to name it, one sample and its record page (Q194-Q206)", () => {

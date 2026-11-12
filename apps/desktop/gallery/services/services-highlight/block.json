@@ -1,0 +1,24 @@
+{
+  "name": "Featured service and the others",
+  "kind": "services",
+  "source": "upstart",
+  "description": "The first service shown large in a primary-coloured panel with its picture, summary, price and a button, beside a plain list of the other services with their prices.",
+  "tags": ["featured", "highlight", "split", "list", "image"],
+  "mood": ["bold", "colorful"],
+  "synonyms": [
+    "featured service",
+    "signature service",
+    "most popular",
+    "highlight",
+    "our services",
+    "service phare",
+    "notre spécialité",
+    "le plus demandé",
+    "à la une",
+    "nos prestations"
+  ],
+  "data": {
+    "name": "services",
+    "family": "collection"
+  }
+}

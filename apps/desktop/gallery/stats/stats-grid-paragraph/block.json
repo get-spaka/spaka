@@ -1,0 +1,26 @@
+{
+  "name": "Two-by-two figures beside a paragraph",
+  "kind": "stats",
+  "source": "upstart",
+  "description": "A heading, two short paragraphs and a button on the left, and a two-by-two grid of figure tiles on the right, each with a number, a label and a note.",
+  "tags": ["grid", "two columns", "paragraph", "tiles", "numbers", "button"],
+  "mood": ["professional", "warm"],
+  "synonyms": [
+    "key figures",
+    "numbers",
+    "statistics",
+    "track record",
+    "achievements",
+    "chiffres clés",
+    "statistiques",
+    "en chiffres",
+    "résultats",
+    "réalisations",
+    "about us",
+    "qui sommes-nous"
+  ],
+  "data": {
+    "name": "stats",
+    "family": "section"
+  }
+}

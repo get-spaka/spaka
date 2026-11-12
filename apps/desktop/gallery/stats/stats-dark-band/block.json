@@ -1,0 +1,26 @@
+{
+  "name": "Figures listed on a dark band",
+  "kind": "stats",
+  "source": "upstart",
+  "description": "A dark full-width band with a heading and intro on one side and the figures as ruled lines on the other, each a large number beside its label and note.",
+  "tags": ["dark", "band", "list", "two columns", "numbers"],
+  "mood": ["dark", "bold", "elegant"],
+  "synonyms": [
+    "key figures",
+    "numbers",
+    "statistics",
+    "track record",
+    "achievements",
+    "chiffres clés",
+    "statistiques",
+    "en chiffres",
+    "résultats",
+    "réalisations",
+    "bandeau sombre",
+    "facts"
+  ],
+  "data": {
+    "name": "stats",
+    "family": "section"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "Services with a Book button",
+  "kind": "services",
+  "source": "upstart",
+  "description": "A heading above a bordered list where each service is a row with its icon, name and summary, its duration and price, and a Book button of its own.",
+  "tags": ["rows", "booking", "buttons", "list", "appointments"],
+  "mood": ["professional", "friendly"],
+  "synonyms": [
+    "book",
+    "booking",
+    "appointments",
+    "reserve",
+    "schedule",
+    "réserver",
+    "prendre rendez-vous",
+    "réservation",
+    "rendez-vous",
+    "nos prestations"
+  ],
+  "data": {
+    "name": "services",
+    "family": "collection"
+  }
+}

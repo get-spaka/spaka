@@ -1,0 +1,26 @@
+{
+  "name": "Cards with large figures",
+  "kind": "stats",
+  "source": "hyperui",
+  "description": "A centred heading over a row of soft cards, each with a large coloured number, a small label below it and an optional note.",
+  "tags": ["cards", "centered", "numbers", "row", "large figures"],
+  "mood": ["friendly", "professional"],
+  "synonyms": [
+    "key figures",
+    "numbers",
+    "statistics",
+    "track record",
+    "achievements",
+    "chiffres clés",
+    "statistiques",
+    "en chiffres",
+    "résultats",
+    "réalisations",
+    "counters",
+    "compteurs"
+  ],
+  "data": {
+    "name": "stats",
+    "family": "section"
+  }
+}

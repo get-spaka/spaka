@@ -26,7 +26,7 @@ Upstart ships a gallery of blocks: sections written for daisyUI and the theme, r
 A block that repeats something (questions, plans, team members, posts, dishes, links) reads a datasource. `find_blocks` gives you, below its template, the datasource it reads, its definition and one sample record.
 
 - **Write the definition from the block's**, adapting labels to the site, and **this site's own records**. The sample only shows the shape: never copy its texts.
-- **A collection** (`data.team`, `data.blog`, `data.products`, `data.events`) is shared by the whole site under that name. If `data/<name>/` exists already, reuse it: add to its definition only the fields the template needs, and keep its records.
+- **A collection** (`data.team`, `data.services`, `data.menu`, `data.blog`, `data.products`, `data.events`, `data.testimonials`) is shared by the whole site under that name. If `data/<name>/` exists already, reuse it: add to its definition only the fields the template needs, and keep its records.
 - **A list of one section** (questions, plans, features, key figures, steps) belongs to its page and is named after it: `data/home-faq/` on the home page, `data/services-faq/` on /services. In the part, read it as `data["home-faq"]` (a name with a hyphen is read with brackets).
 - The definition goes before the page, its records right after the page: the preview shows stand-ins until the first record is written.
 

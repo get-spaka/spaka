@@ -1,0 +1,10 @@
+label: Milestones
+fields:
+  - name: title
+    kind: text
+    required: true
+  - name: year
+    kind: text
+  - name: text
+    kind: text
+order: [the-first-shop, a-workshop-of-our-own, a-team-of-ten, a-second-address, still-learning]

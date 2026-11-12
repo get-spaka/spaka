@@ -1,0 +1,20 @@
+{
+  "name": "Story with a large picture",
+  "kind": "about",
+  "source": "hyperui",
+  "description": "A large picture on the left and, beside it, a short eyebrow, a headline and two paragraphs telling how the business began, ending with a button.",
+  "tags": ["story", "large image", "two columns", "history", "button"],
+  "mood": ["friendly", "warm"],
+  "synonyms": [
+    "about us",
+    "our story",
+    "who we are",
+    "how it started",
+    "background",
+    "à propos",
+    "notre histoire",
+    "qui sommes-nous",
+    "nos débuts",
+    "présentation"
+  ]
+}

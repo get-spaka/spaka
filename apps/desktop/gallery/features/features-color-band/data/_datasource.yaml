@@ -1,0 +1,11 @@
+label: Features
+fields:
+  - name: title
+    kind: text
+    required: true
+  - name: text
+    kind: text
+  - name: icon
+    kind: choice
+    choices: [spark, bolt, shield, heart, clock, chat, leaf, star, chart, team, plug, sliders]
+order: [free-advice, quick-visits, tidy-work, follow-up]

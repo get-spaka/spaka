@@ -1,0 +1,24 @@
+{
+  "name": "Services list with pictures",
+  "kind": "services",
+  "source": "upstart",
+  "description": "A heading on the left above a stacked list of services, each a row with its picture beside its name, summary, price and duration and a link, separated by thin rules.",
+  "tags": ["list", "images", "rows", "photos", "prices"],
+  "mood": ["warm", "friendly"],
+  "synonyms": [
+    "services",
+    "offers",
+    "what we do",
+    "our work",
+    "treatments",
+    "nos services",
+    "prestations",
+    "savoir-faire",
+    "ce que nous faisons",
+    "nos offres"
+  ],
+  "data": {
+    "name": "services",
+    "family": "collection"
+  }
+}

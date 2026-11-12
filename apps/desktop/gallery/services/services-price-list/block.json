@@ -1,0 +1,24 @@
+{
+  "name": "Price list with dotted leaders",
+  "kind": "services",
+  "source": "upstart",
+  "description": "A narrow, centred price list in the manner of a salon or a menu: each service's name, then a dotted leader running to its price, with the duration and a short line below.",
+  "tags": ["price list", "dotted leaders", "list", "centered", "tariffs"],
+  "mood": ["elegant", "minimal"],
+  "synonyms": [
+    "price list",
+    "rates",
+    "tariffs",
+    "treatments",
+    "menu of services",
+    "tarifs",
+    "grille tarifaire",
+    "liste des prix",
+    "carte des soins",
+    "prestations"
+  ],
+  "data": {
+    "name": "services",
+    "family": "collection"
+  }
+}

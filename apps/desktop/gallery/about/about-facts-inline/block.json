@@ -1,0 +1,20 @@
+{
+  "name": "About with key facts",
+  "kind": "about",
+  "source": "upstart",
+  "description": "A heading over three short paragraphs side by side, who we are, what we do and how we work, then a ruled row of key facts: the year founded, the team, the customers and the town.",
+  "tags": ["three columns", "key facts", "figures", "introduction", "text"],
+  "mood": ["professional", "minimal"],
+  "synonyms": [
+    "about us",
+    "who we are",
+    "company facts",
+    "at a glance",
+    "overview",
+    "à propos",
+    "qui sommes-nous",
+    "chiffres clés",
+    "en bref",
+    "présentation de l'entreprise"
+  ]
+}

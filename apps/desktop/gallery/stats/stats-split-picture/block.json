@@ -1,0 +1,26 @@
+{
+  "name": "Figures beside a text and a picture",
+  "kind": "stats",
+  "source": "upstart",
+  "description": "Two columns: a heading, a short paragraph and a grid of figures marked by a coloured rule on one side, a picture placeholder on the other.",
+  "tags": ["two columns", "picture", "text", "numbers", "split"],
+  "mood": ["friendly", "warm"],
+  "synonyms": [
+    "key figures",
+    "numbers",
+    "statistics",
+    "track record",
+    "achievements",
+    "chiffres clés",
+    "statistiques",
+    "en chiffres",
+    "résultats",
+    "réalisations",
+    "about us",
+    "à propos"
+  ],
+  "data": {
+    "name": "stats",
+    "family": "section"
+  }
+}

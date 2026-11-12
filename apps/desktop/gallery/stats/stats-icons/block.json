@@ -1,0 +1,26 @@
+{
+  "name": "Figures with an icon above",
+  "kind": "stats",
+  "source": "mamba-ui",
+  "description": "A centred heading over a row of figures, each under a coloured square icon, with a large number, its label and an optional note.",
+  "tags": ["icons", "centered", "row", "numbers", "colorful"],
+  "mood": ["friendly", "colorful", "playful"],
+  "synonyms": [
+    "key figures",
+    "numbers",
+    "statistics",
+    "track record",
+    "achievements",
+    "chiffres clés",
+    "statistiques",
+    "en chiffres",
+    "résultats",
+    "réalisations",
+    "icônes",
+    "highlights"
+  ],
+  "data": {
+    "name": "stats",
+    "family": "section"
+  }
+}

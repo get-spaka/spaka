@@ -1,0 +1,19 @@
+<section class="bg-neutral text-neutral-content">
+  <div class="mx-auto grid max-w-6xl gap-12 px-4 py-16 md:py-24 lg:grid-cols-5">
+    <div class="lg:col-span-2">
+      <h2 class="text-3xl font-bold text-balance md:text-4xl">Small roaster, big habits</h2>
+      <p class="mt-4 text-lg text-pretty text-neutral-content/80">We roast in small batches every morning and deliver to cafés and kitchens across town.</p>
+    </div>
+    <dl class="border-t border-neutral-content/20 lg:col-span-3">
+      {% for stat in data.stats %}
+        <div class="flex flex-col gap-2 border-b border-neutral-content/20 py-6 sm:flex-row sm:items-baseline sm:gap-8">
+          <dt class="order-2 sm:grow">
+            <span class="block text-lg font-semibold">{{ stat.label }}</span>
+            {% if stat.note %}<span class="mt-1 block text-sm text-neutral-content/70">{{ stat.note }}</span>{% endif %}
+          </dt>
+          <dd class="order-1 text-4xl font-bold tracking-tight sm:w-40 sm:shrink-0 md:text-5xl">{{ stat.value }}</dd>
+        </div>
+      {% endfor %}
+    </dl>
+  </div>
+</section>
