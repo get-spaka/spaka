@@ -127,11 +127,26 @@ export class PreviewServer {
       return;
     }
 
-    const request = new Request(url, { method: req.method ?? "GET", headers: req.headers as Record<string, string> });
+    const method = req.method ?? "GET";
+    // A form tried in the preview sends its fields (Q172).
+    const body = method === "GET" || method === "HEAD" ? undefined : new Uint8Array(await readBody(req));
+    const request = new Request(url, { method, headers: req.headers as Record<string, string>, body });
     const response = await site.runtime.fetch(request);
     res.writeHead(response.status, Object.fromEntries(response.headers));
     res.end(Buffer.from(await response.arrayBuffer()));
   }
+}
+
+/** A request's body, at most 1 MB: what a form sends. */
+async function readBody(req: IncomingMessage): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  let size = 0;
+  for await (const chunk of req) {
+    size += (chunk as Buffer).length;
+    if (size > 1024 * 1024) throw new Error("This form sent too much.");
+    chunks.push(chunk as Buffer);
+  }
+  return Buffer.concat(chunks);
 }
 
 function notFound(res: ServerResponse) {

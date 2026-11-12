@@ -4,7 +4,7 @@ import { basename, join, relative } from "node:path";
 import { buildStatic } from "@upstart/builder";
 import { diskSource } from "@upstart/runtime/node";
 import type { ExportResult } from "../shared/ipc";
-import { tracked } from "./history/history";
+import { published } from "./history/history";
 import { webpCopies } from "./media/library";
 
 /** Marks a folder as an export of Upstart's, which a new export may replace. */
@@ -49,7 +49,7 @@ function listFiles(root: string): string[] {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       const abs = join(dir, entry.name);
       const rel = relative(root, abs).split("\\").join("/");
-      if (!tracked(rel)) continue;
+      if (!published(rel)) continue;
       if (entry.isDirectory()) walk(abs);
       else if (entry.isFile()) out.push(rel);
     }

@@ -184,7 +184,7 @@ async function main() {
     onState: (state) => ipc.emit("preview:state", state),
     // The Content tab reads again when a datasource or a media file changes.
     onFileChanged: (path) => {
-      if (!/^(data|media)\//.test(path)) return;
+      if (!/^(data|media|\.upstart\/test-records)\//.test(path)) return;
       clearTimeout(contentTimer);
       contentTimer = setTimeout(() => ipc.emit("content:changed"), 80);
     },

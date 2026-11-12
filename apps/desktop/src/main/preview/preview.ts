@@ -25,6 +25,7 @@ import type {
 } from "../../shared/ipc";
 import { PageGrid, pictureKey, type ThumbnailAction, type ThumbnailScreen } from "./grid";
 import { PreviewServer, VENDOR_BASE } from "./server";
+import { isTestRecord, TestRecordStore, testRecordsSource } from "./test-records";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
 
@@ -84,6 +85,11 @@ export class Preview {
   private loading = false;
   /** Whether the page shows something yet; until then the interface's empty state stays visible. */
   private shown = false;
+  /**
+   * Test records a form tried in the preview just wrote, and when: the page
+   * keeps the form's answer instead of being drawn again (Q172).
+   */
+  private fromForms = new Map<string, number>();
   private pending: { final: boolean } | undefined;
   private timer: NodeJS.Timeout | undefined;
   private lastPush = 0;
@@ -163,6 +169,16 @@ export class Preview {
     const runtime: Runtime = new Runtime(overlay, {
       markPageStyles: true,
       standIns: true,
+      // Collected datasources show their test records; a form tried here adds one (Q172).
+      testRecords: testRecordsSource(project.path, overlay),
+      collected: new TestRecordStore(
+        project.path,
+        () => runtime.data,
+        (file) => {
+          this.fromForms.set(file, Date.now());
+          this.options.onFileChanged?.(file);
+        },
+      ),
       head: () => previewHead({ vendorBase: VENDOR_BASE, theme: runtime.theme() }),
     });
     const site: OpenSite = { project, root: project.path, overlay, runtime, watcher: undefined };
@@ -442,6 +458,8 @@ export class Preview {
             : []),
           // Every datasource's problems, whichever page is shown: a record left out is said (Q166).
           ...(site ? dataNotes(site.runtime) : []),
+          // A page file that gets no address (Q188).
+          ...(site ? site.runtime.pageNotes().map((n) => `${n.file}: ${n.note}`) : []),
         ]),
       ],
     };
@@ -530,10 +548,15 @@ export class Preview {
       return watch(site.root, { recursive: true }, (_event, name) => {
         if (!name || this.site !== site) return;
         const path = name.split("\\").join("/");
-        if (path.split("/").some((part) => part.startsWith(".") || part === "node_modules")) return;
+        if (!isTestRecord(path) && path.split("/").some((part) => part.startsWith(".") || part === "node_modules"))
+          return;
         this.options.onFileChanged?.(path);
         // A file the agent is still writing is shown from the overlay, not from the disk.
         if (site.overlay.has(path)) return;
+        // A record a form just sent: the page shows the form's answer until the visitor moves on.
+        const sent = this.fromForms.get(path);
+        if (sent !== undefined && Date.now() - sent < 2000) return;
+        this.fromForms.delete(path);
         this.refresh(true);
       });
     } catch {

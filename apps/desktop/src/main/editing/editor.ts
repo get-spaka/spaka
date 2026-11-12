@@ -60,9 +60,9 @@ function sectionIndex(src: string, at: number | null): number {
  * a datasource, or its definition's order; what is kept beside a media file.
  */
 const EDITABLE =
-  /^((pages|parts|fragments)\/[\w./[\]-]+\.liquid|data\/[a-z0-9][\w-]*\/([a-z0-9][\w-]*\.md|_datasource\.yaml)|media\/[\w.-]+\.json)$/i;
-/** A record's file. */
-const RECORD = /^data\/[a-z0-9][\w-]*\/[a-z0-9][\w-]*\.md$/i;
+  /^((pages|parts|fragments)\/[\w./[\]-]+\.liquid|data\/[a-z0-9][\w-]*\/([a-z0-9][\w-]*\.md|_datasource\.yaml)|media\/[\w.-]+\.json|\.upstart\/test-records\/[a-z0-9][\w-]*\/[a-z0-9][\w-]*\.md)$/i;
+/** A record's file: an authored record, or a collected datasource's test record (Q172). */
+const RECORD = /^(data|\.upstart\/test-records)\/[a-z0-9][\w-]*\/[a-z0-9][\w-]*\.md$/i;
 
 export type EditorDeps = {
   /** The open project's folder. */

@@ -30,9 +30,24 @@ export type Snapshot = {
   files: Record<string, string>;
 };
 
-/** What the history keeps out: Upstart's own folder, hidden files, installed packages. */
+/** The preview's test records, which the history keeps although they are in Upstart's own folder (Q172). */
+const TEST_RECORDS = ".upstart/test-records";
+
+/**
+ * What the history keeps out: Upstart's own folder (its test records
+ * excepted), hidden files, installed packages.
+ */
 export function tracked(path: string): boolean {
-  return !path.split("/").some((part) => part.startsWith(".") || part === "node_modules");
+  const parts = path.split("/");
+  if (parts.includes("node_modules")) return false;
+  if (path === ".upstart" || path === TEST_RECORDS || path.startsWith(`${TEST_RECORDS}/`))
+    return !parts.slice(2).some((part) => part.startsWith("."));
+  return !parts.some((part) => part.startsWith("."));
+}
+
+/** What an export copies: what the history keeps, without Upstart's own folder (Q172: test records never published). */
+export function published(path: string): boolean {
+  return tracked(path) && path.split("/")[0] !== ".upstart";
 }
 
 export class History {

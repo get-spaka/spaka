@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, expect, test } from "vitest";
-import { History, tracked } from "./history";
+import { History, published, tracked } from "./history";
 
 let project: string;
 let data: string;
@@ -70,6 +70,14 @@ test("changes made by hand are kept before going back", () => {
   expect(read("theme.css")).toBe("a");
   expect(tracked("node_modules/x.js")).toBe(false);
   expect(tracked(".git/HEAD")).toBe(false);
+  // The preview's test records are kept; the rest of Upstart's folder is not (Q172).
+  expect(tracked(".upstart/test-records/guestbook/2026-11-12-0931-a7f3.md")).toBe(true);
+  expect(tracked(".upstart")).toBe(true);
+  expect(tracked(".upstart/project.json")).toBe(false);
+  expect(tracked(".upstart/test-records/guestbook/.x.upstart-tmp")).toBe(false);
+  expect(published(".upstart/test-records/guestbook/a.md")).toBe(false);
+  expect(published(".upstart")).toBe(false);
+  expect(published("pages/index.liquid")).toBe(true);
 });
 
 test("a file as the agent first wrote it, whatever came after", () => {
