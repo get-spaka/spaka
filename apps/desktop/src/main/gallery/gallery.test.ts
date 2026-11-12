@@ -92,6 +92,13 @@ describe.each(blocks.map((b) => [b.id, b] as const))("%s", (_id, b) => {
     }
   });
 
+  test("places nothing over the rest: no floating badge or sticker", () => {
+    // An absolutely placed element is only ever a hidden decoration (a blurred shape, an icon in a placeholder).
+    for (const text of [b.source, b.detail ?? ""])
+      for (const tag of text.matchAll(/<[a-z][^>]*\bclass="[^"]*(?<![\w-])absolute\b[^"]*"[^>]*>/g))
+        expect(tag[0], b.id).toMatch(/aria-hidden="true"/);
+  });
+
   test("holds Liquid only as a data block, over its own datasource", () => {
     if (!b.data) {
       expect(b.source).not.toMatch(/\{\{|\{%|<img/);
