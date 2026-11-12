@@ -1,0 +1,24 @@
+{
+  "name": "Newsletter with benefits",
+  "kind": "newsletter",
+  "source": "upstart",
+  "description": "A short pitch and three benefits with icons on the left, and on the right a card asking for a first name and an email address, with a full-width subscribe button.",
+  "tags": ["two columns", "benefits", "card", "first name", "sign-up"],
+  "mood": ["professional", "friendly"],
+  "synonyms": [
+    "newsletter",
+    "mailing list",
+    "email updates",
+    "subscribe",
+    "why subscribe",
+    "lettre d’information",
+    "infolettre",
+    "avantages",
+    "s’abonner",
+    "inscription"
+  ],
+  "data": {
+    "name": "newsletter",
+    "family": "collection"
+  }
+}

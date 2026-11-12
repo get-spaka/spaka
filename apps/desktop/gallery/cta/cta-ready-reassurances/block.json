@@ -1,0 +1,20 @@
+{
+  "name": "Ready to start with reassurances",
+  "kind": "cta",
+  "source": "upstart",
+  "description": "Two columns: a “Ready to start?” heading, a sentence and a button on one side, and three reassurances with check marks on white tiles on the other, such as a free consultation and no commitment.",
+  "tags": ["two columns", "reassurance", "check marks", "quote", "button"],
+  "mood": ["professional", "friendly"],
+  "synonyms": [
+    "ready to start",
+    "get a quote",
+    "free consultation",
+    "no commitment",
+    "guarantees",
+    "prêt à commencer",
+    "demander un devis",
+    "sans engagement",
+    "consultation gratuite",
+    "garanties"
+  ]
+}

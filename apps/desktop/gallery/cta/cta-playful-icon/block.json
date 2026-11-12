@@ -1,0 +1,20 @@
+{
+  "name": "Playful call to action with a big icon",
+  "kind": "cta",
+  "source": "upstart",
+  "description": "A rounded panel in the secondary color with soft blurred shapes, a big party icon on a light rounded tile, a cheerful heading, a sentence and two rounded buttons.",
+  "tags": ["icon", "colored background", "rounded", "panel", "centered", "fun"],
+  "mood": ["playful", "colorful", "bold"],
+  "synonyms": [
+    "call to action",
+    "let's go",
+    "fun",
+    "celebration",
+    "get started",
+    "appel à l’action",
+    "c’est parti",
+    "ludique",
+    "festif",
+    "coloré"
+  ]
+}

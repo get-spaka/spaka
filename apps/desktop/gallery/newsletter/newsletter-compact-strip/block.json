@@ -1,0 +1,24 @@
+{
+  "name": "Compact newsletter strip",
+  "kind": "newsletter",
+  "source": "hyperui",
+  "description": "A thin strip between two lines: an envelope icon and one line inviting visitors to get the news by email, beside a small email field joined to its button.",
+  "tags": ["compact", "strip", "inline", "small", "sign-up"],
+  "mood": ["minimal", "professional"],
+  "synonyms": [
+    "newsletter",
+    "mailing list",
+    "email sign-up",
+    "subscribe",
+    "footer sign-up",
+    "lettre d’information",
+    "infolettre",
+    "bandeau",
+    "s’abonner",
+    "inscription"
+  ],
+  "data": {
+    "name": "newsletter",
+    "family": "collection"
+  }
+}

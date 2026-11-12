@@ -1,0 +1,21 @@
+{
+  "name": "Find us, with how to get here",
+  "kind": "contact",
+  "source": "upstart",
+  "description": "A local shop's Find us section: a wide map placeholder with a pin, the address and call and directions buttons right below it, then four cards on getting here by bus, parking, by bike and on foot.",
+  "tags": ["find us", "map", "parking", "public transport", "directions", "local shop"],
+  "mood": ["warm", "friendly"],
+  "synonyms": [
+    "how to get here",
+    "getting here",
+    "access",
+    "location",
+    "where to park",
+    "plan d’accès",
+    "comment venir",
+    "nous trouver",
+    "se garer",
+    "transports en commun",
+    "itinéraire"
+  ]
+}

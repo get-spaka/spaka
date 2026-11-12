@@ -4,9 +4,18 @@
 // dropped on — with its sample records when the datasource is new; a list of
 // a collection with a page per record writes that page from the frame of the
 // page the block is dropped on; the first header or footer writes the site's
-// navigation from the links it already has. Pure: it reads the project
+// navigation from the links it already has; a form brings its collected
+// datasource, its samples as the preview's test records, and the fragment it
+// answers with (Q194, Q182). Pure: it reads the project
 // through `ProjectView` and returns the files to write.
-import { addDefinitionFields, newRecordText, recordIdFrom, sections, setOrder } from "@upstart/runtime";
+import {
+  addDefinitionFields,
+  newRecordText,
+  recordIdFrom,
+  sections,
+  setOrder,
+  TEST_RECORDS_DIR,
+} from "@upstart/runtime";
 import { copyName } from "./edits";
 
 export type DroppedBlock = {
@@ -16,6 +25,8 @@ export type DroppedBlock = {
   data?: { name: string; family: "collection" | "section" };
   datasource?: { definition: string; records: Record<string, string> };
   detail?: string;
+  /** A form's fragments by file name, its answer among them (Q194). */
+  fragments?: Record<string, string>;
 };
 
 export type ProjectView = {
@@ -41,6 +52,9 @@ export type DataDrop = {
 };
 
 export const NAVIGATION = "navigation";
+
+/** Whether a definition is a collected datasource's, filled by visitors (Q172). */
+export const isCollected = (definition: string) => /^collected:\s*true\s*$/m.test(definition);
 const DEFINITION = "_datasource.yaml";
 const definitionOf = (name: string) => `data/${name}/${DEFINITION}`;
 
@@ -191,7 +205,11 @@ export function dropData(block: DroppedBlock, pageFile: string, project: Project
     writes[definitionOf(name)] = ids.length ? setOrder(block.datasource.definition, ids) : block.datasource.definition;
   } else {
     writes[definitionOf(name)] = block.datasource.definition;
-    for (const [file, text] of Object.entries(block.datasource.records)) writes[`data/${name}/${file}`] = text;
+    // A collected datasource's records are what visitors send: its samples are the preview's test records.
+    const records = isCollected(block.datasource.definition) ? `${TEST_RECORDS_DIR}/${name}` : `data/${name}`;
+    for (const [file, text] of Object.entries(block.datasource.records)) writes[`${records}/${file}`] = text;
+    for (const [file, text] of Object.entries(block.fragments ?? {}))
+      if (!project.exists(`fragments/${file}`)) writes[`fragments/${file}`] = text;
   }
 
   let recordPage: string | undefined;

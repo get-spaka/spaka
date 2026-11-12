@@ -1,0 +1,24 @@
+{
+  "name": "Newsletter card with icon",
+  "kind": "newsletter",
+  "source": "upstart",
+  "description": "A narrow centered card on a soft background: a small envelope icon, a heading, one sentence, an email field and a full-width button, with a tiny note.",
+  "tags": ["card", "icon", "centered", "narrow", "sign-up"],
+  "mood": ["minimal", "warm"],
+  "synonyms": [
+    "newsletter",
+    "mailing list",
+    "email sign-up",
+    "subscribe",
+    "letter",
+    "lettre d’information",
+    "infolettre",
+    "carte",
+    "s’abonner",
+    "inscription"
+  ],
+  "data": {
+    "name": "newsletter",
+    "family": "collection"
+  }
+}

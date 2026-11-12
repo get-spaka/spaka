@@ -1,0 +1,21 @@
+{
+  "name": "Contact form beside the address",
+  "kind": "forms",
+  "source": "hyperui",
+  "description": "Two columns: a heading, the address, phone number and email with icons on the left, and a contact form with name, email, phone and message in a soft panel on the right.",
+  "tags": ["contact", "form", "address", "phone", "two columns"],
+  "mood": ["professional", "friendly"],
+  "synonyms": [
+    "contact us",
+    "find us",
+    "address and phone",
+    "visit us",
+    "contact details",
+    "nous contacter",
+    "adresse",
+    "coordonnées",
+    "nous trouver",
+    "formulaire de contact"
+  ],
+  "data": { "name": "contact", "family": "collection" }
+}

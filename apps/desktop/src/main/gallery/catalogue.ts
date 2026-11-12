@@ -35,13 +35,15 @@ const Described = z.object({
  * A block as the app holds it: its template, where its layout comes from and,
  * for a data block, its datasource's definition and sample records (the
  * files of its data/ folder, by name) and the detail section of its record
- * page, when its collection has one (Q199, Q200).
+ * page, when its collection has one (Q199, Q200); a form's fragments, the one
+ * its datasource answers with among them, by file name (Q194).
  */
 export type Block = GalleryBlock & {
   source: string;
   origin: keyof typeof BLOCK_SOURCES;
   datasource?: { definition: string; records: Record<string, string> };
   detail?: string;
+  fragments?: Record<string, string>;
 };
 
 const DEFINITION = "_datasource.yaml";
@@ -88,6 +90,13 @@ export function readGallery(dir: string): Block[] {
         }
         if (existsSync(join(folder, "detail.liquid")))
           block.detail = readFileSync(join(folder, "detail.liquid"), "utf8");
+        const fragmentsDir = join(folder, "fragments");
+        if (existsSync(fragmentsDir)) {
+          const fragments: Record<string, string> = {};
+          for (const file of readdirSync(fragmentsDir).sort())
+            if (/^[a-z0-9][\w-]*\.liquid$/.test(file)) fragments[file] = readFileSync(join(fragmentsDir, file), "utf8");
+          if (Object.keys(fragments).length) block.fragments = fragments;
+        }
         out.push(block);
       } catch (error) {
         console.warn(`[upstart] gallery block ${entry.name} left out:`, error instanceof Error ? error.message : error);

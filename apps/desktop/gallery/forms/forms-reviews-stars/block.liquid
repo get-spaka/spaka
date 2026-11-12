@@ -1,0 +1,62 @@
+<section class="bg-base-200 text-base-content">
+  <div class="mx-auto max-w-6xl px-4 py-16 md:py-24">
+    <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <div class="max-w-2xl">
+        <h2 class="text-3xl font-bold text-balance md:text-4xl">What our customers say</h2>
+        <p class="mt-4 text-pretty text-base-content/70">Honest reviews from the people we have worked with, published as they wrote them.</p>
+      </div>
+      <a href="#forms-reviews-stars-form" class="btn btn-outline self-start md:self-auto">Leave a review</a>
+    </div>
+    <div class="mt-12 grid gap-6 md:grid-cols-2">
+      {% for review in data.reviews limit: 6 %}
+        <article class="card border border-base-300 bg-base-100">
+          <div class="card-body">
+            <div class="flex items-center gap-1 text-warning">
+              <span class="sr-only">Rated {{ review.rating }} out of 5</span>
+              {% for i in (1..5) %}
+                <svg class="size-5" viewBox="0 0 24 24" fill="{% if i <= review.rating %}currentColor{% else %}none{% endif %}" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>
+              {% endfor %}
+            </div>
+            {% if review.title != blank %}<h3 class="card-title mt-2">{{ review.title }}</h3>{% endif %}
+            <div class="mt-1 space-y-3 text-pretty text-base-content/80">{{ review.message }}</div>
+            <p class="mt-4 text-sm text-base-content/70"><span class="font-semibold text-base-content">{{ review.name }}</span> · <time datetime="{{ review.submitted }}">{{ review.submitted | date: "%B %-d, %Y" }}</time></p>
+          </div>
+        </article>
+      {% else %}
+        <p class="rounded-box border border-dashed border-base-300 p-8 text-center text-base-content/70 md:col-span-2">No reviews yet. Yours could be the first.</p>
+      {% endfor %}
+    </div>
+    <div id="forms-reviews-stars-form" class="mt-16 rounded-box border border-base-300 bg-base-100 p-6 md:p-10">
+      <h3 class="text-2xl font-bold">Leave a review</h3>
+      <p class="mt-2 text-base-content/70">Tell others how it went. Reviews appear once we have read them.</p>
+      <form hx-post="/_data/reviews" hx-target="this" hx-swap="outerHTML" hx-status:422="target:#forms-reviews-stars-problems swap:innerHTML" class="mt-6 grid grid-cols-1 gap-x-6 gap-y-1 md:grid-cols-2">
+        <fieldset class="fieldset md:col-span-2">
+          <legend class="fieldset-legend">Your rating</legend>
+          <div class="rating rating-lg gap-1">
+            <input type="radio" name="rating" value="1" id="forms-reviews-stars-rating-1" class="mask mask-star-2 bg-warning" aria-label="1 star out of 5" required>
+            <input type="radio" name="rating" value="2" id="forms-reviews-stars-rating-2" class="mask mask-star-2 bg-warning" aria-label="2 stars out of 5">
+            <input type="radio" name="rating" value="3" id="forms-reviews-stars-rating-3" class="mask mask-star-2 bg-warning" aria-label="3 stars out of 5">
+            <input type="radio" name="rating" value="4" id="forms-reviews-stars-rating-4" class="mask mask-star-2 bg-warning" aria-label="4 stars out of 5">
+            <input type="radio" name="rating" value="5" id="forms-reviews-stars-rating-5" class="mask mask-star-2 bg-warning" aria-label="5 stars out of 5">
+          </div>
+        </fieldset>
+        <fieldset class="fieldset">
+          <legend class="fieldset-legend">Your name</legend>
+          <input name="name" type="text" class="input input-bordered w-full" required maxlength="100" autocomplete="name">
+        </fieldset>
+        <fieldset class="fieldset">
+          <legend class="fieldset-legend">A title for your review <span class="font-normal text-base-content/70">(optional)</span></legend>
+          <input name="title" type="text" class="input input-bordered w-full" maxlength="120">
+        </fieldset>
+        <fieldset class="fieldset md:col-span-2">
+          <legend class="fieldset-legend">Your review</legend>
+          <textarea name="message" class="textarea textarea-bordered w-full" rows="5" required maxlength="3000"></textarea>
+        </fieldset>
+        <div id="forms-reviews-stars-problems" class="md:col-span-2"></div>
+        <div class="mt-3 md:col-span-2">
+          <button type="submit" class="btn btn-primary">Publish my review</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>

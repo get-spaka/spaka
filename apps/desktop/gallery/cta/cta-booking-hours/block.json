@@ -1,0 +1,20 @@
+{
+  "name": "Booking prompt with opening hours",
+  "kind": "cta",
+  "source": "upstart",
+  "description": "A bordered strip with a calendar icon, a “Book your appointment” heading, the opening hours as one short line and two buttons, one to book and one to call; it stacks and centers on a phone.",
+  "tags": ["booking", "opening hours", "appointment", "strip", "phone"],
+  "mood": ["professional", "warm", "minimal"],
+  "synonyms": [
+    "book now",
+    "appointment",
+    "reservation",
+    "opening hours",
+    "schedule a visit",
+    "réserver",
+    "prendre rendez-vous",
+    "horaires d’ouverture",
+    "réservation",
+    "rendez-vous"
+  ]
+}

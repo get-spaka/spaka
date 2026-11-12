@@ -1,0 +1,21 @@
+{
+  "name": "Appointment request in three steps",
+  "kind": "forms",
+  "source": "upstart",
+  "description": "An appointment request in three numbered steps: a choice of four services as selectable cards, a day and a preferred time, then name, email, phone and a note, with a wide button and a reassuring line.",
+  "tags": ["booking", "appointment", "services", "steps", "schedule"],
+  "mood": ["professional", "friendly"],
+  "synonyms": [
+    "book an appointment",
+    "appointment request",
+    "schedule a visit",
+    "booking form",
+    "consultation",
+    "prendre rendez-vous",
+    "demande de rendez-vous",
+    "réserver un créneau",
+    "prise de rendez-vous",
+    "rendez-vous en ligne"
+  ],
+  "data": { "name": "bookings", "family": "collection" }
+}

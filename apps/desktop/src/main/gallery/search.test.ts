@@ -70,10 +70,13 @@ test("the shipped gallery answers everyday requests", () => {
   const top = (q: string) => index.find(q)[0]?.kind;
   expect(top("pricing plans")).toBe("pricing");
   expect(top("tarifs")).toBe("pricing");
-  expect(top("customer reviews")).toBe("testimonials");
+  // Reviews shown, or a form to leave one.
+  expect(top("customer reviews")).toMatch(/testimonials|forms/);
   expect(top("avis clients")).toBe("testimonials");
   expect(top("foire aux questions")).toBe("faq");
   expect(top("navigation bar")).toBe("header");
   expect(top("pied de page")).toBe("footer");
-  expect(top("newsletter signup")).toMatch(/cta|footer/);
+  expect(top("newsletter signup")).toMatch(/newsletter|cta/);
+  expect(top("formulaire de contact")).toBe("forms");
+  expect(top("horaires d'ouverture")).toBe("contact");
 });

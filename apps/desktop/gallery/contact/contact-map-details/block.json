@@ -1,0 +1,21 @@
+{
+  "name": "Contact details beside a large map",
+  "kind": "contact",
+  "source": "meraki-ui",
+  "description": "A contact section with the address, phone number and email stacked in a column, each with a round icon and a link, beside a large map placeholder in theme colors showing a pin and the address.",
+  "tags": ["map", "address", "phone", "email", "directions"],
+  "mood": ["professional", "minimal"],
+  "synonyms": [
+    "contact us",
+    "get in touch",
+    "location",
+    "find us",
+    "where we are",
+    "nous contacter",
+    "coordonnées",
+    "plan",
+    "adresse",
+    "nous trouver",
+    "carte"
+  ]
+}

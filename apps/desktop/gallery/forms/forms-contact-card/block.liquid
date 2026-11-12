@@ -1,0 +1,30 @@
+<section class="bg-base-200 text-base-content">
+  <div class="mx-auto max-w-2xl px-4 py-16 md:py-24">
+    <div class="text-center">
+      <h2 class="text-3xl font-bold text-balance md:text-4xl">Get in touch</h2>
+      <p class="mt-4 text-pretty text-base-content/70">Have a question or a project in mind? Send us a message and we will reply within one working day.</p>
+    </div>
+    <form hx-post="/_data/contact" hx-target="this" hx-swap="outerHTML" hx-status:422="target:#forms-contact-card-problems swap:innerHTML" class="mt-10 grid grid-cols-1 gap-x-4 gap-y-2 rounded-box border border-base-300 bg-base-100 p-6 shadow-sm sm:grid-cols-2 md:p-8">
+      <fieldset class="fieldset sm:col-span-2">
+        <legend class="fieldset-legend">Your name</legend>
+        <input name="name" type="text" class="input input-bordered w-full" required maxlength="200" autocomplete="name">
+      </fieldset>
+      <fieldset class="fieldset">
+        <legend class="fieldset-legend">Your email</legend>
+        <input name="email" type="email" class="input input-bordered w-full" required maxlength="200" autocomplete="email">
+      </fieldset>
+      <fieldset class="fieldset">
+        <legend class="fieldset-legend">Your phone <span class="font-normal text-base-content/70">(optional)</span></legend>
+        <input name="phone" type="tel" class="input input-bordered w-full" maxlength="30" autocomplete="tel">
+      </fieldset>
+      <fieldset class="fieldset sm:col-span-2">
+        <legend class="fieldset-legend">Your message</legend>
+        <textarea name="message" class="textarea textarea-bordered w-full" rows="5" required maxlength="5000"></textarea>
+      </fieldset>
+      <div id="forms-contact-card-problems" class="sm:col-span-2"></div>
+      <div class="mt-2 sm:col-span-2">
+        <button type="submit" class="btn btn-primary w-full">Send message</button>
+      </div>
+    </form>
+  </div>
+</section>

@@ -5,7 +5,9 @@
 // {% render %} lines in reading order, the page created from the site's
 // frame when it does not exist yet. Pure: it reads the project through
 // `ProjectView` and returns the files to write.
-import { type DroppedBlock, dropData, inFrame, NAVIGATION, type ProjectView } from "./data-drop";
+
+import { TEST_RECORDS_DIR } from "@upstart/runtime";
+import { type DroppedBlock, dropData, inFrame, isCollected, NAVIGATION, type ProjectView } from "./data-drop";
 import { copyName, insertBefore, placeFor } from "./edits";
 
 export type Placing = {
@@ -29,6 +31,8 @@ export type PlacedPart = {
   reused?: boolean;
   recordPage?: string;
   differ?: string[];
+  /** A form: what visitors send is collected there, answered with this fragment (Q194). */
+  collected?: { answer?: string };
 };
 
 export type Placed = {
@@ -39,6 +43,8 @@ export type Placed = {
   /** Whether the page was created. */
   created: boolean;
 };
+
+const answerOf = (definition: string) => /^answer:\s*([\w-]+)\s*$/m.exec(definition)?.[1];
 
 const PAGE = /^pages\/(?:[a-z0-9][\w-]*\/)*[a-z0-9][\w-]*\.liquid$/;
 const INDEX = "pages/index.liquid";
@@ -125,7 +131,11 @@ export function placeBlocks(
     writes[`parts/${name}.liquid`] = source.endsWith("\n") ? source : `${source}\n`;
     if (drop.datasource && drop.datasource !== NAVIGATION)
       samples.push(
-        ...Object.keys(drop.writes).filter((f) => f.startsWith(`data/${drop.datasource}/`) && f.endsWith(".md")),
+        ...Object.keys(drop.writes).filter(
+          (f) =>
+            (f.startsWith(`data/${drop.datasource}/`) || f.startsWith(`${TEST_RECORDS_DIR}/${drop.datasource}/`)) &&
+            f.endsWith(".md"),
+        ),
       );
     src = insertBefore(src, placeFor(src, b.kind), `{% render '${name}' %}`);
     writes[input.page] = src;
@@ -137,6 +147,9 @@ export function placeBlocks(
       ...(drop.reused ? { reused: true } : {}),
       ...(drop.recordPage ? { recordPage: drop.recordPage } : {}),
       ...(drop.differ ? { differ: drop.differ } : {}),
+      ...(b.datasource && isCollected(b.datasource.definition)
+        ? { collected: answerOf(b.datasource.definition) ? { answer: answerOf(b.datasource.definition) } : {} }
+        : {}),
     });
   }
   return { writes, samples, parts, created };
@@ -152,6 +165,8 @@ export function placedAnswer(input: Placing, placed: Placed): string {
   for (const p of placed.parts) {
     let line = `- ${p.part} (${p.kind}, from ${p.block})`;
     if (p.datasource === NAVIGATION) line += `, reading the site's navigation, data/${NAVIGATION}/`;
+    else if (p.collected)
+      line += `, a form: what visitors send goes to data/${p.datasource}/ (a collected datasource${p.reused ? " the site already has" : ""})${p.collected.answer ? `, answered with fragments/${p.collected.answer}.liquid` : ""}${p.reused ? "" : ", with the gallery's test records in .upstart/test-records/"}`;
     else if (p.datasource && p.reused)
       line += `, reading data/${p.datasource}/, which the site already has: its records kept, the fields it lacked added`;
     else if (p.datasource)
@@ -168,6 +183,10 @@ export function placedAnswer(input: Placing, placed: Placed): string {
   if (placed.samples.length)
     lines.push(
       `Then write this site's records in place of the samples (${placed.samples.join(", ")}): rewrite them, add records, delete those you do not need. None may stay as the gallery wrote it.`,
+    );
+  if (placed.parts.some((p) => p.collected && !p.reused))
+    lines.push(
+      "For a form, write in the site's language its definition's labels and messages, and the fragment it answers with.",
     );
   if (placed.parts.some((p) => p.datasource === NAVIGATION))
     lines.push(

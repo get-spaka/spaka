@@ -1,0 +1,24 @@
+{
+  "name": "Compact contact strip",
+  "kind": "contact",
+  "source": "upstart",
+  "description": "A slim strip just above the footer with the address, phone number, email and a short list of opening hours in small columns, each with a quiet icon.",
+  "tags": ["compact", "strip", "opening hours", "address", "phone"],
+  "mood": ["minimal", "professional"],
+  "synonyms": [
+    "contact bar",
+    "info strip",
+    "footer contact",
+    "practical information",
+    "hours and address",
+    "bandeau contact",
+    "infos pratiques",
+    "coordonnées",
+    "horaires",
+    "bas de page"
+  ],
+  "data": {
+    "name": "hours",
+    "family": "collection"
+  }
+}

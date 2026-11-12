@@ -1,0 +1,24 @@
+{
+  "name": "Dark newsletter band",
+  "kind": "newsletter",
+  "source": "upstart",
+  "description": "A dark band with a heading and sentence on one side and an email field with its button on the other, stacked on a phone.",
+  "tags": ["dark", "band", "inline", "email", "sign-up"],
+  "mood": ["dark", "bold"],
+  "synonyms": [
+    "newsletter",
+    "mailing list",
+    "email sign-up",
+    "subscribe",
+    "monthly news",
+    "lettre d’information",
+    "infolettre",
+    "inscription",
+    "s’abonner",
+    "liste de diffusion"
+  ],
+  "data": {
+    "name": "newsletter",
+    "family": "collection"
+  }
+}

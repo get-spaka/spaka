@@ -1,0 +1,21 @@
+{
+  "name": "Contact form in a card",
+  "kind": "forms",
+  "source": "hyperui",
+  "description": "A plain contact form under a centered heading: name, email and phone side by side, a message box and a full-width send button, in a white card on a soft background.",
+  "tags": ["contact", "form", "card", "message", "centered"],
+  "mood": ["minimal", "professional"],
+  "synonyms": [
+    "contact us",
+    "get in touch",
+    "send a message",
+    "enquiry form",
+    "inquiry",
+    "formulaire de contact",
+    "nous contacter",
+    "écrivez-nous",
+    "envoyer un message",
+    "demande de renseignements"
+  ],
+  "data": { "name": "contact", "family": "collection" }
+}

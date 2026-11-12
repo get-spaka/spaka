@@ -1,0 +1,91 @@
+<section class="bg-base-100 text-base-content">
+  <div class="mx-auto max-w-3xl px-4 py-16 md:py-24">
+    <div class="text-center">
+      <h2 class="text-3xl font-bold text-balance md:text-4xl">Request an appointment</h2>
+      <p class="mt-4 text-pretty text-base-content/70">Pick what you need and when suits you. We will confirm a time with you by email or phone.</p>
+    </div>
+    <form hx-post="/_data/bookings" hx-target="this" hx-swap="outerHTML" hx-status:422="target:#forms-booking-appointment-problems swap:innerHTML" class="mt-12 flex flex-col gap-10">
+      <fieldset>
+        <legend class="flex items-center gap-3 text-lg font-semibold">
+          <span class="flex size-8 items-center justify-center rounded-full bg-primary text-sm text-primary-content">1</span>
+          Choose a service
+        </legend>
+        <div class="mt-4 grid gap-3 sm:grid-cols-2">
+          <label class="flex cursor-pointer items-start gap-3 rounded-box border border-base-300 p-4 has-checked:border-primary has-checked:bg-base-200">
+            <input type="radio" name="service" value="Consultation" class="radio radio-primary mt-0.5" checked>
+            <span>
+              <span class="block font-semibold">Consultation</span>
+              <span class="block text-sm text-base-content/70">A first talk about what you need, 30 minutes</span>
+            </span>
+          </label>
+          <label class="flex cursor-pointer items-start gap-3 rounded-box border border-base-300 p-4 has-checked:border-primary has-checked:bg-base-200">
+            <input type="radio" name="service" value="Standard appointment" class="radio radio-primary mt-0.5">
+            <span>
+              <span class="block font-semibold">Standard appointment</span>
+              <span class="block text-sm text-base-content/70">Our usual session, about one hour</span>
+            </span>
+          </label>
+          <label class="flex cursor-pointer items-start gap-3 rounded-box border border-base-300 p-4 has-checked:border-primary has-checked:bg-base-200">
+            <input type="radio" name="service" value="Follow-up visit" class="radio radio-primary mt-0.5">
+            <span>
+              <span class="block font-semibold">Follow-up visit</span>
+              <span class="block text-sm text-base-content/70">For customers we have already seen, 45 minutes</span>
+            </span>
+          </label>
+          <label class="flex cursor-pointer items-start gap-3 rounded-box border border-base-300 p-4 has-checked:border-primary has-checked:bg-base-200">
+            <input type="radio" name="service" value="Something else" class="radio radio-primary mt-0.5">
+            <span>
+              <span class="block font-semibold">Something else</span>
+              <span class="block text-sm text-base-content/70">Tell us about it below</span>
+            </span>
+          </label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend class="flex items-center gap-3 text-lg font-semibold">
+          <span class="flex size-8 items-center justify-center rounded-full bg-primary text-sm text-primary-content">2</span>
+          Pick a day
+        </legend>
+        <div class="mt-2 grid gap-x-4 sm:grid-cols-2">
+          <fieldset class="fieldset">
+            <legend class="fieldset-legend">Date</legend>
+            <input name="date" type="date" class="input input-bordered w-full" required>
+          </fieldset>
+          <fieldset class="fieldset">
+            <legend class="fieldset-legend">Preferred time <span class="font-normal text-base-content/70">(optional)</span></legend>
+            <input name="time" type="time" class="input input-bordered w-full" min="09:00" max="18:00" step="900">
+          </fieldset>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend class="flex items-center gap-3 text-lg font-semibold">
+          <span class="flex size-8 items-center justify-center rounded-full bg-primary text-sm text-primary-content">3</span>
+          Your details
+        </legend>
+        <div class="mt-2 grid gap-x-4 sm:grid-cols-2">
+          <fieldset class="fieldset sm:col-span-2">
+            <legend class="fieldset-legend">Your name</legend>
+            <input name="name" type="text" class="input input-bordered w-full" required maxlength="200" autocomplete="name">
+          </fieldset>
+          <fieldset class="fieldset">
+            <legend class="fieldset-legend">Your email</legend>
+            <input name="email" type="email" class="input input-bordered w-full" required maxlength="200" autocomplete="email">
+          </fieldset>
+          <fieldset class="fieldset">
+            <legend class="fieldset-legend">Your phone <span class="font-normal text-base-content/70">(optional)</span></legend>
+            <input name="phone" type="tel" class="input input-bordered w-full" maxlength="30" autocomplete="tel">
+          </fieldset>
+          <fieldset class="fieldset sm:col-span-2">
+            <legend class="fieldset-legend">Anything we should know <span class="font-normal text-base-content/70">(optional)</span></legend>
+            <textarea name="message" class="textarea textarea-bordered w-full" rows="4" maxlength="2000"></textarea>
+          </fieldset>
+        </div>
+      </fieldset>
+      <div id="forms-booking-appointment-problems"></div>
+      <div class="flex flex-col items-center gap-3 border-t border-base-300 pt-8 text-center">
+        <button type="submit" class="btn btn-primary btn-wide">Send my request</button>
+        <p class="text-sm text-base-content/70">Nothing is charged now. You can change or cancel at any time.</p>
+      </div>
+    </form>
+  </div>
+</section>

@@ -1,0 +1,19 @@
+<section class="border-y border-base-300 bg-base-200 text-base-content">
+  <div class="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-6 md:flex-row md:items-center md:justify-between">
+    <div class="flex items-center gap-3">
+      <svg class="size-6 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+      <div>
+        <h2 class="font-semibold">Get our news by email</h2>
+        <p class="text-sm text-base-content/70">Once a month. Unsubscribe at any time.</p>
+      </div>
+    </div>
+    <form hx-post="/_data/newsletter" hx-target="this" hx-swap="outerHTML" hx-status:422="target:#newsletter-compact-strip-problems swap:innerHTML" class="w-full md:max-w-sm">
+      <div class="join w-full">
+        <label class="sr-only" for="newsletter-compact-strip-email">Email address</label>
+        <input id="newsletter-compact-strip-email" name="email" type="email" required maxlength="200" autocomplete="email" placeholder="you@example.com" class="input input-sm join-item w-full" />
+        <button type="submit" class="btn btn-primary btn-sm join-item">Subscribe</button>
+      </div>
+      <div id="newsletter-compact-strip-problems" class="mt-2"></div>
+    </form>
+  </div>
+</section>

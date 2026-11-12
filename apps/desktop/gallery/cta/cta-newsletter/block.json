@@ -2,7 +2,7 @@
   "name": "Newsletter signup",
   "kind": "cta",
   "source": "hyperui",
-  "description": "A centred heading and sentence above an email field joined to a subscribe button, with a short privacy note underneath.",
+  "description": "A centered heading and sentence above an email field joined to a subscribe button that signs visitors up to the site's newsletter, with a short privacy note underneath.",
   "tags": ["newsletter", "email", "form", "centered", "subscribe"],
   "mood": ["minimal", "friendly"],
   "synonyms": [
@@ -21,5 +21,9 @@
     "subscribe",
     "lettre d’information",
     "abonnement"
-  ]
+  ],
+  "data": {
+    "name": "newsletter",
+    "family": "collection"
+  }
 }

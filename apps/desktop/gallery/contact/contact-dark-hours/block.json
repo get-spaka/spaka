@@ -1,0 +1,24 @@
+{
+  "name": "Dark band with hours and directions",
+  "kind": "contact",
+  "source": "upstart",
+  "description": "A dark band with a big heading, the address and phone number and a Get directions button on one side, and the opening hours listed day by day, with their notes, on the other.",
+  "tags": ["opening hours", "directions", "dark band", "address", "visit"],
+  "mood": ["dark", "bold"],
+  "synonyms": [
+    "visit us",
+    "we are open",
+    "opening times",
+    "how to find us",
+    "directions",
+    "venez nous voir",
+    "horaires",
+    "itinéraire",
+    "accès",
+    "nous rendre visite"
+  ],
+  "data": {
+    "name": "hours",
+    "family": "collection"
+  }
+}

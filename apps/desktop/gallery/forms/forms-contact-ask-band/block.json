@@ -1,0 +1,21 @@
+{
+  "name": "Ask us anything band",
+  "kind": "forms",
+  "source": "upstart",
+  "description": "A short question form on a band of the main color: an Ask us anything heading with a speech bubble icon on the left, name, email and a small question box with a dark button on the right.",
+  "tags": ["contact", "question", "band", "short form", "colored"],
+  "mood": ["bold", "colorful", "friendly"],
+  "synonyms": [
+    "ask a question",
+    "quick contact",
+    "questions",
+    "help",
+    "contact strip",
+    "poser une question",
+    "une question ?",
+    "contact rapide",
+    "demande",
+    "besoin d'aide"
+  ],
+  "data": { "name": "contact", "family": "collection" }
+}

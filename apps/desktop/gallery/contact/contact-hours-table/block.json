@@ -1,0 +1,24 @@
+{
+  "name": "Opening hours table",
+  "kind": "contact",
+  "source": "upstart",
+  "description": "A clean table of opening hours, one row per day with its hours on the right and an optional note below the day, beside a short introduction with the address, phone number and email.",
+  "tags": ["opening hours", "table", "address", "phone", "email"],
+  "mood": ["minimal", "elegant"],
+  "synonyms": [
+    "opening times",
+    "business hours",
+    "store hours",
+    "when we are open",
+    "schedule",
+    "horaires",
+    "horaires d’ouverture",
+    "heures d’ouverture",
+    "jours d’ouverture",
+    "planning"
+  ],
+  "data": {
+    "name": "hours",
+    "family": "collection"
+  }
+}

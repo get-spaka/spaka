@@ -1,0 +1,24 @@
+{
+  "name": "Centered newsletter sign-up",
+  "kind": "newsletter",
+  "source": "hyperui",
+  "description": "A centered sign-up on a soft gradient band: a small eyebrow, a large heading and sentence above a big email field joined to its button, with three ticked promises underneath.",
+  "tags": ["centered", "email", "join", "gradient", "sign-up"],
+  "mood": ["friendly", "colorful"],
+  "synonyms": [
+    "newsletter",
+    "mailing list",
+    "email sign-up",
+    "subscribe",
+    "stay in touch",
+    "lettre d’information",
+    "infolettre",
+    "inscription",
+    "s’abonner",
+    "liste de diffusion"
+  ],
+  "data": {
+    "name": "newsletter",
+    "family": "collection"
+  }
+}

@@ -29,9 +29,17 @@ Upstart ships a gallery of blocks: sections written for daisyUI and the theme, r
 
 A block that repeats something (questions, plans, team members, posts, dishes, links) reads a datasource, and `use_block` writes it with the gallery's sample records:
 
-- **A collection** (`data.team`, `data.services`, `data.menu`, `data.blog`, `data.products`, `data.events`, `data.testimonials`) is shared by the whole site under that name. If `data/<name>/` exists already, it is reused: its records kept, only the fields the block needs added to its definition.
+- **A collection** (`data.team`, `data.services`, `data.menu`, `data.blog`, `data.products`, `data.events`, `data.testimonials`, `data.gallery`, `data.hours` for the opening hours) is shared by the whole site under that name. If `data/<name>/` exists already, it is reused: its records kept, only the fields the block needs added to its definition.
 - **A list of one section** (questions, plans, features, key figures, steps) belongs to its page and is named after it: `data/home-faq/` on the home page, `data/services-faq/` on /services, read as `data["home-faq"]` in the part.
 - **Replace every sample with this site's own records**: rewrite them, add records, delete those you do not need, and adapt the definition's labels to the site. None may stay as the gallery wrote it: before your turn ends, Upstart names those left.
+
+## A form
+
+A form block (contact, booking, guestbook, reviews, newsletter) brings a collected datasource, which visitors fill: `use_block` writes its definition, the fragment it answers a valid submission with, and, for a guestbook or reviews that the page shows, test records in `.upstart/test-records/`, which the preview shows and the site never publishes.
+
+- Write in the site's language the definition's `label`s and `messages`, the form's legends and button, and the answer fragment.
+- Rewrite the test records like samples, in the site's language. A contact, booking or newsletter form has none: the maker tries it in the preview's visitor view.
+- Keep the form's `hx-post`, `hx-target`, `hx-swap` and `hx-status:422`, and its inputs' names: they are what Upstart collects.
 
 ## A page per record
 

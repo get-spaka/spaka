@@ -1,0 +1,20 @@
+{
+  "name": "Call, write or visit cards",
+  "kind": "contact",
+  "source": "meraki-ui",
+  "description": "Three colored cards side by side, one to call with the phone number, one to write with the email address and one to visit with the street address and a directions link, each with a big icon.",
+  "tags": ["cards", "phone", "email", "address", "three columns"],
+  "mood": ["friendly", "colorful"],
+  "synonyms": [
+    "contact cards",
+    "reach us",
+    "get in touch",
+    "call us",
+    "email us",
+    "nous joindre",
+    "appelez-nous",
+    "écrivez-nous",
+    "venez nous voir",
+    "contact"
+  ]
+}

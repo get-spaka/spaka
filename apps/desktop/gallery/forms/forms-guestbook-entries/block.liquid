@@ -1,0 +1,59 @@
+<section class="bg-base-100 text-base-content">
+  <div class="mx-auto max-w-6xl px-4 py-16 md:py-24">
+    <div class="max-w-2xl">
+      <h2 class="text-3xl font-bold text-balance md:text-4xl">Our guestbook</h2>
+      <p class="mt-4 text-pretty text-base-content/70">Kind words from the people who have visited us. Leave yours too: we read every one.</p>
+    </div>
+    <div class="mt-12 grid gap-10 lg:grid-cols-3 lg:gap-12">
+      <ol class="flex flex-col gap-4 lg:col-span-2">
+        {% for entry in data.guestbook limit: 8 %}
+          <li class="rounded-box border border-base-300 p-6">
+            <div class="flex items-center gap-4">
+              <div class="avatar avatar-placeholder">
+                <div class="size-11 rounded-full bg-neutral text-neutral-content">
+                  <span class="font-semibold" aria-hidden="true">{{ entry.name | slice: 0 }}</span>
+                </div>
+              </div>
+              <div class="min-w-0">
+                <p class="font-semibold">{{ entry.name }}</p>
+                <p class="text-sm text-base-content/70">
+                  {% if entry.place != blank %}<span>{{ entry.place }}</span> · {% endif %}<time datetime="{{ entry.submitted }}">{{ entry.submitted | date: "%B %-d, %Y" }}</time>
+                </p>
+              </div>
+            </div>
+            <div class="mt-4 space-y-3 text-pretty text-base-content/80">{{ entry.message }}</div>
+          </li>
+        {% else %}
+          <li class="rounded-box border border-dashed border-base-300 p-8 text-center text-base-content/70">No one has signed yet. Be the first!</li>
+        {% endfor %}
+      </ol>
+      <div>
+        <form hx-post="/_data/guestbook" hx-target="this" hx-swap="outerHTML" hx-status:422="target:#forms-guestbook-entries-problems swap:innerHTML" class="flex flex-col gap-1 rounded-box bg-base-200 p-6">
+          <h3 class="flex items-center gap-2 text-xl font-semibold">
+            <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/></svg>
+            Sign the guestbook
+          </h3>
+          <fieldset class="fieldset">
+            <legend class="fieldset-legend">Your name</legend>
+            <input name="name" type="text" class="input input-bordered w-full" required maxlength="100" autocomplete="name">
+          </fieldset>
+          <fieldset class="fieldset">
+            <legend class="fieldset-legend">Where you're from <span class="font-normal text-base-content/70">(optional)</span></legend>
+            <input name="place" type="text" class="input input-bordered w-full" maxlength="100">
+          </fieldset>
+          <fieldset class="fieldset">
+            <legend class="fieldset-legend">Your email <span class="font-normal text-base-content/70">(optional, never shown)</span></legend>
+            <input name="email" type="email" class="input input-bordered w-full" maxlength="200" autocomplete="email">
+          </fieldset>
+          <fieldset class="fieldset">
+            <legend class="fieldset-legend">Your message</legend>
+            <textarea name="message" class="textarea textarea-bordered w-full" rows="4" required maxlength="1500"></textarea>
+          </fieldset>
+          <div id="forms-guestbook-entries-problems"></div>
+          <button type="submit" class="btn btn-primary mt-3">Sign the guestbook</button>
+          <p class="mt-2 text-sm text-base-content/70">Messages appear once we have read them.</p>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>

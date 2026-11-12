@@ -1,0 +1,20 @@
+{
+  "name": "Two locations side by side",
+  "kind": "contact",
+  "source": "upstart",
+  "description": "Two locations in two columns, each a card with a map placeholder on top, the shop's name, address, phone number, email, a practical note and a Get directions button.",
+  "tags": ["locations", "several shops", "branches", "map", "address", "two columns"],
+  "mood": ["professional", "elegant"],
+  "synonyms": [
+    "our locations",
+    "our shops",
+    "branches",
+    "stores",
+    "offices",
+    "nos boutiques",
+    "nos adresses",
+    "magasins",
+    "agences",
+    "points de vente"
+  ]
+}

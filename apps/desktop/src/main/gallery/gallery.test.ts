@@ -5,10 +5,10 @@
 // records read — and renders with no note from the runtime once dropped.
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { Datasources, memorySource, Runtime, sections } from "@upstart/runtime";
+import { Datasources, memorySource, Runtime, sections, TEST_RECORDS_DIR } from "@upstart/runtime";
 import { describe, expect, test } from "vitest";
 import { BLOCK_KINDS } from "../../shared/ipc";
-import { dropData } from "../editing/data-drop";
+import { dropData, isCollected } from "../editing/data-drop";
 import { BLOCK_SOURCES, type Block, readGallery } from "./catalogue";
 
 const GALLERY = join(__dirname, "../../../gallery");
@@ -40,12 +40,31 @@ function dropped(b: Block): Record<string, string> {
   };
   if (b.data && b.datasource) {
     files[`data/${b.data.name}/_datasource.yaml`] = b.datasource.definition;
-    for (const [file, text] of Object.entries(b.datasource.records)) files[`data/${b.data.name}/${file}`] = text;
+    // A form's samples are the preview's test records (Q182).
+    const records = isCollected(b.datasource.definition) ? `${TEST_RECORDS_DIR}/${b.data.name}` : `data/${b.data.name}`;
+    for (const [file, text] of Object.entries(b.datasource.records)) files[`${records}/${file}`] = text;
   }
   if (b.data && b.detail) {
     files[`pages/${b.data.name}/[${b.data.name}].liquid`] = `<!doctype html><html><body>${b.detail}</body></html>`;
   }
+  for (const [file, text] of Object.entries(b.fragments ?? {})) files[`fragments/${file}`] = text;
   return files;
+}
+
+/** A project's runtime, its test records read from where the app keeps them. */
+function runtimeOf(files: Record<string, string>): Runtime {
+  const prefix = `${TEST_RECORDS_DIR}/`;
+  const tests = Object.fromEntries(
+    Object.entries(files)
+      .filter(([f]) => f.startsWith(prefix))
+      .map(([f, text]) => [f.slice(prefix.length), text]),
+  );
+  return new Runtime(memorySource(files), { testRecords: memorySource(tests) });
+}
+
+/** The datasources a form posts to: `hx-post="/_data/contact"`. */
+function postsTo(source: string): string[] {
+  return [...new Set([...source.matchAll(/\/_data\/([a-z0-9][\w-]*)/g)].map((m) => m[1]!))];
 }
 
 /** The datasources a template reads: `data.team`, `data["home-faq"]`. */
@@ -117,9 +136,14 @@ describe.each(blocks.map((b) => [b.id, b] as const))("%s", (_id, b) => {
     if (!b.data) {
       expect(b.source).not.toMatch(/\{\{|\{%|<img/);
       expect(b.detail).toBeUndefined();
+      // A form posts to its collected datasource, which it brings: it is a data block.
+      expect(postsTo(b.source)).toEqual([]);
       return;
     }
-    expect(readsData(b.source)).toEqual([b.data.name]);
+    // It reads its own datasource, or, a form, posts to it; nothing else.
+    const reads = readsData(b.source);
+    const posts = postsTo(b.source);
+    expect([...new Set([...reads, ...posts])]).toEqual([b.data.name]);
     // Only what Liquid's forloop has: forloop.even is nothing, and false.
     for (const m of `${b.source}${b.detail ?? ""}`.matchAll(/\bforloop\.(\w+)/g))
       expect(["index", "index0", "rindex", "rindex0", "first", "last", "length"]).toContain(m[1]);
@@ -146,6 +170,47 @@ describe.each(blocks.map((b) => [b.id, b] as const))("%s", (_id, b) => {
     expect(ds?.records).toHaveLength(ds?.definition?.collected ? 0 : count);
   });
 
+  test.runIf(!!b.datasource && isCollected(b.datasource.definition))(
+    "a form: a collection posting to itself, its problems shown in the block, answered with its own fragment (Q194)",
+    () => {
+      const name = b.data!.name;
+      expect(b.data!.family).toBe("collection");
+      const ds = new Datasources(memorySource(dropped(b))).get(name)!;
+      const definition = ds.definition!;
+      // Every field labeled, in the site's language once the agent rewrites it.
+      for (const field of definition.fields) expect(field.label, field.name).toBeTruthy();
+      for (const form of b.source.matchAll(/<form\b[^>]*>/g)) {
+        expect(form[0]).toContain(`hx-post="/_data/${name}"`);
+        expect(form[0]).toContain('hx-target="this"');
+        expect(form[0]).toContain('hx-swap="outerHTML"');
+        // The alert of a wrong submission goes into an element of the block, named after it.
+        const target = /hx-status:422="target:#([\w-]+)/.exec(form[0])?.[1];
+        expect(target, "hx-status:422 target").toBeTruthy();
+        expect(target).toContain(b.id);
+        expect(b.source).toContain(`id="${target}"`);
+      }
+      // Each input sends a field of the definition, and each required field has its input.
+      const sent = new Set(
+        [...b.source.matchAll(/<(?:input|textarea|select)\b[^>]*\sname="([\w-]+)"/g)].map((m) => m[1]),
+      );
+      for (const field of sent) expect(definition.fields.map((f) => f.name)).toContain(field);
+      for (const field of definition.fields.filter((f) => f.required)) expect([...sent]).toContain(field.name);
+      // Its answer is a fragment it brings, which renders with a record.
+      if (definition.answer) {
+        expect(Object.keys(b.fragments ?? {})).toContain(`${definition.answer}.liquid`);
+        const record = Object.fromEntries(definition.fields.map((f) => [f.name, f.kind === "boolean" ? true : "Sam"]));
+        const answer = runtimeOf(dropped(b)).renderFragment(definition.answer, { record, params: {} });
+        expect(answer.status).toBe(200);
+        expect(answer.notes).toEqual([]);
+      }
+      // Test records only where a page shows them (Q182): a contact form has none.
+      const count = Object.keys(b.datasource!.records).length;
+      if (readsData(b.source).includes(name)) expect(count).toBeGreaterThanOrEqual(3);
+      else expect(count).toBe(0);
+      for (const text of Object.values(b.datasource!.records)) expect(text).toMatch(/^submitted:\s*\S+/m);
+    },
+  );
+
   test.runIf(!!b.data)("renders with no note once dropped as the app drops it, under its page's name", () => {
     const files: Record<string, string> = {
       "pages/services.liquid":
@@ -162,10 +227,11 @@ describe.each(blocks.map((b) => [b.id, b] as const))("%s", (_id, b) => {
       "</body>",
       `{% render '${b.id}' %}</body>`,
     );
-    const runtime = new Runtime(memorySource(files));
+    const runtime = runtimeOf(files);
     const result = runtime.renderRoute("/services");
     expect(result.notes).toEqual([]);
-    expect(result.datasources).toContain(drop.datasource);
+    // A form no page shows the records of is read by no page: it posts to its datasource.
+    if (readsData(b.source).length) expect(result.datasources).toContain(drop.datasource);
     if (drop.recordPage) {
       const first = Object.keys(files).find((f) => f.startsWith(`data/${drop.datasource}/`) && f.endsWith(".md"))!;
       const page = runtime.renderRoute(`/${drop.datasource}/${first.split("/").at(-1)!.replace(/\.md$/, "")}`);
@@ -174,7 +240,7 @@ describe.each(blocks.map((b) => [b.id, b] as const))("%s", (_id, b) => {
   });
 
   test("renders with no note once dropped as a part", () => {
-    const runtime = new Runtime(memorySource(dropped(b)));
+    const runtime = runtimeOf(dropped(b));
     const result = runtime.renderRoute("/");
     expect(result.status).toBe(200);
     expect(result.notes).toEqual([]);

@@ -1,0 +1,21 @@
+{
+  "name": "Table booking",
+  "kind": "forms",
+  "source": "upstart",
+  "description": "A restaurant table booking in one card: the opening hours on a dark panel on the left, and on the right a form with the date, a time list, the number of guests, name, phone, email and a box for allergies or an occasion.",
+  "tags": ["booking", "reservation", "restaurant", "table", "opening hours"],
+  "mood": ["warm", "elegant"],
+  "synonyms": [
+    "book a table",
+    "reservation",
+    "reserve",
+    "restaurant booking",
+    "dinner booking",
+    "réserver une table",
+    "réservation",
+    "réserver",
+    "nombre de couverts",
+    "réservation restaurant"
+  ],
+  "data": { "name": "bookings", "family": "collection" }
+}

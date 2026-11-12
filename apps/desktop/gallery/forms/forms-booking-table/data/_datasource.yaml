@@ -1,0 +1,38 @@
+label: Bookings
+collected: true
+answer: bookings-thanks
+body: message
+messages:
+  required: "{field} is required."
+  invalid: "{field} doesn't look right. Please check it."
+  too_many: "Too many requests were sent from here. Please try again in a few minutes."
+  sent: "Thank you, your request was sent."
+fields:
+  - name: name
+    label: Your name
+    kind: text
+    required: true
+  - name: email
+    label: Your email
+    kind: email
+    required: true
+  - name: phone
+    label: Your phone
+    kind: phone
+  - name: date
+    label: Date
+    kind: date
+    required: true
+  - name: time
+    label: Time
+    kind: text
+  - name: guests
+    label: Number of guests
+    kind: number
+  - name: service
+    label: Service
+    kind: choice
+    choices: [Consultation, Standard appointment, Follow-up visit, Something else]
+  - name: message
+    label: Anything we should know
+    kind: markdown

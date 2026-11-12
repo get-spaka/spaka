@@ -5,6 +5,7 @@
 import { createSdkMcpServer, tool } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
 import { BLOCK_KINDS } from "../../shared/ipc";
+import { isCollected } from "../editing/data-drop";
 import type { Placing } from "../editing/place-blocks";
 import type { Block } from "../gallery/catalogue";
 
@@ -61,9 +62,11 @@ No block of the gallery fits: write this section yourself.`;
           about.push(
             b.data.name === "navigation"
               ? "It reads the site's navigation."
-              : b.data.family === "collection"
-                ? `It lists the collection ${b.data.name}, shared by the whole site${b.detail ? ", with a page per record" : ""}.`
-                : `It lists ${b.data.name}, a list of this section of its own.`,
+              : b.datasource && isCollected(b.datasource.definition)
+                ? `It is a form: what visitors send is collected in ${b.data.name}.`
+                : b.data.family === "collection"
+                  ? `It lists the collection ${b.data.name}, shared by the whole site${b.detail ? ", with a page per record" : ""}.`
+                  : `It lists ${b.data.name}, a list of this section of its own.`,
           );
         return `${head}\n  ${about.join(" ")}`;
       }),

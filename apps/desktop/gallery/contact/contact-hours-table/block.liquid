@@ -1,0 +1,46 @@
+<section class="bg-base-100 text-base-content">
+  <div class="mx-auto max-w-5xl px-4 py-16 md:py-24">
+    <div class="grid gap-12 md:grid-cols-5 md:gap-16">
+      <div class="md:col-span-2">
+        <h2 class="text-3xl font-bold text-balance md:text-4xl">Opening hours</h2>
+        <p class="mt-4 text-pretty text-base-content/70">Our doors are open six days a week. If you are coming from afar, a quick call the day before never hurts.</p>
+        <ul class="mt-8 space-y-4">
+          <li class="flex items-start gap-3">
+            <svg class="mt-0.5 size-5 shrink-0 text-base-content/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
+            <address class="not-italic">12 Market Street<br>Old Town, 10115</address>
+          </li>
+          <li class="flex items-center gap-3">
+            <svg class="size-5 shrink-0 text-base-content/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"/></svg>
+            <a href="tel:+15550100200" class="link link-hover">+1 555 010 0200</a>
+          </li>
+          <li class="flex items-center gap-3">
+            <svg class="size-5 shrink-0 text-base-content/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            <a href="mailto:hello@yourbusiness.com" class="link link-hover break-all">hello@yourbusiness.com</a>
+          </li>
+        </ul>
+      </div>
+      <div class="md:col-span-3">
+        <table class="table">
+          <caption class="sr-only">Opening hours by day</caption>
+          <thead>
+            <tr class="border-base-300">
+              <th scope="col" class="px-0 text-base-content/70">Day</th>
+              <th scope="col" class="px-0 text-right text-base-content/70">Hours</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in data.hours %}
+              <tr class="border-base-300">
+                <th scope="row" class="px-0 py-4 align-top font-semibold">
+                  {{ item.day }}
+                  {% if item.note %}<span class="mt-1 block text-sm font-normal text-base-content/70">{{ item.note }}</span>{% endif %}
+                </th>
+                <td class="px-0 py-4 text-right align-top tabular-nums">{{ item.hours }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>

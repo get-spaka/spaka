@@ -1,0 +1,53 @@
+<section class="bg-base-100 text-base-content">
+  <div class="mx-auto max-w-6xl px-4 py-16 md:py-24">
+    <div class="mx-auto max-w-2xl">
+      <div class="text-center">
+        <h2 class="text-3xl font-bold text-balance md:text-4xl">Choose what you hear about</h2>
+        <p class="mt-4 text-pretty text-base-content/70">Tell us your first name and what interests you, and we will only write about that.</p>
+      </div>
+      <form hx-post="/_data/newsletter" hx-target="this" hx-swap="outerHTML" hx-status:422="target:#newsletter-interests-problems swap:innerHTML" class="mt-10 rounded-box border border-base-300 bg-base-200 p-6 md:p-8">
+        <div class="grid gap-4 sm:grid-cols-2">
+          <fieldset class="fieldset">
+            <label class="fieldset-legend" for="newsletter-interests-name">First name</label>
+            <input id="newsletter-interests-name" name="name" type="text" maxlength="200" autocomplete="given-name" placeholder="Sam" class="input w-full" />
+          </fieldset>
+          <fieldset class="fieldset">
+            <label class="fieldset-legend" for="newsletter-interests-email">Email address</label>
+            <input id="newsletter-interests-email" name="email" type="email" required maxlength="200" autocomplete="email" placeholder="you@example.com" class="input w-full" />
+          </fieldset>
+        </div>
+        <fieldset class="fieldset mt-4">
+          <legend class="fieldset-legend">Topics</legend>
+          <div class="grid gap-3 sm:grid-cols-3">
+            <label class="flex cursor-pointer items-start gap-3 rounded-box border border-base-300 bg-base-100 p-4">
+              <input type="checkbox" name="topics" value="News" class="checkbox checkbox-primary mt-0.5" checked />
+              <span>
+                <span class="block font-medium">News</span>
+                <span class="block text-sm text-base-content/70">What is new at the shop</span>
+              </span>
+            </label>
+            <label class="flex cursor-pointer items-start gap-3 rounded-box border border-base-300 bg-base-100 p-4">
+              <input type="checkbox" name="topics" value="Offers" class="checkbox checkbox-primary mt-0.5" />
+              <span>
+                <span class="block font-medium">Offers</span>
+                <span class="block text-sm text-base-content/70">Deals for subscribers</span>
+              </span>
+            </label>
+            <label class="flex cursor-pointer items-start gap-3 rounded-box border border-base-300 bg-base-100 p-4">
+              <input type="checkbox" name="topics" value="Events" class="checkbox checkbox-primary mt-0.5" />
+              <span>
+                <span class="block font-medium">Events</span>
+                <span class="block text-sm text-base-content/70">Workshops and open days</span>
+              </span>
+            </label>
+          </div>
+        </fieldset>
+        <div id="newsletter-interests-problems" class="mt-4"></div>
+        <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p class="text-sm text-base-content/70">Change your topics or unsubscribe at any time.</p>
+          <button type="submit" class="btn btn-primary">Sign me up</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>

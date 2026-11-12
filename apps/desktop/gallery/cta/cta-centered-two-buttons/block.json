@@ -1,0 +1,20 @@
+{
+  "name": "Big centered call to action",
+  "kind": "cta",
+  "source": "meraki-ui",
+  "description": "A large centered headline with one highlighted phrase, a short paragraph and two buttons side by side, a filled one and an outlined one, on a plain background.",
+  "tags": ["centered", "headline", "two buttons", "simple", "large text"],
+  "mood": ["minimal", "bold", "professional"],
+  "synonyms": [
+    "call to action",
+    "get started",
+    "conversion",
+    "big headline",
+    "closing section",
+    "appel à l’action",
+    "passer à l’action",
+    "grand titre",
+    "commencer",
+    "deux boutons"
+  ]
+}

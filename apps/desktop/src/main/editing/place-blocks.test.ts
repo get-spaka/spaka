@@ -168,3 +168,40 @@ describe("another page", () => {
     ).toThrow(/No block nope/);
   });
 });
+
+test("a form brings its collected datasource, its samples as test records and its answer fragment (Q194, Q182)", () => {
+  const guestbook: DroppedBlock = {
+    id: "forms-guestbook",
+    kind: "forms",
+    source:
+      '<section>{% for entry in data.guestbook %}{{ entry.message }}{% endfor %}<form hx-post="/_data/guestbook"></form></section>',
+    data: { name: "guestbook", family: "collection" },
+    datasource: {
+      definition:
+        "label: Guestbook\ncollected: true\nanswer: guestbook-thanks\nfields:\n  - name: message\n    kind: markdown\n",
+      records: { "2026-11-02-0910-a1b2.md": "---\nsubmitted: 2026-11-02T09:10:00Z\n---\nLovely place.\n" },
+    },
+    fragments: { "guestbook-thanks.liquid": '<div class="alert alert-success">Thank you!</div>' },
+  };
+  const placed = placeBlocks(
+    { page: "pages/index.liquid", blocks: [{ block: guestbook.id, name: "guestbook" }] },
+    view({ "pages/index.liquid": "<html><body>\n</body></html>", "fragments/other.liquid": "x" }),
+    (id) => (id === guestbook.id ? guestbook : undefined),
+  );
+  expect(placed.writes["data/guestbook/_datasource.yaml"]).toContain("collected: true");
+  expect(placed.writes[".upstart/test-records/guestbook/2026-11-02-0910-a1b2.md"]).toContain("Lovely place.");
+  expect(placed.writes["data/guestbook/2026-11-02-0910-a1b2.md"]).toBeUndefined();
+  expect(placed.writes["fragments/guestbook-thanks.liquid"]).toContain("Thank you!");
+  expect(placed.samples).toEqual([".upstart/test-records/guestbook/2026-11-02-0910-a1b2.md"]);
+  const text = placedAnswer({ page: "pages/index.liquid", blocks: [] }, placed);
+  expect(text).toContain("a form: what visitors send goes to data/guestbook/");
+  expect(text).toContain("answered with fragments/guestbook-thanks.liquid");
+  expect(text).toContain("its definition's labels and messages");
+  // A fragment the site has already is kept.
+  const again = placeBlocks(
+    { page: "pages/index.liquid", blocks: [{ block: guestbook.id, name: "guestbook" }] },
+    view({ "pages/index.liquid": "<html><body>\n</body></html>", "fragments/guestbook-thanks.liquid": "mine" }),
+    (id) => (id === guestbook.id ? guestbook : undefined),
+  );
+  expect(again.writes["fragments/guestbook-thanks.liquid"]).toBeUndefined();
+});

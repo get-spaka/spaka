@@ -1,0 +1,26 @@
+label: Reviews
+collected: true
+review: true
+answer: reviews-thanks
+body: message
+messages:
+  required: "{field} is required."
+  invalid: "{field} doesn't look right. Please check it."
+  too_many: "Too many reviews were sent from here. Please try again in a few minutes."
+  sent: "Thank you for your review."
+fields:
+  - name: name
+    label: Your name
+    kind: text
+    required: true
+  - name: rating
+    label: Your rating
+    kind: number
+    required: true
+  - name: title
+    label: A title for your review
+    kind: text
+  - name: message
+    label: Your review
+    kind: markdown
+    required: true

@@ -1,0 +1,90 @@
+<section class="bg-base-100 text-base-content">
+  <div class="mx-auto grid max-w-5xl gap-10 px-4 py-16 md:grid-cols-3 md:py-20">
+    {% assign count = data.reviews | size %}
+    {% assign total = 0 %}
+    {% for review in data.reviews %}{% assign total = total | plus: review.rating %}{% endfor %}
+    <div>
+      <h2 class="text-2xl font-bold">Reviews</h2>
+      {% if count > 0 %}
+        {% assign average = total | divided_by: count | round: 1 %}
+        {% assign rounded = average | round %}
+        <div class="mt-4 flex items-end gap-3">
+          <p class="text-5xl font-bold">{{ average }}</p>
+          <p class="pb-1 text-base-content/70">out of 5</p>
+        </div>
+        <div class="mt-2 flex items-center gap-1 text-warning">
+          <span class="sr-only">Rated {{ average }} out of 5</span>
+          {% for i in (1..5) %}
+            <svg class="size-5" viewBox="0 0 24 24" fill="{% if i <= rounded %}currentColor{% else %}none{% endif %}" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>
+          {% endfor %}
+        </div>
+        <p class="mt-2 text-sm text-base-content/70">Based on {{ count }} {% if count == 1 %}review{% else %}reviews{% endif %}</p>
+        <dl class="mt-6 space-y-2">
+          {% for stars in (1..5) reversed %}
+            {% assign given = data.reviews | where: "rating", stars | size %}
+            <div class="flex items-center gap-3 text-sm">
+              <dt class="w-14 shrink-0">{{ stars }} {% if stars == 1 %}star{% else %}stars{% endif %}</dt>
+              <dd class="flex flex-1 items-center gap-3">
+                <progress class="progress progress-warning w-full" value="{{ given }}" max="{{ count }}"></progress>
+                <span class="w-4 text-right text-base-content/70">{{ given }}</span>
+              </dd>
+            </div>
+          {% endfor %}
+        </dl>
+      {% else %}
+        <p class="mt-4 text-base-content/70">No reviews yet. Yours could be the first.</p>
+      {% endif %}
+    </div>
+    <div class="md:col-span-2">
+      <h3 class="text-sm font-semibold tracking-wider uppercase text-base-content/70">Latest reviews</h3>
+      <ul class="mt-2 divide-y divide-base-300">
+        {% for review in data.reviews limit: 3 %}
+          <li class="py-5">
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <div class="flex items-center gap-0.5 text-warning">
+                <span class="sr-only">Rated {{ review.rating }} out of 5</span>
+                {% for i in (1..5) %}
+                  <svg class="size-4" viewBox="0 0 24 24" fill="{% if i <= review.rating %}currentColor{% else %}none{% endif %}" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>
+                {% endfor %}
+              </div>
+              {% if review.title != blank %}<p class="font-semibold">{{ review.title }}</p>{% endif %}
+            </div>
+            <div class="mt-2 space-y-2 text-pretty text-base-content/80">{{ review.message }}</div>
+            <p class="mt-2 text-sm text-base-content/70">{{ review.name }} · <time datetime="{{ review.submitted }}">{{ review.submitted | date: "%B %-d, %Y" }}</time></p>
+          </li>
+        {% endfor %}
+      </ul>
+      <details class="collapse collapse-arrow mt-4 border border-base-300 bg-base-200">
+        <summary class="collapse-title font-semibold">Write a review</summary>
+        <div class="collapse-content">
+          <form hx-post="/_data/reviews" hx-target="this" hx-swap="outerHTML" hx-status:422="target:#forms-reviews-summary-problems swap:innerHTML" class="flex flex-col gap-1">
+            <fieldset class="fieldset">
+              <legend class="fieldset-legend">Your rating</legend>
+              <div class="rating gap-1">
+                <input type="radio" name="rating" value="1" id="forms-reviews-summary-rating-1" class="mask mask-star-2 bg-warning" aria-label="1 star out of 5" required>
+                <input type="radio" name="rating" value="2" id="forms-reviews-summary-rating-2" class="mask mask-star-2 bg-warning" aria-label="2 stars out of 5">
+                <input type="radio" name="rating" value="3" id="forms-reviews-summary-rating-3" class="mask mask-star-2 bg-warning" aria-label="3 stars out of 5">
+                <input type="radio" name="rating" value="4" id="forms-reviews-summary-rating-4" class="mask mask-star-2 bg-warning" aria-label="4 stars out of 5">
+                <input type="radio" name="rating" value="5" id="forms-reviews-summary-rating-5" class="mask mask-star-2 bg-warning" aria-label="5 stars out of 5">
+              </div>
+            </fieldset>
+            <fieldset class="fieldset">
+              <legend class="fieldset-legend">Your name</legend>
+              <input name="name" type="text" class="input input-bordered w-full" required maxlength="100" autocomplete="name">
+            </fieldset>
+            <fieldset class="fieldset">
+              <legend class="fieldset-legend">A title for your review <span class="font-normal text-base-content/70">(optional)</span></legend>
+              <input name="title" type="text" class="input input-bordered w-full" maxlength="120">
+            </fieldset>
+            <fieldset class="fieldset">
+              <legend class="fieldset-legend">Your review</legend>
+              <textarea name="message" class="textarea textarea-bordered w-full" rows="4" required maxlength="3000"></textarea>
+            </fieldset>
+            <div id="forms-reviews-summary-problems"></div>
+            <button type="submit" class="btn btn-primary mt-3 self-start">Send my review</button>
+          </form>
+        </div>
+      </details>
+    </div>
+  </div>
+</section>

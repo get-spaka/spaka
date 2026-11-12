@@ -55,7 +55,8 @@ test("the answer for every kind of section at once stays short", async () => {
     BLOCK_KINDS.map((kind) => ({ kind, query: kind })),
     (q, kind, limit) => index.find(q, { kind, limit }),
   );
-  expect(text.length / 4).toBeLessThan(6_000);
+  // 24 kinds, three blocks each: well under the 25,000 tokens past which the agent's kit puts an answer in a file.
+  expect(text.length / 4).toBeLessThan(8_000);
 });
 
 test("a data block says what it lists: a collection, with its page per record, a section's own list, the navigation", () => {

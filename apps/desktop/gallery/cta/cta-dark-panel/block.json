@@ -1,0 +1,20 @@
+{
+  "name": "Dark panel with one button",
+  "kind": "cta",
+  "source": "mamba-ui",
+  "description": "A dark rounded panel with one short centered line in large type and a single button with an arrow, quiet and confident.",
+  "tags": ["dark background", "one button", "panel", "centered", "short"],
+  "mood": ["dark", "minimal", "elegant"],
+  "synonyms": [
+    "call to action",
+    "contact us",
+    "say hello",
+    "dark band",
+    "closing line",
+    "appel à l’action",
+    "contactez-nous",
+    "bandeau sombre",
+    "fond noir",
+    "dites bonjour"
+  ]
+}
