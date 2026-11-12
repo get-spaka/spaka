@@ -2,7 +2,7 @@
 // Q94): checks that the agent is not working, writes the file, takes a
 // snapshot for each action, and keeps a note of it for the agent's next
 // message. The text changes themselves are in edits.ts.
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, extname, join } from "node:path";
 import {
   Datasources,
@@ -32,6 +32,7 @@ import { en } from "../../shared/strings/en";
 import { addFile, addImage, mediaKind, replaceUses, slug, usesLabel, usesOf, usingFiles } from "../media/library";
 import type { ImageFinder } from "../media/search";
 import { testRecordFile } from "../preview/test-records";
+import { type DroppedBlock, dropData, type ProjectView } from "./data-drop";
 import {
   copyName,
   duplicateRange,
@@ -76,8 +77,8 @@ export type EditorDeps = {
   before: () => void;
   /** Called once a change is on the disk, with what it was, for the history and the agent. */
   changed: (change: { label: string; files: string[] }) => void;
-  /** A gallery block's kind and template (Q92). */
-  block: (id: string) => { kind: string; source: string } | undefined;
+  /** A gallery block: its kind and template (Q92), and for a data block its datasource and record page (Q194). */
+  block: (id: string) => DroppedBlock | undefined;
 };
 
 export class Editor {
@@ -369,12 +370,21 @@ export class Editor {
         if (!block) throw new EditRefused("This block is not in the gallery.");
         const taken = (n: string) => existsSync(this.abs(`parts/${n}.liquid`));
         const name = taken(action.block) ? copyName(action.block, taken) : action.block;
+        // Its datasource, its sample records, its record page, the site's navigation (Q194-Q209).
+        const drop = dropData({ ...block, id: action.block }, action.file, this.view());
+        Object.assign(writes, drop.writes);
         // A second copy names its ids and radio groups after itself, so that two on one page stay apart.
-        const source = name === action.block ? block.source : block.source.replaceAll(action.block, name);
+        const source = name === action.block ? drop.source : drop.source.replaceAll(action.block, name);
         writes[`parts/${name}.liquid`] = source.endsWith("\n") ? source : `${source}\n`;
         const index = action.before === "auto" ? placeFor(src, block.kind) : sectionIndex(src, action.before);
         writes[action.file] = insertBefore(src, index, `{% render '${name}' %}`);
-        label = t.inserted;
+        label = !drop.datasource
+          ? t.inserted
+          : drop.reused
+            ? t.insertedReusing(drop.datasource)
+            : drop.recordPage
+              ? t.insertedWithPage(drop.datasource)
+              : t.insertedWithData(drop.datasource);
         break;
       }
       case "record-text": {
@@ -593,6 +603,23 @@ export class Editor {
     } catch {
       return undefined;
     }
+  }
+
+  /** The project as a dropped block's datasource needs to see it. */
+  private view(): ProjectView {
+    // Read only: a datasource's folder is looked at too, never anything outside the project.
+    const at = (path: string) => (path.split("/").includes("..") ? undefined : join(this.root(), path));
+    return {
+      exists: (path) => {
+        const abs = at(path);
+        return !!abs && existsSync(abs);
+      },
+      read: (path) => {
+        const abs = at(path);
+        return abs && existsSync(abs) && statSync(abs).isFile() ? readFileSync(abs, "utf8") : undefined;
+      },
+      templates: () => this.templates(),
+    };
   }
 
   /** Every template of the project, path → text, to find what uses a part. */

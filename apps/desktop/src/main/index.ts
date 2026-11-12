@@ -66,6 +66,7 @@ import { exportProject, publishChoices } from "./export";
 import { described, Gallery } from "./gallery/catalogue";
 import { BlockPeek } from "./gallery/peek";
 import { BlockIndex } from "./gallery/search";
+import { blockShown } from "./gallery/shown";
 import { Thumbnails } from "./gallery/thumbnails";
 import { History } from "./history/history";
 import { createIpc } from "./ipc";
@@ -206,7 +207,10 @@ async function main() {
   const fonts = new Fonts(app.isPackaged ? join(process.resourcesPath, "fonts") : join(here, "../../fonts"));
   let contentTimer: NodeJS.Timeout | undefined;
   const preview: Preview = new Preview(win, {
-    block: (id) => gallery.get(id)?.source,
+    block: (id) => {
+      const block = gallery.get(id);
+      return block && blockShown(block);
+    },
     font: (path) => fonts.path(path),
     background: env.background,
     onState: (state) => ipc.emit("preview:state", state),
@@ -863,7 +867,7 @@ async function main() {
     const block = gallery.get(id);
     const theme = preview.runtime?.theme();
     if (!block || theme === undefined) throw new Error("No such block, or no project open.");
-    return thumbnails.get(id, block.source, theme);
+    return thumbnails.get(id, blockShown(block), theme);
   });
   // The Theme tab (Q93): values shown while a gesture lasts, written at its end.
   const themed = (values: Record<string, string>, base?: string) => {

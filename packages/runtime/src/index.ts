@@ -68,6 +68,7 @@ export {
   withSrcset,
 } from "./media.ts";
 export {
+  addDefinitionFields,
   newRecordText,
   RecordWriteRefused,
   readRecordFile,

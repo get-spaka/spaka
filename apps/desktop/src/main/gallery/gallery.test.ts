@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { Datasources, memorySource, Runtime, sections } from "@upstart/runtime";
 import { describe, expect, test } from "vitest";
 import { BLOCK_KINDS } from "../../shared/ipc";
+import { dropData } from "../editing/data-drop";
 import { BLOCK_SOURCES, type Block, readGallery } from "./catalogue";
 
 const GALLERY = join(__dirname, "../../../gallery");
@@ -102,6 +103,33 @@ describe.each(blocks.map((b) => [b.id, b] as const))("%s", (_id, b) => {
     expect(count).toBeLessThanOrEqual(6);
     if (!ds?.definition?.collected) expect(count).toBeGreaterThanOrEqual(3);
     expect(ds?.records).toHaveLength(ds?.definition?.collected ? 0 : count);
+  });
+
+  test.runIf(!!b.data)("renders with no note once dropped as the app drops it, under its page's name", () => {
+    const files: Record<string, string> = {
+      "pages/services.liquid":
+        "<!doctype html><html><head><title>Services</title></head><body>\n<section>Intro</section>\n</body></html>",
+    };
+    const view = {
+      exists: (path: string) => Object.keys(files).some((f) => f === path || f.startsWith(`${path}/`)),
+      read: (path: string) => files[path],
+      templates: () => Object.fromEntries(Object.entries(files).filter(([f]) => /^(pages|parts)\//.test(f))),
+    };
+    const drop = dropData(b, "pages/services.liquid", view);
+    Object.assign(files, drop.writes, { [`parts/${b.id}.liquid`]: drop.source });
+    files["pages/services.liquid"] = files["pages/services.liquid"]!.replace(
+      "</body>",
+      `{% render '${b.id}' %}</body>`,
+    );
+    const runtime = new Runtime(memorySource(files));
+    const result = runtime.renderRoute("/services");
+    expect(result.notes).toEqual([]);
+    expect(result.datasources).toContain(drop.datasource);
+    if (drop.recordPage) {
+      const first = Object.keys(files).find((f) => f.startsWith(`data/${drop.datasource}/`) && f.endsWith(".md"))!;
+      const page = runtime.renderRoute(`/${drop.datasource}/${first.split("/").at(-1)!.replace(/\.md$/, "")}`);
+      expect(page.notes).toEqual([]);
+    }
   });
 
   test("renders with no note once dropped as a part", () => {

@@ -75,6 +75,43 @@ export function setRecordValueAt(text: string, path: [string, number, string], v
   return joinRecord(write(doc), parts.body);
 }
 
+/**
+ * A collection's definition with the fields a gallery block needs and it
+ * lacks added at the end, the rest as it was (Q198). A field of the same
+ * name is kept as it is, whatever its kind: those are returned, for a note.
+ */
+export function addDefinitionFields(
+  definition: string,
+  from: string,
+): { text: string; added: string[]; differ: string[] } {
+  const doc = parseDocument(definition);
+  const theirs = parseDocument(from);
+  if (doc.errors.length || !isMap(doc.contents))
+    throw new RecordWriteRefused("The datasource's definition does not read: ask the agent to fix it.");
+  const fields = doc.get("fields", true);
+  const wanted = theirs.get("fields", true);
+  if (!isSeq(wanted)) return { text: definition, added: [], differ: [] };
+  const have = new Map<string, unknown>();
+  if (isSeq(fields))
+    for (const f of fields.items)
+      if (isMap(f) && typeof f.get("name") === "string") have.set(f.get("name") as string, f.get("kind"));
+  const added: string[] = [];
+  const differ: string[] = [];
+  for (const f of wanted.items) {
+    if (!isMap(f)) continue;
+    const name = f.get("name");
+    if (typeof name !== "string") continue;
+    if (have.has(name)) {
+      if ((have.get(name) ?? "text") !== (f.get("kind") ?? "text")) differ.push(name);
+      continue;
+    }
+    if (isSeq(fields)) fields.items.push(doc.createNode(f.toJSON()));
+    else doc.set("fields", doc.createNode([f.toJSON()]));
+    added.push(name);
+  }
+  return { text: added.length ? write(doc) : definition, added, differ };
+}
+
 /** A new record's file, its fields in the definition's order. */
 export function newRecordText(values: Record<string, unknown>, body = ""): string {
   let text = joinRecord("", body);

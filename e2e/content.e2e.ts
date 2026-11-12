@@ -194,7 +194,10 @@ describe("the Content tab", () => {
       "data/navigation/services.md",
       "---\nlabel: Services\nhref: /services\nlinks:\n  - label: Bread\n    href: /bread\n  - label: Cakes\n    href: /cakes\n---\n",
     );
-    await w().getByTestId("content-back").click().catch(() => {});
+    await w()
+      .getByTestId("content-back")
+      .click()
+      .catch(() => {});
     await until(async () => (await w().locator('[data-testid="datasource"][data-name="navigation"]').count()) === 1);
     await w().locator('[data-testid="datasource"][data-name="navigation"]').click();
     await until(async () => (await records()).includes("services"));

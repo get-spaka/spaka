@@ -236,3 +236,64 @@ test("an image file dropped onto an image is added and used, one version; anothe
     editor.edit({ type: "image", file: "pages/blog/index.liquid", at: fixed, src: "", from: "/tmp/menu.pdf" }),
   ).rejects.toThrow("menu.pdf is not an image.");
 });
+
+test("a data block dropped: its part, its datasource and samples, its record page, one version (Q194-Q200)", () => {
+  const root = mkdtempSync(join(tmpdir(), "editor-"));
+  mkdirSync(join(root, "pages"));
+  mkdirSync(join(root, "parts"));
+  const home = `<!doctype html><html><head><title>Chez Margot</title></head><body>\n{% render 'header' %}\n<section id="hero"></section>\n{% render 'footer' %}\n</body></html>`;
+  writeFileSync(join(root, "pages/index.liquid"), home);
+  const changes: { label: string; files: string[] }[] = [];
+  const blog = {
+    id: "blog-cards",
+    kind: "blog",
+    source:
+      '<section>{% for post in data.blog %}<a href="/blog/{{ post.id }}">{{ post.title }}</a>{% endfor %}</section>',
+    data: { name: "blog", family: "collection" as const },
+    datasource: {
+      definition: "label: Posts\nfields:\n  - name: title\n    kind: text\n",
+      records: { "first.md": "---\ntitle: First\n---\n" },
+    },
+    detail: "<section><h1>{{ record.title }}</h1></section>",
+  };
+  const faq = {
+    id: "faq-list",
+    kind: "faq",
+    source: "<section>{% for q in data.faq %}<p>{{ q.question }}</p>{% endfor %}</section>",
+    data: { name: "faq", family: "section" as const },
+    datasource: {
+      definition: "label: Questions\nfields:\n  - name: question\n    kind: text\n",
+      records: { "a.md": "---\nquestion: A?\n---\n" },
+    },
+  };
+  const editor = new Editor({
+    root: () => root,
+    busy: () => false,
+    before: () => {},
+    changed: (c) => changes.push(c),
+    block: (id) => ({ "blog-cards": blog, "faq-list": faq })[id],
+  });
+  editor.apply({ type: "insert", file: "pages/index.liquid", block: "blog-cards", before: "auto" });
+  expect(changes.at(-1)).toEqual({
+    label: "Block added, with its records in blog and their page",
+    files: [
+      "data/blog/_datasource.yaml",
+      "data/blog/first.md",
+      "pages/blog/[blog].liquid",
+      "parts/blog-cards.liquid",
+      "pages/index.liquid",
+    ],
+  });
+  expect(readFileSync(join(root, "pages/blog/[blog].liquid"), "utf8")).toContain(
+    "{% render 'header' %}\n<section><h1>{{ record.title }}</h1></section>\n{% render 'footer' %}",
+  );
+  // A second one shows the same collection; a section list is named after its page.
+  editor.apply({ type: "insert", file: "pages/index.liquid", block: "blog-cards", before: "auto" });
+  expect(changes.at(-1)).toEqual({
+    label: "Block added, showing blog",
+    files: ["parts/blog-cards-2.liquid", "pages/index.liquid"],
+  });
+  editor.apply({ type: "insert", file: "pages/index.liquid", block: "faq-list", before: "auto" });
+  expect(readFileSync(join(root, "parts/faq-list.liquid"), "utf8")).toContain('data["home-faq"]');
+  expect(existsSync(join(root, "data/home-faq/a.md"))).toBe(true);
+});
