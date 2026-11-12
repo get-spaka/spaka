@@ -63,7 +63,7 @@ import { NAVIGATION, pageKey } from "./editing/data-drop";
 import { Editor } from "./editing/editor";
 import { EditRefused } from "./editing/edits";
 import { AgentNotes } from "./editing/notes";
-import { samplesLeftNote, unchangedSamples, useBlocks } from "./editing/use-blocks";
+import { nameRecords, samplesLeftNote, unchangedSamples, useBlocks } from "./editing/use-blocks";
 import { readEnvironment } from "./environment";
 import { exportProject, publishChoices } from "./export";
 import { described, Gallery } from "./gallery/catalogue";
@@ -340,6 +340,8 @@ async function main() {
               {
                 hooks: [
                   async (input: { stop_hook_active?: boolean }) => {
+                    // The samples it rewrote, named after their titles (Q218).
+                    nameRecords(project.path);
                     const left = input.stop_hook_active
                       ? []
                       : unchangedSamples(project.path).filter((path) => placedSamples.has(path));

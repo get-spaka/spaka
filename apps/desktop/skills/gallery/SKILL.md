@@ -31,7 +31,7 @@ A block that repeats something (questions, plans, team members, posts, dishes, l
 
 - **A collection** (`data.team`, `data.services`, `data.menu`, `data.blog`, `data.products`, `data.events`, `data.testimonials`, `data.gallery`, `data.hours` for the opening hours) is shared by the whole site under that name. If `data/<name>/` exists already, it is reused: its records kept, only the fields the block needs added to its definition.
 - **A list of one section** (questions, plans, features, key figures, steps) belongs to its page and is named after it: `data/home-faq/` on the home page, `data/services-faq/` on /services, read as `data["home-faq"]` in the part.
-- **Replace every sample with this site's own records**: rewrite them, add records, delete those you do not need, and adapt the definition's labels to the site. None may stay as the gallery wrote it: before your turn ends, Upstart names those left.
+- **Replace every sample with this site's own records**: rewrite them, add records, delete those you do not need, and adapt the definition's labels to the site. At the end of your turn, Upstart renames each sample you rewrote after its title, since a record's file name is its page's address (`/events/wine-evening`): its place in the order and the links to it follow. None may stay as the gallery wrote it: before your turn ends, Upstart names those left.
 
 ## A form
 

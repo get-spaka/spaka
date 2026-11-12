@@ -47,6 +47,29 @@ const gallery: Record<string, DroppedBlock> = {
 };
 const block = (id: string) => gallery[id];
 
+test("a record page framed by the page as its blocks leave it: the footer placed after the list included", () => {
+  const placed = placeBlocks(
+    {
+      page: "pages/index.liquid",
+      title: "Chez Margot",
+      description: "A bakery in Lyon",
+      blocks: [
+        { block: "header-simple", name: "header" },
+        { block: "blog-cards", name: "posts" },
+        { block: "footer-simple", name: "footer" },
+      ],
+    },
+    view({}),
+    block,
+  );
+  const page = placed.writes["pages/blog/[blog].liquid"]!;
+  expect(page).toContain("{% render 'header' %}");
+  expect(page).toContain("{% render 'footer' %}");
+  expect(page).not.toContain("{% render 'posts' %}");
+  expect(page.indexOf("record.title }}</h1>")).toBeLessThan(page.indexOf("{% render 'footer' %}"));
+  expect(page).toContain("<title>{{ record.title }} · Chez Margot</title>");
+});
+
 test("a part's name from its role", () => {
   expect(roleName("Our menu", "x")).toBe("our-menu");
   expect(roleName("Avis clients", "x")).toBe("avis-clients");

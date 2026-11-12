@@ -118,6 +118,8 @@ export function placeBlocks(
 
   const samples: string[] = [];
   const parts: PlacedPart[] = [];
+  // Record pages, framed again once every block is in the page (a footer placed after the list).
+  const reframes: [string, (page: string) => string][] = [];
   for (const { block: id, name: role } of input.blocks) {
     const b = block(id);
     if (!b) throw new Error(`No block ${id} in the gallery: use the ids find_blocks gave. Nothing was written.`);
@@ -137,6 +139,7 @@ export function placeBlocks(
             f.endsWith(".md"),
         ),
       );
+    if (drop.recordPage && drop.reframe) reframes.push([drop.recordPage, drop.reframe]);
     src = insertBefore(src, placeFor(src, b.kind), `{% render '${name}' %}`);
     writes[input.page] = src;
     parts.push({
@@ -152,6 +155,7 @@ export function placeBlocks(
         : {}),
     });
   }
+  for (const [path, reframe] of reframes) writes[path] = reframe(src);
   return { writes, samples, parts, created };
 }
 
@@ -182,7 +186,7 @@ export function placedAnswer(input: Placing, placed: Placed): string {
   );
   if (placed.samples.length)
     lines.push(
-      `Then write this site's records in place of the samples (${placed.samples.join(", ")}): rewrite them, add records, delete those you do not need. None may stay as the gallery wrote it.`,
+      `Then write this site's records in place of the samples (${placed.samples.join(", ")}): rewrite them, add records, delete those you do not need. None may stay as the gallery wrote it. At the end of your turn, Upstart names each record you rewrote after its title, its file name being its page's address.`,
     );
   if (placed.parts.some((p) => p.collected && !p.reused))
     lines.push(

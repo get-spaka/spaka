@@ -1,9 +1,9 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, test } from "vitest";
 import type { DroppedBlock } from "./data-drop";
-import { GALLERY_SAMPLES, samplesLeftNote, unchangedSamples, useBlocks } from "./use-blocks";
+import { GALLERY_SAMPLES, nameRecords, samplesLeftNote, unchangedSamples, useBlocks } from "./use-blocks";
 
 const faq: DroppedBlock = {
   id: "faq-accordion",
@@ -15,7 +15,22 @@ const faq: DroppedBlock = {
     records: { "delivery.md": "---\nquestion: Do you deliver?\n---\n", "hours.md": "---\nquestion: When?\n---\n" },
   },
 };
-const block = (id: string) => (id === faq.id ? faq : undefined);
+const events: DroppedBlock = {
+  id: "events-list",
+  kind: "events",
+  source: '<section>{% for e in data.events %}<a href="/events/{{ e.id }}">{{ e.title }}</a>{% endfor %}</section>',
+  data: { name: "events", family: "collection" },
+  datasource: {
+    definition: "label: Events\nfields:\n  - name: title\n    kind: text\norder: [acoustic-evening, open-day, quiz]\n",
+    records: {
+      "acoustic-evening.md": "---\ntitle: Acoustic evening\n---\n",
+      "open-day.md": "---\ntitle: Open day\n---\n",
+      "quiz.md": "---\ntitle: Quiz night\n---\n",
+    },
+  },
+  detail: "<section><h1>{{ record.title }}</h1></section>",
+};
+const block = (id: string) => (id === faq.id ? faq : id === events.id ? events : undefined);
 
 let root: string;
 afterEach(() => rmSync(root, { recursive: true, force: true }));
@@ -44,6 +59,39 @@ test("written into the project, its samples noted; those the agent rewrites or d
   expect(unchangedSamples(root)).toEqual([]);
   expect(JSON.parse(readFileSync(join(root, GALLERY_SAMPLES), "utf8"))).toEqual({});
   expect(samplesLeftNote(["data/a.md"])).toContain("data/a.md");
+});
+
+test("a sample the agent rewrote is renamed after its title, its order and links following; one left as written is not (Q218)", () => {
+  root = mkdtempSync(join(tmpdir(), "use-blocks-"));
+  useBlocks(
+    root,
+    {
+      page: "pages/index.liquid",
+      title: "Le Petit Four",
+      description: "A bistro",
+      blocks: [{ block: events.id, name: "events" }],
+    },
+    block,
+  );
+  expect(readFileSync(join(root, "pages/events/[events].liquid"), "utf8")).toContain("record.title");
+  const dir = join(root, "data/events");
+  writeFileSync(join(dir, "acoustic-evening.md"), "---\ntitle: Rhône wine evening\n---\nFour wines.\n");
+  // Rewritten, its title already giving its name: kept.
+  writeFileSync(join(dir, "quiz.md"), "---\ntitle: Quiz\n---\n");
+  writeFileSync(
+    join(root, "parts/events.liquid"),
+    '<section><a href="/events/acoustic-evening">Next</a> <a href="/events/acoustic-evenings">x</a></section>\n',
+  );
+  expect(nameRecords(root)).toEqual(["data/events/acoustic-evening.md → data/events/rhone-wine-evening.md"]);
+  expect(existsSync(join(dir, "acoustic-evening.md"))).toBe(false);
+  expect(readFileSync(join(dir, "rhone-wine-evening.md"), "utf8")).toContain("Four wines.");
+  expect(readFileSync(join(dir, "_datasource.yaml"), "utf8")).toContain("order: [rhone-wine-evening, open-day, quiz]");
+  expect(readFileSync(join(root, "parts/events.liquid"), "utf8")).toBe(
+    '<section><a href="/events/rhone-wine-evening">Next</a> <a href="/events/acoustic-evenings">x</a></section>\n',
+  );
+  // The sample left as the gallery wrote it is still named to the agent.
+  expect(unchangedSamples(root)).toEqual(["data/events/open-day.md"]);
+  expect(nameRecords(root)).toEqual([]);
 });
 
 test("a refusal is answered, nothing written", () => {

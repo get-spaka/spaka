@@ -47,6 +47,8 @@ export type DataDrop = {
   reused?: boolean;
   /** The record page written, if any. */
   recordPage?: string;
+  /** The record page again, framed by the page as it is once other blocks are placed in it. */
+  reframe?: (page: string) => string;
   /** Fields of the same name but another kind, kept as they were. */
   differ?: string[];
 };
@@ -213,10 +215,13 @@ export function dropData(block: DroppedBlock, pageFile: string, project: Project
   }
 
   let recordPage: string | undefined;
+  let reframe: ((page: string) => string) | undefined;
   if (block.detail && block.data.family === "collection" && !hasRecordPage(name, project.templates())) {
     recordPage = `pages/${name}/[${name}].liquid`;
     const titleField = /fields:\s*\n\s*-\s*name:\s*([\w-]+)/.exec(block.datasource.definition)?.[1] ?? "title";
-    writes[recordPage] = framePage(page, renameData(block.detail, base, name), titleField);
+    const detail = renameData(block.detail, base, name);
+    reframe = (page: string) => framePage(page, detail, titleField);
+    writes[recordPage] = reframe(page);
   }
-  return { source, writes, datasource: name, ...(recordPage ? { recordPage } : {}) };
+  return { source, writes, datasource: name, ...(recordPage ? { recordPage, reframe } : {}) };
 }

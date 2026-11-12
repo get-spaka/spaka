@@ -3,9 +3,20 @@
 // sample records it wrote noted in .upstart/, so that those the agent leaves
 // as the gallery wrote them are named to it before its turn ends.
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import type { DroppedBlock, ProjectView } from "./data-drop";
+import {
+  Datasources,
+  DEFINITION_FILE,
+  readRecordFile,
+  recordFile,
+  recordIdFrom,
+  recordOf,
+  renameInOrder,
+  titleField,
+} from "@upstart/runtime";
+import { diskSource } from "@upstart/runtime/node";
+import { type DroppedBlock, NAVIGATION, type ProjectView } from "./data-drop";
 import { type Placing, placeBlocks, placedAnswer } from "./place-blocks";
 
 /** path → hash of the text the gallery wrote. */
@@ -85,6 +96,74 @@ export function useBlocks(
     writeSamples(root, samples);
   }
   return { text: placedAnswer(input, placed), samples: placed.samples };
+}
+
+/**
+ * The samples the agent rewrote but left under the sample's name, renamed
+ * after their title (Q218): a record's file name is its page's address. Its
+ * place in the manual order and the links to its old address follow.
+ * Answers "from → to" for each.
+ */
+export function nameRecords(root: string): string[] {
+  const samples = readSamples(root);
+  const sources = new Datasources(diskSource(root));
+  const templates = projectTemplates(root);
+  const done: string[] = [];
+  const links: [string, string][] = [];
+  for (const [path, sum] of Object.entries(samples)) {
+    const of = recordOf(path);
+    const abs = join(root, path);
+    if (!of || of.datasource === NAVIGATION || !existsSync(abs)) continue;
+    const text = readFileSync(abs, "utf8");
+    if (hash(text) === sum) continue; // still the sample: named to the agent instead (Q217)
+    const title = readRecordFile(text).values[titleField(sources.definition(of.datasource).definition)];
+    if (typeof title !== "string" || !title.trim()) continue;
+    const id = recordIdFrom(title, (i) => i !== of.id && existsSync(join(root, recordFile(of.datasource, i))));
+    if (id === of.id) continue;
+    const to = recordFile(of.datasource, id);
+    writeFileSync(join(root, to), text);
+    rmSync(abs);
+    delete samples[path];
+    const definition = join(root, "data", of.datasource, DEFINITION_FILE);
+    if (existsSync(definition)) {
+      const before = readFileSync(definition, "utf8");
+      const after = renameInOrder(before, of.id, id);
+      if (after !== before) writeFileSync(definition, after);
+    }
+    // Its page's address, where the site has a page per record of this datasource.
+    for (const page of Object.keys(templates)) {
+      const m = new RegExp(`^pages/(.+)/\\[${of.datasource}\\]\\.liquid$`).exec(page);
+      if (m) links.push([`/${m[1]}/${of.id}`, `/${m[1]}/${id}`]);
+    }
+    done.push(`${path} → ${to}`);
+  }
+  if (!done.length) return done;
+  writeSamples(root, samples);
+  if (links.length) {
+    const files = [...Object.keys(projectTemplates(root)), ...dataFiles(root)];
+    for (const file of files) {
+      const abs = join(root, file);
+      const before = readFileSync(abs, "utf8");
+      let after = before;
+      for (const [from, to] of links)
+        after = after.replace(new RegExp(`${from.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w-])`, "g"), to);
+      if (after !== before) writeFileSync(abs, after);
+    }
+  }
+  return done;
+}
+
+/** The records of every datasource, as project paths. */
+function dataFiles(root: string): string[] {
+  const data = join(root, "data");
+  if (!existsSync(data)) return [];
+  return readdirSync(data, { withFileTypes: true })
+    .filter((d) => d.isDirectory() && !d.name.startsWith("."))
+    .flatMap((d) =>
+      readdirSync(join(data, d.name))
+        .filter((f) => f.endsWith(".md"))
+        .map((f) => `data/${d.name}/${f}`),
+    );
 }
 
 /** The sample records still as the gallery wrote them; those changed or deleted are forgotten. */
