@@ -1,0 +1,9 @@
+label: Questions
+fields:
+  - name: question
+    kind: text
+    required: true
+  - name: answer
+    kind: markdown
+body: answer
+order: [booking, moving-an-appointment, first-visit, paying, gift-cards]

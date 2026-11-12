@@ -1,0 +1,42 @@
+<section class="bg-base-100 text-base-content">
+  <div class="mx-auto max-w-5xl px-4 py-16 md:py-24">
+    <div class="mx-auto max-w-2xl text-center">
+      <h2 class="text-3xl font-bold text-balance md:text-4xl">Fresh bread, every week</h2>
+      <p class="mt-4 text-lg text-pretty text-base-content/70">Choose a box, and we bake it for you on Friday morning. Pick it up in store or have it brought to your door.</p>
+    </div>
+    <div class="mt-12 grid gap-6 md:grid-cols-3">
+      {% for plan in data.plans limit: 3 %}
+        <div class="flex flex-col rounded-box border p-6 {% if plan.featured %}border-primary bg-base-200{% else %}border-base-300{% endif %}">
+          <div class="flex items-baseline justify-between gap-4">
+            <h3 class="text-lg font-semibold">{{ plan.name }}</h3>
+            <p class="whitespace-nowrap"><span class="text-2xl font-bold tabular-nums">{{ plan.price }}</span><span class="text-sm text-base-content/70">{{ plan.period }}</span></p>
+          </div>
+          {% if plan.description %}<p class="mt-2 text-sm text-pretty text-base-content/70">{{ plan.description }}</p>{% endif %}
+          <ul class="mt-5 flex-1 space-y-2 border-t border-base-300 pt-5 text-sm">
+            {% for feature in plan.features %}
+              <li class="flex items-start gap-2">
+                <svg class="mt-0.5 size-4 shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                <span>{{ feature }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+          {% if plan.href %}<a href="{{ plan.href }}" class="btn {% if plan.featured %}btn-primary{% else %}btn-outline{% endif %} mt-6 btn-block">{{ plan.cta }}</a>{% endif %}
+        </div>
+      {% endfor %}
+    </div>
+    <dl class="mt-12 grid gap-6 border-t border-base-300 pt-10 text-sm md:grid-cols-3">
+      <div>
+        <dt class="font-semibold">Can I skip a week?</dt>
+        <dd class="mt-1 text-pretty text-base-content/70">Yes. Tell us by Wednesday evening and we leave you out of that Friday’s bake.</dd>
+      </div>
+      <div>
+        <dt class="font-semibold">Where do you deliver?</dt>
+        <dd class="mt-1 text-pretty text-base-content/70">Within five miles of the bakery. Farther away, you can pick up your box in store.</dd>
+      </div>
+      <div>
+        <dt class="font-semibold">How do I pay?</dt>
+        <dd class="mt-1 text-pretty text-base-content/70">By card once a month, with no setup fee. Stop whenever you like.</dd>
+      </div>
+    </dl>
+  </div>
+</section>

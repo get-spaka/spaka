@@ -1,0 +1,78 @@
+<section class="bg-base-200 text-base-content">
+  <div class="mx-auto max-w-6xl px-4 py-16 md:py-24">
+    <div class="max-w-2xl">
+      <h2 class="text-3xl font-bold text-balance md:text-4xl">Shop by category</h2>
+      <p class="mt-4 text-lg text-pretty text-base-content/70">Everything we make, sorted to help you find the right piece or the right gift.</p>
+    </div>
+    {% assign categories = data.products | map: "category" | uniq %}
+    <nav class="mt-8 flex flex-wrap gap-2" aria-label="Categories">
+      {% for category in categories %}
+        {% if category %}<a href="#category-{{ category | downcase | replace: " ", "-" }}" class="btn btn-sm btn-outline">{{ category }}</a>{% endif %}
+      {% endfor %}
+    </nav>
+    <div class="mt-12 flex flex-col gap-14">
+      {% for category in categories %}
+        {% if category %}
+          {% assign items = data.products | where: "category", category %}
+          <div id="category-{{ category | downcase | replace: " ", "-" }}" class="scroll-mt-24">
+            <div class="flex items-baseline justify-between gap-4 border-b border-base-300 pb-3">
+              <h3 class="text-2xl font-bold">{{ category }}</h3>
+              <span class="text-sm text-base-content/70">{{ items.size }} {% if items.size == 1 %}item{% else %}items{% endif %}</span>
+            </div>
+            <ul class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {% for product in items %}
+                {% assign tint = forloop.index0 | modulo: 3 %}
+                <li class="flex gap-4 rounded-box bg-base-100 p-4">
+                  <a href="/products/{{ product.id }}" class="shrink-0" aria-label="{{ product.name }}">
+                    {% if product.image %}
+                      <img src="{{ product.image }}" alt="{{ product.name }}" class="size-24 rounded-field object-cover">
+                    {% else %}
+                      <div class="flex size-24 items-center justify-center rounded-field bg-linear-to-br text-base-content/50 {% if tint == 0 %}from-primary/25 to-secondary/20{% elsif tint == 1 %}from-secondary/25 to-accent/20{% else %}from-accent/25 to-primary/20{% endif %}">
+                        <svg class="size-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg>
+                      </div>
+                    {% endif %}
+                  </a>
+                  <div class="flex min-w-0 flex-1 flex-col gap-1">
+                    <h4 class="font-semibold text-balance"><a href="/products/{{ product.id }}" class="link link-hover">{{ product.name }}</a></h4>
+                    {% if product.badge or product.available == false %}
+                      <p class="flex flex-wrap gap-1.5">
+                        {% if product.badge %}<span class="badge badge-accent badge-sm">{{ product.badge }}</span>{% endif %}
+                        {% if product.available == false %}<span class="badge badge-outline badge-sm">Sold out</span>{% endif %}
+                      </p>
+                    {% endif %}
+                    <div class="mt-auto flex flex-wrap items-center justify-between gap-2 pt-2">
+                      {% if product.price %}<span class="font-bold tabular-nums">{{ product.price }}</span>{% else %}<span></span>{% endif %}
+                      {% if product.available == false %}
+                        <a href="/contact" class="btn btn-ghost btn-xs">Ask</a>
+                      {% elsif product.order_link %}
+                        <a href="{{ product.order_link }}" class="btn btn-primary btn-xs">Order</a>
+                      {% else %}
+                        <a href="/contact" class="btn btn-primary btn-xs">Order by message</a>
+                      {% endif %}
+                    </div>
+                  </div>
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+      {% endfor %}
+      {% assign others = data.products | where: "category", "" %}
+      {% if others.size > 0 %}
+        <div>
+          <div class="border-b border-base-300 pb-3">
+            <h3 class="text-2xl font-bold">More from the shop</h3>
+          </div>
+          <ul class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {% for product in others %}
+              <li class="flex items-center justify-between gap-4 rounded-box bg-base-100 p-4">
+                <a href="/products/{{ product.id }}" class="link link-hover font-semibold">{{ product.name }}</a>
+                {% if product.price %}<span class="shrink-0 font-bold tabular-nums">{{ product.price }}</span>{% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</section>

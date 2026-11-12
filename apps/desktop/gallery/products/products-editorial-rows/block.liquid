@@ -1,0 +1,47 @@
+<section class="bg-base-100 text-base-content">
+  <div class="mx-auto max-w-6xl px-4 py-16 md:py-28">
+    <div class="mx-auto max-w-2xl text-center">
+      <p class="text-sm tracking-[0.2em] uppercase text-base-content/70">Made in our studio</p>
+      <h2 class="mt-4 font-serif text-4xl text-balance md:text-5xl">Pieces made to last</h2>
+      <p class="mt-5 text-lg text-pretty text-base-content/70">The story behind each thing we make, and how to make it yours.</p>
+    </div>
+    <div class="mt-16 flex flex-col gap-20 md:mt-24 md:gap-28">
+      {% for product in data.products %}
+        {% assign side = forloop.index | modulo: 2 %}
+        {% assign tint = forloop.index0 | modulo: 3 %}
+        <article class="grid items-center gap-8 md:grid-cols-2 md:gap-16">
+          <a href="/products/{{ product.id }}" class="block{% if side == 0 %} md:order-last{% endif %}" aria-label="{{ product.name }}">
+            {% if product.image %}
+              <img src="{{ product.image }}" alt="{{ product.name }}" class="aspect-4/5 w-full object-cover">
+            {% else %}
+              <div class="flex aspect-4/5 w-full items-center justify-center bg-linear-to-br text-base-content/40 {% if tint == 0 %}from-primary/20 to-base-200{% elsif tint == 1 %}from-secondary/20 to-base-200{% else %}from-accent/20 to-base-200{% endif %}">
+                <svg class="size-14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><polyline points="3.29 7 12 12 20.71 7"/><path d="m7.5 4.27 9 5.15"/></svg>
+              </div>
+            {% endif %}
+          </a>
+          <div class="md:px-6">
+            <div class="flex flex-wrap items-center gap-3 text-sm">
+              <span class="tabular-nums text-base-content/70">No. {{ forloop.index }}</span>
+              {% if product.category %}<span class="tracking-[0.2em] uppercase text-base-content/70">{{ product.category }}</span>{% endif %}
+              {% if product.badge %}<span class="badge badge-outline">{{ product.badge }}</span>{% endif %}
+            </div>
+            <h3 class="mt-4 font-serif text-3xl text-balance md:text-4xl"><a href="/products/{{ product.id }}" class="link link-hover">{{ product.name }}</a></h3>
+            {% if product.summary %}<p class="mt-5 text-lg leading-relaxed text-pretty text-base-content/70">{{ product.summary }}</p>{% endif %}
+            <div class="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4 border-t border-base-300 pt-6">
+              {% if product.price %}<span class="font-serif text-2xl tabular-nums">{{ product.price }}</span>{% endif %}
+              {% if product.available == false %}
+                <span class="text-base-content/70">Sold out for now</span>
+                <a href="/contact" class="btn btn-outline btn-sm">Ask when it's back</a>
+              {% elsif product.order_link %}
+                <a href="{{ product.order_link }}" class="btn btn-neutral btn-sm">Order</a>
+              {% else %}
+                <a href="/contact" class="btn btn-neutral btn-sm">Order by message</a>
+              {% endif %}
+              <a href="/products/{{ product.id }}" class="link link-hover text-sm">Read the story</a>
+            </div>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>

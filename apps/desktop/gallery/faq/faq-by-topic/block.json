@@ -1,0 +1,24 @@
+{
+  "name": "FAQ by topic",
+  "kind": "faq",
+  "source": "meraki-ui",
+  "description": "Questions grouped by topic: a short list of topics on the left links to each group on the right, where every question opens its answer below a thin line.",
+  "tags": ["topics", "categories", "grouped", "table of contents", "expandable"],
+  "mood": ["professional", "minimal"],
+  "synonyms": [
+    "questions by category",
+    "help center",
+    "frequently asked questions",
+    "support",
+    "knowledge base",
+    "foire aux questions",
+    "questions par thème",
+    "centre d'aide",
+    "rubriques",
+    "assistance"
+  ],
+  "data": {
+    "name": "faq",
+    "family": "section"
+  }
+}

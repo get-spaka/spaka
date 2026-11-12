@@ -1,0 +1,30 @@
+<section class="bg-primary text-primary-content">
+  <div class="mx-auto max-w-6xl px-4 py-16 md:py-24">
+    <div class="mx-auto max-w-2xl text-center">
+      <p class="text-sm font-semibold tracking-widest uppercase">Before you book</p>
+      <h2 class="mt-2 text-3xl font-bold text-balance md:text-5xl">Your questions, answered</h2>
+      <p class="mt-4 text-lg text-pretty">Everything about appointments, payment and your first visit, in one place.</p>
+    </div>
+    <div class="mx-auto mt-12 max-w-3xl space-y-4">
+      {% for item in data.faq %}
+        <div class="group collapse rounded-box bg-base-100 text-base-content shadow-sm">
+          <input type="checkbox" aria-label="{{ item.question }}" {% if forloop.first %}checked{% endif %} />
+          <div class="collapse-title flex items-center justify-between gap-4 pe-4 text-lg font-semibold">
+            <span>{{ item.question }}</span>
+            <span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-content">
+              <svg class="size-5 group-has-checked:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+              <svg class="hidden size-5 group-has-checked:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/></svg>
+            </span>
+          </div>
+          <div class="collapse-content">
+            <div class="flex gap-4">
+              <span class="w-0.5 shrink-0 rounded-full bg-secondary" aria-hidden="true"></span>
+              <div class="space-y-2 text-pretty text-base-content/70 [&_a]:link [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5">{{ item.answer }}</div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+    <p class="mt-10 text-center">Something else on your mind? <a href="/contact" class="link font-semibold">Send us a message</a>.</p>
+  </div>
+</section>

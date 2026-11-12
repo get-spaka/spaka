@@ -1,0 +1,24 @@
+{
+  "name": "Plans with a monthly or yearly switch",
+  "kind": "pricing",
+  "source": "meraki-ui",
+  "description": "A centered heading above a rounded Monthly or Yearly switch that works without JavaScript, then three plan cards whose prices change with it, each with a centered name, description and price, a checklist and a button; the highlighted plan is ringed in the primary color.",
+  "tags": ["toggle", "monthly", "yearly", "billing", "three plans", "cards"],
+  "mood": ["professional", "friendly"],
+  "synonyms": [
+    "monthly yearly",
+    "annual billing",
+    "billing switch",
+    "subscriptions",
+    "plans",
+    "mensuel annuel",
+    "facturation annuelle",
+    "abonnements",
+    "tarifs",
+    "formules"
+  ],
+  "data": {
+    "name": "plans",
+    "family": "section"
+  }
+}

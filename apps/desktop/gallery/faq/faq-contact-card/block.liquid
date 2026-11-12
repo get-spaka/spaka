@@ -1,0 +1,46 @@
+<section class="bg-base-100 text-base-content">
+  <div class="mx-auto max-w-6xl px-4 py-16 md:py-24">
+    <div class="max-w-2xl">
+      <h2 class="text-3xl font-bold text-balance md:text-4xl">Frequently asked questions</h2>
+      <p class="mt-4 text-lg text-pretty text-base-content/70">What our customers usually ask before we start working together.</p>
+    </div>
+    <div class="mt-12 grid items-start gap-8 lg:grid-cols-3">
+      <div class="space-y-4 lg:col-span-2">
+        {% for item in data.faq %}
+          <details class="group rounded-box bg-base-200 p-6" {% if forloop.first %}open{% endif %}>
+            <summary class="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold [&::-webkit-details-marker]:hidden">
+              <span class="text-lg">{{ item.question }}</span>
+              <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-base-300">
+                <svg class="size-4 group-open:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                <svg class="hidden size-4 group-open:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/></svg>
+              </span>
+            </summary>
+            <div class="mt-4 space-y-2 text-sm text-pretty text-base-content/70 md:text-base [&_a]:link [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5">{{ item.answer }}</div>
+          </details>
+        {% endfor %}
+      </div>
+      <aside class="card bg-secondary text-secondary-content">
+        <div class="card-body gap-4 p-8">
+          <span class="flex size-12 items-center justify-center rounded-full bg-secondary-content text-secondary">
+            <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+          </span>
+          <h3 class="text-2xl font-bold">Still have a question?</h3>
+          <p class="text-pretty">We are happy to talk your project through. Write or call us, and we answer within one working day.</p>
+          <ul class="space-y-3 font-medium">
+            <li class="flex items-center gap-3">
+              <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              <a href="mailto:hello@yourbusiness.com" class="link link-hover break-all">hello@yourbusiness.com</a>
+            </li>
+            <li class="flex items-center gap-3">
+              <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              <a href="tel:+15550100200" class="link link-hover">+1 555 010 0200</a>
+            </li>
+          </ul>
+          <div class="card-actions mt-2">
+            <a href="/contact" class="btn">Contact us</a>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>

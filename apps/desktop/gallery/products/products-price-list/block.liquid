@@ -1,0 +1,44 @@
+<section class="bg-base-200 text-base-content">
+  <div class="mx-auto max-w-4xl px-4 py-16 md:py-24">
+    <div class="text-center">
+      <h2 class="text-3xl font-bold text-balance md:text-4xl">Price list</h2>
+      <p class="mx-auto mt-4 max-w-xl text-lg text-pretty text-base-content/70">Everything we have at the moment. Send us a message to order or to set something aside.</p>
+    </div>
+    <ul class="mt-10 divide-y divide-base-300 rounded-box bg-base-100 shadow-sm">
+      {% for product in data.products %}
+        {% assign tint = forloop.index0 | modulo: 3 %}
+        <li class="flex flex-wrap items-center gap-4 p-4 sm:flex-nowrap sm:px-6">
+          <a href="/products/{{ product.id }}" class="shrink-0" aria-label="{{ product.name }}">
+            {% if product.image %}
+              <img src="{{ product.image }}" alt="{{ product.name }}" class="size-16 rounded-field object-cover">
+            {% else %}
+              <div class="flex size-16 items-center justify-center rounded-field bg-linear-to-br text-base-content/50 {% if tint == 0 %}from-primary/25 to-secondary/20{% elsif tint == 1 %}from-secondary/25 to-accent/20{% else %}from-accent/25 to-primary/20{% endif %}">
+                <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 10a4 4 0 0 1-8 0"/><path d="M3.103 6.034h17.794"/><path d="M3.4 5.467a2 2 0 0 0-.4 1.2V20a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6.667a2 2 0 0 0-.4-1.2l-2-2.667A2 2 0 0 0 17 2H7a2 2 0 0 0-1.6.8z"/></svg>
+              </div>
+            {% endif %}
+          </a>
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <h3 class="font-semibold"><a href="/products/{{ product.id }}" class="link link-hover">{{ product.name }}</a></h3>
+              {% if product.badge %}<span class="badge badge-primary badge-sm">{{ product.badge }}</span>{% endif %}
+              {% if product.available == false %}<span class="badge badge-outline badge-sm">Sold out</span>{% endif %}
+            </div>
+            {% if product.summary %}<p class="mt-1 line-clamp-2 text-sm text-pretty text-base-content/70">{{ product.summary }}</p>{% endif %}
+            {% if product.category %}<p class="mt-1 text-xs tracking-wider uppercase text-base-content/70">{{ product.category }}</p>{% endif %}
+          </div>
+          <div class="flex w-full items-center justify-between gap-4 sm:w-auto sm:justify-end">
+            {% if product.price %}<span class="text-lg font-bold whitespace-nowrap tabular-nums">{{ product.price }}</span>{% endif %}
+            {% if product.available == false %}
+              <a href="/contact" class="btn btn-ghost btn-sm">Ask</a>
+            {% elsif product.order_link %}
+              <a href="{{ product.order_link }}" class="btn btn-primary btn-sm">Order</a>
+            {% else %}
+              <a href="/contact" class="btn btn-outline btn-sm">Order by message</a>
+            {% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+    <p class="mt-6 text-center text-sm text-base-content/70">Prices include tax. Local delivery or collection from the shop.</p>
+  </div>
+</section>

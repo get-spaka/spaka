@@ -1,0 +1,27 @@
+label: Plans
+fields:
+  - name: name
+    kind: text
+    required: true
+  - name: price
+    label: Monthly price
+    kind: text
+  - name: period
+    kind: text
+  - name: yearly_price
+    label: Yearly price
+    kind: text
+  - name: description
+    kind: text
+  - name: features
+    kind: list
+  - name: cta
+    label: Button
+    kind: text
+  - name: href
+    label: Button link
+    kind: link
+  - name: featured
+    label: Highlighted
+    kind: boolean
+order: [solo, team, company]

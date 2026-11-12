@@ -1,0 +1,20 @@
+{
+  "name": "Comparison table across three options",
+  "kind": "comparison",
+  "source": "upstart",
+  "description": "A heading above a table comparing the business with two other ways, a large chain and doing it yourself, with a check, a dash or a cross on each row, the business's column shaded, a legend below, and the table scrolling sideways on a phone.",
+  "tags": ["table", "three options", "check marks", "legend", "us vs others"],
+  "mood": ["professional", "minimal"],
+  "synonyms": [
+    "comparison table",
+    "compare",
+    "versus",
+    "us vs competitors",
+    "how we compare",
+    "tableau comparatif",
+    "comparatif",
+    "comparer",
+    "face à la concurrence",
+    "nous et les autres"
+  ]
+}

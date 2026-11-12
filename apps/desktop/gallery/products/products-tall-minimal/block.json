@@ -1,0 +1,24 @@
+{
+  "name": "Tall product pictures",
+  "kind": "products",
+  "source": "hyperui",
+  "description": "A quiet four-column collection of tall portrait pictures (or soft placeholders) with the product's name in small type, the price, a badge and a plain Order link under each; each product's page shows a tall picture beside the name, the price, one order button and the description, with four more products below.",
+  "tags": ["collection", "portrait", "grid", "minimal", "shop"],
+  "mood": ["minimal", "elegant"],
+  "synonyms": [
+    "collection",
+    "lookbook",
+    "products",
+    "shop grid",
+    "boutique items",
+    "la collection",
+    "nos produits",
+    "vitrine",
+    "articles",
+    "boutique en ligne"
+  ],
+  "data": {
+    "name": "products",
+    "family": "collection"
+  }
+}

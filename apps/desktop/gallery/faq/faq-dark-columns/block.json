@@ -1,0 +1,24 @@
+{
+  "name": "Dark FAQ in two columns",
+  "kind": "faq",
+  "source": "mamba-ui",
+  "description": "A dark band with a heading and a short line on top, then the questions split into two columns of expandable rows between thin light rules.",
+  "tags": ["dark", "two columns", "expandable", "details", "band"],
+  "mood": ["dark", "elegant", "professional"],
+  "synonyms": [
+    "questions",
+    "frequently asked questions",
+    "q&a",
+    "help",
+    "support",
+    "foire aux questions",
+    "questions fréquentes",
+    "aide",
+    "fond sombre",
+    "deux colonnes"
+  ],
+  "data": {
+    "name": "faq",
+    "family": "section"
+  }
+}

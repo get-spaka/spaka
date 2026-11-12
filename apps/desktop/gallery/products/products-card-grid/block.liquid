@@ -1,0 +1,48 @@
+<section class="bg-base-100 text-base-content">
+  <div class="mx-auto max-w-6xl px-4 py-16 md:py-24">
+    <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <div class="max-w-2xl">
+        <h2 class="text-3xl font-bold text-balance md:text-4xl">From our shop</h2>
+        <p class="mt-4 text-lg text-pretty text-base-content/70">Made in small batches, ready to take home or to order by message.</p>
+      </div>
+      <a href="/contact" class="btn btn-outline self-start md:self-auto">Visit the shop</a>
+    </div>
+    <div class="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+      {% for product in data.products %}
+        {% assign tint = forloop.index0 | modulo: 3 %}
+        <article class="card overflow-hidden border border-base-300 bg-base-100 shadow-sm">
+          <a href="/products/{{ product.id }}" class="block" aria-label="{{ product.name }}">
+            {% if product.image %}
+              <img src="{{ product.image }}" alt="{{ product.name }}" class="aspect-square w-full object-cover">
+            {% else %}
+              <div class="flex aspect-square w-full items-center justify-center bg-linear-to-br text-base-content/50 {% if tint == 0 %}from-primary/25 to-secondary/20{% elsif tint == 1 %}from-secondary/25 to-accent/20{% else %}from-accent/25 to-primary/20{% endif %}">
+                <svg class="size-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 10a4 4 0 0 1-8 0"/><path d="M3.103 6.034h17.794"/><path d="M3.4 5.467a2 2 0 0 0-.4 1.2V20a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6.667a2 2 0 0 0-.4-1.2l-2-2.667A2 2 0 0 0 17 2H7a2 2 0 0 0-1.6.8z"/></svg>
+              </div>
+            {% endif %}
+          </a>
+          <div class="card-body gap-3">
+            {% if product.category or product.badge or product.available == false %}
+              <div class="flex flex-wrap items-center gap-2 text-sm">
+                {% if product.category %}<span class="text-base-content/70">{{ product.category }}</span>{% endif %}
+                {% if product.badge %}<span class="badge badge-secondary badge-sm">{{ product.badge }}</span>{% endif %}
+                {% if product.available == false %}<span class="badge badge-outline badge-sm">Sold out</span>{% endif %}
+              </div>
+            {% endif %}
+            <h3 class="card-title text-xl"><a href="/products/{{ product.id }}" class="link link-hover">{{ product.name }}</a></h3>
+            {% if product.summary %}<p class="text-pretty text-base-content/70">{{ product.summary }}</p>{% endif %}
+            <div class="card-actions mt-auto items-center justify-between pt-3">
+              {% if product.price %}<span class="text-lg font-bold tabular-nums">{{ product.price }}</span>{% else %}<span></span>{% endif %}
+              {% if product.available == false %}
+                <a href="/contact" class="btn btn-ghost btn-sm">Ask when it's back</a>
+              {% elsif product.order_link %}
+                <a href="{{ product.order_link }}" class="btn btn-primary btn-sm">Order</a>
+              {% else %}
+                <a href="/contact" class="btn btn-primary btn-sm">Order by message</a>
+              {% endif %}
+            </div>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>

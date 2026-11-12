@@ -1,0 +1,72 @@
+<section class="bg-base-100 text-base-content">
+  <div class="mx-auto max-w-6xl px-4 py-16 md:py-24">
+    <div class="max-w-2xl">
+      <h2 class="text-3xl font-bold text-balance md:text-4xl">Have a question?</h2>
+      <p class="mt-4 text-lg text-pretty text-base-content/70">Pick a topic to find the answer quickly. If it is not here, <a href="/contact" class="link">write to us</a>.</p>
+    </div>
+    {% assign topics = data.faq | map: "topic" | compact | uniq %}
+    {% assign loose = data.faq | where_exp: "item", "item.topic == blank" %}
+    <div class="mt-12 grid gap-10 lg:grid-cols-4 lg:gap-16">
+      <nav aria-label="Topics" class="border-b border-base-300 pb-6 lg:border-b-0 lg:pb-0">
+        <h3 class="text-sm font-semibold tracking-widest uppercase text-base-content/70">Topics</h3>
+        <ul class="mt-4 flex flex-wrap gap-x-6 gap-y-3 lg:flex-col">
+          {% for topic in topics %}
+            {% if topic != blank %}
+              <li><a href="#faq-by-topic-{{ forloop.index }}" class="link link-hover font-medium">{{ topic }}</a></li>
+            {% endif %}
+          {% endfor %}
+          {% if loose.size > 0 %}
+            <li><a href="#faq-by-topic-more" class="link link-hover font-medium">Other questions</a></li>
+          {% endif %}
+        </ul>
+      </nav>
+      <div class="space-y-14 lg:col-span-3">
+        {% for topic in topics %}
+          {% if topic != blank %}
+            {% assign questions = data.faq | where: "topic", topic %}
+            <div id="faq-by-topic-{{ forloop.index }}" class="scroll-mt-24">
+              <h3 class="text-xl font-semibold md:text-2xl">{{ topic }}</h3>
+              <div class="mt-4 divide-y divide-base-300 border-y border-base-300">
+                {% for item in questions %}
+                  <details class="group">
+                    <summary class="flex cursor-pointer list-none items-center gap-4 py-5 font-semibold [&::-webkit-details-marker]:hidden">
+                      <span class="flex size-7 shrink-0 items-center justify-center rounded-full border border-base-300">
+                        <svg class="size-4 transition-transform group-open:rotate-45" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                      </span>
+                      <span class="text-lg">{{ item.question }}</span>
+                    </summary>
+                    <div class="flex gap-4 pb-6 md:pl-3">
+                      <span class="w-0.5 shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
+                      <div class="max-w-2xl space-y-2 text-pretty text-base-content/70 [&_a]:link [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5">{{ item.answer }}</div>
+                    </div>
+                  </details>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+        {% if loose.size > 0 %}
+          <div id="faq-by-topic-more" class="scroll-mt-24">
+            <h3 class="text-xl font-semibold md:text-2xl">Other questions</h3>
+            <div class="mt-4 divide-y divide-base-300 border-y border-base-300">
+              {% for item in loose %}
+                <details class="group">
+                  <summary class="flex cursor-pointer list-none items-center gap-4 py-5 font-semibold [&::-webkit-details-marker]:hidden">
+                    <span class="flex size-7 shrink-0 items-center justify-center rounded-full border border-base-300">
+                      <svg class="size-4 transition-transform group-open:rotate-45" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                    </span>
+                    <span class="text-lg">{{ item.question }}</span>
+                  </summary>
+                  <div class="flex gap-4 pb-6 md:pl-3">
+                    <span class="w-0.5 shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
+                    <div class="max-w-2xl space-y-2 text-pretty text-base-content/70 [&_a]:link [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5">{{ item.answer }}</div>
+                  </div>
+                </details>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>

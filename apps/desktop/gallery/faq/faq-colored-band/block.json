@@ -1,0 +1,24 @@
+{
+  "name": "FAQ on a colored band",
+  "kind": "faq",
+  "source": "meraki-ui",
+  "description": "A bold colored band with a centered heading above light panels of questions, each opening its answer with a plus that turns into a minus, several open at once.",
+  "tags": ["colored band", "collapse", "plus and minus", "panels", "centered"],
+  "mood": ["colorful", "bold", "friendly"],
+  "synonyms": [
+    "questions",
+    "frequently asked questions",
+    "q&a",
+    "help",
+    "accordion",
+    "foire aux questions",
+    "questions fréquentes",
+    "aide",
+    "accordéon",
+    "bandeau coloré"
+  ],
+  "data": {
+    "name": "faq",
+    "family": "section"
+  }
+}

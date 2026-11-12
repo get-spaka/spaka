@@ -1,0 +1,24 @@
+{
+  "name": "Session rates for a coach or tutor",
+  "kind": "pricing",
+  "source": "upstart",
+  "description": "A price list for one-to-one sessions: a heading, a short text and three reassurances with round icons on the left, and on the right a white panel of rows, each with the session's name, description and small checks, its price by the hour, session or month and a small Book button; the best-value row has a badge beside its name.",
+  "tags": ["sessions", "hourly rate", "price list", "coaching", "tutoring", "booking"],
+  "mood": ["warm", "elegant"],
+  "synonyms": [
+    "hourly rates",
+    "session prices",
+    "coaching fees",
+    "tutoring rates",
+    "lesson prices",
+    "tarif horaire",
+    "prix des séances",
+    "cours particuliers",
+    "accompagnement",
+    "tarifs coaching"
+  ],
+  "data": {
+    "name": "plans",
+    "family": "section"
+  }
+}

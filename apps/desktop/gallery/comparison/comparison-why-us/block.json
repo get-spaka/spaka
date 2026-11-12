@@ -1,0 +1,20 @@
+{
+  "name": "Why choose us, beside a heading",
+  "kind": "comparison",
+  "source": "upstart",
+  "description": "A large heading with a short paragraph and a button beside a list of differences, each with a check in a round badge, a title, and a line for how it goes elsewhere and a line for how it goes with the business.",
+  "tags": ["why choose us", "two columns", "list", "differences", "checks"],
+  "mood": ["warm", "professional"],
+  "synonyms": [
+    "why choose us",
+    "why us",
+    "what makes us different",
+    "our difference",
+    "advantages",
+    "pourquoi nous choisir",
+    "pourquoi nous",
+    "ce qui nous distingue",
+    "notre différence",
+    "nos atouts"
+  ]
+}

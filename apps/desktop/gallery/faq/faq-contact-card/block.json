@@ -1,0 +1,24 @@
+{
+  "name": "FAQ with contact card",
+  "kind": "faq",
+  "source": "meraki-ui",
+  "description": "Questions in soft rounded cards that open one by one, beside a colored \"Still have a question?\" card with an email, a phone number and a contact button.",
+  "tags": ["contact card", "cards", "questions", "expandable", "sidebar"],
+  "mood": ["friendly", "warm", "professional"],
+  "synonyms": [
+    "questions",
+    "frequently asked questions",
+    "help",
+    "support",
+    "contact us",
+    "foire aux questions",
+    "questions fréquentes",
+    "aide",
+    "nous contacter",
+    "une question ?"
+  ],
+  "data": {
+    "name": "faq",
+    "family": "section"
+  }
+}

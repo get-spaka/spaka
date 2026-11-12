@@ -1,0 +1,21 @@
+{
+  "name": "The usual way and with us",
+  "kind": "comparison",
+  "source": "upstart",
+  "description": "Two columns side by side, a muted card for the usual way with a cross on each line and a card outlined in the primary color for the business with a check on the same lines, and a quote button.",
+  "tags": ["two columns", "us vs them", "checks and crosses", "cards", "button"],
+  "mood": ["friendly", "professional"],
+  "synonyms": [
+    "us vs them",
+    "why us",
+    "compare",
+    "versus",
+    "the difference",
+    "nous contre eux",
+    "pourquoi nous",
+    "comparaison",
+    "la différence",
+    "avec nous",
+    "eux et nous"
+  ]
+}

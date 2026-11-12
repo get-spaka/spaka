@@ -1,0 +1,11 @@
+label: Questions
+fields:
+  - name: question
+    kind: text
+    required: true
+  - name: topic
+    kind: text
+  - name: answer
+    kind: markdown
+body: answer
+order: [placing-an-order, changing-an-order, delivery-times, delivery-areas, returning-an-item, refunds]

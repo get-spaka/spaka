@@ -123,6 +123,8 @@ describe.each(blocks.map((b) => [b.id, b] as const))("%s", (_id, b) => {
     // Only what Liquid's forloop has: forloop.even is nothing, and false.
     for (const m of `${b.source}${b.detail ?? ""}`.matchAll(/\bforloop\.(\w+)/g))
       expect(["index", "index0", "rindex", "rindex0", "first", "last", "length"]).toContain(m[1]);
+    // group_by makes new objects: the maker could no longer edit a record by clicking it. Filter with where.
+    expect(`${b.source}${b.detail ?? ""}`).not.toMatch(/\|\s*group_by\b/);
     // An image comes from a record, shown only when the record has one.
     for (const img of b.source.matchAll(/<img\b[^>]*>/g)) expect(img[0]).toMatch(/src="\{\{/);
     if (b.detail) {

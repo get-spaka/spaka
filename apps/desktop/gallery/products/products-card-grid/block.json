@@ -1,0 +1,24 @@
+{
+  "name": "Product cards in a grid",
+  "kind": "products",
+  "source": "upstart",
+  "description": "A grid of product cards, each with a square picture (or a colored placeholder), the category, a badge such as New or Bestseller, the name, a short summary, the price and an Order button; each product's page shows the picture beside the price, the order button and the description, with three other products to finish.",
+  "tags": ["cards", "grid", "shop", "prices", "order"],
+  "mood": ["friendly", "warm"],
+  "synonyms": [
+    "products",
+    "shop",
+    "store",
+    "product cards",
+    "what we sell",
+    "produits",
+    "boutique",
+    "nos créations",
+    "articles",
+    "catalogue"
+  ],
+  "data": {
+    "name": "products",
+    "family": "collection"
+  }
+}

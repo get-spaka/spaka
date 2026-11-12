@@ -1,0 +1,24 @@
+{
+  "name": "Numbered FAQ list",
+  "kind": "faq",
+  "source": "mamba-ui",
+  "description": "A compact editorial list of numbered questions between thin rules, each opening its answer in place, under a serif heading.",
+  "tags": ["numbered", "compact", "list", "details", "serif"],
+  "mood": ["editorial", "minimal", "elegant"],
+  "synonyms": [
+    "questions",
+    "frequently asked questions",
+    "practical information",
+    "good to know",
+    "q&a",
+    "foire aux questions",
+    "questions fréquentes",
+    "infos pratiques",
+    "bon à savoir",
+    "liste numérotée"
+  ],
+  "data": {
+    "name": "faq",
+    "family": "section"
+  }
+}

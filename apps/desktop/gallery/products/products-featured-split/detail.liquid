@@ -1,0 +1,59 @@
+<article class="bg-base-200 text-base-content">
+  <div class="mx-auto max-w-6xl px-4 py-12 md:py-20">
+    <div class="grid items-center gap-10 lg:grid-cols-5">
+      <div class="lg:col-span-3">
+        {% if record.image %}
+          <img src="{{ record.image }}" alt="{{ record.name }}" class="aspect-4/3 w-full rounded-box object-cover">
+        {% else %}
+          <div class="flex aspect-4/3 w-full items-center justify-center rounded-box bg-linear-to-br from-primary/30 via-secondary/15 to-accent/25 text-base-content/50">
+            <svg class="size-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><polyline points="3.29 7 12 12 20.71 7"/><path d="m7.5 4.27 9 5.15"/></svg>
+          </div>
+        {% endif %}
+      </div>
+      <div class="lg:col-span-2">
+        {% if record.category or record.badge or record.available == false %}
+          <div class="flex flex-wrap items-center gap-2 text-sm">
+            {% if record.badge %}<span class="badge badge-primary">{{ record.badge }}</span>{% endif %}
+            {% if record.available == false %}<span class="badge badge-outline">Sold out</span>{% endif %}
+            {% if record.category %}<span class="text-base-content/70">{{ record.category }}</span>{% endif %}
+          </div>
+        {% endif %}
+        <h1 class="mt-4 text-3xl font-bold text-balance md:text-5xl">{{ record.name }}</h1>
+        {% if record.summary %}<p class="mt-4 text-lg text-pretty text-base-content/70">{{ record.summary }}</p>{% endif %}
+        <div class="mt-8 card bg-base-100 shadow-sm">
+          <div class="card-body gap-4">
+            {% if record.price %}<p class="text-3xl font-bold tabular-nums">{{ record.price }}</p>{% endif %}
+            {% if record.available == false %}
+              <p class="text-base-content/70">Sold out for now. Leave us a message and we will let you know when it is back.</p>
+              <a href="/contact" class="btn btn-outline btn-block">Ask when it's back</a>
+            {% elsif record.order_link %}
+              <a href="{{ record.order_link }}" class="btn btn-primary btn-block">Order</a>
+            {% else %}
+              <p class="text-base-content/70">Send us a message and we will set it aside for you.</p>
+              <a href="/contact" class="btn btn-primary btn-block">Order by message</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mt-12 grid gap-10 lg:grid-cols-5">
+      <div class="rounded-box bg-base-100 p-6 text-lg leading-relaxed md:p-10 lg:col-span-3 [&_a]:link [&_a]:link-primary [&_h2]:mt-8 [&_h2]:text-2xl [&_h2]:font-bold [&_h2:first-child]:mt-0 [&_h3]:mt-6 [&_h3]:text-xl [&_h3]:font-semibold [&_li]:mt-1 [&_ol]:mt-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mt-4 [&_p:first-child]:mt-0 [&_strong]:font-semibold [&_ul]:mt-4 [&_ul]:list-disc [&_ul]:pl-6">{{ record.body }}</div>
+      <div class="lg:col-span-2">
+        <h2 class="text-sm font-semibold tracking-wider uppercase text-base-content/70">Also in the shop</h2>
+        <ul class="mt-4 divide-y divide-base-300">
+          {% assign shown = 0 %}
+          {% for product in data.products %}
+            {% if product.id != record.id and shown < 4 %}
+              {% assign shown = shown | plus: 1 %}
+              <li class="flex items-baseline justify-between gap-4 py-4 first:pt-0">
+                <a href="/products/{{ product.id }}" class="link link-hover font-semibold">{{ product.name }}</a>
+                {% if product.price %}<span class="shrink-0 tabular-nums text-base-content/70">{{ product.price }}</span>{% endif %}
+              </li>
+            {% endif %}
+          {% endfor %}
+        </ul>
+        <a href="/products" class="btn btn-outline mt-6">All products</a>
+      </div>
+    </div>
+  </div>
+</article>

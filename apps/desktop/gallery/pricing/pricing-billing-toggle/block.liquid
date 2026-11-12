@@ -1,0 +1,64 @@
+<section class="bg-base-100 text-base-content">
+  <div class="group mx-auto max-w-6xl px-4 py-16 md:py-24">
+    <div class="mx-auto max-w-2xl text-center">
+      <h2 class="text-3xl font-bold text-balance md:text-4xl">Pay monthly or save with a year</h2>
+      <p class="mt-4 text-lg text-pretty text-base-content/70">The same plans either way. Paying for a year gives you two months free.</p>
+    </div>
+    <fieldset class="mx-auto mt-10 flex w-fit gap-1 rounded-full bg-base-200 p-1">
+      <legend class="sr-only">Billing period</legend>
+      <label class="flex cursor-pointer items-center gap-2 rounded-full px-5 py-2 font-medium has-checked:bg-primary has-checked:text-primary-content has-focus-visible:outline-2 has-focus-visible:outline-primary">
+        <input type="radio" name="pricing-billing-toggle" id="pricing-billing-toggle-monthly" value="monthly" class="sr-only" checked />
+        Monthly
+      </label>
+      <label class="flex cursor-pointer items-center gap-2 rounded-full px-5 py-2 font-medium has-checked:bg-primary has-checked:text-primary-content has-focus-visible:outline-2 has-focus-visible:outline-primary">
+        <input type="radio" name="pricing-billing-toggle" id="pricing-billing-toggle-yearly" value="yearly" class="sr-only" />
+        Yearly
+        <span class="badge badge-secondary badge-sm">2 months free</span>
+      </label>
+    </fieldset>
+    <div class="mt-12 group-has-[#pricing-billing-toggle-yearly:checked]:hidden">
+      <div class="grid gap-6 md:grid-cols-3">
+        {% for plan in data.plans %}
+          <div class="flex flex-col rounded-box p-6 md:p-8 {% if plan.featured %}bg-base-100 ring-2 ring-primary{% else %}bg-base-200{% endif %}">
+            <div class="text-center">
+              <h3 class="text-2xl font-semibold">{{ plan.name }}</h3>
+              {% if plan.description %}<p class="mt-2 text-base-content/70">{{ plan.description }}</p>{% endif %}
+              <p class="mt-6"><span class="text-4xl font-bold tabular-nums">{{ plan.price }}</span><span class="text-base-content/70">{{ plan.period }}</span></p>
+            </div>
+            <ul class="mt-8 flex-1 space-y-3">
+              {% for feature in plan.features %}
+                <li class="flex items-center gap-3">
+                  <svg class="size-5 shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                  <span>{{ feature }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+            {% if plan.href %}<a href="{{ plan.href }}" class="btn {% if plan.featured %}btn-primary{% else %}btn-outline{% endif %} mt-8 btn-block">{{ plan.cta }}</a>{% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="mt-12 hidden group-has-[#pricing-billing-toggle-yearly:checked]:block">
+      <div class="grid gap-6 md:grid-cols-3">
+        {% for plan in data.plans %}
+          <div class="flex flex-col rounded-box p-6 md:p-8 {% if plan.featured %}bg-base-100 ring-2 ring-primary{% else %}bg-base-200{% endif %}">
+            <div class="text-center">
+              <h3 class="text-2xl font-semibold">{{ plan.name }}</h3>
+              {% if plan.description %}<p class="mt-2 text-base-content/70">{{ plan.description }}</p>{% endif %}
+              <p class="mt-6">{% if plan.yearly_price %}<span class="text-4xl font-bold tabular-nums">{{ plan.yearly_price }}</span><span class="text-base-content/70">/year</span>{% else %}<span class="text-4xl font-bold tabular-nums">{{ plan.price }}</span><span class="text-base-content/70">{{ plan.period }}</span>{% endif %}</p>
+            </div>
+            <ul class="mt-8 flex-1 space-y-3">
+              {% for feature in plan.features %}
+                <li class="flex items-center gap-3">
+                  <svg class="size-5 shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                  <span>{{ feature }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+            {% if plan.href %}<a href="{{ plan.href }}" class="btn {% if plan.featured %}btn-primary{% else %}btn-outline{% endif %} mt-8 btn-block">{{ plan.cta }}</a>{% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>

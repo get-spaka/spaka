@@ -1,0 +1,36 @@
+<section class="bg-neutral text-neutral-content">
+  <div class="mx-auto max-w-6xl px-4 py-16 md:py-24">
+    <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <div class="max-w-xl">
+        <p class="text-sm font-semibold tracking-widest uppercase">FAQ</p>
+        <h2 class="mt-2 text-3xl font-bold text-balance md:text-4xl">Questions we often hear</h2>
+      </div>
+      <p class="max-w-sm text-pretty">Short answers on plans, billing and support. <a href="/contact" class="link font-semibold">Ask us anything else</a>.</p>
+    </div>
+    {% assign half = data.faq.size | divided_by: 2.0 | ceil %}
+    <div class="mt-12 grid gap-x-12 md:grid-cols-2">
+      <div class="border-t border-neutral-content/20">
+        {% for item in data.faq limit: half %}
+          <details class="group border-b border-neutral-content/20">
+            <summary class="flex cursor-pointer list-none items-center justify-between gap-4 py-5 text-lg font-semibold [&::-webkit-details-marker]:hidden">
+              <span>{{ item.question }}</span>
+              <svg class="size-5 shrink-0 transition-transform group-open:rotate-45" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+            </summary>
+            <div class="space-y-2 pb-6 text-pretty [&_a]:link [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5">{{ item.answer }}</div>
+          </details>
+        {% endfor %}
+      </div>
+      <div class="border-neutral-content/20 md:border-t">
+        {% for item in data.faq offset: half %}
+          <details class="group border-b border-neutral-content/20">
+            <summary class="flex cursor-pointer list-none items-center justify-between gap-4 py-5 text-lg font-semibold [&::-webkit-details-marker]:hidden">
+              <span>{{ item.question }}</span>
+              <svg class="size-5 shrink-0 transition-transform group-open:rotate-45" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+            </summary>
+            <div class="space-y-2 pb-6 text-pretty [&_a]:link [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5">{{ item.answer }}</div>
+          </details>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>

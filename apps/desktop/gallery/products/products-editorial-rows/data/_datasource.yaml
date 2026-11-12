@@ -1,0 +1,32 @@
+label: Products
+fields:
+  - name: name
+    label: Name
+    kind: text
+    required: true
+  - name: price
+    label: Price
+    kind: text
+  - name: summary
+    label: Summary
+    kind: text
+  - name: image
+    label: Picture
+    kind: image
+  - name: category
+    label: Category
+    kind: text
+  - name: badge
+    label: Badge
+    kind: text
+  - name: available
+    label: Available
+    kind: boolean
+  - name: order_link
+    label: Order link
+    kind: link
+  - name: body
+    label: Description
+    kind: markdown
+body: body
+order: [stoneware-mug, serving-bowl, bud-vase, hand-poured-candle, linen-tea-towels, gift-box]

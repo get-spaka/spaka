@@ -1,0 +1,24 @@
+{
+  "name": "Three plans on a dark band",
+  "kind": "pricing",
+  "source": "meraki-ui",
+  "description": "A dark band with a heading, a short text and a link beside three plan cards, each with its name, description, price and button above a ruled “What’s included” list; the highlighted plan is filled with the primary color.",
+  "tags": ["dark", "three plans", "side by side", "cards", "coworking"],
+  "mood": ["dark", "bold"],
+  "synonyms": [
+    "memberships",
+    "rates",
+    "packages",
+    "coworking",
+    "desk rental",
+    "tarifs",
+    "adhésions",
+    "formules",
+    "location de bureau",
+    "bandeau sombre"
+  ],
+  "data": {
+    "name": "plans",
+    "family": "section"
+  }
+}

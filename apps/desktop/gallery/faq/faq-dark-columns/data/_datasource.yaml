@@ -1,0 +1,9 @@
+label: Questions
+fields:
+  - name: question
+    kind: text
+    required: true
+  - name: answer
+    kind: markdown
+body: answer
+order: [free-trial, changing-plan, cancelling, team-accounts, exporting-data, support-hours]

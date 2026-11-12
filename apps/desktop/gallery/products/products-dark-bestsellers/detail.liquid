@@ -1,0 +1,54 @@
+<article class="bg-base-100 text-base-content">
+  <div class="bg-neutral text-neutral-content">
+    <div class="mx-auto grid max-w-6xl items-center gap-10 px-4 py-12 md:grid-cols-2 md:py-20">
+      <div>
+        <div class="flex flex-wrap items-center gap-2 text-sm">
+          {% if record.category %}<span class="font-semibold tracking-widest uppercase">{{ record.category }}</span>{% endif %}
+          {% if record.badge %}<span class="badge badge-secondary">{{ record.badge }}</span>{% endif %}
+          {% if record.available == false %}<span class="badge badge-outline">Sold out</span>{% endif %}
+        </div>
+        <h1 class="mt-4 text-4xl font-bold text-balance md:text-6xl">{{ record.name }}</h1>
+        {% if record.summary %}<p class="mt-5 text-lg text-pretty">{{ record.summary }}</p>{% endif %}
+        <div class="mt-8 flex flex-wrap items-center gap-5">
+          {% if record.price %}<span class="text-3xl font-bold tabular-nums">{{ record.price }}</span>{% endif %}
+          {% if record.available == false %}
+            <a href="/contact" class="btn">Ask when it's back</a>
+          {% elsif record.order_link %}
+            <a href="{{ record.order_link }}" class="btn btn-primary">Order</a>
+          {% else %}
+            <a href="/contact" class="btn btn-primary">Order by message</a>
+          {% endif %}
+        </div>
+      </div>
+      {% if record.image %}
+        <img src="{{ record.image }}" alt="{{ record.name }}" class="aspect-4/5 w-full rounded-box object-cover md:max-h-[34rem]">
+      {% else %}
+        <div class="flex aspect-4/5 w-full items-center justify-center rounded-box bg-linear-to-br from-primary to-secondary text-primary-content md:max-h-[34rem]">
+          <svg class="size-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="mx-auto max-w-3xl px-4 py-14 text-lg leading-relaxed md:py-20 [&_a]:link [&_a]:link-primary [&_h2]:mt-10 [&_h2]:text-2xl [&_h2]:font-bold [&_h2:first-child]:mt-0 [&_h3]:mt-8 [&_h3]:text-xl [&_h3]:font-semibold [&_li]:mt-1 [&_ol]:mt-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mt-4 [&_p:first-child]:mt-0 [&_strong]:font-semibold [&_ul]:mt-4 [&_ul]:list-disc [&_ul]:pl-6">{{ record.body }}</div>
+  <div class="border-t border-base-300 bg-base-200">
+    <div class="mx-auto max-w-6xl px-4 py-14">
+      <h2 class="text-2xl font-bold">Other bestsellers</h2>
+      <ul class="mt-6 grid gap-4 sm:grid-cols-3">
+        {% assign shown = 0 %}
+        {% for product in data.products %}
+          {% if product.id != record.id and shown < 3 %}
+            {% assign shown = shown | plus: 1 %}
+            <li>
+              <a href="/products/{{ product.id }}" class="card bg-base-100 shadow-sm transition hover:shadow-md">
+                <div class="card-body flex-row items-center justify-between gap-4">
+                  <span class="font-semibold">{{ product.name }}</span>
+                  {% if product.price %}<span class="shrink-0 font-bold tabular-nums">{{ product.price }}</span>{% endif %}
+                </div>
+              </a>
+            </li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</article>

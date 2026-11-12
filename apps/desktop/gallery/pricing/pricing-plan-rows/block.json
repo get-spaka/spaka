@@ -1,0 +1,24 @@
+{
+  "name": "Plans as rows",
+  "kind": "pricing",
+  "source": "upstart",
+  "description": "Plans stacked as horizontal rows in one bordered panel, each with its name and description on the left, a two-column checklist of features in the middle and the price with a button on the right; the recommended plan sits on a tinted row with a badge beside its name.",
+  "tags": ["rows", "list", "monthly", "checklist", "maintenance"],
+  "mood": ["professional", "minimal"],
+  "synonyms": [
+    "plans list",
+    "price rows",
+    "care plans",
+    "maintenance plans",
+    "packages",
+    "tarifs",
+    "formules",
+    "offres en liste",
+    "forfaits",
+    "abonnements mensuels"
+  ],
+  "data": {
+    "name": "plans",
+    "family": "section"
+  }
+}
