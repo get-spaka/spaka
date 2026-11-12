@@ -1,0 +1,24 @@
+{
+  "name": "Grid of bordered tiles",
+  "kind": "logos",
+  "source": "hyperui",
+  "description": "A centered heading and intro over a grid of bordered tiles, two per row on a phone and three on a wide screen, each holding a partner's logo or wordmark and a short caption.",
+  "tags": ["partners", "grid", "tiles", "bordered", "centered heading"],
+  "mood": ["professional", "minimal"],
+  "synonyms": [
+    "partners",
+    "partnerships",
+    "collaborators",
+    "logo grid",
+    "network",
+    "partenaires",
+    "nos partenaires",
+    "collaborations",
+    "réseau",
+    "grille de logos"
+  ],
+  "data": {
+    "name": "logos",
+    "family": "section"
+  }
+}

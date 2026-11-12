@@ -1,0 +1,23 @@
+<section class="bg-base-200 text-base-content">
+  <div class="mx-auto max-w-6xl px-4 py-16 md:py-24">
+    <div class="grid gap-6 md:grid-cols-2 md:items-end">
+      <h2 class="text-4xl font-extrabold tracking-tight text-balance md:text-5xl">Over 200 local businesses work with us</h2>
+      <p class="text-lg text-pretty text-base-content/70">From corner cafés to family workshops, they rely on us to keep things running, season after season.</p>
+    </div>
+    <ul class="mt-12 grid grid-cols-2 border-t border-l border-base-300 md:grid-cols-3">
+      {% for item in data.logos %}
+        {% assign style = forloop.index0 | modulo: 3 %}
+        {% capture mark %}
+          {% if item.logo %}
+            <img src="{{ item.logo }}" alt="{{ item.name }}" class="h-10 w-auto max-w-36 object-contain">
+          {% else %}
+            <span class="text-base md:text-lg {% case style %}{% when 0 %}font-bold tracking-tight{% when 1 %}font-serif font-semibold italic{% else %}font-medium tracking-widest uppercase{% endcase %}">{{ item.name }}</span>
+          {% endif %}
+        {% endcapture %}
+        <li class="flex min-h-28 items-center justify-center border-r border-b border-base-300 bg-base-100 p-6 text-center md:min-h-36">
+          {% if item.href %}<a href="{{ item.href }}" class="link link-hover">{{ mark }}</a>{% else %}{{ mark }}{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>

@@ -1,0 +1,19 @@
+label: Logos
+fields:
+  - name: name
+    label: Name
+    kind: text
+    required: true
+  - name: logo
+    label: Logo
+    kind: image
+  - name: href
+    label: Link
+    kind: link
+  - name: caption
+    label: Caption
+    kind: text
+  - name: quote
+    label: Quote
+    kind: text
+order: [millbrook-flour-mill, hollow-creek-dairy, greenacre-orchards, blackthorn-coffee-roasters, saltmarsh-honey]

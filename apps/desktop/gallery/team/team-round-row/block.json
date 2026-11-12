@@ -1,0 +1,24 @@
+{
+  "name": "Round team photos in a row",
+  "kind": "team",
+  "source": "hyperui",
+  "description": "A centered heading above a row of round photos on a soft background, up to six across on a wide screen, each with a name and role below; initials in a colored circle when there is no photo.",
+  "tags": ["round photos", "avatars", "row", "compact", "centered"],
+  "mood": ["minimal", "friendly"],
+  "synonyms": [
+    "team",
+    "our people",
+    "faces",
+    "staff",
+    "who we are",
+    "équipe",
+    "notre équipe",
+    "les visages",
+    "le personnel",
+    "qui sommes-nous"
+  ],
+  "data": {
+    "name": "team",
+    "family": "collection"
+  }
+}

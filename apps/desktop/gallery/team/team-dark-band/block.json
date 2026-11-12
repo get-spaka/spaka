@@ -1,0 +1,24 @@
+{
+  "name": "Team on a dark band",
+  "kind": "team",
+  "source": "upstart",
+  "description": "A dark full-width band with a centered heading above outlined cards, each person with a round photo or initials in a colored circle, their name, their role in small capitals and icon links to e-mail, LinkedIn and Instagram.",
+  "tags": ["dark", "band", "cards", "social links", "round photos"],
+  "mood": ["dark", "bold"],
+  "synonyms": [
+    "team",
+    "crew",
+    "our team",
+    "staff",
+    "the people",
+    "équipe",
+    "notre équipe",
+    "l'équipe au complet",
+    "nos experts",
+    "les membres"
+  ],
+  "data": {
+    "name": "team",
+    "family": "collection"
+  }
+}

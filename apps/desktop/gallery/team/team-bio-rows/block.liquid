@@ -1,0 +1,31 @@
+<section class="bg-base-100 text-base-content">
+  <div class="mx-auto max-w-4xl px-4 py-16 md:py-24">
+    <h2 class="text-3xl font-bold text-balance md:text-4xl">Who we are</h2>
+    <p class="mt-4 max-w-2xl text-lg text-pretty text-base-content/70">A little about each of us, and what we bring to your project.</p>
+    <ul class="mt-10 divide-y divide-base-300 border-y border-base-300">
+      {% for member in data.team %}
+        {% assign words = member.name | split: " " %}
+        <li class="flex flex-col gap-6 py-8 sm:flex-row sm:gap-8">
+          {% if member.photo %}
+            <img src="{{ member.photo }}" alt="{{ member.name }}" class="aspect-square w-32 shrink-0 rounded-box object-cover sm:w-40">
+          {% else %}
+            <div class="flex aspect-square w-32 shrink-0 items-center justify-center rounded-box bg-linear-to-br from-accent/20 to-secondary/20 sm:w-40">
+              <span class="text-4xl font-semibold text-base-content/70">{{ words.first | slice: 0 }}{% if words.size > 1 %}{{ words.last | slice: 0 }}{% endif %}</span>
+            </div>
+          {% endif %}
+          <div class="min-w-0">
+            <h3 class="text-2xl font-semibold">{{ member.name }}</h3>
+            {% if member.role %}<p class="mt-1 text-sm font-medium tracking-widest uppercase text-base-content/70">{{ member.role }}</p>{% endif %}
+            {% if member.bio %}<p class="mt-4 text-lg leading-relaxed text-pretty text-base-content/80">{{ member.bio }}</p>{% endif %}
+            {% if member.email or member.linkedin %}
+              <p class="mt-4 flex flex-wrap gap-x-6 gap-y-2">
+                {% if member.email %}<a href="mailto:{{ member.email }}" class="link font-medium">Write to {{ words.first }}</a>{% endif %}
+                {% if member.linkedin %}<a href="{{ member.linkedin }}" class="link font-medium">LinkedIn</a>{% endif %}
+              </p>
+            {% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>

@@ -1,0 +1,11 @@
+label: Steps
+fields:
+  - name: title
+    kind: text
+    required: true
+  - name: text
+    kind: text
+  - name: icon
+    kind: choice
+    choices: [spark, chat, phone, calendar, clipboard, cart, package, truck, tool, home, check, smile]
+order: [tell-us-about-the-job, we-visit-and-measure, your-fixed-quote, the-work-done-right]

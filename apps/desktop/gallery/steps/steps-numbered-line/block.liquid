@@ -1,0 +1,22 @@
+<section class="bg-base-100 text-base-content">
+  <div class="mx-auto max-w-6xl px-4 py-16 md:py-24">
+    <div class="mx-auto max-w-2xl text-center">
+      <h2 class="text-3xl font-bold text-balance md:text-4xl">How it works</h2>
+      <p class="mt-4 text-lg text-pretty text-base-content/70">Four simple steps, from your first message to the finished work.</p>
+    </div>
+    <ol class="mt-14 grid gap-10 md:auto-cols-fr md:grid-flow-col md:gap-0">
+      {% for step in data.steps %}
+        <li class="flex gap-5 md:flex-col md:gap-6">
+          <div class="flex items-center">
+            <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-lg font-bold text-primary-content">{{ forloop.index }}</span>
+            {% unless forloop.last %}<span class="mx-4 hidden h-0.5 flex-1 rounded-full bg-base-300 md:block" aria-hidden="true"></span>{% endunless %}
+          </div>
+          <div class="md:pr-8">
+            <h3 class="text-lg font-semibold">{{ step.title }}</h3>
+            {% if step.text != blank %}<p class="mt-2 text-pretty text-base-content/70">{{ step.text }}</p>{% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ol>
+  </div>
+</section>

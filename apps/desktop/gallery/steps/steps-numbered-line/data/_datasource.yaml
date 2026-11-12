@@ -1,0 +1,11 @@
+label: Steps
+fields:
+  - name: title
+    kind: text
+    required: true
+  - name: text
+    kind: text
+  - name: icon
+    kind: choice
+    choices: [spark, chat, phone, calendar, clipboard, cart, package, truck, tool, home, check, smile]
+order: [get-in-touch, receive-your-quote, we-get-to-work, enjoy-the-result]

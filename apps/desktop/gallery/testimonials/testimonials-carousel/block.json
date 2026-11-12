@@ -1,0 +1,26 @@
+{
+  "name": "Testimonial carousel",
+  "kind": "testimonials",
+  "source": "upstart",
+  "description": "A centered carousel of customer quotes that slides one at a time with previous and next buttons and a counter, scroll-snapping without JavaScript, each slide with stars, the quote, name and role.",
+  "tags": ["carousel", "slider", "stars", "centered", "one at a time"],
+  "mood": ["minimal", "professional"],
+  "synonyms": [
+    "reviews",
+    "customer quotes",
+    "social proof",
+    "feedback",
+    "slider",
+    "slideshow",
+    "avis clients",
+    "témoignages",
+    "retours clients",
+    "ils nous font confiance",
+    "carrousel",
+    "diaporama"
+  ],
+  "data": {
+    "name": "testimonials",
+    "family": "collection"
+  }
+}

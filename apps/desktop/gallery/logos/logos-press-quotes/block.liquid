@@ -1,0 +1,26 @@
+<section class="bg-base-100 text-base-content">
+  <div class="mx-auto max-w-6xl px-4 py-16 md:py-24">
+    <div class="max-w-2xl">
+      <p class="text-sm font-semibold tracking-widest text-base-content/70 uppercase">As seen in</p>
+      <h2 class="mt-3 font-serif text-3xl font-bold text-balance md:text-4xl">What the press says about us</h2>
+    </div>
+    <ul class="mt-12 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+      {% for item in data.logos %}
+        {% assign style = forloop.index0 | modulo: 2 %}
+        <li class="flex flex-col border-t-2 border-base-content pt-6">
+          {% if item.logo %}
+            <img src="{{ item.logo }}" alt="{{ item.name }}" class="h-8 w-auto max-w-40 self-start object-contain grayscale">
+          {% else %}
+            <p class="text-xl {% case style %}{% when 0 %}font-serif font-black{% else %}font-semibold tracking-widest uppercase{% endcase %}">{{ item.name }}</p>
+          {% endif %}
+          {% if item.quote %}
+            <blockquote class="mt-4 grow">
+              <p class="font-serif text-lg text-pretty text-base-content/80 italic">“{{ item.quote }}”</p>
+            </blockquote>
+          {% endif %}
+          {% if item.href %}<a href="{{ item.href }}" class="link mt-4 text-sm font-semibold link-hover">Read the article</a>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>

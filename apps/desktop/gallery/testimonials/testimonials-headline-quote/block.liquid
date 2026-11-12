@@ -1,0 +1,29 @@
+<section class="bg-base-100 text-base-content">
+  <div class="mx-auto max-w-6xl px-4 py-16 md:py-24">
+    {% for item in data.testimonials limit: 1 %}
+      <figure class="max-w-4xl">
+        <p class="font-serif text-7xl leading-none text-primary" aria-hidden="true">“</p>
+        <blockquote>
+          <p class="font-serif text-3xl leading-tight text-balance md:text-5xl">{{ item.quote }}</p>
+        </blockquote>
+        <figcaption class="mt-8 flex items-center gap-4">
+          <span class="h-px w-12 bg-base-content/40" aria-hidden="true"></span>
+          <p><span class="font-semibold">{{ item.name }}</span>{% if item.role != blank %}<span class="text-base-content/70">, {{ item.role }}</span>{% endif %}</p>
+        </figcaption>
+      </figure>
+    {% endfor %}
+    {% if data.testimonials.size > 1 %}
+      <div class="mt-16 grid gap-10 border-t border-base-300 pt-10 sm:grid-cols-2 lg:grid-cols-3">
+        {% for item in data.testimonials offset: 1 limit: 3 %}
+          <figure>
+            {% if item.headline != blank %}<h3 class="font-semibold">{{ item.headline }}</h3>{% endif %}
+            <blockquote class="mt-2">
+              <p class="text-base-content/80">“{{ item.quote }}”</p>
+            </blockquote>
+            <figcaption class="mt-4 text-sm text-base-content/70">{{ item.name }}{% if item.role != blank %}, {{ item.role }}{% endif %}</figcaption>
+          </figure>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+</section>

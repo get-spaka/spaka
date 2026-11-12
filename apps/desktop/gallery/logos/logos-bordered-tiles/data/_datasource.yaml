@@ -1,0 +1,27 @@
+label: Logos
+fields:
+  - name: name
+    label: Name
+    kind: text
+    required: true
+  - name: logo
+    label: Logo
+    kind: image
+  - name: href
+    label: Link
+    kind: link
+  - name: caption
+    label: Caption
+    kind: text
+  - name: quote
+    label: Quote
+    kind: text
+order:
+  [
+    riverside-print-co,
+    oakline-architects,
+    fern-and-field-florists,
+    summit-bookkeeping,
+    lumen-photography,
+    copperleaf-events,
+  ]

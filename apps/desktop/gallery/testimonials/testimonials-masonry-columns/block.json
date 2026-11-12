@@ -1,0 +1,26 @@
+{
+  "name": "Wall of short quotes",
+  "kind": "testimonials",
+  "source": "upstart",
+  "description": "A heading above customer quotes in masonry-like columns of uneven cards, each with stars, the quote and a small initials avatar with name and role.",
+  "tags": ["masonry", "columns", "wall of love", "stars", "cards"],
+  "mood": ["friendly", "minimal"],
+  "synonyms": [
+    "reviews",
+    "customer quotes",
+    "social proof",
+    "feedback",
+    "wall of love",
+    "many reviews",
+    "avis clients",
+    "témoignages",
+    "retours clients",
+    "ils nous font confiance",
+    "mur d’avis",
+    "nombreux avis"
+  ],
+  "data": {
+    "name": "testimonials",
+    "family": "collection"
+  }
+}

@@ -1,0 +1,47 @@
+<section class="bg-base-200 text-base-content">
+  <div class="mx-auto max-w-5xl px-4 py-16 md:py-24">
+    <div class="max-w-2xl">
+      <h2 class="text-3xl font-bold text-balance md:text-4xl">Who to talk to</h2>
+      <p class="mt-4 text-lg text-pretty text-base-content/70">Reach the right person straight away: each of us answers our own e-mails and calls.</p>
+    </div>
+    <div class="mt-12 grid gap-6 md:grid-cols-2">
+      {% for member in data.team %}
+        <article class="card bg-base-100">
+          <div class="card-body gap-4">
+            <div class="flex items-center gap-4">
+              {% if member.photo %}
+                <img src="{{ member.photo }}" alt="{{ member.name }}" class="size-16 shrink-0 rounded-full object-cover">
+              {% else %}
+                {% assign words = member.name | split: " " %}
+                <div class="flex size-16 shrink-0 items-center justify-center rounded-full bg-accent text-accent-content">
+                  <span class="text-lg font-bold">{{ words.first | slice: 0 }}{% if words.size > 1 %}{{ words.last | slice: 0 }}{% endif %}</span>
+                </div>
+              {% endif %}
+              <div>
+                <h3 class="text-lg font-semibold">{{ member.name }}</h3>
+                {% if member.role %}<p class="text-sm text-base-content/70">{{ member.role }}</p>{% endif %}
+              </div>
+            </div>
+            {% if member.bio %}<p class="text-pretty text-base-content/70">{{ member.bio }}</p>{% endif %}
+            {% if member.email or member.phone or member.linkedin or member.instagram %}
+              <ul class="mt-auto flex flex-col gap-2 border-t border-base-300 pt-4 text-sm">
+                {% if member.email %}
+                  <li><a href="mailto:{{ member.email }}" class="link link-hover inline-flex items-center gap-2"><svg class="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>{{ member.email }}</a></li>
+                {% endif %}
+                {% if member.phone %}
+                  <li><a href="tel:{{ member.phone | remove: ' ' }}" class="link link-hover inline-flex items-center gap-2"><svg class="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>{{ member.phone }}</a></li>
+                {% endif %}
+                {% if member.linkedin or member.instagram %}
+                  <li class="flex gap-4">
+                    {% if member.linkedin %}<a href="{{ member.linkedin }}" class="link link-hover inline-flex items-center gap-2"><svg class="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>LinkedIn</a>{% endif %}
+                    {% if member.instagram %}<a href="{{ member.instagram }}" class="link link-hover inline-flex items-center gap-2"><svg class="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><path d="M17.5 6.5h.01"/></svg>Instagram</a>{% endif %}
+                  </li>
+                {% endif %}
+              </ul>
+            {% endif %}
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>

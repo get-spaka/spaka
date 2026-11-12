@@ -1,0 +1,24 @@
+{
+  "name": "Suppliers beside a heading",
+  "kind": "logos",
+  "source": "upstart",
+  "description": "A heading, a paragraph and a button on the left beside a grid of suppliers on the right, each name or logo marked by a colored rule with a caption saying what they bring.",
+  "tags": ["suppliers", "two columns", "producers", "captions", "local"],
+  "mood": ["warm", "friendly"],
+  "synonyms": [
+    "suppliers",
+    "producers",
+    "local sourcing",
+    "growers",
+    "makers",
+    "fournisseurs",
+    "producteurs",
+    "circuit court",
+    "nos producteurs",
+    "approvisionnement local"
+  ],
+  "data": {
+    "name": "logos",
+    "family": "section"
+  }
+}

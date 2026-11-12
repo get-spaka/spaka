@@ -1,0 +1,19 @@
+<section class="bg-base-100 text-base-content">
+  <div class="mx-auto max-w-6xl px-4 py-16 md:py-24">
+    <div class="grid gap-4 md:grid-cols-2 md:items-end">
+      <h2 class="text-3xl font-bold text-balance md:text-5xl">Your new kitchen in four steps</h2>
+      <p class="text-lg text-pretty text-base-content/70">We take care of everything, from the first sketch to the last screw, with one person to talk to all along.</p>
+    </div>
+    <ol class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      {% for step in data.steps %}
+        <li class="card bg-base-200">
+          <div class="card-body gap-3 p-8">
+            <span class="text-7xl leading-none font-black tracking-tight {% cycle 'text-primary', 'text-secondary', 'text-accent' %}">{% if forloop.index < 10 %}0{% endif %}{{ forloop.index }}</span>
+            <h3 class="mt-4 text-xl font-bold">{{ step.title }}</h3>
+            {% if step.text != blank %}<p class="text-pretty text-base-content/70">{{ step.text }}</p>{% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ol>
+  </div>
+</section>

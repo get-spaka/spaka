@@ -1,0 +1,24 @@
+{
+  "name": "Team cards with contact details",
+  "kind": "team",
+  "source": "meraki-ui",
+  "description": "Two columns of compact cards on a soft background, each person with a round photo or initials beside their name and role, a short bio, and their e-mail address, phone number and social links listed below.",
+  "tags": ["contact", "cards", "two columns", "e-mail", "phone"],
+  "mood": ["professional", "minimal"],
+  "synonyms": [
+    "team contacts",
+    "who to contact",
+    "staff directory",
+    "contact people",
+    "team",
+    "contacts",
+    "interlocuteurs",
+    "qui contacter",
+    "annuaire de l'équipe",
+    "notre équipe"
+  ],
+  "data": {
+    "name": "team",
+    "family": "collection"
+  }
+}

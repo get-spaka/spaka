@@ -1,0 +1,24 @@
+{
+  "name": "Team beside an introduction",
+  "kind": "team",
+  "source": "meraki-ui",
+  "description": "An introduction with a Work with us button on the left, beside a two-column grid of square portraits with each person's name and role.",
+  "tags": ["split", "two columns", "portraits", "introduction", "button"],
+  "mood": ["elegant", "minimal"],
+  "synonyms": [
+    "team",
+    "about the team",
+    "our people",
+    "studio",
+    "who we are",
+    "équipe",
+    "notre équipe",
+    "présentation de l'équipe",
+    "l'atelier",
+    "travailler avec nous"
+  ],
+  "data": {
+    "name": "team",
+    "family": "collection"
+  }
+}

@@ -67,6 +67,20 @@ test("each source's licence is kept beside the gallery", () => {
   }
 });
 
+test("the blocks over one collection give each field the same kind, since the site shares it", () => {
+  const kinds = new Map<string, { kind: string; block: string }>();
+  for (const b of blocks) {
+    if (b.data?.family !== "collection") continue;
+    const fields = new Datasources(memorySource(dropped(b))).get(b.data.name)?.definition?.fields ?? [];
+    for (const field of fields) {
+      const key = `${b.data.name}.${field.name}`;
+      const seen = kinds.get(key);
+      if (seen) expect(`${key}: ${field.kind} in ${b.id}`).toBe(`${key}: ${seen.kind} in ${b.id}`);
+      else kinds.set(key, { kind: field.kind, block: b.id });
+    }
+  }
+});
+
 describe.each(blocks.map((b) => [b.id, b] as const))("%s", (_id, b) => {
   test("describes itself", () => {
     expect(b.id).toMatch(new RegExp(`^${b.kind}-[a-z0-9-]+$`));
@@ -106,6 +120,9 @@ describe.each(blocks.map((b) => [b.id, b] as const))("%s", (_id, b) => {
       return;
     }
     expect(readsData(b.source)).toEqual([b.data.name]);
+    // Only what Liquid's forloop has: forloop.even is nothing, and false.
+    for (const m of `${b.source}${b.detail ?? ""}`.matchAll(/\bforloop\.(\w+)/g))
+      expect(["index", "index0", "rindex", "rindex0", "first", "last", "length"]).toContain(m[1]);
     // An image comes from a record, shown only when the record has one.
     for (const img of b.source.matchAll(/<img\b[^>]*>/g)) expect(img[0]).toMatch(/src="\{\{/);
     if (b.detail) {

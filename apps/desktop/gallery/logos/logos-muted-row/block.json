@@ -1,0 +1,24 @@
+{
+  "name": "Muted row of wordmarks",
+  "kind": "logos",
+  "source": "hyperui",
+  "description": "A small uppercase heading over a single centered row of muted logos or typographic wordmarks, quiet enough to sit right under a hero.",
+  "tags": ["trusted by", "wordmarks", "single row", "centered", "logo cloud"],
+  "mood": ["minimal", "professional"],
+  "synonyms": [
+    "trusted by",
+    "clients",
+    "customers",
+    "logo cloud",
+    "social proof",
+    "ils nous font confiance",
+    "nos clients",
+    "références",
+    "logos clients",
+    "preuve sociale"
+  ],
+  "data": {
+    "name": "logos",
+    "family": "section"
+  }
+}

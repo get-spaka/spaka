@@ -1,0 +1,24 @@
+{
+  "name": "Team portraits in a grid",
+  "kind": "team",
+  "source": "hyperui",
+  "description": "A heading and intro above a three-column grid of tall portraits, each person with their name, role, a LinkedIn link and a short bio below the picture.",
+  "tags": ["portraits", "grid", "three columns", "bios", "photos"],
+  "mood": ["friendly", "professional"],
+  "synonyms": [
+    "team",
+    "our team",
+    "meet the team",
+    "staff",
+    "people",
+    "équipe",
+    "notre équipe",
+    "l'équipe",
+    "nos collaborateurs",
+    "qui sommes-nous"
+  ],
+  "data": {
+    "name": "team",
+    "family": "collection"
+  }
+}

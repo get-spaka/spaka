@@ -1,0 +1,25 @@
+{
+  "name": "Alternating step rows",
+  "kind": "steps",
+  "source": "upstart",
+  "description": "A centered heading over wide rows that alternate sides, each step a large picture-like panel with an icon on one side and its number, title and sentence on the other.",
+  "tags": ["alternating", "zig-zag", "rows", "icons", "process"],
+  "mood": ["editorial", "elegant"],
+  "synonyms": [
+    "how we work",
+    "our approach",
+    "process",
+    "steps",
+    "method",
+    "notre approche",
+    "notre méthode",
+    "étapes",
+    "déroulement",
+    "accompagnement",
+    "en zigzag"
+  ],
+  "data": {
+    "name": "steps",
+    "family": "section"
+  }
+}

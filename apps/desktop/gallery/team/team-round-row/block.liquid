@@ -1,0 +1,24 @@
+<section class="bg-base-200 text-base-content">
+  <div class="mx-auto max-w-6xl px-4 py-16 md:py-24">
+    <div class="mx-auto max-w-2xl text-center">
+      <h2 class="text-3xl font-bold text-balance md:text-4xl">The people behind Your business</h2>
+      <p class="mt-4 text-lg text-pretty text-base-content/70">Say hello next time you visit: we are always happy to put a face to a name.</p>
+    </div>
+    <ul class="mt-12 grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-6">
+      {% for member in data.team %}
+        <li class="text-center">
+          {% if member.photo %}
+            <img src="{{ member.photo }}" alt="{{ member.name }}" class="mx-auto aspect-square w-full max-w-36 rounded-full object-cover">
+          {% else %}
+            {% assign words = member.name | split: " " %}
+            <div class="mx-auto flex aspect-square w-full max-w-36 items-center justify-center rounded-full bg-primary text-primary-content">
+              <span class="text-3xl font-bold">{{ words.first | slice: 0 }}{% if words.size > 1 %}{{ words.last | slice: 0 }}{% endif %}</span>
+            </div>
+          {% endif %}
+          <h3 class="mt-4 font-semibold">{{ member.name }}</h3>
+          {% if member.role %}<p class="mt-0.5 text-sm text-base-content/70">{{ member.role }}</p>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>

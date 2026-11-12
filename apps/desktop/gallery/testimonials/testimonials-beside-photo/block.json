@@ -1,0 +1,26 @@
+{
+  "name": "Quote beside a photo",
+  "kind": "testimonials",
+  "source": "upstart",
+  "description": "One customer's story in two columns: their portrait or a colored placeholder on the left, a headline, a large quote with a colored rule, the name, stars and a button on the right.",
+  "tags": ["photo", "two columns", "quote", "story", "stars"],
+  "mood": ["warm", "elegant"],
+  "synonyms": [
+    "reviews",
+    "customer quotes",
+    "social proof",
+    "feedback",
+    "case study",
+    "customer story",
+    "avis clients",
+    "témoignages",
+    "retours clients",
+    "ils nous font confiance",
+    "histoire client",
+    "étude de cas"
+  ],
+  "data": {
+    "name": "testimonials",
+    "family": "collection"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "Numbered steps joined by a line",
+  "kind": "steps",
+  "source": "hyperui",
+  "description": "A centered heading over numbered round markers joined by a thin line, side by side on a wide screen and stacked on a phone, each with a short title and a sentence below.",
+  "tags": ["numbered", "horizontal", "connecting line", "how it works", "process"],
+  "mood": ["minimal", "professional"],
+  "synonyms": [
+    "how it works",
+    "process",
+    "steps",
+    "our method",
+    "procedure",
+    "comment ça marche",
+    "étapes",
+    "déroulement",
+    "notre méthode",
+    "processus",
+    "fonctionnement"
+  ],
+  "data": {
+    "name": "steps",
+    "family": "section"
+  }
+}

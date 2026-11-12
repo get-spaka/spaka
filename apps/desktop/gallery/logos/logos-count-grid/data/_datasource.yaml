@@ -1,0 +1,27 @@
+label: Logos
+fields:
+  - name: name
+    label: Name
+    kind: text
+    required: true
+  - name: logo
+    label: Logo
+    kind: image
+  - name: href
+    label: Link
+    kind: link
+  - name: caption
+    label: Caption
+    kind: text
+  - name: quote
+    label: Quote
+    kind: text
+order:
+  [
+    hillcrest-veterinary,
+    two-rivers-brewing,
+    westgate-pharmacy,
+    pebble-and-clay-pottery,
+    northstar-driving-school,
+    rosewood-guesthouse,
+  ]

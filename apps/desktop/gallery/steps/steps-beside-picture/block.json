@@ -1,0 +1,24 @@
+{
+  "name": "Steps beside a picture",
+  "kind": "steps",
+  "source": "upstart",
+  "description": "A tall picture placeholder on one side and, on the other, a heading over a list of steps, each with a square colored icon, its step number, a title and a sentence.",
+  "tags": ["picture", "two columns", "icons", "list", "process"],
+  "mood": ["warm", "professional"],
+  "synonyms": [
+    "how we work",
+    "process",
+    "steps",
+    "from call to finished job",
+    "method",
+    "notre façon de travailler",
+    "étapes",
+    "démarche",
+    "processus",
+    "déroulement d'un chantier"
+  ],
+  "data": {
+    "name": "steps",
+    "family": "section"
+  }
+}
