@@ -32,11 +32,19 @@ describe("the gallery of blocks", () => {
     await launched?.close();
   });
 
-  test("the Blocks tab shows every block by kind, drawn with the project's theme", async () => {
+  /** The cards a closed group shows: its first row. */
+  const closed = () => {
+    const kinds = new Set(blocks.map((b) => b.kind));
+    return [...kinds].reduce((n, k) => n + Math.min(2, blocks.filter((b) => b.kind === k).length), 0);
+  };
+
+  test("the Blocks tab shows the kinds as groups, their count and first blocks, drawn with the project's theme (Q204)", async () => {
     await launched.window.getByTestId("tab-blocks").click();
     const cards = launched.window.getByTestId("block");
-    await until(async () => (await cards.count()) === blocks.length);
+    const groups = launched.window.getByTestId("blocks-group");
+    await until(async () => (await cards.count()) === closed());
     expect(blocks.length).toBeGreaterThanOrEqual(24);
+    expect(await groups.count()).toBe(new Set(blocks.map((b) => b.kind)).size);
     // The first ones on screen are drawn.
     const first = launched.window.locator('[data-testid="block"] img').first();
     await first.waitFor({ timeout: 20_000 });
@@ -45,19 +53,42 @@ describe("the gallery of blocks", () => {
     await launched.window.screenshot({ path: join(__dirname, ".runs/gallery-tab.png") });
   }, 40_000);
 
+  test("a group opened shows all its blocks; a kind's chip narrows to that kind (Q204)", async () => {
+    const w = launched.window;
+    const cards = w.getByTestId("block");
+    const biggest = Object.entries(Object.groupBy(blocks, (b) => b.kind)).sort(
+      (a, b) => b[1]!.length - a[1]!.length,
+    )[0]!;
+    const [kind, ofKind] = [biggest[0], biggest[1]!.length];
+    const group = w.locator(`[data-testid="blocks-group"][data-kind="${kind}"]`);
+    expect(await group.getByTestId("block").count()).toBe(Math.min(2, ofKind));
+    await group.getByTestId("blocks-group-toggle").click();
+    await until(async () => (await group.getByTestId("block").count()) === ofKind);
+    expect(await group.textContent()).toContain(String(ofKind));
+    await group.getByTestId("blocks-group-toggle").click();
+    await until(async () => (await cards.count()) === closed());
+    const chip = w.locator(`[data-testid="blocks-chip"][data-kind="${kind}"]`);
+    await chip.click();
+    await until(async () => (await cards.count()) === ofKind);
+    expect(await w.getByTestId("blocks-group").count()).toBe(1);
+    expect(await chip.getAttribute("aria-pressed")).toBe("true");
+    await launched.window.screenshot({ path: join(__dirname, ".runs/gallery-chip.png") });
+    await chip.click();
+    await until(async () => (await cards.count()) === closed());
+  });
+
   test("the search bar narrows the blocks as one types, in English or French", async () => {
     const search = launched.window.getByTestId("blocks-search");
     const cards = launched.window.getByTestId("block");
-    await search.fill("Pricing");
-    await until(async () => (await cards.count()) < blocks.length);
     const pricing = blocks.filter((b) => b.kind === "pricing").length;
-    expect(await cards.count()).toBe(pricing);
+    await search.fill("Pricing");
+    await until(async () => (await cards.count()) === pricing);
     await search.fill("tarif");
     await until(async () => (await cards.count()) === pricing);
     await search.fill("zzzz");
     await launched.window.getByTestId("blocks-none").waitFor();
     await search.press("Escape");
-    await until(async () => (await cards.count()) === blocks.length);
+    await until(async () => (await cards.count()) === closed());
   });
 
   test("resting on a block shows it large over the top of the preview, rendered for real (Q109)", async () => {

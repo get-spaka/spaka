@@ -1,10 +1,12 @@
-// The Blocks tab (Q92, Q100): the gallery's blocks by kind, each drawn with the
-// project's theme, narrowed by a search. A block is dragged into the preview,
-// where the line shows where it goes (Q101, Q112).
-import { Search, X } from "lucide-react";
+// The Blocks tab (Q92, Q100, Q204): the gallery's blocks by kind, each drawn
+// with the project's theme, narrowed by a search or a kind's chip; with
+// neither, each kind is a group showing its count and its first blocks,
+// opened to show them all. A block is dragged into the preview, where the
+// line shows where it goes (Q101, Q112).
+import { ChevronDown, ChevronRight, Search, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { matchesBlock } from "../../shared/block-filter";
-import { BLOCK_DRAG_TYPE, BLOCK_KINDS, type GalleryBlock } from "../../shared/ipc";
+import { BLOCK_DRAG_TYPE, BLOCK_KINDS, type BlockKind, type GalleryBlock } from "../../shared/ipc";
 import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
@@ -12,6 +14,8 @@ import { cn } from "../lib/utils";
 export function BlocksTab({ theme, hasPage, working }: { theme: string; hasPage: boolean; working: boolean }) {
   const [blocks, setBlocks] = useState<GalleryBlock[]>([]);
   const [query, setQuery] = useState("");
+  const [kind, setKind] = useState<BlockKind>();
+  const [open, setOpen] = useState<Set<BlockKind>>(() => new Set());
   useEffect(() => {
     void upstart.invoke("gallery:list").then(setBlocks);
   }, []);
@@ -23,7 +27,16 @@ export function BlocksTab({ theme, hasPage, working }: { theme: string; hasPage:
   }, [theme]);
 
   const disabled = working || !hasPage;
-  const shown = blocks.filter((b) => matchesBlock(b, query, [t.gallery.kinds[b.kind]]));
+  const shown = blocks.filter((b) => (!kind || b.kind === kind) && matchesBlock(b, query, [t.gallery.kinds[b.kind]]));
+  // A search or a chip shows every block it finds; otherwise a group shows its first ones until opened.
+  const narrowed = !!kind || !!query.trim();
+  const kinds = BLOCK_KINDS.filter((k) => blocks.some((b) => b.kind === k));
+  const toggle = (k: BlockKind) =>
+    setOpen((was) => {
+      const next = new Set(was);
+      if (!next.delete(k)) next.add(k);
+      return next;
+    });
 
   return (
     <div data-testid="blocks" className="flex-1 overflow-y-auto">
@@ -55,6 +68,28 @@ export function BlocksTab({ theme, hasPage, working }: { theme: string; hasPage:
         </label>
       </div>
       <div className="space-y-5 px-4 pb-3">
+        {kinds.length > 1 && (
+          <div className="flex flex-wrap gap-1" role="toolbar" aria-label={t.gallery.kindsLabel}>
+            {kinds.map((k) => (
+              <button
+                key={k}
+                type="button"
+                aria-pressed={kind === k}
+                data-testid="blocks-chip"
+                data-kind={k}
+                onClick={() => setKind(kind === k ? undefined : k)}
+                className={cn(
+                  "rounded-full border px-2 py-0.5 text-[11px]",
+                  kind === k
+                    ? "border-foreground bg-foreground text-background"
+                    : "text-muted-foreground hover:border-foreground/40 hover:text-foreground",
+                )}
+              >
+                {t.gallery.kinds[k]}
+              </button>
+            ))}
+          </div>
+        )}
         <p className="text-xs text-muted-foreground">
           {working ? t.gallery.busy : hasPage ? t.gallery.intro : t.gallery.noPage}
         </p>
@@ -63,19 +98,52 @@ export function BlocksTab({ theme, hasPage, working }: { theme: string; hasPage:
             {t.gallery.noMatch(query.trim())}
           </p>
         )}
-        {BLOCK_KINDS.map((kind) => {
-          const list = shown.filter((b) => b.kind === kind);
+        {BLOCK_KINDS.map((k) => {
+          const list = shown.filter((b) => b.kind === k);
           if (!list.length) return null;
+          const all = narrowed || open.has(k);
+          const visible = all ? list : list.slice(0, FIRST);
+          const cards = (
+            <div className="grid grid-cols-2 gap-2">
+              {visible.map((block) => (
+                <BlockCard key={block.id} block={block} theme={settled} disabled={disabled} />
+              ))}
+            </div>
+          );
+          if (narrowed)
+            return (
+              <section key={k} className="space-y-2" data-testid="blocks-group" data-kind={k} data-open="true">
+                <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  {t.gallery.kinds[k]}
+                </h2>
+                {cards}
+              </section>
+            );
+          const Chevron = all ? ChevronDown : ChevronRight;
           return (
-            <section key={kind} className="space-y-2">
-              <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                {t.gallery.kinds[kind]}
-              </h2>
-              <div className="grid grid-cols-2 gap-2">
-                {list.map((block) => (
-                  <BlockCard key={block.id} block={block} theme={settled} disabled={disabled} />
-                ))}
-              </div>
+            <section key={k} className="space-y-2" data-testid="blocks-group" data-kind={k} data-open={all}>
+              <button
+                type="button"
+                aria-expanded={all}
+                data-testid="blocks-group-toggle"
+                onClick={() => toggle(k)}
+                className="-mx-1 flex w-[calc(100%+0.5rem)] items-center gap-1 rounded px-1 py-0.5 text-xs font-medium text-muted-foreground uppercase tracking-wide hover:text-foreground"
+              >
+                <Chevron className="size-3.5" />
+                {t.gallery.kinds[k]}
+                <span className="ml-auto font-normal normal-case tracking-normal">{list.length}</span>
+              </button>
+              {cards}
+              {!all && list.length > FIRST && (
+                <button
+                  type="button"
+                  data-testid="blocks-group-more"
+                  onClick={() => toggle(k)}
+                  className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                >
+                  {t.gallery.showAll(list.length)}
+                </button>
+              )}
             </section>
           );
         })}
@@ -83,6 +151,9 @@ export function BlocksTab({ theme, hasPage, working }: { theme: string; hasPage:
     </div>
   );
 }
+
+/** The blocks a closed group shows: its first row. */
+const FIRST = 2;
 
 function BlockCard({ block, theme, disabled }: { block: GalleryBlock; theme: string; disabled: boolean }) {
   const thumbnail = useThumbnail(block.id, theme);

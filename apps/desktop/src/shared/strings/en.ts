@@ -352,6 +352,8 @@ export const en = {
     search: "Search blocks",
     clearSearch: "Clear the search",
     noMatch: (query: string) => `No block matches “${query}”.`,
+    kindsLabel: "Kinds of block",
+    showAll: (n: number) => `Show all ${n}`,
     kinds: {
       banner: "Banners",
       header: "Headers",
