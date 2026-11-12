@@ -30,3 +30,20 @@ test("a record that does not read is said right after it is written; the others 
     "data/posts/_datasource.yaml does not read:",
   );
 });
+
+test("a test record that does not read is said too (Q172)", () => {
+  const root = mkdtempSync(join(tmpdir(), "data-check-"));
+  mkdirSync(join(root, "data/guestbook"), { recursive: true });
+  mkdirSync(join(root, ".upstart/test-records/guestbook"), { recursive: true });
+  writeFileSync(
+    join(root, "data/guestbook/_datasource.yaml"),
+    "collected: true\nfields:\n  - name: name\n    kind: text\n    required: true\n",
+  );
+  const file = join(root, ".upstart/test-records/guestbook/2026-11-12-0931-a7f3.md");
+  writeFileSync(file, "---\nname: Claire: from Lyon\n---\n");
+  expect(dataProblemsAfter(root, "Write", { file_path: file })).toMatch(
+    /- \.upstart\/test-records\/guestbook\/2026-11-12-0931-a7f3\.md is left out of the site: /,
+  );
+  writeFileSync(file, "---\nname: Claire\n---\n");
+  expect(dataProblemsAfter(root, "Write", { file_path: file })).toBeUndefined();
+});

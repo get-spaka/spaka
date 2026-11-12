@@ -1,11 +1,11 @@
 // What the agent is told right after it writes a datasource's file (Q170):
 // a record whose fields do not read is left out of the site (Q166), and the
 // agent fixes it in the same turn instead of finishing with a post missing.
-import { isAbsolute, relative } from "node:path";
-import { Datasources, DEFINITION_FILE } from "@upstart/runtime";
+import { isAbsolute, join, relative } from "node:path";
+import { Datasources, DEFINITION_FILE, TEST_RECORDS_DIR } from "@upstart/runtime";
 import { diskSource } from "@upstart/runtime/node";
 
-const DATA_FILE = /^data\/([a-z0-9][\w-]*)\/([^/]+)$/i;
+const DATA_FILE = /^(?:data|\.upstart\/test-records)\/([a-z0-9][\w-]*)\/([^/]+)$/i;
 
 /** The datasource files a tool call touched: the one it wrote, or every one for a command. */
 function touched(root: string, tool: string, input: unknown): string[] | "all" {
@@ -22,7 +22,7 @@ export function dataProblemsAfter(root: string, tool: string, input: unknown): s
   if (files !== "all" && !files.length) return undefined;
   let data: Datasources;
   try {
-    data = new Datasources(diskSource(root));
+    data = new Datasources(diskSource(root), { testRecords: diskSource(join(root, TEST_RECORDS_DIR)) });
   } catch {
     return undefined;
   }

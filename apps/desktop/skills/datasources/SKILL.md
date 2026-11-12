@@ -1,6 +1,6 @@
 ---
 name: datasources
-description: How to write datasources in an Upstart project — a definition and one Markdown file per record under data/, lists in pages with data.<name>, a page per record with pages/<folder>/[<name>].liquid, image fields from the media library. Use before writing a site that lists posts, products, team members, events, dishes or anything else made of similar items, and when the maker asks to add, change or reorder such items.
+description: How to write datasources in an Upstart project — a definition and one Markdown file per record under data/, lists in pages with data.<name>, a page per record with pages/<folder>/[<name>].liquid, image fields from the media library, and collected datasources that forms post to (contact, guestbook, reviews, sign-ups) with their test records. Use before writing a site that lists posts, products, team members, events, dishes or anything else made of similar items, before writing any form, and when the maker asks to add, change or reorder such items.
 ---
 
 # Datasources
@@ -59,6 +59,8 @@ Kinds of field:
 | image | `cover: /media/croissants.jpg` | its address |
 | link | `url: https://…` or `/contact` | the address |
 | list | `tags: [news, bakery]` | a list of texts |
+| email | `email: claire@example.com` | the address (collected datasources) |
+| phone | `phone: +33 4 72 00 00 00` | the number as typed (collected datasources) |
 
 There is no link between datasources: to group records, use a choice or a list field.
 
@@ -158,3 +160,93 @@ The page for the list is an ordinary page beside it (`pages/blog/index.liquid` f
 - To add a field, add it to the definition, then to the records that have a value for it.
 - To reorder records without a sort, change `order` in the definition.
 - Never rename a record's file: its page's address would change. The maker renames records in the Content tab.
+
+## Collected datasources and forms
+
+What visitors send through a form (a contact message, a guestbook entry, a review, a sign-up) goes to a collected datasource. Its records are not files you write: Upstart keeps them where the site is published, and the maker reads, approves and deletes them in the Content tab.
+
+```yaml
+label: Livre d'or
+collected: true
+review: true
+answer: guestbook-thanks
+body: message
+messages:
+  required: "{field} est obligatoire"
+  invalid: "{field} n'est pas valide"
+  too_many: "Trop d'envois, réessayez dans quelques minutes"
+  sent: "Merci, c'est envoyé"
+fields:
+  - name: name
+    label: Votre nom
+    kind: text
+    required: true
+  - name: email
+    label: Votre e-mail
+    kind: email
+  - name: message
+    label: Votre message
+    kind: markdown
+    required: true
+```
+
+- `collected: true`, and no record file under `data/<name>/`.
+- `review: true` holds each record until the maker approves it: always for what a page shows publicly (a guestbook, reviews), never for a form whose records no page shows (contact).
+- `answer`: the fragment a valid submission is answered with (`fragments/guestbook-thanks.liquid`), the new record in `record`. Without one, Upstart answers with `messages.sent`.
+- `messages`: the sentences of the alert Upstart shows when what was sent is wrong, in the site's language; `{field}` is the field's label. Give every field a `label` in the site's language too.
+- Kinds: text, markdown (a long text, shown as plain paragraphs: what visitors type is never read as HTML or Markdown), number, boolean (a checkbox), date, choice, list (checkboxes with `choices`), link, email, phone. No image: visitors cannot send files.
+- Upstart adds the record's `id` and `submitted` (when it was sent, an ISO date and time): never declare them as fields.
+
+The form posts to `/_data/<name>`, each input named after a field:
+
+```liquid
+<form hx-post="/_data/guestbook" hx-target="this" hx-swap="outerHTML" hx-status:422="target:#guestbook-problems swap:innerHTML" class="flex flex-col gap-3">
+  <fieldset class="fieldset">
+    <legend class="fieldset-legend">Votre nom</legend>
+    <input name="name" class="input w-full" required maxlength="200">
+  </fieldset>
+  <fieldset class="fieldset">
+    <legend class="fieldset-legend">Votre e-mail</legend>
+    <input name="email" type="email" class="input w-full">
+  </fieldset>
+  <fieldset class="fieldset">
+    <legend class="fieldset-legend">Votre message</legend>
+    <textarea name="message" class="textarea w-full" required></textarea>
+  </fieldset>
+  <div id="guestbook-problems"></div>
+  <button class="btn btn-primary self-start">Signer le livre d'or</button>
+</form>
+```
+
+- A valid submission replaces the form with the `answer` fragment (`hx-target="this" hx-swap="outerHTML"`).
+- A wrong one is answered with status 422 and a small alert listing what is wrong; `hx-status:422` puts it in the form's empty element, which needs an id of its own on the page.
+- Give inputs `required`, `type="email"`, `type="tel"`, `type="number"` and `maxlength`, so that the browser catches most mistakes first.
+- Never add a hidden anti-spam field: Upstart adds one to every such form, and limits how often one visitor sends.
+
+The fragment it answers with:
+
+```liquid
+<div class="alert alert-success" role="status">Merci {{ record.name }} ! Votre message paraîtra après relecture.</div>
+```
+
+Pages show a collected datasource like any other, with `data.<name>`, newest first, without the records waiting for review: `{% for entry in data.guestbook %}…{{ entry.message }}…{{ entry.submitted | date: "%d/%m/%Y" }}{% endfor %}`. Say what a visitor wrote as it is: it is already safe to show.
+
+### Test records
+
+In the preview, a collected datasource holds test records, which are never published. They are files like the records of an authored datasource, in `.upstart/test-records/<name>/<id>.md`, with `submitted` among their fields and the long text below:
+
+```markdown
+---
+name: Claire
+email: claire@example.com
+submitted: 2026-11-12T09:31:04Z
+---
+Un pain sans gluten, ce serait possible ?
+```
+
+- When a page shows the records (a guestbook, reviews), write three realistic ones, in the site's language, after the definition, so the page shows its layout. For a form whose records no page shows (contact), write none.
+- Name each file after when it was sent and four letters or digits: `2026-11-12-0931-a7f3.md`.
+- `status: pending` marks one still waiting for review: it is not shown.
+- The maker tries a form in the preview's visitor view; what they send there becomes a test record too.
+
+Once the site is published, its own records start empty; test records stay in the preview.

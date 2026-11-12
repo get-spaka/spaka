@@ -5,7 +5,7 @@ description: Worked htmx 4 patterns for Upstart projects — content loaded on d
 
 # htmx 4 patterns in an Upstart project
 
-The page already loads htmx 4; the cheat sheet in your instructions has the syntax. In an Upstart project the only thing htmx can ask for is a fragment: `fragments/<name>.liquid`, served at `/fragments/<name>`, with its query parameters in `params`. There is no server code. Prefer plain links and plain HTML; reach for htmx when something must change in place.
+The page already loads htmx 4; the cheat sheet in your instructions has the syntax. In an Upstart project htmx asks for a fragment, `fragments/<name>.liquid`, served at `/fragments/<name>` with its query parameters in `params`, or posts a form to a collected datasource at `/_data/<name>` (the datasources skill shows the form, its answer and its errors). There is no server code. Prefer plain links and plain HTML; reach for htmx when something must change in place.
 
 Put each hx- attribute on the element that makes the request: inheritance needs the `:inherited` modifier in htmx 4.
 
@@ -57,6 +57,10 @@ The fragment returns the next `<li>` elements and, when there are more, a new bu
 ```
 
 The fragment reads `params.q`. A static export serves each fragment once, without parameters: a filtered list or tabs driven by parameters work in the preview and with server exports, not on a static host. When the maker plans to publish statically, prefer plain HTML (all tabs in the page, shown and hidden with daisyUI's radio tabs or a details element).
+
+## A form
+
+What a visitor sends goes to a collected datasource: the form posts to `/_data/<name>` and is replaced by the definition's answer fragment; a mistake comes back with status 422, which `hx-status:422="target:#… swap:innerHTML"` puts inside the form. The datasources skill has the whole pattern.
 
 ## Refresh a section on its own
 
