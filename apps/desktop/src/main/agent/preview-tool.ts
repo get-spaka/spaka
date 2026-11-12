@@ -33,6 +33,36 @@ export type UpstartTools = { look: Look; findBlocks: FindBlocks; findImages: Fin
  */
 export const ANSWER_BUDGET = 24_000;
 
+/**
+ * What a data block brings besides its template (Q194-Q206): the datasource
+ * it reads and how to name it, its definition, one sample record for its
+ * shape, and the section of its page per record.
+ */
+export function dataOf(b: Block): string {
+  if (!b.data || !b.datasource) return "";
+  const { name, family } = b.data;
+  const how =
+    name === "navigation"
+      ? "It reads the site's navigation, data.navigation, which every header and footer reads. If data/navigation/ exists, reuse it as it is. Otherwise write it before this part: one record per page in the menu, home first, each with its label and address, place header, footer or both, and links for a menu that opens."
+      : family === "collection"
+        ? `It reads the collection data.${name}, shared by the whole site. If data/${name}/ exists, reuse it, adding to its definition only the fields this template needs; otherwise write this definition, then this site's own records.`
+        : `It reads a list of this section, named after its page: on the home page data/home-${name}/, read as data["home-${name}"] in the part, on /services data/services-${name}/. Write this definition there, then this site's own records.`;
+  const sample = Object.entries(b.datasource.records)[0];
+  return [
+    "",
+    how,
+    `\`\`\`yaml\n${b.datasource.definition.trim()}\n\`\`\``,
+    sample
+      ? `A sample record, ${sample[0]}, for its shape only: write this site's own records, never the samples.\n\`\`\`markdown\n${sample[1].trim()}\n\`\`\``
+      : "",
+    b.detail
+      ? `Its page per record, pages/${name}/[${name}].liquid unless the site has one: the page that lists them, its head, header and footer kept, with this section in place of its own sections and the record's title in its title.\n\`\`\`liquid\n${b.detail.trim()}\n\`\`\``
+      : "",
+  ]
+    .filter((x, i) => i === 0 || x)
+    .join("\n\n");
+}
+
 export function blocksAnswer(wanted: Wanted[], find: FindBlocks, budget = ANSWER_BUDGET): string {
   const limit = wanted.length > 1 ? 2 : 4;
   const found = wanted.map(({ kind, query }) => find(query, kind, limit));
@@ -43,9 +73,10 @@ export function blocksAnswer(wanted: Wanted[], find: FindBlocks, budget = ANSWER
     for (const blocks of found) {
       const b = blocks[rank];
       if (!b || shown.has(b.id)) continue;
-      if (rank > 0 && used + b.source.length > budget) continue;
+      const size = b.source.length + dataOf(b).length;
+      if (rank > 0 && used + size > budget) continue;
       shown.add(b.id);
-      used += b.source.length;
+      used += size;
     }
   const written = new Set<string>();
   const parts = wanted.map(({ kind, query }, i) => {
@@ -64,7 +95,7 @@ Shown above.`;
         if (!shown.has(b.id))
           return `${head}\n${b.description}\nIts template is left out to keep this answer short; ask for this section alone to see it.`;
         written.add(b.id);
-        return `${head}\n${b.description}\n\n\`\`\`liquid\n${b.source.trim()}\n\`\`\``;
+        return `${head}\n${b.description}\n\n\`\`\`liquid\n${b.source.trim()}\n\`\`\`${dataOf(b)}`;
       }),
     ].join("\n\n");
   });
@@ -82,7 +113,7 @@ export function upstartServer({ look, findBlocks, findImages, useImage }: Upstar
     tools: [
       tool(
         "find_blocks",
-        "Searches Upstart's gallery of ready-made sections (headers, heroes, features, testimonials, pricing, questions, calls to action, footers), styled with daisyUI and the theme. Ask for every section you want in one call: for each, a few words in any language on what it holds and how it looks. Answers with the best blocks for each, with their templates.",
+        "Searches Upstart's gallery of ready-made sections (banners, headers, heroes, about, features, services, key figures, steps, logos, team, testimonials, pictures, blog, events, menus, products, pricing, comparisons, questions, contact and hours, forms, newsletters, calls to action, footers), styled with daisyUI and the theme. Ask for every section you want in one call: for each, a few words in any language on what it holds and how it looks. Answers with the best blocks for each, with their templates, and for a block that lists things, the datasource it reads.",
         {
           sections: z
             .array(

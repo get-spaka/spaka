@@ -74,3 +74,25 @@ test("the answer for every kind of section at once stays under the budget", asyn
   );
   expect(text.length).toBeLessThan(40_000);
 });
+
+test("a data block comes with the datasource it reads, how to name it, one sample and its record page (Q194-Q206)", () => {
+  const datasource = {
+    definition: "label: Posts\nfields:\n  - name: title\n    kind: text\n",
+    records: { "first.md": "---\ntitle: First\n---\n", "second.md": "---\ntitle: Second\n---\n" },
+  };
+  const blog: Block = {
+    ...block("blog-cards", "blog", "Cards"),
+    data: { name: "blog", family: "collection" },
+    datasource,
+    detail: "<section><h1>{{ record.title }}</h1></section>",
+  };
+  const list: Block = { ...faq, data: { name: "faq", family: "section" }, datasource };
+  const text = blocksAnswer([{ query: "posts" }, { query: "questions" }], (q) => [q === "posts" ? blog : list]);
+  expect(text).toContain("It reads the collection data.blog, shared by the whole site. If data/blog/ exists, reuse it");
+  expect(text).toContain("```yaml\nlabel: Posts\nfields:");
+  expect(text).toContain("A sample record, first.md, for its shape only");
+  expect(text).not.toContain("title: Second");
+  expect(text).toContain("Its page per record, pages/blog/[blog].liquid unless the site has one");
+  expect(text).toContain('read as data["home-faq"] in the part');
+  expect(text.match(/Its page per record/g)).toHaveLength(1);
+});
