@@ -1,0 +1,24 @@
+{
+  "name": "Dish cards with photos",
+  "kind": "menu",
+  "source": "hyperui",
+  "description": "A heading with a book-a-table button above a three-column grid of dishes, each a square photo (a theme gradient when there is none) with its name and price below, a short description and diet badges.",
+  "tags": ["menu", "photos", "cards", "grid", "dishes"],
+  "mood": ["friendly", "colorful"],
+  "synonyms": [
+    "dishes with photos",
+    "food gallery",
+    "signature dishes",
+    "menu cards",
+    "specials",
+    "nos plats",
+    "plats signature",
+    "photos des plats",
+    "spécialités",
+    "carte illustrée"
+  ],
+  "data": {
+    "name": "menu",
+    "family": "collection"
+  }
+}

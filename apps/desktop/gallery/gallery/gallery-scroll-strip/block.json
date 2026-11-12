@@ -1,0 +1,24 @@
+{
+  "name": "Scrolling strip of pictures",
+  "kind": "gallery",
+  "source": "upstart",
+  "description": "A horizontal strip of tall pictures on a dark band that scrolls and snaps without JavaScript, each with a title and caption below.",
+  "tags": ["carousel", "horizontal scroll", "strip", "dark band", "captions"],
+  "mood": ["dark", "bold"],
+  "synonyms": [
+    "carousel",
+    "slider",
+    "photo strip",
+    "gallery",
+    "latest pictures",
+    "carrousel",
+    "diaporama",
+    "défilement",
+    "galerie",
+    "dernières photos"
+  ],
+  "data": {
+    "name": "gallery",
+    "family": "collection"
+  }
+}

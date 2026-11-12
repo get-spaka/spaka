@@ -1,0 +1,24 @@
+{
+  "name": "Editorial journal in two columns",
+  "kind": "blog",
+  "source": "upstart",
+  "description": "A magazine-style journal under a large serif heading and a thick rule: the latest post with its cover and big serif title in one column, the next three as text-only entries in the other, split by a thin line; each post's page has a centered serif headline, a wide cover and a large reading text.",
+  "tags": ["editorial", "magazine", "serif", "two columns", "large type"],
+  "mood": ["editorial", "elegant"],
+  "synonyms": [
+    "journal",
+    "magazine",
+    "stories",
+    "articles",
+    "editorial",
+    "le journal",
+    "le magazine",
+    "nos histoires",
+    "chroniques",
+    "articles de fond"
+  ],
+  "data": {
+    "name": "blog",
+    "family": "collection"
+  }
+}

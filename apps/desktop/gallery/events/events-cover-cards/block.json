@@ -1,0 +1,24 @@
+{
+  "name": "Event cards with covers",
+  "kind": "events",
+  "source": "upstart",
+  "description": "A grid of event cards on a soft background, each with a cover picture (or a colored placeholder), the date and time, the title, a summary, the place, the price and a Book button.",
+  "tags": ["cards", "grid", "covers", "workshops", "booking"],
+  "mood": ["friendly", "warm", "colorful"],
+  "synonyms": [
+    "events",
+    "workshops",
+    "classes",
+    "event cards",
+    "tickets",
+    "événements",
+    "ateliers",
+    "cours",
+    "sorties",
+    "billets"
+  ],
+  "data": {
+    "name": "events",
+    "family": "collection"
+  }
+}

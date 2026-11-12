@@ -1,0 +1,24 @@
+{
+  "name": "Three posts with covers",
+  "kind": "blog",
+  "source": "meraki-ui",
+  "description": "The three latest blog posts side by side, each with a large cover picture, its category in small capitals, the title, a summary, the author and the date, under a heading with a link to all posts; each post has its own page with the full text and more posts at its end.",
+  "tags": ["cards", "covers", "latest posts", "grid", "three columns"],
+  "mood": ["friendly", "professional"],
+  "synonyms": [
+    "blog",
+    "latest news",
+    "recent posts",
+    "articles",
+    "from the blog",
+    "actualités",
+    "derniers articles",
+    "nouvelles",
+    "le blog",
+    "billets"
+  ],
+  "data": {
+    "name": "blog",
+    "family": "collection"
+  }
+}

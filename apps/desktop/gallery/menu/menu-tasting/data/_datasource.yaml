@@ -1,0 +1,14 @@
+label: Tasting menu
+fields:
+  - name: name
+    label: Name
+    kind: text
+    required: true
+  - name: description
+    label: Description
+    kind: text
+  - name: tags
+    label: Tags
+    kind: list
+    choices: [vegetarian, vegan, gluten-free, spicy]
+order: [beetroot-goat-cheese, cured-trout, mushroom-risotto, slow-cooked-lamb, lemon-tart, chocolate-mousse]

@@ -1,0 +1,24 @@
+{
+  "name": "Tasting menu with one price",
+  "kind": "menu",
+  "source": "upstart",
+  "description": "A centered, serif tasting menu: its own list of courses as a numbered sequence, apart from the menu, each with its description and diet badges and a short rule between them, then one price per guest, a wine pairing and a book-a-table button at the end.",
+  "tags": ["tasting menu", "set menu", "fine dining", "numbered", "one price"],
+  "mood": ["elegant", "editorial"],
+  "synonyms": [
+    "tasting menu",
+    "set menu",
+    "chef's menu",
+    "fixed price",
+    "degustation",
+    "menu dégustation",
+    "menu unique",
+    "prix fixe",
+    "menu du chef",
+    "gastronomique"
+  ],
+  "data": {
+    "name": "tasting",
+    "family": "section"
+  }
+}

@@ -1,0 +1,46 @@
+<article class="bg-base-100 text-base-content">
+  <div class="mx-auto max-w-3xl px-4 py-16 md:py-24">
+    <div class="flex flex-wrap items-center gap-3">
+      {% if record.category %}<span class="badge badge-primary">{{ record.category }}</span>{% endif %}
+      {% if record.date %}<time datetime="{{ record.date }}" class="text-sm text-base-content/70">{{ record.date | date: "%-d %B %Y" }}</time>{% endif %}
+    </div>
+    <h1 class="mt-4 text-4xl font-bold text-balance md:text-5xl">{{ record.title }}</h1>
+    {% if record.summary %}<p class="mt-4 text-xl text-pretty text-base-content/70">{{ record.summary }}</p>{% endif %}
+    {% if record.author %}
+      <div class="mt-6 flex items-center gap-3">
+        <div class="avatar avatar-placeholder">
+          <div class="w-10 rounded-full bg-base-200 text-base-content">
+            <span class="text-sm font-semibold" aria-hidden="true">{{ record.author | slice: 0 }}</span>
+          </div>
+        </div>
+        <span class="font-medium">{{ record.author }}</span>
+      </div>
+    {% endif %}
+    {% if record.cover %}
+      <img src="{{ record.cover }}" alt="{{ record.title }}" class="mt-10 aspect-video w-full rounded-box object-cover">
+    {% else %}
+      <div class="mt-10 flex aspect-video w-full items-center justify-center rounded-box bg-linear-to-br from-accent/25 to-secondary/20 text-base-content/50">
+        <svg class="size-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg>
+      </div>
+    {% endif %}
+    <div class="mt-10 text-lg leading-relaxed [&_a]:link [&_a]:link-primary [&_h2]:mt-10 [&_h2]:text-2xl [&_h2]:font-bold [&_h3]:mt-8 [&_h3]:text-xl [&_h3]:font-semibold [&_li]:mt-1 [&_ol]:mt-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mt-4 [&_p:first-child]:mt-0 [&_strong]:font-semibold [&_ul]:mt-4 [&_ul]:list-disc [&_ul]:pl-6">{{ record.body }}</div>
+    <div class="mt-16 border-t border-base-300 pt-10">
+      <h2 class="text-xl font-bold">More on the blog</h2>
+      <ul class="mt-6 grid gap-4 sm:grid-cols-2">
+        {% assign shown = 0 %}
+        {% for post in data.blog %}
+          {% if post.id != record.id and shown < 4 %}
+            {% assign shown = shown | plus: 1 %}
+            <li>
+              <a href="/blog/{{ post.id }}" class="group flex h-full flex-col rounded-box border border-base-300 p-5 transition-colors hover:border-base-content/40">
+                {% if post.category %}<span class="badge self-start {% if shown == 1 %}badge-secondary{% elsif shown == 2 %}badge-accent{% else %}badge-primary{% endif %}">{{ post.category }}</span>{% endif %}
+                <span class="mt-3 font-semibold text-balance group-hover:underline">{{ post.title }}</span>
+                {% if post.date %}<time datetime="{{ post.date }}" class="mt-1 text-sm text-base-content/70">{{ post.date | date: "%-d %B %Y" }}</time>{% endif %}
+              </a>
+            </li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</article>

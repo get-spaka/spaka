@@ -1,0 +1,24 @@
+{
+  "name": "Events with a big date",
+  "kind": "events",
+  "source": "upstart",
+  "description": "A list of upcoming events separated by fine lines, each with a big colored date block (day and month) on the left, then the title, time and place, a short summary, the price and links to its page and booking.",
+  "tags": ["list", "dates", "agenda", "upcoming", "rows"],
+  "mood": ["friendly", "professional"],
+  "synonyms": [
+    "events",
+    "upcoming events",
+    "workshops",
+    "calendar",
+    "what's on",
+    "événements",
+    "agenda",
+    "ateliers",
+    "prochains rendez-vous",
+    "dates à venir"
+  ],
+  "data": {
+    "name": "events",
+    "family": "collection"
+  }
+}

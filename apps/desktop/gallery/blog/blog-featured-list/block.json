@@ -1,0 +1,24 @@
+{
+  "name": "Featured post and the others",
+  "kind": "blog",
+  "source": "upstart",
+  "description": "The latest blog post shown large in a card with its cover, category, date, summary, author and a button, beside a plain list of the next four posts with their dates; each post's page puts the title beside the cover, the text in a card and the other posts alongside.",
+  "tags": ["featured", "latest", "split", "list", "covers"],
+  "mood": ["professional", "bold"],
+  "synonyms": [
+    "featured post",
+    "latest article",
+    "news",
+    "blog highlight",
+    "top story",
+    "article à la une",
+    "dernière actualité",
+    "nos nouvelles",
+    "blog",
+    "à lire aussi"
+  ],
+  "data": {
+    "name": "blog",
+    "family": "collection"
+  }
+}

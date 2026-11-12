@@ -1,0 +1,24 @@
+{
+  "name": "One large picture with smaller ones",
+  "kind": "gallery",
+  "source": "mamba-ui",
+  "description": "A bold heading and a Visit us button above a mosaic where the first picture fills a large square and the others sit as small squares beside it, pictures only.",
+  "tags": ["mosaic", "featured picture", "squares", "photos", "bold"],
+  "mood": ["bold", "minimal"],
+  "synonyms": [
+    "gallery",
+    "mosaic",
+    "featured photo",
+    "showcase",
+    "pictures",
+    "mosaïque",
+    "galerie",
+    "photo à la une",
+    "vitrine",
+    "nos photos"
+  ],
+  "data": {
+    "name": "gallery",
+    "family": "collection"
+  }
+}

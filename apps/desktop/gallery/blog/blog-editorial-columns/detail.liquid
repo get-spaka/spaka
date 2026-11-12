@@ -1,0 +1,38 @@
+<article class="bg-base-100 text-base-content">
+  <div class="mx-auto max-w-4xl px-4 pt-16 text-center md:pt-24">
+    {% if record.category %}<p class="text-sm font-semibold tracking-widest uppercase text-base-content/70">{{ record.category }}</p>{% endif %}
+    <h1 class="mt-4 font-serif text-5xl leading-none font-bold tracking-tight text-balance md:text-7xl">{{ record.title }}</h1>
+    {% if record.summary %}<p class="mx-auto mt-6 max-w-2xl font-serif text-xl leading-relaxed text-pretty text-base-content/70 md:text-2xl">{{ record.summary }}</p>{% endif %}
+    <p class="mt-8 text-sm">
+      {% if record.author %}By <span class="font-semibold">{{ record.author }}</span>{% endif %}
+      {% if record.date %}<time datetime="{{ record.date }}" class="ml-2 text-base-content/70">{{ record.date | date: "%-d %B %Y" }}</time>{% endif %}
+    </p>
+  </div>
+  <div class="mx-auto mt-12 max-w-5xl px-4">
+    {% if record.cover %}
+      <img src="{{ record.cover }}" alt="{{ record.title }}" class="aspect-[16/9] w-full object-cover">
+    {% else %}
+      <div class="flex aspect-[16/9] w-full items-center justify-center bg-linear-to-br from-secondary/25 to-primary/20 text-base-content/50">
+        <svg class="size-14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/></svg>
+      </div>
+    {% endif %}
+  </div>
+  <div class="mx-auto max-w-2xl px-4 py-12 font-serif text-xl leading-relaxed md:py-16 [&_a]:link [&_h2]:mt-12 [&_h2]:text-3xl [&_h2]:font-bold [&_h3]:mt-8 [&_h3]:text-2xl [&_h3]:font-bold [&_li]:mt-2 [&_ol]:mt-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mt-6 [&>p:first-child]:mt-0 [&>p:first-child]:text-2xl [&_strong]:font-bold [&_ul]:mt-6 [&_ul]:list-disc [&_ul]:pl-6">{{ record.body }}</div>
+  <div class="mx-auto max-w-6xl px-4 pb-16 md:pb-24">
+    <div class="border-t-2 border-base-content pt-6">
+      <h2 class="text-sm font-semibold tracking-widest uppercase text-base-content/70">Also in the journal</h2>
+    </div>
+    <div class="mt-8 grid gap-8 md:grid-cols-3 md:gap-0 md:divide-x md:divide-base-300">
+      {% assign shown = 0 %}
+      {% for post in data.blog %}
+        {% if post.id != record.id and shown < 3 %}
+          {% assign shown = shown | plus: 1 %}
+          <article class="md:px-8 md:first:pl-0 md:last:pr-0">
+            {% if post.date %}<p class="text-sm text-base-content/70"><time datetime="{{ post.date }}">{{ post.date | date: "%-d %B %Y" }}</time></p>{% endif %}
+            <h3 class="mt-2 font-serif text-2xl leading-snug font-bold text-balance"><a href="/blog/{{ post.id }}" class="link link-hover">{{ post.title }}</a></h3>
+          </article>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</article>

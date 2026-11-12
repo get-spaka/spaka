@@ -1,0 +1,46 @@
+<section class="bg-base-100 text-base-content">
+  <div class="mx-auto max-w-4xl px-4 py-16 md:py-24">
+    <div class="text-center">
+      <h2 class="text-3xl font-bold text-balance md:text-4xl">Browse the menu</h2>
+      <p class="mx-auto mt-4 max-w-xl text-pretty text-base-content/70">Pick a course to see what is on today. Every dish can be ordered to take away.</p>
+    </div>
+    <div role="tablist" class="tabs tabs-box mt-10 justify-center bg-base-200">
+      {% assign first_tab = true %}
+      {% assign courses = "starters,mains,sides,desserts,pastries,drinks" | split: "," %}
+      {% for course in courses %}
+        {% assign dishes = data.menu | where: "course", course %}
+        {% if dishes.size > 0 %}
+          {% case course %}{% when "starters" %}{% assign label = "Starters" %}{% when "mains" %}{% assign label = "Mains" %}{% when "sides" %}{% assign label = "Sides" %}{% when "desserts" %}{% assign label = "Desserts" %}{% when "pastries" %}{% assign label = "Pastries" %}{% else %}{% assign label = "Drinks" %}{% endcase %}
+          <input type="radio" name="menu-course-tabs" id="menu-course-tabs-{{ course }}" role="tab" class="tab" aria-label="{{ label }}" {% if first_tab %}checked{% assign first_tab = false %}{% endif %} />
+          <div role="tabpanel" class="tab-content mt-2 rounded-box border border-base-300 bg-base-100 p-4 md:p-8">
+            <ul class="divide-y divide-base-300">
+              {% for item in dishes %}
+                <li class="flex gap-4 py-5 first:pt-0 last:pb-0">
+                  {% if item.image %}
+                    <img src="{{ item.image }}" alt="{{ item.name }}" class="size-20 shrink-0 rounded-box object-cover md:size-24">
+                  {% else %}
+                    <div class="flex size-20 shrink-0 items-center justify-center rounded-box bg-linear-to-br from-primary/20 to-accent/20 text-primary md:size-24">
+                      <svg class="size-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>
+                    </div>
+                  {% endif %}
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-baseline justify-between gap-4">
+                      <h3 class="text-lg font-semibold">{{ item.name }}</h3>
+                      {% if item.price %}<span class="text-lg font-semibold whitespace-nowrap tabular-nums">{{ item.price }}</span>{% endif %}
+                    </div>
+                    {% if item.description %}<p class="mt-1 text-sm text-pretty text-base-content/70">{{ item.description }}</p>{% endif %}
+                    {% if item.tags.size > 0 %}
+                      <div class="mt-2 flex flex-wrap gap-1.5">
+                        {% for tag in item.tags %}<span class="badge badge-outline badge-sm">{{ tag }}</span>{% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</section>

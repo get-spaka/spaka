@@ -1,0 +1,24 @@
+{
+  "name": "Posts as rows with a small cover",
+  "kind": "blog",
+  "source": "meraki-ui",
+  "description": "The latest five blog posts as rows split by thin lines, each with a small square cover on the left and its date, category, title, summary and author beside it, stacked on a phone; each post's page opens with the cover beside the title and ends with three more posts in a soft panel.",
+  "tags": ["rows", "list", "thumbnails", "covers", "single column"],
+  "mood": ["friendly", "minimal"],
+  "synonyms": [
+    "blog list",
+    "post list",
+    "recent articles",
+    "news feed",
+    "updates",
+    "liste d'articles",
+    "fil d'actualité",
+    "derniers billets",
+    "blog",
+    "nouveautés"
+  ],
+  "data": {
+    "name": "blog",
+    "family": "collection"
+  }
+}

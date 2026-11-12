@@ -1,0 +1,24 @@
+{
+  "name": "Masonry wall of pictures",
+  "kind": "gallery",
+  "source": "upstart",
+  "description": "A serif heading beside an intro above a masonry-like wall of pictures in columns, tall, square and wide in turn, each with a title and caption below.",
+  "tags": ["masonry", "columns", "wall", "captions", "photos"],
+  "mood": ["editorial", "elegant"],
+  "synonyms": [
+    "masonry",
+    "photo wall",
+    "gallery",
+    "pictures",
+    "moments",
+    "mur de photos",
+    "galerie",
+    "mosaïque",
+    "photos du quotidien",
+    "en coulisses"
+  ],
+  "data": {
+    "name": "gallery",
+    "family": "collection"
+  }
+}

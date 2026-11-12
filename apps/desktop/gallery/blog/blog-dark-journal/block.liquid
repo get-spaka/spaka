@@ -1,0 +1,40 @@
+<section class="bg-neutral text-neutral-content">
+  <div class="mx-auto max-w-6xl px-4 py-16 md:py-24">
+    <div class="mx-auto max-w-2xl text-center">
+      <p class="text-sm font-semibold tracking-widest uppercase">Read, then visit</p>
+      <h2 class="mt-3 text-3xl font-bold text-balance md:text-5xl">From the journal</h2>
+      <p class="mt-4 text-lg text-pretty">Stories, news and small discoveries from our corner of town.</p>
+    </div>
+    <div class="mt-12 grid gap-6 md:grid-cols-3">
+      {% for post in data.blog limit: 3 %}
+        {% assign tone = forloop.index | modulo: 3 %}
+        <article class="flex flex-col overflow-hidden rounded-box border border-neutral-content/20">
+          <a href="/blog/{{ post.id }}" class="block">
+            {% if post.cover %}
+              <img src="{{ post.cover }}" alt="{{ post.title }}" class="aspect-video w-full object-cover">
+            {% else %}
+              <div class="flex aspect-video w-full items-center justify-center bg-linear-to-br text-neutral-content {% if tone == 1 %}from-primary/50 to-secondary/30{% elsif tone == 2 %}from-secondary/50 to-accent/30{% else %}from-accent/50 to-primary/30{% endif %}">
+                <svg class="size-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
+              </div>
+            {% endif %}
+          </a>
+          <div class="flex flex-1 flex-col p-6">
+            <p class="flex flex-wrap gap-x-3 text-sm">
+              {% if post.category %}<span class="font-semibold tracking-wider uppercase">{{ post.category }}</span>{% endif %}
+              {% if post.date %}<time datetime="{{ post.date }}">{{ post.date | date: "%-d %B %Y" }}</time>{% endif %}
+            </p>
+            <h3 class="mt-3 text-xl font-bold text-balance"><a href="/blog/{{ post.id }}" class="link link-hover">{{ post.title }}</a></h3>
+            {% if post.summary %}<p class="mt-3">{{ post.summary }}</p>{% endif %}
+            <a href="/blog/{{ post.id }}" class="mt-auto inline-flex items-center gap-2 pt-6 text-sm font-semibold">
+              Read the story
+              <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </a>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+    <div class="mt-12 text-center">
+      <a href="/blog" class="btn border-0 bg-neutral-content text-neutral hover:bg-neutral-content/90">Open the journal</a>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,24 @@
+{
+  "name": "Compact list of titles and dates",
+  "kind": "blog",
+  "source": "upstart",
+  "description": "A short heading beside a ruled list of the latest six posts, each a single line with its date and title and an arrow, without pictures; each post's page is a narrow column of text with the other posts listed the same way at its end.",
+  "tags": ["list", "compact", "dates", "text only", "minimal"],
+  "mood": ["minimal", "professional"],
+  "synonyms": [
+    "news list",
+    "announcements",
+    "updates",
+    "press releases",
+    "archive",
+    "actualités",
+    "annonces",
+    "communiqués",
+    "liste des articles",
+    "quoi de neuf"
+  ],
+  "data": {
+    "name": "blog",
+    "family": "collection"
+  }
+}

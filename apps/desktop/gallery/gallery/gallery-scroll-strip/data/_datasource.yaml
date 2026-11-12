@@ -1,0 +1,19 @@
+label: Gallery
+fields:
+  - name: title
+    label: Title
+    kind: text
+    required: true
+  - name: image
+    label: Picture
+    kind: image
+  - name: caption
+    label: Caption
+    kind: text
+  - name: category
+    label: Category
+    kind: text
+  - name: before
+    label: Before picture, for a before and after
+    kind: image
+order: [shop-front, workshop, finished-kitchen, hand-cut-joints, new-season-range, ready-for-delivery]

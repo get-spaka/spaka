@@ -1,0 +1,24 @@
+{
+  "name": "Gallery of square pictures",
+  "kind": "gallery",
+  "source": "mamba-ui",
+  "description": "A centered heading above an even grid of square pictures, two to three per row, each with its title and category below.",
+  "tags": ["grid", "squares", "photos", "even", "titles"],
+  "mood": ["minimal", "friendly"],
+  "synonyms": [
+    "gallery",
+    "photo grid",
+    "pictures",
+    "our work",
+    "portfolio",
+    "galerie",
+    "grille de photos",
+    "nos réalisations",
+    "en images",
+    "portfolio photo"
+  ],
+  "data": {
+    "name": "gallery",
+    "family": "collection"
+  }
+}

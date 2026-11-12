@@ -1,0 +1,18 @@
+<article class="bg-base-100 text-base-content">
+  <div class="mx-auto max-w-3xl px-4 py-16 md:py-24">
+    {% if record.date %}<p class="text-sm font-semibold tracking-widest uppercase text-base-content/70">{{ record.date | date: "%A %-d %B %Y" }}</p>{% endif %}
+    <h1 class="mt-2 text-3xl font-bold text-balance md:text-5xl">{{ record.title }}</h1>
+    {% if record.summary %}<p class="mt-4 text-lg text-pretty text-base-content/70">{{ record.summary }}</p>{% endif %}
+    <table class="table mt-8 border-y border-base-300">
+      <tbody>
+        {% if record.date %}<tr><th class="w-32 text-base-content/70">Date</th><td class="font-semibold">{{ record.date | date: "%A %-d %B %Y" }}</td></tr>{% endif %}
+        {% if record.time %}<tr><th class="w-32 text-base-content/70">Time</th><td class="font-semibold">{{ record.time }}</td></tr>{% endif %}
+        {% if record.place %}<tr><th class="w-32 text-base-content/70">Place</th><td class="font-semibold">{{ record.place }}</td></tr>{% endif %}
+        {% if record.price %}<tr><th class="w-32 text-base-content/70">Price</th><td class="font-semibold">{{ record.price }}</td></tr>{% endif %}
+      </tbody>
+    </table>
+    {% if record.booking %}<a href="{{ record.booking }}" class="btn btn-primary mt-8">Book a place</a>{% endif %}
+    {% if record.cover %}<img src="{{ record.cover }}" alt="{{ record.title }}" class="mt-10 aspect-video w-full rounded-box object-cover">{% endif %}
+    <div class="mt-10 space-y-4 text-lg text-pretty [&_h2]:pt-4 [&_h2]:text-2xl [&_h2]:font-bold [&_h3]:pt-2 [&_h3]:text-xl [&_h3]:font-semibold [&_a]:link [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6">{{ record.body }}</div>
+  </div>
+</article>

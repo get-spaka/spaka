@@ -1,0 +1,24 @@
+{
+  "name": "Before and after pairs",
+  "kind": "gallery",
+  "source": "upstart",
+  "description": "A list of before and after pairs, two pictures side by side on a card with a Before and an After label below them, then the title and caption.",
+  "tags": ["before and after", "pairs", "transformation", "side by side", "renovation"],
+  "mood": ["professional", "warm"],
+  "synonyms": [
+    "before and after",
+    "transformation",
+    "makeover",
+    "renovation",
+    "results",
+    "avant après",
+    "avant-après",
+    "transformation",
+    "rénovation",
+    "résultats"
+  ],
+  "data": {
+    "name": "gallery",
+    "family": "collection"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "Gallery sorted by category",
+  "kind": "gallery",
+  "source": "upstart",
+  "description": "Pictures grouped under a heading per category, with a count of pictures, each group a grid of pictures with a title and caption below.",
+  "tags": ["categories", "grouped", "captions", "grid", "photos"],
+  "mood": ["professional", "friendly"],
+  "synonyms": [
+    "gallery",
+    "photo albums",
+    "categories",
+    "our work",
+    "products",
+    "galerie",
+    "albums photo",
+    "catégories",
+    "nos produits",
+    "nos réalisations"
+  ],
+  "data": {
+    "name": "gallery",
+    "family": "collection"
+  }
+}

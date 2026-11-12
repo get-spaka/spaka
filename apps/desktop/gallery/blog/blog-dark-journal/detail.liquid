@@ -1,0 +1,40 @@
+<article class="bg-base-100 text-base-content">
+  <div class="bg-neutral text-neutral-content">
+    <div class="mx-auto max-w-3xl px-4 py-16 text-center md:py-24">
+      <p class="flex flex-wrap justify-center gap-x-3 text-sm">
+        {% if record.category %}<span class="font-semibold tracking-wider uppercase">{{ record.category }}</span>{% endif %}
+        {% if record.date %}<time datetime="{{ record.date }}">{{ record.date | date: "%-d %B %Y" }}</time>{% endif %}
+      </p>
+      <h1 class="mt-4 text-4xl font-bold text-balance md:text-6xl">{{ record.title }}</h1>
+      {% if record.summary %}<p class="mt-5 text-lg text-pretty md:text-xl">{{ record.summary }}</p>{% endif %}
+      {% if record.author %}<p class="mt-6 text-sm">By <span class="font-semibold">{{ record.author }}</span></p>{% endif %}
+    </div>
+  </div>
+  <div class="mx-auto max-w-3xl px-4 py-12 md:py-16">
+    {% if record.cover %}
+      <img src="{{ record.cover }}" alt="{{ record.title }}" class="aspect-video w-full rounded-box object-cover">
+    {% else %}
+      <div class="flex aspect-video w-full items-center justify-center rounded-box bg-linear-to-br from-primary/30 to-secondary/20 text-base-content/50">
+        <svg class="size-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
+      </div>
+    {% endif %}
+    <div class="mt-10 text-lg leading-relaxed [&_a]:link [&_a]:link-primary [&_h2]:mt-10 [&_h2]:text-2xl [&_h2]:font-bold [&_h3]:mt-8 [&_h3]:text-xl [&_h3]:font-semibold [&_li]:mt-1 [&_ol]:mt-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mt-4 [&_p:first-child]:mt-0 [&_strong]:font-semibold [&_ul]:mt-4 [&_ul]:list-disc [&_ul]:pl-6">{{ record.body }}</div>
+  </div>
+  <div class="bg-neutral text-neutral-content">
+    <div class="mx-auto max-w-6xl px-4 py-16">
+      <h2 class="text-2xl font-bold">More from the journal</h2>
+      <div class="mt-8 grid gap-6 md:grid-cols-3">
+        {% assign shown = 0 %}
+        {% for post in data.blog %}
+          {% if post.id != record.id and shown < 3 %}
+            {% assign shown = shown | plus: 1 %}
+            <a href="/blog/{{ post.id }}" class="group rounded-box border border-neutral-content/20 p-6">
+              {% if post.date %}<p class="text-sm"><time datetime="{{ post.date }}">{{ post.date | date: "%-d %B %Y" }}</time></p>{% endif %}
+              <h3 class="mt-2 text-lg font-bold text-balance group-hover:underline">{{ post.title }}</h3>
+            </a>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</article>

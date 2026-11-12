@@ -1,0 +1,34 @@
+<article class="bg-base-100 text-base-content">
+  <div class="mx-auto max-w-3xl px-4 py-16 md:py-24">
+    <div class="flex items-start gap-5 sm:gap-8">
+      {% if record.date %}
+        <div class="flex w-20 shrink-0 flex-col items-center rounded-box bg-primary py-4 text-primary-content sm:w-24">
+          <span class="text-4xl leading-none font-bold sm:text-5xl">{{ record.date | date: "%-d" }}</span>
+          <span class="mt-1 text-sm font-semibold tracking-wide uppercase">{{ record.date | date: "%b %Y" }}</span>
+        </div>
+      {% endif %}
+      <div class="min-w-0">
+        <p class="text-sm font-semibold tracking-widest uppercase text-base-content/70">Event</p>
+        <h1 class="mt-2 text-3xl font-bold text-balance md:text-5xl">{{ record.title }}</h1>
+        {% if record.summary %}<p class="mt-4 text-lg text-pretty text-base-content/70">{{ record.summary }}</p>{% endif %}
+      </div>
+    </div>
+    <dl class="mt-10 grid gap-4 border-y border-base-300 py-6 sm:grid-cols-2">
+      {% if record.date %}
+        <div><dt class="text-sm text-base-content/70">Date</dt><dd class="font-semibold">{{ record.date | date: "%A %-d %B %Y" }}</dd></div>
+      {% endif %}
+      {% if record.time %}
+        <div><dt class="text-sm text-base-content/70">Time</dt><dd class="font-semibold">{{ record.time }}</dd></div>
+      {% endif %}
+      {% if record.place %}
+        <div><dt class="text-sm text-base-content/70">Place</dt><dd class="font-semibold">{{ record.place }}</dd></div>
+      {% endif %}
+      {% if record.price %}
+        <div><dt class="text-sm text-base-content/70">Price</dt><dd class="font-semibold">{{ record.price }}</dd></div>
+      {% endif %}
+    </dl>
+    {% if record.cover %}<img src="{{ record.cover }}" alt="{{ record.title }}" class="mt-10 aspect-video w-full rounded-box object-cover">{% endif %}
+    <div class="mt-10 space-y-4 text-lg text-pretty [&_h2]:pt-4 [&_h2]:text-2xl [&_h2]:font-bold [&_h3]:pt-2 [&_h3]:text-xl [&_h3]:font-semibold [&_a]:link [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6">{{ record.body }}</div>
+    {% if record.booking %}<a href="{{ record.booking }}" class="btn btn-primary mt-10">Book a place</a>{% endif %}
+  </div>
+</article>

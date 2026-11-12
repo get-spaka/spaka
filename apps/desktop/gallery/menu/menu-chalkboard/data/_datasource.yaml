@@ -1,0 +1,49 @@
+label: Menu
+fields:
+  - name: name
+    label: Name
+    kind: text
+    required: true
+  - name: description
+    label: Description
+    kind: text
+  - name: price
+    label: Price
+    kind: text
+  - name: course
+    label: Course
+    kind: choice
+    required: true
+    choices: [starters, mains, sides, desserts, pastries, drinks]
+  - name: tags
+    label: Tags
+    kind: list
+    choices: [vegetarian, vegan, gluten-free, spicy]
+  - name: image
+    label: Image
+    kind: image
+order:
+  [
+    tomato-soup,
+    crispy-calamari,
+    seasonal-salad,
+    beetroot-goat-cheese,
+    cured-trout,
+    roast-chicken,
+    mushroom-risotto,
+    grilled-sea-bass,
+    spicy-noodles,
+    steak-frites,
+    slow-cooked-lamb,
+    hand-cut-fries,
+    lemon-tart,
+    chocolate-mousse,
+    apple-crumble,
+    butter-croissant,
+    almond-croissant,
+    cinnamon-bun,
+    flat-white,
+    chai-latte,
+    house-lemonade,
+    glass-of-house-wine,
+  ]

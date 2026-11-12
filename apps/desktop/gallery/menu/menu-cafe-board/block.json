@@ -1,0 +1,24 @@
+{
+  "name": "Compact café board",
+  "kind": "menu",
+  "source": "upstart",
+  "description": "A compact café menu: a colored panel with a coffee cup, a sentence and the opening hours beside a white board listing drinks first, then pastries and the rest, in small rows with prices, a line of description and diet badges.",
+  "tags": ["cafe", "coffee", "pastries", "compact", "opening hours"],
+  "mood": ["friendly", "warm", "colorful"],
+  "synonyms": [
+    "cafe menu",
+    "coffee shop",
+    "drinks",
+    "bakery",
+    "pastries",
+    "carte du café",
+    "boissons",
+    "viennoiseries",
+    "boulangerie",
+    "salon de thé"
+  ],
+  "data": {
+    "name": "menu",
+    "family": "collection"
+  }
+}

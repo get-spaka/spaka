@@ -1,0 +1,24 @@
+{
+  "name": "Menu in tabs by course",
+  "kind": "menu",
+  "source": "upstart",
+  "description": "A centered heading above tabs, one per course, that switch without JavaScript; each tab lists its dishes in rows with a small square photo (a theme gradient when there is none), the name and price, a description and diet badges.",
+  "tags": ["menu", "tabs", "courses", "photos", "takeaway"],
+  "mood": ["friendly", "minimal"],
+  "synonyms": [
+    "menu tabs",
+    "courses",
+    "takeaway menu",
+    "food truck",
+    "order online",
+    "onglets",
+    "menu à emporter",
+    "plats",
+    "par catégorie",
+    "carte"
+  ],
+  "data": {
+    "name": "menu",
+    "family": "collection"
+  }
+}

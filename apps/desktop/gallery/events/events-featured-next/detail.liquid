@@ -1,0 +1,33 @@
+<article class="bg-base-100 text-base-content">
+  <div class="mx-auto grid max-w-6xl gap-10 px-4 py-16 md:py-24 lg:grid-cols-2 lg:items-center">
+    {% if record.cover %}
+      <img src="{{ record.cover }}" alt="{{ record.title }}" class="aspect-4/3 w-full rounded-box object-cover">
+    {% else %}
+      <div class="flex aspect-4/3 w-full items-center justify-center rounded-box bg-linear-to-br from-secondary/25 to-primary/25 text-base-content/60">
+        <svg class="size-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>
+      </div>
+    {% endif %}
+    <div class="flex flex-col gap-5">
+      <div class="flex items-center gap-4">
+        {% if record.date %}
+          <div class="flex w-16 shrink-0 flex-col items-center rounded-box border border-base-300 py-2">
+            <span class="text-xs font-semibold tracking-wide uppercase text-base-content/70">{{ record.date | date: "%b" }}</span>
+            <span class="text-3xl leading-none font-bold">{{ record.date | date: "%-d" }}</span>
+          </div>
+        {% endif %}
+        <h1 class="text-3xl font-bold text-balance md:text-4xl">{{ record.title }}</h1>
+      </div>
+      {% if record.summary %}<p class="text-lg text-pretty text-base-content/70">{{ record.summary }}</p>{% endif %}
+      <ul class="grid gap-2 text-sm sm:grid-cols-2">
+        {% if record.date %}<li><span class="text-base-content/70">Date</span> <span class="font-semibold">{{ record.date | date: "%A %-d %B %Y" }}</span></li>{% endif %}
+        {% if record.time %}<li><span class="text-base-content/70">Time</span> <span class="font-semibold">{{ record.time }}</span></li>{% endif %}
+        {% if record.place %}<li><span class="text-base-content/70">Place</span> <span class="font-semibold">{{ record.place }}</span></li>{% endif %}
+        {% if record.price %}<li><span class="text-base-content/70">Price</span> <span class="font-semibold">{{ record.price }}</span></li>{% endif %}
+      </ul>
+      {% if record.booking %}<a href="{{ record.booking }}" class="btn btn-primary self-start">Book a place</a>{% endif %}
+    </div>
+  </div>
+  <div class="mx-auto max-w-3xl px-4 pb-16 md:pb-24">
+    <div class="space-y-4 border-t border-base-300 pt-10 text-lg text-pretty [&_h2]:pt-4 [&_h2]:text-2xl [&_h2]:font-bold [&_h3]:pt-2 [&_h3]:text-xl [&_h3]:font-semibold [&_a]:link [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6">{{ record.body }}</div>
+  </div>
+</article>

@@ -1,0 +1,52 @@
+<section class="bg-base-100 text-base-content">
+  <div class="mx-auto max-w-5xl px-4 py-16 md:py-24">
+    <div class="flex flex-col gap-2 border-b border-base-300 pb-6 sm:flex-row sm:items-end sm:justify-between">
+      <h2 class="text-3xl font-bold text-balance">Agenda</h2>
+      <p class="text-base-content/70">All our dates for the season, at a glance.</p>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="table">
+        <thead>
+          <tr class="text-base-content/70">
+            <th class="w-28">Date</th>
+            <th>Event</th>
+            <th class="hidden md:table-cell">Time</th>
+            <th class="hidden lg:table-cell">Place</th>
+            <th class="text-right">Price</th>
+            <th class="hidden sm:table-cell"><span class="sr-only">Booking</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for event in data.events %}
+            <tr class="hover:bg-base-200">
+              <td class="align-top whitespace-nowrap">
+                {% if event.date %}
+                  <span class="font-semibold">{{ event.date | date: "%-d %b" }}</span>
+                  <span class="block text-xs text-base-content/70">{{ event.date | date: "%A" }}</span>
+                {% else %}
+                  <span class="text-base-content/70">To come</span>
+                {% endif %}
+              </td>
+              <td class="align-top">
+                <a href="/events/{{ event.id }}" class="link link-hover font-semibold">{{ event.title }}</a>
+                {% if event.time or event.place %}
+                  <span class="block text-sm text-base-content/70 lg:hidden">{% if event.time %}<span class="md:hidden">{{ event.time }}</span>{% endif %}{% if event.time and event.place %}<span class="md:hidden"> · </span>{% endif %}{{ event.place }}</span>
+                {% endif %}
+              </td>
+              <td class="hidden align-top whitespace-nowrap text-base-content/70 md:table-cell">{{ event.time }}</td>
+              <td class="hidden align-top text-base-content/70 lg:table-cell">{{ event.place }}</td>
+              <td class="align-top text-right font-semibold whitespace-nowrap">{{ event.price }}</td>
+              <td class="hidden align-top text-right sm:table-cell">
+                {% if event.booking %}
+                  <a href="{{ event.booking }}" class="btn btn-primary btn-xs">Book</a>
+                {% else %}
+                  <a href="/events/{{ event.id }}" class="btn btn-ghost btn-xs">Details</a>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>

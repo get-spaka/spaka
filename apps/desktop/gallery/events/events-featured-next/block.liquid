@@ -1,0 +1,59 @@
+<section class="bg-base-100 text-base-content">
+  <div class="mx-auto max-w-6xl px-4 py-16 md:py-24">
+    <h2 class="text-3xl font-bold text-balance md:text-4xl">Don't miss our next event</h2>
+    {% for event in data.events limit: 1 %}
+      <article class="mt-10 grid overflow-hidden rounded-box border border-base-300 lg:grid-cols-2">
+        <a href="/events/{{ event.id }}" class="block" aria-label="{{ event.title }}">
+          {% if event.cover %}
+            <img src="{{ event.cover }}" alt="{{ event.title }}" class="aspect-4/3 h-full w-full object-cover">
+          {% else %}
+            <div class="flex aspect-4/3 h-full w-full items-center justify-center bg-linear-to-br from-secondary/25 to-primary/25 text-base-content/60">
+              <svg class="size-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>
+            </div>
+          {% endif %}
+        </a>
+        <div class="flex flex-col justify-center gap-5 p-6 md:p-10">
+          <p class="text-sm font-semibold tracking-widest uppercase text-base-content/70">Next up</p>
+          <div class="flex items-center gap-4">
+            {% if event.date %}
+              <div class="flex w-16 shrink-0 flex-col items-center rounded-box border border-base-300 py-2">
+                <span class="text-xs font-semibold tracking-wide uppercase text-base-content/70">{{ event.date | date: "%b" }}</span>
+                <span class="text-3xl leading-none font-bold">{{ event.date | date: "%-d" }}</span>
+              </div>
+            {% endif %}
+            <h3 class="text-2xl font-bold text-balance md:text-3xl"><a href="/events/{{ event.id }}" class="link link-hover">{{ event.title }}</a></h3>
+          </div>
+          {% if event.summary %}<p class="text-lg text-pretty text-base-content/70">{{ event.summary }}</p>{% endif %}
+          <ul class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+            {% if event.time %}<li><span class="text-base-content/70">Time</span> <span class="font-semibold">{{ event.time }}</span></li>{% endif %}
+            {% if event.place %}<li><span class="text-base-content/70">Place</span> <span class="font-semibold">{{ event.place }}</span></li>{% endif %}
+            {% if event.price %}<li><span class="text-base-content/70">Price</span> <span class="font-semibold">{{ event.price }}</span></li>{% endif %}
+          </ul>
+          <div class="flex flex-wrap gap-3">
+            {% if event.booking %}<a href="{{ event.booking }}" class="btn btn-primary">Book a place</a>{% endif %}
+            <a href="/events/{{ event.id }}" class="btn btn-ghost">Read more</a>
+          </div>
+        </div>
+      </article>
+    {% endfor %}
+    {% if data.events.size > 1 %}
+      <h3 class="mt-14 text-sm font-semibold tracking-widest uppercase text-base-content/70">Also coming up</h3>
+      <ul class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {% for event in data.events offset: 1 %}
+          <li class="flex gap-4 rounded-box bg-base-200 p-5">
+            {% if event.date %}
+              <div class="flex w-12 shrink-0 flex-col items-center self-start">
+                <span class="text-xs font-semibold tracking-wide uppercase text-base-content/70">{{ event.date | date: "%b" }}</span>
+                <span class="text-2xl leading-none font-bold">{{ event.date | date: "%-d" }}</span>
+              </div>
+            {% endif %}
+            <div class="min-w-0">
+              <a href="/events/{{ event.id }}" class="link link-hover font-semibold">{{ event.title }}</a>
+              {% if event.time or event.price %}<p class="mt-1 text-sm text-base-content/70">{{ event.time }}{% if event.time and event.price %} · {% endif %}{{ event.price }}</p>{% endif %}
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </div>
+</section>

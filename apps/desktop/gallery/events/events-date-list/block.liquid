@@ -1,0 +1,42 @@
+<section class="bg-base-100 text-base-content">
+  <div class="mx-auto max-w-4xl px-4 py-16 md:py-24">
+    <div class="max-w-2xl">
+      <p class="text-sm font-semibold tracking-widest uppercase text-base-content/70">Events</p>
+      <h2 class="mt-2 text-3xl font-bold text-balance md:text-4xl">Coming up</h2>
+      <p class="mt-4 text-lg text-pretty text-base-content/70">Workshops, tastings and evenings to share with us. Come along, bring a friend.</p>
+    </div>
+    <ul class="mt-12 divide-y divide-base-300 border-y border-base-300">
+      {% for event in data.events %}
+        <li class="flex gap-5 py-6 sm:gap-8">
+          {% if event.date %}
+            <div class="flex w-16 shrink-0 flex-col items-center self-start rounded-box bg-primary py-3 text-primary-content sm:w-20">
+              <span class="text-3xl leading-none font-bold sm:text-4xl">{{ event.date | date: "%-d" }}</span>
+              <span class="mt-1 text-sm font-semibold tracking-wide uppercase">{{ event.date | date: "%b" }}</span>
+            </div>
+          {% else %}
+            <div class="flex w-16 shrink-0 items-center justify-center self-start rounded-box bg-base-200 py-5 text-sm font-semibold sm:w-20">Soon</div>
+          {% endif %}
+          <div class="min-w-0 flex-1">
+            <h3 class="text-xl font-semibold"><a href="/events/{{ event.id }}" class="link link-hover">{{ event.title }}</a></h3>
+            {% if event.time or event.place %}
+              <p class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-base-content/70">
+                {% if event.time %}
+                  <span class="inline-flex items-center gap-1.5"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>{{ event.time }}</span>
+                {% endif %}
+                {% if event.place %}
+                  <span class="inline-flex items-center gap-1.5"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>{{ event.place }}</span>
+                {% endif %}
+              </p>
+            {% endif %}
+            {% if event.summary %}<p class="mt-3 text-pretty text-base-content/70">{{ event.summary }}</p>{% endif %}
+            <div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+              {% if event.price %}<span class="badge badge-outline">{{ event.price }}</span>{% endif %}
+              <a href="/events/{{ event.id }}" class="link link-hover text-sm font-semibold">Details</a>
+              {% if event.booking %}<a href="{{ event.booking }}" class="link link-hover text-sm font-semibold">Book a place</a>{% endif %}
+            </div>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>

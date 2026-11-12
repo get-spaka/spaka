@@ -1,0 +1,20 @@
+<article class="bg-neutral text-neutral-content">
+  <div class="mx-auto max-w-4xl px-4 py-16 md:py-24">
+    {% if record.date %}
+      <p class="flex flex-wrap items-baseline gap-x-4">
+        <span class="text-5xl leading-none font-black md:text-7xl">{{ record.date | date: "%-d %b" }}</span>
+        <span class="text-sm font-semibold tracking-widest uppercase">{{ record.date | date: "%A %Y" }}</span>
+      </p>
+    {% endif %}
+    <h1 class="mt-6 text-4xl font-black tracking-tight text-balance uppercase md:text-6xl">{{ record.title }}</h1>
+    {% if record.summary %}<p class="mt-6 max-w-2xl text-xl text-pretty">{{ record.summary }}</p>{% endif %}
+    <dl class="mt-10 grid gap-6 border-y border-neutral-content/25 py-6 sm:grid-cols-3">
+      {% if record.time %}<div><dt class="text-sm font-semibold tracking-widest uppercase">Time</dt><dd class="mt-1 text-lg">{{ record.time }}</dd></div>{% endif %}
+      {% if record.place %}<div><dt class="text-sm font-semibold tracking-widest uppercase">Place</dt><dd class="mt-1 text-lg">{{ record.place }}</dd></div>{% endif %}
+      {% if record.price %}<div><dt class="text-sm font-semibold tracking-widest uppercase">Price</dt><dd class="mt-1 text-lg">{{ record.price }}</dd></div>{% endif %}
+    </dl>
+    {% if record.booking %}<a href="{{ record.booking }}" class="btn btn-primary btn-lg mt-10">Get your tickets</a>{% endif %}
+    {% if record.cover %}<img src="{{ record.cover }}" alt="{{ record.title }}" class="mt-12 aspect-video w-full rounded-box object-cover">{% endif %}
+    <div class="mt-12 max-w-2xl space-y-4 text-lg text-pretty [&_h2]:pt-4 [&_h2]:text-2xl [&_h2]:font-bold [&_h3]:pt-2 [&_h3]:text-xl [&_h3]:font-semibold [&_a]:link [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6">{{ record.body }}</div>
+  </div>
+</article>

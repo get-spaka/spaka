@@ -1,0 +1,24 @@
+{
+  "name": "Pictures that open larger",
+  "kind": "gallery",
+  "source": "upstart",
+  "description": "A list of small thumbnails with their title and category, each opening without JavaScript to show the picture larger with its caption below.",
+  "tags": ["accordion", "thumbnails", "expand", "captions", "stories"],
+  "mood": ["elegant", "minimal"],
+  "synonyms": [
+    "gallery",
+    "expandable photos",
+    "thumbnails",
+    "stories",
+    "lightbox",
+    "galerie",
+    "miniatures",
+    "photos à déplier",
+    "histoires",
+    "agrandir"
+  ],
+  "data": {
+    "name": "gallery",
+    "family": "collection"
+  }
+}
