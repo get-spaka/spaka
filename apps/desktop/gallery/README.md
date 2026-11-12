@@ -28,5 +28,6 @@ Layouts adapted from these collections, each under the MIT licence kept beside t
 
 - `hyperui`: HyperUI, `LICENSE-HyperUI`;
 - `meraki-ui`: Meraki UI, `LICENSE-Meraki-UI`;
-- `mamba-ui` and `wicked-blocks`: Mamba UI and Wicked Blocks, once their licences are checked (`LICENSE-Mamba-UI`, `LICENSE-Wicked-Blocks`);
+- `mamba-ui`: Mamba UI, `LICENSE-Mamba-UI`;
+- `wicked-blocks`: Wicked Blocks, `LICENSE-Wicked-Blocks`;
 - `upstart`: written by us.

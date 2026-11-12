@@ -18,5 +18,9 @@
     "closing section",
     "last call",
     "dernier appel"
-  ]
+  ],
+  "data": {
+    "name": "navigation",
+    "family": "collection"
+  }
 }

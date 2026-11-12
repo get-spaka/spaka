@@ -5,60 +5,35 @@
       <p class="mt-4 text-lg text-base-content/70">Here is what a few of our customers have to say.</p>
     </div>
     <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      <figure class="card bg-base-200">
-        <div class="card-body justify-between gap-6">
-          <blockquote>
-            <p class="text-base-content/80">“Setup took less time than my morning coffee. The defaults are genuinely good, which is rare.”</p>
-          </blockquote>
-          <figcaption class="flex items-center gap-3">
-            <div class="avatar avatar-placeholder">
-              <div class="w-10 rounded-full bg-primary text-primary-content">
-                <span class="text-sm font-semibold">MB</span>
+      {% for item in data.testimonials %}
+        <figure class="card bg-base-200">
+          <div class="card-body justify-between gap-6">
+            <blockquote>
+              <p class="text-base-content/80">“{{ item.quote }}”</p>
+            </blockquote>
+            <figcaption class="flex items-center gap-3">
+              {% if item.photo != blank %}
+                <div class="avatar">
+                  <div class="w-10 rounded-full">
+                    <img src="{{ item.photo }}" alt="{{ item.name }}" class="object-cover">
+                  </div>
+                </div>
+              {% else %}
+                {% assign words = item.name | split: " " %}
+                <div class="avatar avatar-placeholder">
+                  <div class="w-10 rounded-full bg-primary text-primary-content">
+                    <span class="text-sm font-semibold">{{ words.first | slice: 0 }}{% if words.size > 1 %}{{ words.last | slice: 0 }}{% endif %}</span>
+                  </div>
+                </div>
+              {% endif %}
+              <div>
+                <p class="font-semibold">{{ item.name }}</p>
+                {% if item.role != blank %}<p class="text-sm text-base-content/70">{{ item.role }}</p>{% endif %}
               </div>
-            </div>
-            <div>
-              <p class="font-semibold">Marcus Bell</p>
-              <p class="text-sm text-base-content/70">Founder, Northwind Studio</p>
-            </div>
-          </figcaption>
-        </div>
-      </figure>
-      <figure class="card bg-base-200">
-        <div class="card-body justify-between gap-6">
-          <blockquote>
-            <p class="text-base-content/80">“We tried three other tools before this one. It is the only one the whole team still opens every day.”</p>
-          </blockquote>
-          <figcaption class="flex items-center gap-3">
-            <div class="avatar avatar-placeholder">
-              <div class="w-10 rounded-full bg-primary text-primary-content">
-                <span class="text-sm font-semibold">PN</span>
-              </div>
-            </div>
-            <div>
-              <p class="font-semibold">Priya Nair</p>
-              <p class="text-sm text-base-content/70">Manager, Orbit Café</p>
-            </div>
-          </figcaption>
-        </div>
-      </figure>
-      <figure class="card bg-base-200">
-        <div class="card-body justify-between gap-6">
-          <blockquote>
-            <p class="text-base-content/80">“Moving five years of records usually breaks something. Nothing broke. That is the whole review.”</p>
-          </blockquote>
-          <figcaption class="flex items-center gap-3">
-            <div class="avatar avatar-placeholder">
-              <div class="w-10 rounded-full bg-primary text-primary-content">
-                <span class="text-sm font-semibold">TA</span>
-              </div>
-            </div>
-            <div>
-              <p class="font-semibold">Tom Asante</p>
-              <p class="text-sm text-base-content/70">Director, Fieldnote Builders</p>
-            </div>
-          </figcaption>
-        </div>
-      </figure>
+            </figcaption>
+          </div>
+        </figure>
+      {% endfor %}
     </div>
   </div>
 </section>

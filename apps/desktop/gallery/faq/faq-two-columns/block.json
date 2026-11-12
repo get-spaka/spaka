@@ -16,5 +16,9 @@
     "questions fréquentes",
     "aide",
     "questions-réponses"
-  ]
+  ],
+  "data": {
+    "name": "faq",
+    "family": "section"
+  }
 }

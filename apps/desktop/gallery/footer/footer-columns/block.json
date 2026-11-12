@@ -15,5 +15,9 @@
     "bas de page",
     "mentions légales",
     "liens du bas"
-  ]
+  ],
+  "data": {
+    "name": "navigation",
+    "family": "collection"
+  }
 }

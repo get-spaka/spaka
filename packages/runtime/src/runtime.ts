@@ -128,6 +128,8 @@ export class Runtime {
       cache: false,
       relativeReference: false,
       ownPropertyOnly: false,
+      // An empty field is false, as one expects: {% if post.cover %} shows nothing for a post without one.
+      jsTruthy: true,
       fs: {
         resolve: (dir, file, ext) => `${dir.replace(/\/$/, "")}/${/\.[a-z]+$/i.test(file) ? file : file + ext}`,
         // A shared part included before it exists renders as nothing, with a note.

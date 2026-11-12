@@ -1,22 +1,33 @@
 <section class="bg-base-200 text-base-content">
   <div class="mx-auto max-w-6xl px-4 py-16 md:py-24">
     <h2 class="text-center text-sm font-semibold tracking-wider text-primary uppercase">What our customers say</h2>
-    <figure class="mx-auto mt-8 max-w-3xl text-center">
-      <svg class="mx-auto size-10 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/><path d="M5 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/></svg>
-      <blockquote class="mt-6">
-        <p class="text-2xl font-medium text-balance md:text-3xl">We moved everything over in an afternoon. A week later, our customers were telling us how much easier it felt.</p>
-      </blockquote>
-      <figcaption class="mt-8 flex items-center justify-center gap-3">
-        <div class="avatar avatar-placeholder">
-          <div class="w-12 rounded-full bg-primary text-primary-content">
-            <span class="text-sm font-semibold">CM</span>
+    {% for item in data.testimonials limit: 1 %}
+      <figure class="mx-auto mt-8 max-w-3xl text-center">
+        <svg class="mx-auto size-10 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/><path d="M5 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/></svg>
+        <blockquote class="mt-6">
+          <p class="text-2xl font-medium text-balance md:text-3xl">{{ item.quote }}</p>
+        </blockquote>
+        <figcaption class="mt-8 flex items-center justify-center gap-3">
+          {% if item.photo != blank %}
+            <div class="avatar">
+              <div class="w-12 rounded-full">
+                <img src="{{ item.photo }}" alt="{{ item.name }}" class="object-cover">
+              </div>
+            </div>
+          {% else %}
+            {% assign words = item.name | split: " " %}
+            <div class="avatar avatar-placeholder">
+              <div class="w-12 rounded-full bg-primary text-primary-content">
+                <span class="text-sm font-semibold">{{ words.first | slice: 0 }}{% if words.size > 1 %}{{ words.last | slice: 0 }}{% endif %}</span>
+              </div>
+            </div>
+          {% endif %}
+          <div class="text-left">
+            <p class="font-semibold">{{ item.name }}</p>
+            {% if item.role != blank %}<p class="text-sm text-base-content/70">{{ item.role }}</p>{% endif %}
           </div>
-        </div>
-        <div class="text-left">
-          <p class="font-semibold">Claire Martin</p>
-          <p class="text-sm text-base-content/70">Owner, Martin &amp; Co. Bakery</p>
-        </div>
-      </figcaption>
-    </figure>
+        </figcaption>
+      </figure>
+    {% endfor %}
   </div>
 </section>

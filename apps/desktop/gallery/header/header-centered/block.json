@@ -16,5 +16,9 @@
     "en-tête",
     "menu principal",
     "bandeau du haut"
-  ]
+  ],
+  "data": {
+    "name": "navigation",
+    "family": "collection"
+  }
 }

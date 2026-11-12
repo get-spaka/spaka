@@ -10,21 +10,13 @@
       </div>
     </div>
     <div class="stats stats-vertical mx-auto mt-16 grid w-full max-w-3xl border border-base-300 bg-base-200 md:stats-horizontal">
-      <div class="stat place-items-center">
-        <p class="stat-title text-base-content/70">Happy clients</p>
-        <p class="stat-value text-primary">2,400+</p>
-        <p class="stat-desc text-base-content/70">and counting</p>
-      </div>
-      <div class="stat place-items-center">
-        <p class="stat-title text-base-content/70">Bookings a month</p>
-        <p class="stat-value">18k</p>
-        <p class="stat-desc text-base-content/70">across 30 cities</p>
-      </div>
-      <div class="stat place-items-center">
-        <p class="stat-title text-base-content/70">Average rating</p>
-        <p class="stat-value">4.9</p>
-        <p class="stat-desc text-base-content/70">from 900 reviews</p>
-      </div>
+      {% for stat in data.stats %}
+        <div class="stat place-items-center">
+          <p class="stat-title text-base-content/70">{{ stat.label }}</p>
+          <p class="stat-value {% if forloop.first %}text-primary{% endif %}">{{ stat.value }}</p>
+          {% if stat.note != blank %}<p class="stat-desc text-base-content/70">{{ stat.note }}</p>{% endif %}
+        </div>
+      {% endfor %}
     </div>
   </div>
 </section>

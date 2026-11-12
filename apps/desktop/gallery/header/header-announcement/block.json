@@ -19,5 +19,9 @@
     "announcement bar",
     "promo bar",
     "bandeau d’annonce"
-  ]
+  ],
+  "data": {
+    "name": "navigation",
+    "family": "collection"
+  }
 }

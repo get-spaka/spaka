@@ -238,3 +238,21 @@ fields:
     expect(shown).toContain(">Second link</a>");
   });
 });
+
+test("an empty field is false in a template: no image for a record without one", () => {
+  const runtime = new Runtime(
+    memorySource({
+      "data/team/_datasource.yaml": "fields:\n  - name: name\n    kind: text\n  - name: photo\n    kind: image\n",
+      "data/team/ana.md": "---\nname: Ana\n---\n",
+      "data/team/bo.md": "---\nname: Bo\nphoto: media/bo.jpg\n---\n",
+      "media/bo.jpg": "",
+      "pages/index.liquid": page(
+        '{% for m in data.team %}{% if m.photo %}<img src="{{ m.photo }}">{% else %}<i>{{ m.name }}</i>{% endif %}{% endfor %}',
+      ),
+    }),
+  );
+  const html = runtime.renderRoute("/").html;
+  expect(html).toContain(">Ana</i>");
+  expect(html).toContain('src="/media/bo.jpg"');
+  expect(html).not.toContain('src=""');
+});

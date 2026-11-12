@@ -2,7 +2,7 @@
   "name": "Alternating features with images",
   "kind": "features",
   "source": "hyperui",
-  "description": "Two feature rows that alternate a picture placeholder and a block of text with a title, paragraph and checklist, left then right.",
+  "description": "Feature rows that alternate a picture and a block of text with a title, paragraph and checklist, left then right, each from a record.",
   "tags": ["image", "alternating", "two columns", "checklist", "zigzag"],
   "mood": ["elegant", "corporate"],
   "synonyms": [
@@ -20,5 +20,9 @@
     "zigzag",
     "image and text",
     "image et texte"
-  ]
+  ],
+  "data": {
+    "name": "features",
+    "family": "section"
+  }
 }

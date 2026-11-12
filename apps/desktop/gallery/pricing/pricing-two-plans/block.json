@@ -18,5 +18,9 @@
     "abonnements",
     "formules",
     "grille tarifaire"
-  ]
+  ],
+  "data": {
+    "name": "plans",
+    "family": "section"
+  }
 }

@@ -137,6 +137,8 @@ describe.each(blocks.map((b) => [b.id, b] as const))("%s", (_id, b) => {
     const result = runtime.renderRoute("/");
     expect(result.status).toBe(200);
     expect(result.notes).toEqual([]);
+    // A sample without an image shows the block's placeholder, not an empty picture.
+    expect(result.html).not.toMatch(/\b(?:src|href)=""/);
     if (b.data && b.detail) {
       const first = Object.keys(b.datasource!.records)[0]!.replace(/\.md$/, "");
       const page = runtime.renderRoute(`/${b.data.name}/${first}`);

@@ -17,5 +17,9 @@
     "liens du bas",
     "newsletter",
     "lettre d’information"
-  ]
+  ],
+  "data": {
+    "name": "navigation",
+    "family": "collection"
+  }
 }

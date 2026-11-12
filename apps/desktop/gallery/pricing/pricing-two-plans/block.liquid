@@ -5,64 +5,23 @@
       <p class="mt-4 text-lg text-base-content/70">Pick the plan that suits you. Change it whenever you like.</p>
     </div>
     <div class="mx-auto mt-12 grid max-w-3xl gap-6 sm:grid-cols-2 sm:items-center">
-      <div class="card card-border border-base-300 bg-base-100">
+      {% for plan in data.plans limit: 2 %}
+      <div class="card {% if plan.featured %}border-2 border-primary shadow-lg{% else %}card-border border-base-300{% endif %} bg-base-100">
         <div class="card-body p-8 text-center">
-          <h3 class="text-lg font-semibold">Starter</h3>
-          <p class="mt-2"><span class="text-4xl font-bold">$19</span><span class="text-base-content/70">/month</span></p>
+          <h3 class="text-lg font-semibold">{{ plan.name }}</h3>
+          <p class="mt-2"><span class="text-4xl font-bold">{{ plan.price }}</span><span class="text-base-content/70">{{ plan.period }}</span></p>
           <ul class="mt-6 space-y-3 text-left">
+            {% for feature in plan.features %}
             <li class="flex items-center gap-3">
               <svg class="size-5 shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-              <span>Up to 3 team members</span>
+              <span>{{ feature }}</span>
             </li>
-            <li class="flex items-center gap-3">
-              <svg class="size-5 shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-              <span>5 GB of storage</span>
-            </li>
-            <li class="flex items-center gap-3">
-              <svg class="size-5 shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-              <span>Email support</span>
-            </li>
-            <li class="flex items-center gap-3">
-              <svg class="size-5 shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-              <span>Help centre access</span>
-            </li>
+            {% endfor %}
           </ul>
-          <a href="#" class="btn btn-outline btn-primary mt-8">Get started</a>
+          <a href="{{ plan.href }}" class="btn {% if plan.featured %}btn-primary{% else %}btn-outline btn-primary{% endif %} mt-8">{{ plan.cta }}</a>
         </div>
       </div>
-      <div class="card border-2 border-primary bg-base-100 shadow-lg">
-        <div class="card-body p-8 text-center">
-          <h3 class="text-lg font-semibold">Pro</h3>
-          <p class="mt-2"><span class="text-4xl font-bold">$39</span><span class="text-base-content/70">/month</span></p>
-          <ul class="mt-6 space-y-3 text-left">
-            <li class="flex items-center gap-3">
-              <svg class="size-5 shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-              <span>Up to 20 team members</span>
-            </li>
-            <li class="flex items-center gap-3">
-              <svg class="size-5 shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-              <span>50 GB of storage</span>
-            </li>
-            <li class="flex items-center gap-3">
-              <svg class="size-5 shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-              <span>Priority email and phone support</span>
-            </li>
-            <li class="flex items-center gap-3">
-              <svg class="size-5 shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-              <span>Help centre access</span>
-            </li>
-            <li class="flex items-center gap-3">
-              <svg class="size-5 shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-              <span>Advanced reports</span>
-            </li>
-            <li class="flex items-center gap-3">
-              <svg class="size-5 shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-              <span>Custom branding</span>
-            </li>
-          </ul>
-          <a href="#" class="btn btn-primary mt-8">Get started</a>
-        </div>
-      </div>
+      {% endfor %}
     </div>
   </div>
 </section>

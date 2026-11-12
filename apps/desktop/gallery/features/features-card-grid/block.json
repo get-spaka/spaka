@@ -17,5 +17,9 @@
     "fonctionnalités",
     "points forts",
     "nos services"
-  ]
+  ],
+  "data": {
+    "name": "features",
+    "family": "section"
+  }
 }

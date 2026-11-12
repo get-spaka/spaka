@@ -1,0 +1,9 @@
+label: Questions
+fields:
+  - name: question
+    kind: text
+    required: true
+  - name: answer
+    kind: markdown
+body: answer
+order: [getting-started, changing-plan, free-trial, data-safety, reaching-us]

@@ -20,5 +20,9 @@
     "star rating",
     "notes",
     "étoiles"
-  ]
+  ],
+  "data": {
+    "name": "testimonials",
+    "family": "collection"
+  }
 }

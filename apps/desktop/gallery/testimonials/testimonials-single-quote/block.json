@@ -17,5 +17,9 @@
     "avis clients",
     "retours clients",
     "ils nous font confiance"
-  ]
+  ],
+  "data": {
+    "name": "testimonials",
+    "family": "collection"
+  }
 }

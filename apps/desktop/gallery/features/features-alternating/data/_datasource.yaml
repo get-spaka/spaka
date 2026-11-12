@@ -1,0 +1,15 @@
+label: Features
+fields:
+  - name: title
+    kind: text
+    required: true
+  - name: text
+    kind: text
+  - name: icon
+    kind: choice
+    choices: [spark, bolt, shield, heart, clock, chat, leaf, star, chart, team, plug, sliders]
+  - name: image
+    kind: image
+  - name: points
+    kind: list
+order: [plan-with-confidence, delight-your-customers, grow-at-your-own-pace]

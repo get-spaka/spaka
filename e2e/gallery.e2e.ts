@@ -263,6 +263,8 @@ const CONTRAST_CHECK = `new Promise((done) => {
       if (!bg) continue;
       let opacity = 1;
       for (let e = el; e; e = e.parentElement) opacity *= Number(getComputedStyle(e).opacity);
+      // Not seen either: a closed menu daisyUI keeps in place, transparent.
+      if (opacity < 0.05) continue;
       const fg = rgba(s.color);
       fg[3] *= opacity;
       const r = ratio(over(fg, bg), bg);
