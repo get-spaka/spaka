@@ -58,6 +58,7 @@ import { Recorder, replayQuery } from "./agent/replay";
 import { AppSettingsStore, zoomFor } from "./app-settings";
 import { Connectors, type Vault } from "./connectors/connectors";
 import { Comments, commentsMessage } from "./editing/comments";
+import { NAVIGATION, pageKey } from "./editing/data-drop";
 import { Editor } from "./editing/editor";
 import { EditRefused } from "./editing/edits";
 import { AgentNotes } from "./editing/notes";
@@ -214,9 +215,10 @@ async function main() {
     font: (path) => fonts.path(path),
     background: env.background,
     onState: (state) => ipc.emit("preview:state", state),
-    // The Content tab reads again when a datasource or a media file changes.
+    // The Content tab reads again when a datasource or a media file changes,
+    // or a template, which decides which page shows a list (Q210, Q211).
     onFileChanged: (path) => {
-      if (!/^(data|media|\.upstart\/test-records)\//.test(path)) return;
+      if (!/^(data|media|pages|parts|\.upstart\/test-records)\//.test(path)) return;
       clearTimeout(contentTimer);
       contentTimer = setTimeout(() => ipc.emit("content:changed"), 80);
     },
@@ -950,48 +952,80 @@ async function main() {
   ipc.handle("content:list", () => {
     if (!current) return [];
     const data = contentSource();
-    return data.names().map((name): ContentDatasource => {
-      const { definition, problem } = data.definition(name);
-      if (definition?.collected)
-        return {
-          name,
-          label: definition.label,
-          fields: definition.fields,
-          ...(definition.body ? { body: definition.body } : {}),
-          records: testRecordSummaries(name, data),
-          ...(problem ? { problem } : {}),
-          collected: true,
-          ...(definition.review ? { review: true } : {}),
-        };
-      const ds = data.get(name);
-      const image = definition?.fields.find((f) => f.kind === "image")?.name;
-      const problems = new Map(ds.problems.map((p) => [p.id, p]));
-      const records = ds.records.map((record): ContentRecordSummary => {
-        const file = recordFile(name, record.id);
-        const picture = image ? record[image] : undefined;
-        return {
-          id: record.id,
-          file,
-          title: recordTitle(record, definition),
-          ...(typeof picture === "string" && picture ? { image: picture } : {}),
-          problems: problems.get(record.id)?.problems ?? [],
-          skipped: false,
-          ...(routeOfRecord(file) ? { route: routeOfRecord(file) } : {}),
-        };
-      });
-      for (const p of ds.problems)
-        if (p.skipped) records.push({ id: p.id, file: p.file, title: p.id, problems: p.problems, skipped: true });
+    const use = datasourceUse();
+    return data.names().map((name): ContentDatasource => ({ ...contentDatasource(name, data), ...use(name) }));
+  });
+  /**
+   * Which pages show each datasource (Q210, Q211), each page rendered once;
+   * a section list is one named after a page (home-faq), listed under it.
+   */
+  const datasourceUse = () => {
+    const runtime = preview.runtime;
+    const shownBy = new Map<string, Set<string>>();
+    const pages = new Map<string, string>();
+    for (const route of runtime?.routes() ?? []) {
+      if (route.record || pages.has(route.file)) continue;
+      pages.set(route.file, route.route);
+    }
+    for (const [file, route] of pages)
+      for (const name of runtime?.renderPage(file, route).datasources ?? [])
+        shownBy.set(name, new Set([...(shownBy.get(name) ?? []), route]));
+    const byKey = [...pages].map(([file, route]) => ({ file, route, key: pageKey(file) }));
+    return (name: string): Pick<ContentDatasource, "usedBy" | "section"> => {
+      const page = byKey.filter((p) => name.startsWith(`${p.key}-`)).sort((a, b) => b.key.length - a.key.length)[0];
+      return {
+        usedBy: [...(shownBy.get(name) ?? [])],
+        ...(page && name !== NAVIGATION ? { section: { page: page.file, route: page.route } } : {}),
+      };
+    };
+  };
+  ipc.handle("content:delete-datasource", (name) => {
+    const use = datasourceUse()(name);
+    if (!use.section || use.usedBy.length) throw new Error("Only a section list no page shows can be deleted.");
+    const label = contentSource().definition(name).definition?.label ?? titleOf(name);
+    return editor.deleteDatasource(name, label);
+  });
+  const contentDatasource = (name: string, data: Datasources): Omit<ContentDatasource, "usedBy" | "section"> => {
+    const { definition, problem } = data.definition(name);
+    if (definition?.collected)
       return {
         name,
-        label: definition?.label ?? titleOf(name),
-        fields: definition?.fields ?? [],
-        ...(definition?.body ? { body: definition.body } : {}),
-        ...(definition?.sort ? { sort: definition.sort } : {}),
-        records,
+        label: definition.label,
+        fields: definition.fields,
+        ...(definition.body ? { body: definition.body } : {}),
+        records: testRecordSummaries(name, data),
         ...(problem ? { problem } : {}),
+        collected: true,
+        ...(definition.review ? { review: true } : {}),
+      };
+    const ds = data.get(name);
+    const image = definition?.fields.find((f) => f.kind === "image")?.name;
+    const problems = new Map(ds.problems.map((p) => [p.id, p]));
+    const records = ds.records.map((record): ContentRecordSummary => {
+      const file = recordFile(name, record.id);
+      const picture = image ? record[image] : undefined;
+      return {
+        id: record.id,
+        file,
+        title: recordTitle(record, definition),
+        ...(typeof picture === "string" && picture ? { image: picture } : {}),
+        problems: problems.get(record.id)?.problems ?? [],
+        skipped: false,
+        ...(routeOfRecord(file) ? { route: routeOfRecord(file) } : {}),
       };
     });
-  });
+    for (const p of ds.problems)
+      if (p.skipped) records.push({ id: p.id, file: p.file, title: p.id, problems: p.problems, skipped: true });
+    return {
+      name,
+      label: definition?.label ?? titleOf(name),
+      fields: definition?.fields ?? [],
+      ...(definition?.body ? { body: definition.body } : {}),
+      ...(definition?.sort ? { sort: definition.sort } : {}),
+      records,
+      ...(problem ? { problem } : {}),
+    };
+  };
   ipc.handle("content:record", (datasource, id) => {
     if (!current) throw new Error("No project is open.");
     const file = contentRecordFile(datasource, id);

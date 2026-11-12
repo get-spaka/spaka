@@ -445,6 +445,19 @@ export class Editor {
     return change;
   }
 
+  /** Deletes a datasource's folder, its definition and records (Q211); the history can bring it back. */
+  deleteDatasource(name: string, label: string): { label: string; files: string[] } {
+    this.ready();
+    if (!/^[a-z0-9][\w-]*$/i.test(name)) throw new EditRefused("No such datasource.");
+    const dir = join(this.root(), "data", name);
+    if (!existsSync(dir)) throw new EditRefused("No such datasource.");
+    const files = readdirSync(dir).map((f) => `data/${name}/${f}`);
+    rmSync(dir, { recursive: true, force: true });
+    const change = { label: en.editing.labels.datasourceDeleted(label), files };
+    this.deps.changed(change);
+    return change;
+  }
+
   /** Copies a record beside it, at the next free id (hello-2), from the Content tab or its page's menu (Q164). */
   duplicateRecord(file: string): { label: string; files: string[]; file: string } {
     this.ready();

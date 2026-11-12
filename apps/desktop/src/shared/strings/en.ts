@@ -59,6 +59,7 @@ export const en = {
       theme: "Theme changed",
       pageDuplicated: "Page duplicated",
       pageDeleted: "Page deleted",
+      datasourceDeleted: (label: string) => `${label} deleted`,
       recordDuplicated: "Record duplicated",
       recordDeleted: "Record deleted",
       recordEdited: (name: string) => `Edited ${name}`,
@@ -202,6 +203,10 @@ export const en = {
     delete: "Delete",
     deleted: (name: string) => `${name} deleted`,
     undo: "Undo",
+    unused: "Used by no page",
+    deleteList: (label: string) => `Delete ${label}, which no page shows`,
+    sectionsTitle: "Sections",
+    homePage: "Home",
     sortedBy: (field: string, desc: boolean) =>
       `Sorted by ${field}, ${desc ? "newest or largest first" : "oldest or smallest first"}`,
     dragToReorder: "Drag to change the order",

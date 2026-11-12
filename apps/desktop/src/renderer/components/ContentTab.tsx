@@ -144,28 +144,16 @@ export function ContentTab({ working, onAsk }: { working: boolean; onAsk: (text:
                   </Button>
                 </div>
               ) : (
-                <ul className="-mx-2">
-                  {list.map((d) => (
-                    <li key={d.name}>
-                      <button
-                        type="button"
-                        data-testid="datasource"
-                        data-name={d.name}
-                        onClick={() => setOpen({ datasource: d.name })}
-                        className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-accent"
-                      >
-                        <span className="font-medium">{d.label}</span>
-                        {(d.problem || d.records.some((r) => r.problems.length)) && (
-                          <AlertTriangle className="size-3.5 text-amber-600" />
-                        )}
-                        <span className="ml-auto text-xs text-muted-foreground">
-                          {t.content.records(d.records.length)}
-                        </span>
-                        <ChevronRight className="size-4 text-muted-foreground" />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+                <DatasourceList
+                  list={list}
+                  onOpen={(name) => setOpen({ datasource: name })}
+                  onDelete={(d) =>
+                    act(async () => {
+                      await upstart.invoke("content:delete-datasource", d.name);
+                      setDeleted({ name: d.label, at: Date.now() });
+                    })
+                  }
+                />
               )}
             </div>
           )}
@@ -868,5 +856,77 @@ function LinksInput({
         {words.add}
       </Button>
     </fieldset>
+  );
+}
+
+/**
+ * The datasources (Q210): the collections and the navigation first, then the
+ * section lists under the page each belongs to. One no page shows is marked,
+ * and a section list of that kind can be deleted (Q211).
+ */
+function DatasourceList({
+  list,
+  onOpen,
+  onDelete,
+}: {
+  list: ContentDatasource[];
+  onOpen: (name: string) => void;
+  onDelete: (d: ContentDatasource) => void;
+}) {
+  const collections = list.filter((d) => !d.section);
+  const pages = new Map<string, ContentDatasource[]>();
+  for (const d of list) if (d.section) pages.set(d.section.route, [...(pages.get(d.section.route) ?? []), d]);
+  const row = (d: ContentDatasource) => (
+    <li key={d.name} className="group flex items-center">
+      <button
+        type="button"
+        data-testid="datasource"
+        data-name={d.name}
+        data-unused={d.usedBy.length === 0 || undefined}
+        onClick={() => onOpen(d.name)}
+        className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-accent"
+      >
+        <span className="truncate font-medium">{d.label}</span>
+        {(d.problem || d.records.some((r) => r.problems.length)) && (
+          <AlertTriangle className="size-3.5 shrink-0 text-amber-600" />
+        )}
+        {d.usedBy.length === 0 && (
+          <span className="shrink-0 text-xs text-muted-foreground" data-testid="datasource-unused">
+            {t.content.unused}
+          </span>
+        )}
+        <span className="ml-auto shrink-0 text-xs text-muted-foreground">{t.content.records(d.records.length)}</span>
+        <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+      </button>
+      {d.section && d.usedBy.length === 0 && (
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          title={t.content.deleteList(d.label)}
+          data-testid="datasource-delete"
+          onClick={() => onDelete(d)}
+        >
+          <Trash2 />
+        </Button>
+      )}
+    </li>
+  );
+  return (
+    <div className="space-y-4" data-testid="datasource-list">
+      {collections.length > 0 && <ul className="-mx-2">{collections.map(row)}</ul>}
+      {pages.size > 0 && (
+        <div className="space-y-2" data-testid="datasource-sections">
+          <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            {t.content.sectionsTitle}
+          </h3>
+          {[...pages].map(([route, items]) => (
+            <div key={route} data-testid="datasource-page" data-route={route}>
+              <p className="text-xs text-muted-foreground">{route === "/" ? t.content.homePage : route}</p>
+              <ul className="-mx-2">{items.map(row)}</ul>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

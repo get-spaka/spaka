@@ -394,6 +394,10 @@ export type ContentDatasource = {
   collected?: boolean;
   /** Visitors' records wait for the maker's approval (Q174). */
   review?: boolean;
+  /** The addresses of the pages that show it (Q210, Q211): none when no page reads it any more. */
+  usedBy: string[];
+  /** A section list (Q201): the page it was named after, its address, under which the Content tab lists it. */
+  section?: { page: string; route: string };
 };
 
 /** A record's values as its file has them, for its form. */
@@ -536,6 +540,8 @@ export type Invokes = {
   "theme:apply": (values: ThemeValues, own?: boolean) => { label: string; files: string[] };
   /** The Content tab (Q148): the project's datasources and their records. */
   "content:list": () => ContentDatasource[];
+  /** Deletes a section list no page shows any more (Q211): one version, which the history can undo. */
+  "content:delete-datasource": (name: string) => { label: string; files: string[] };
   "content:record": (datasource: string, id: string) => ContentRecord;
   /** Writes one value of a record at once, without a version (Q162); `body` for the text below its fields. */
   "content:set-value": (datasource: string, id: string, field: string, value: unknown) => void;
@@ -708,6 +714,7 @@ export const channels = {
     "content:leave",
     "content:duplicate",
     "content:delete",
+    "content:delete-datasource",
     "content:reorder",
     "content:rename",
     "content:published",

@@ -68,8 +68,10 @@ describe("the Content tab", () => {
   test("the datasources, and a datasource's records in its order", async () => {
     expect(await w().getByTestId("datasource").allTextContents()).toEqual([
       expect.stringContaining("Posts2 records"),
-      expect.stringContaining("Team3 records"),
+      // No page shows the team: marked (Q211), a collection kept all the same.
+      expect.stringContaining("TeamUsed by no page3 records"),
     ]);
+    expect(await w().getByTestId("datasource-delete").count()).toBe(0);
     await w().locator('[data-testid="datasource"][data-name="posts"]').click();
     await until(async () => (await records()).length === 2);
     expect(await records()).toEqual(["second", "first"]);
@@ -217,5 +219,33 @@ describe("the Content tab", () => {
     );
     await launched.capture("content-links");
     await w().getByTestId("content-back").click();
+  });
+
+  test("a page's own list under its page; once no page shows it, marked and deleted, then brought back (Q210, Q211)", async () => {
+    // Back from the navigation's records to the datasources.
+    while (await w().getByTestId("content-back").count()) await w().getByTestId("content-back").click();
+    const home = file("pages/index.liquid");
+    const loop = '<section>{% for q in data["home-faq"] %}<p>{{ q.question }}</p>{% endfor %}</section>';
+    mkdirSync(join(path, "data/home-faq"), { recursive: true });
+    writeFileSync(
+      join(path, "data/home-faq/_datasource.yaml"),
+      "label: Questions\nfields:\n  - name: question\n    kind: text\n",
+    );
+    writeFileSync(join(path, "data/home-faq/delivery.md"), "---\nquestion: Do you deliver?\n---\n");
+    writeFileSync(join(path, "pages/index.liquid"), home.replace("</body>", `${loop}\n</body>`));
+    const listed = w().locator('[data-testid="datasource-page"][data-route="/"] [data-testid="datasource"]');
+    await until(async () => (await listed.count()) === 1);
+    expect(await listed.getAttribute("data-name")).toBe("home-faq");
+    expect(await listed.getAttribute("data-unused")).toBeNull();
+    expect(await w().getByTestId("datasource-sections").textContent()).toContain("SectionsHome");
+    await launched.capture("content-sections");
+    // The section taken out of the page: the list is marked, and can go.
+    writeFileSync(join(path, "pages/index.liquid"), home);
+    await until(async () => (await listed.getAttribute("data-unused")) === "true");
+    await w().locator('[data-testid="datasource-page"] [data-testid="datasource-delete"]').click();
+    await until(() => Promise.resolve(!existsSync(join(path, "data/home-faq"))));
+    await expect(last()).resolves.toMatchObject({ kind: "hand", label: "Questions deleted" });
+    await w().getByTestId("record-deleted-undo").click();
+    await until(() => Promise.resolve(existsSync(join(path, "data/home-faq/delivery.md"))));
   });
 });
