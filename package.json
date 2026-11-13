@@ -18,6 +18,7 @@
     "background-electron": "node scripts/background-electron.ts",
     "template:check": "node apps/desktop/scripts/template.mjs check",
     "template:shoot": "node apps/desktop/scripts/template.mjs shoot",
+    "template:image": "node apps/desktop/scripts/template.mjs image",
     "start": "pnpm --filter @upstart/desktop start"
   },
   "devDependencies": {

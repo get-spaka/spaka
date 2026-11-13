@@ -216,7 +216,7 @@ test("model and effort change while the agent runs", async () => {
 test("an agent that did not start isolated is stopped", async () => {
   const { s, items, turnEnd } = session([
     [
-      init("s2", [...TOOLS, "WebFetch"]),
+      init("s2", [...TOOLS, "NotebookEdit"]),
       { type: "result", subtype: "success", is_error: false, result: "", duration_ms: 1 },
     ],
   ]);

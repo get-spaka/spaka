@@ -1,6 +1,7 @@
 // The template commands (Q232): `pnpm template:check <folder or .zip>` runs a
 // template's checks; `pnpm template:shoot <folder>` photographs its pages in
-// the app, offscreen, into its pictures/ and a review sheet. The checks are
+// the app, offscreen, into its pictures/ and a review sheet; `pnpm
+// template:image` finds images and adds them with their credits. The checks are
 // the app's own code, bundled here on the fly so that Node runs them as they are.
 import { spawnSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
@@ -12,7 +13,8 @@ const desktop = join(here, "..");
 const root = join(desktop, "../..");
 const [command, ...args] = process.argv.slice(2);
 
-if (command === "check") {
+/** The app's template code, bundled for Node. */
+async function cli() {
   const { build } = await import("rolldown");
   const out = join(desktop, "out/template-check.mjs");
   mkdirSync(dirname(out), { recursive: true });
@@ -23,8 +25,15 @@ if (command === "check") {
     external: ["electron", "sharp"],
     output: { file: out, format: "esm" },
   });
-  const { main } = await import(pathToFileURL(out).href);
+  return import(pathToFileURL(out).href);
+}
+
+if (command === "check") {
+  const { main } = await cli();
   process.exit(main(args));
+} else if (command === "image") {
+  const { imageMain } = await cli();
+  process.exit(await imageMain(args, join(root, "e2e/.runs/template-images")));
 } else if (command === "shoot") {
   const target = args.find((a) => !a.startsWith("--"));
   if (!target) {
@@ -42,6 +51,8 @@ if (command === "check") {
     }),
   );
 } else {
-  console.error("Usage: pnpm template:check <folder or .zip> | pnpm template:shoot <folder>");
+  console.error(
+    "Usage: pnpm template:check <folder or .zip> | pnpm template:shoot <folder> | pnpm template:image find|use …",
+  );
   process.exit(2);
 }

@@ -16,7 +16,8 @@ import { LOOK_TOOL } from "./preview-tool";
 import { type AgentEvent, StreamReader } from "./stream";
 
 /** The agent's tools. No MultiEdit: the live preview cannot follow it (ADR 0009). */
-export const TOOLS = ["Read", "Write", "Edit", "Glob", "Grep", "Bash"];
+/** The agent's tools; the web's two for every project (Q257): trends for a template, a maker's own pages, a fact. */
+export const TOOLS = ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebSearch", "WebFetch"];
 
 export const DENY_MESSAGE =
   "Upstart does not ask the maker for permissions. This action is refused: find another way or say what you could not do.";

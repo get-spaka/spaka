@@ -4,5 +4,7 @@ dist/
 .cache/
 *.log
 .DS_Store
-/.claude/
+/.claude/*
+# The skills used to work on Upstart itself here (making-templates, Q258).
+!/.claude/skills/
 /e2e/.runs/

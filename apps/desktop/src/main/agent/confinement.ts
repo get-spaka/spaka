@@ -61,6 +61,8 @@ export function confinement({ projectDir, readable, skillsDir, platform = proces
         blockWritesOutsideWorkingDirectories: true,
         blockReadsOutsideWorkingDirectories: true,
         denyInsteadOfPrompting: true,
+        // Reading the web, granted rather than asked for (Q257): the maker is never asked (ADR 0007).
+        allow: ["WebSearch", "WebFetch"],
         deny: skills.map((dir) => `Edit(/${dir}/**)`),
       },
       sandbox: {

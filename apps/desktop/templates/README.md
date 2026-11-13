@@ -58,4 +58,14 @@ pnpm template:check <folder or .zip> [--finished]
 pnpm template:shoot <folder> [--no-build]
 ```
 
+```bash
+pnpm template:image find <words>
+```
+
+```bash
+pnpm template:image use <folder> <id> <name> "<alternative text>"
+```
+
+`template:image` searches and adds images as the agent's find_images and use_image do: free for commercial use, saved into `media/` with their credits and alternative text; a search keeps a small copy of each image found in `e2e/.runs/template-images/`. The making-templates skill (`.claude/skills/making-templates/SKILL.md`) is the way to make one, step by step.
+
 `template:shoot` builds the app (unless `--no-build`), launches it in the background, opens a copy of the template and photographs each page moving, as visitors see it, at 1440 and 390 pixels wide, into the template's `pictures/`, then writes a review sheet to `e2e/.runs/template-sheets/<id>.png`.
