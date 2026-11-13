@@ -87,7 +87,9 @@ export function stop() {
     await until(() => page("document.querySelector('h1')?.textContent === 'Bread since 1953'"));
     await until(async () => (await page("window.__stops || 0")) > before.stops);
     // As many starts again as stops, without loading the page again.
-    await until(async () => (await page("window.__starts")) - before.starts === (await page("window.__stops")) - before.stops);
+    await until(
+      async () => (await page("window.__starts")) - before.starts === (await page("window.__stops")) - before.stops,
+    );
   });
 
   test("a changed stylesheet restyles the page in place; a changed script loads it again", async () => {
