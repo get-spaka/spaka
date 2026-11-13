@@ -81,7 +81,7 @@ After two years of work, the bakery opens on **1 November**.
 Sourdough loaves, viennoiseries, and coffee from a local roaster.
 ```
 
-- The id is the file's name: lowercase words with dashes, made from the title (`opening-day.md`). It is the record page's address, so keep it short.
+- The id is the file's name: lowercase words with dashes, made from the title, in the site's language (`opening-day.md` for "Opening day"; on an English site about a Lyon bistro, `pike-quenelle.md` for "Pike quenelle", not `quenelle-de-brochet.md`). It is the record page's address, so keep it short. Write the title first in your head, then name the file after it.
 - Write believable records, three to six unless asked otherwise, each complete: every required field, a real text.
 - A value of the wrong kind shows empty, and a file whose fields do not read as YAML is left out of the site. Upstart says so right after you write it: fix it at once.
 - Images: find them with find_images and add them with use_image, then write the address it gives (`/media/…`) in the field. Never an external address.

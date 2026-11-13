@@ -117,8 +117,8 @@ describe.skipIf(!real)("Gallery v2 with the real agent, packaged", () => {
       .filter(([file, sum]) => createHash("sha256").update(read(file)).digest("hex") === sum && read(file) !== "")
       .map(([file]) => file);
     checks["no samples left"] = (report.samplesLeft as string[]).length === 0;
-    // Each record under a sample's name holds what that name says (Q218): one the
-    // agent rewrote is renamed after its title; one it kept the sample's person or day for is right.
+    // Each record is named after its title (Q218, Q219): a sample the agent rewrote is renamed
+    // by Upstart; a record it wrote itself it names after its title, in the site's language.
     const idOf = (title: string) =>
       title
         .normalize("NFKD")
@@ -137,11 +137,22 @@ describe.skipIf(!real)("Gallery v2 with the real agent, packaged", () => {
       const field = /-\s*name:\s*([\w-]+)\s*\n(?:\s+\w+:.*\n)*?\s+kind:\s*text\b/.exec(
         read(`data/${ds}/_datasource.yaml`),
       )?.[1];
-      return readdirSync(dir)
-        .filter((f) => f.endsWith(".md") && existsSync(join(path, "data", ds, f)))
+      if (!existsSync(join(path, "data", ds))) return [];
+      // Every record, the agent's own included (Q219): its file name is its title's words.
+      return readdirSync(join(path, "data", ds))
+        .filter((f) => f.endsWith(".md"))
         .filter((f) => {
           const title = new RegExp(`^${field}:\\s*["']?(.+?)["']?\\s*$`, "m").exec(read(`data/${ds}/${f}`))?.[1];
-          return !!title && !idOf(title).startsWith(f.replace(/\.md$/, "").replace(/-\d+$/, ""));
+          // Its name is words of its title, maybe fewer ("lentil-salad" for "Warm lentil salad").
+          const words = idOf(title).split("-");
+          return (
+            !!title &&
+            !f
+              .replace(/\.md$/, "")
+              .replace(/-\d+$/, "")
+              .split("-")
+              .every((w) => words.includes(w))
+          );
         })
         .map((f) => `data/${ds}/${f}`);
     });
