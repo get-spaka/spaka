@@ -81,6 +81,10 @@ describe.runIf(built && process.platform === "darwin")("the packaged app", () =>
       const invoke = invokeIn(launched);
       await launched.window.getByTestId("message-input").waitFor();
       expect(await launched.app.evaluate(({ app }) => app.isPackaged)).toBe(true);
+      // Upstart's templates, from the release's catalogue shipped with the app (Q247), their covers with it.
+      const templates = await invoke("templates:list");
+      expect(templates.map((t: { id: string }) => t.id)).toEqual(expect.arrayContaining(["reel", "ember", "beacon"]));
+      expect(await invoke("templates:picture", "reel", "cover")).toMatch(/^data:image\/webp;base64,/);
       await invoke("conversation:send", "A bakery in Lyon. Warm colours please.");
       await done(launched, 1, 30_000);
       // The skills shipped outside the archive, assembled for the agent.
@@ -88,6 +92,7 @@ describe.runIf(built && process.platform === "darwin")("the packaged app", () =>
         "datasources",
         "gallery",
         "htmx-patterns",
+        "site-scripts",
         "upstart-help",
         "writing-skills",
       ]);
