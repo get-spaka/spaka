@@ -85,6 +85,7 @@ const ran = new WeakSet<Element>();
 window.addEventListener("DOMContentLoaded", () => {
   for (const script of document.querySelectorAll("script")) ran.add(script);
   editor?.attach();
+  skeletonStyle();
   if (thumbnail) thumbStyle(clipped);
   else hideScrollbar();
   send({ type: "loaded", path: location.pathname, title: document.title });
@@ -202,6 +203,44 @@ function thumbStyle(top: number) {
  * width, as its thumbnail has, and a zoom lands without a shift. In a style
  * of its own in the head, which the renderings leave alone.
  */
+/**
+ * A section the agent placed from the gallery and has not made its own yet
+ * (marked data-up-skeleton by main, Q222) keeps its layout, colors and
+ * shapes; its texts become bars in their own color, its pictures and icons
+ * blocks, softly pulsing. Nothing in the page is changed but this style.
+ */
+function skeletonStyle() {
+  if (!document.head || document.getElementById("up-skeleton")) return;
+  const style = document.createElement("style");
+  style.id = "up-skeleton";
+  style.textContent = `
+@property --up-skel { syntax: "<percentage>"; inherits: true; initial-value: 22%; }
+@keyframes up-skel { 50% { --up-skel: 10%; } }
+html:has([data-up-skeleton]) { animation: up-skel 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { html:has([data-up-skeleton]) { animation: none; } }
+:where([data-up-skeleton], [data-up-skeleton] *) {
+  -webkit-text-fill-color: transparent !important;
+  text-decoration-line: underline !important;
+  text-decoration-style: solid !important;
+  text-decoration-thickness: 0.62em !important;
+  text-underline-offset: -0.5em !important;
+  text-decoration-skip-ink: none !important;
+  text-decoration-color: color-mix(in oklab, currentColor var(--up-skel), transparent) !important;
+  text-shadow: none !important;
+  cursor: default;
+}
+:where([data-up-skeleton], [data-up-skeleton] *)::placeholder { -webkit-text-fill-color: transparent !important; }
+:where([data-up-skeleton] img, [data-up-skeleton] video, [data-up-skeleton] svg, [data-up-skeleton] canvas, [data-up-skeleton] iframe) {
+  object-position: -99999px 0 !important;
+  background: color-mix(in oklab, currentColor var(--up-skel), transparent) !important;
+  border-radius: 0.375rem;
+}
+:where([data-up-skeleton] svg *) { fill-opacity: 0 !important; stroke-opacity: 0 !important; }
+:where([data-up-skeleton] iframe) { opacity: 0.4; }
+`;
+  document.head.append(style);
+}
+
 function hideScrollbar() {
   if (!document.head || document.getElementById("up-scroll")) return;
   const style = document.createElement("style");

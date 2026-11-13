@@ -317,8 +317,10 @@ async function main() {
               findImages: async (query, count) => imagesAnswer(query, await images.search(query, count)),
               useImage: (id, name, alt) => useFoundImage(images, project.path, id, name, alt),
               useBlocks: (input) => {
-                const { text, samples } = useBlocks(project.path, input, (id) => gallery.get(id));
+                const { text, samples, placements } = useBlocks(project.path, input, (id) => gallery.get(id));
                 for (const path of samples) placedSamples.add(path);
+                // A skeleton in the preview until the agent makes them its own (Q222).
+                preview.placed(project.path, placements);
                 return text;
               },
             }),
