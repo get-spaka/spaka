@@ -105,9 +105,15 @@ export class Thumbnails {
 export const BLOCK_HEIGHT = `new Promise((done) => {
   const started = Date.now();
   const ready = () => [...document.querySelectorAll("style")].some((s) => !s.hasAttribute("data-up-runtime") && s.textContent.length > 0);
-  const wait = () => ready() || Date.now() - started > 3000
-    ? requestAnimationFrame(() => requestAnimationFrame(() => done((document.body.firstElementChild ?? document.body).getBoundingClientRect().height)))
-    : setTimeout(wait, 30);
+  const measure = () => done((document.body.firstElementChild ?? document.body).getBoundingClientRect().height);
+  // Two frames, or a moment: a hidden view (the peek, before it is shown) draws no frame at all.
+  const settled = () => {
+    let measured = false;
+    const once = () => { if (!measured) { measured = true; measure(); } };
+    requestAnimationFrame(() => requestAnimationFrame(once));
+    setTimeout(once, 150);
+  };
+  const wait = () => ready() || Date.now() - started > 3000 ? settled() : setTimeout(wait, 30);
   wait();
 })`;
 
