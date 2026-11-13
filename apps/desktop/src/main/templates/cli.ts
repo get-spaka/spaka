@@ -42,6 +42,8 @@ export function main(args: string[]): number {
  * find_images and use_image for a template made in this repository (Q258), the
  * same searches and the same credits as the app's. What a search found is kept
  * in `dir` for the next command, with a small copy of each image to look at.
+ * `use <folder> <list file>` adds several, one a line, each tried again while
+ * the source is busy.
  */
 export async function imageMain(args: string[], dir: string): Promise<number> {
   const [command, ...rest] = args;
@@ -71,20 +73,45 @@ export async function imageMain(args: string[], dir: string): Promise<number> {
     if (looks.length) console.log(`\nSmall copies to look at:\n${looks.join("\n")}`);
     return result.images.length ? 0 : 1;
   }
+  const finder: ImageFinder = {
+    search: (query, count) => search.search(query, count),
+    found: (id) => known[id],
+    download: (image) => search.download(image),
+    preview: (image) => search.preview(image),
+  };
+  const add = async (folder: string, id: string, name: string, alt: string) =>
+    (await addFoundImage(finder, resolve(folder), id, name, alt)).replace(
+      "found by find_images in this session",
+      "found by pnpm template:image find",
+    );
+  const added = (answer: string) => /^(?:Added|This image is already)/.test(answer);
+  if (command === "use" && rest.length === 2 && existsSync(rest[1]!)) {
+    // A list: one image a line, "<id> <name> <alternative text>"; blank lines and # comments left out.
+    const [folder, list] = rest as [string, string];
+    const lines = readFileSync(list, "utf8")
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l && !l.startsWith("#"));
+    let failed = 0;
+    for (const line of lines) {
+      const [id, name, ...alt] = line.split(/\s+/);
+      const answer = alt.length
+        ? await add(folder, id!, name!, alt.join(" "))
+        : `Not "<id> <name> <alternative text>": ${line}`;
+      if (!added(answer)) failed++;
+      console.log(`${added(answer) ? "ok  " : "FAIL"} ${name ?? line}: ${answer.split("\n")[0]}`);
+    }
+    console.log(`\n${lines.length - failed} of ${lines.length} added.`);
+    return failed ? 1 : 0;
+  }
   if (command === "use" && rest.length >= 4) {
     const [folder, id, name, ...alt] = rest as [string, string, string, ...string[]];
-    const finder: ImageFinder = {
-      search: (query, count) => search.search(query, count),
-      found: (id) => known[id],
-      download: (image) => search.download(image),
-      preview: (image) => search.preview(image),
-    };
-    const answer = await addFoundImage(finder, resolve(folder), id, name, alt.join(" "));
-    console.log(answer.replace("found by find_images in this session", "found by pnpm template:image find"));
-    return /^(?:Added|This image is already)/.test(answer) ? 0 : 1;
+    const answer = await add(folder, id, name, alt.join(" "));
+    console.log(answer);
+    return added(answer) ? 0 : 1;
   }
   console.error(
-    'Usage: pnpm template:image find <words> | pnpm template:image use <template folder> <id> <name> "<alternative text>"',
+    'Usage: pnpm template:image find <words> | pnpm template:image use <template folder> <id> <name> "<alternative text>" | pnpm template:image use <template folder> <list file>',
   );
   return 2;
 }

@@ -12,6 +12,7 @@ import {
   fromOpenverse,
   ImageSearch,
   imagesAnswer,
+  retryDelay,
   USER_AGENT,
 } from "./search";
 
@@ -29,7 +30,7 @@ const commons = {
             height: 3000,
             mime: "image/jpeg",
             url: "https://upload.wikimedia.org/c/croissants.jpg?utm_source=commons.wikimedia.org&utm_content=original",
-            thumburl: "https://upload.wikimedia.org/thumb/c/croissants.jpg/2400px-croissants.jpg?utm_source=x",
+            thumburl: "https://upload.wikimedia.org/thumb/c/croissants.jpg/1920px-croissants.jpg?utm_source=x",
             descriptionurl: "https://commons.wikimedia.org/wiki/File:Croissants.jpg",
             extmetadata: {
               ObjectName: { value: "Croissants" },
@@ -134,7 +135,7 @@ describe("licences", () => {
 });
 
 describe("the sources' answers", () => {
-  test("Commons: in its order, free bitmaps only, the author and description as text, a copy 2400 px wide", () => {
+  test("Commons: in its order, free bitmaps only, the author and description as text, a copy 1920 px wide", () => {
     const images = fromCommons(commons);
     expect(images.map((i) => i.id)).toEqual(["commons:1", "commons:2"]);
     expect(images[1]).toEqual({
@@ -143,7 +144,7 @@ describe("the sources' answers", () => {
       description: "Croissants on a bakery counter & bread",
       width: 4000,
       height: 3000,
-      url: "https://upload.wikimedia.org/thumb/c/croissants.jpg/2400px-croissants.jpg",
+      url: "https://upload.wikimedia.org/thumb/c/croissants.jpg/1920px-croissants.jpg",
       thumb: "https://upload.wikimedia.org/c/croissants.jpg",
       credit: {
         title: "Croissants",
@@ -191,6 +192,60 @@ describe("the sources' answers", () => {
       "openverse:abc",
       "commons:2",
     ]);
+  });
+
+  test("downloads: one at a time in order, a second apart, trying again when the source is busy", async () => {
+    const image = (n: number) => ({ ...fromCommons(commons)[0]!, url: `https://upload.wikimedia.org/${n}.jpg` });
+    const events: string[] = [];
+    const waits: number[] = [];
+    let busy = 2;
+    const search = new ImageSearch({
+      sleep: async (ms) => {
+        waits.push(ms);
+      },
+      fetch: async (url) => {
+        events.push(`start ${url.slice(-5)}`);
+        await new Promise((r) => setTimeout(r, 5));
+        events.push(`end ${url.slice(-5)}`);
+        if (url.endsWith("2.jpg") && busy-- > 0)
+          return new Response("", { status: 429, headers: busy === 1 ? { "Retry-After": "7" } : {} });
+        return new Response(url.slice(-5));
+      },
+    });
+    const [a, b] = await Promise.all([search.download(image(1)), search.download(image(2))]);
+    expect([a.toString(), b.toString()]).toEqual(["1.jpg", "2.jpg"]);
+    expect(events).toEqual([
+      "start 1.jpg",
+      "end 1.jpg",
+      "start 2.jpg",
+      "end 2.jpg",
+      "start 2.jpg",
+      "end 2.jpg",
+      "start 2.jpg",
+      "end 2.jpg",
+    ]);
+    // Retry-After first, then the second backoff (15 s); the pauses between downloads are under a second.
+    expect(waits.filter((ms) => ms > 1_000)).toEqual([7_000, 15_000]);
+    expect(waits.filter((ms) => ms <= 1_000).length).toBeGreaterThan(0);
+    // Still busy after four tries, or another refusal: an error, and the next download still runs.
+    const refusing = new ImageSearch({
+      sleep: async () => {},
+      fetch: async (url) =>
+        new Response("x", { status: url.endsWith("1.jpg") ? 429 : url.endsWith("2.jpg") ? 404 : 200 }),
+    });
+    await expect(refusing.download(image(1))).rejects.toThrow("busy (HTTP 429) after 4 tries");
+    await expect(refusing.download(image(2))).rejects.toThrow("(HTTP 404)");
+    expect((await refusing.download(image(3))).toString()).toBe("x");
+  });
+
+  test("the wait after a busy answer: its Retry-After in seconds or as a date, a minute at most", () => {
+    expect(retryDelay("12", 0)).toBe(12_000);
+    expect(retryDelay(null, 0)).toBe(5_000);
+    expect(retryDelay(null, 1)).toBe(15_000);
+    expect(retryDelay(null, 2)).toBe(45_000);
+    expect(retryDelay("600", 0)).toBe(60_000);
+    expect(retryDelay(new Date(1_000_000 + 20_000).toUTCString(), 0, 1_000_000)).toBe(20_000);
+    expect(retryDelay("soon", 1)).toBe(15_000);
   });
 
   test("the answer to the agent: text, each image with its id, licence and author", () => {

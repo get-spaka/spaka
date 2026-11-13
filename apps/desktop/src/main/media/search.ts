@@ -1,14 +1,17 @@
 // Image search (Q150, Q151, Q167): Wikimedia Commons and Openverse, asked at
 // once, keeping only images free for commercial use (CC0, public domain,
-// CC BY, CC BY-SA) with what their credits need. The requests carry a generic
-// User-Agent and the words searched, nothing about the maker or the project.
+// CC BY, CC BY-SA) with what their credits need. The requests carry the app's
+// User-Agent (its name and site, as Wikimedia asks of every client) and the
+// words searched, nothing about the maker or the project. Downloads go one at
+// a time, a second apart, and wait and try again when a source says it is busy
+// (HTTP 429 or 503), as long as its Retry-After asks, a minute at most.
 // Openverse without a key is slow at times and allows 20 searches a minute:
 // it is given 6 seconds, and Commons answers alone past them.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Credit } from "@upstart/runtime";
 
-export const USER_AGENT = "Upstart desktop app";
+export const USER_AGENT = "Upstart/2.0 (https://upstart.gg)";
 
 export type FoundImage = {
   /** "commons:<page id>" or "openverse:<id>". */
@@ -17,7 +20,7 @@ export type FoundImage = {
   description?: string;
   width: number;
   height: number;
-  /** Where to download it, at most about 2400 px wide when the source offers a smaller copy. */
+  /** Where to download it, at most 1920 px wide when the source offers a smaller copy. */
   url: string;
   thumb?: string;
   credit: Credit;
@@ -92,6 +95,9 @@ type CommonsPage = {
   }[];
 };
 
+/** Commons keeps copies at a few widths only (1920 is one); others are made on demand and limited. */
+const COPY_WIDTH = 1920;
+
 /** A copy 330 px wide, which Commons keeps for every image wider (it refuses sizes it does not keep). */
 export function commonsThumb(url: string, width: number): string {
   const m = /^(https:\/\/upload\.wikimedia\.org\/wikipedia\/commons)\/(.+\/([^/]+))$/.exec(url);
@@ -119,7 +125,7 @@ export function fromCommons(answer: unknown): FoundImage[] {
       description: description ? short(description) : undefined,
       width: info.width,
       height: info.height,
-      url: noTracking(info.thumburl && info.width > 2400 ? info.thumburl : info.url),
+      url: noTracking(info.thumburl && info.width > COPY_WIDTH ? info.thumburl : info.url),
       thumb: commonsThumb(noTracking(info.url), info.width),
       credit: {
         title,
@@ -198,10 +204,33 @@ function interleave(lists: FoundImage[][], count: number): FoundImage[] {
 
 type Fetch = (url: string, init?: { headers?: Record<string, string>; signal?: AbortSignal }) => Promise<Response>;
 
+/** Tries after a busy answer, and the pause between two downloads. */
+const RETRIES = 3;
+const GAP = 1_000;
+
+/** How long to wait after a busy answer: its Retry-After (seconds or a date), else 5, 15, 45 s; a minute at most. */
+export function retryDelay(retryAfter: string | null, attempt: number, now = Date.now()): number {
+  const value = retryAfter?.trim() ?? "";
+  const seconds = /^\d+$/.test(value) ? Number(value) : value ? (Date.parse(value) - now) / 1000 : Number.NaN;
+  const wait = Number.isFinite(seconds) && seconds > 0 ? seconds : 5 * 3 ** attempt;
+  return Math.min(wait, 60) * 1000;
+}
+
 export class ImageSearch implements ImageFinder {
   private known = new Map<string, FoundImage>();
 
-  constructor(private opts: { fetch?: Fetch; timeout?: number; openverseTimeout?: number } = {}) {}
+  private queue: Promise<unknown> = Promise.resolve();
+  private last = 0;
+
+  constructor(
+    private opts: {
+      fetch?: Fetch;
+      timeout?: number;
+      openverseTimeout?: number;
+      /** Waits; the tests pass one that only notes how long. */
+      sleep?: (ms: number) => Promise<void>;
+    } = {},
+  ) {}
 
   private async get(url: string, timeout: number): Promise<unknown> {
     const fetch = this.opts.fetch ?? globalThis.fetch;
@@ -215,7 +244,7 @@ export class ImageSearch implements ImageFinder {
 
   async search(query: string, count = 10): Promise<SearchResult> {
     const q = encodeURIComponent(query.trim());
-    const commons = `https://commons.wikimedia.org/w/api.php?action=query&format=json&formatversion=2&generator=search&gsrsearch=${q}%20filetype:bitmap&gsrnamespace=6&gsrlimit=${Math.min(40, count * 3)}&prop=imageinfo&iiprop=url|size|mime|extmetadata&iiurlwidth=2400&iiextmetadatafilter=LicenseShortName|LicenseUrl|Artist|ImageDescription|ObjectName`;
+    const commons = `https://commons.wikimedia.org/w/api.php?action=query&format=json&formatversion=2&generator=search&gsrsearch=${q}%20filetype:bitmap&gsrnamespace=6&gsrlimit=${Math.min(40, count * 3)}&prop=imageinfo&iiprop=url|size|mime|extmetadata&iiurlwidth=${COPY_WIDTH}&iiextmetadatafilter=LicenseShortName|LicenseUrl|Artist|ImageDescription|ObjectName`;
     const openverse = `https://api.openverse.org/v1/images/?q=${q}&license=cc0,pdm,by,by-sa&page_size=${Math.min(20, count * 2)}`;
     const [c, o] = await Promise.allSettled([
       this.get(commons, this.opts.timeout ?? 10_000).then(fromCommons),
@@ -237,14 +266,33 @@ export class ImageSearch implements ImageFinder {
     return this.known.get(id);
   }
 
-  async download(image: FoundImage): Promise<Buffer> {
+  /** One download at a time, in the order asked. */
+  download(image: FoundImage): Promise<Buffer> {
+    const run = this.queue.then(() => this.fetchImage(image.url));
+    this.queue = run.catch(() => undefined);
+    return run;
+  }
+
+  private async fetchImage(url: string): Promise<Buffer> {
     const fetch = this.opts.fetch ?? globalThis.fetch;
-    const response = await fetch(image.url, {
-      headers: { "User-Agent": USER_AGENT },
-      signal: AbortSignal.timeout(30_000),
-    });
-    if (!response.ok) throw new Error(`The image could not be downloaded (HTTP ${response.status}).`);
-    return Buffer.from(await response.arrayBuffer());
+    const sleep = this.opts.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+    for (let attempt = 0; ; attempt++) {
+      const pause = this.last + GAP - Date.now();
+      if (this.last && pause > 0) await sleep(pause);
+      const response = await fetch(url, {
+        headers: { "User-Agent": USER_AGENT },
+        signal: AbortSignal.timeout(30_000),
+      });
+      this.last = Date.now();
+      if (response.ok) return Buffer.from(await response.arrayBuffer());
+      const busy = response.status === 429 || response.status === 503;
+      if (!busy) throw new Error(`The image could not be downloaded (HTTP ${response.status}).`);
+      if (attempt >= RETRIES)
+        throw new Error(
+          `The image could not be downloaded: its source is busy (HTTP ${response.status}) after ${RETRIES + 1} tries; wait a few minutes before trying again.`,
+        );
+      await sleep(retryDelay(response.headers.get("Retry-After"), attempt));
+    }
   }
 
   async preview(image: FoundImage): Promise<Buffer | undefined> {

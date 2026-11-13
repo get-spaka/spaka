@@ -65,7 +65,11 @@ pnpm template:image find <what the image shows, in English>
 pnpm template:image use apps/desktop/templates/<id> <id from the search> <short file name> "<alternative text>"
 ```
 
-`find` lists free images (CC0, public domain, CC BY, CC BY-SA) and saves a small copy of each in `e2e/.runs/template-images/`: look at them with Read and choose for the brief's palette and mood, not the first one. `use` adds it to `media/` with its credits and alternative text. Every image of the template comes this way; a photo of a recognizable person goes only where the fictional business would show its own people.
+```bash
+pnpm template:image use apps/desktop/templates/<id> <list file>
+```
+
+`find` lists free images (CC0, public domain, CC BY, CC BY-SA) and saves a small copy of each in `e2e/.runs/template-images/`: look at them with Read and choose for the brief's palette and mood, not the first one. `use` adds it to `media/` with its credits and alternative text. Once all are chosen, add them in one go: a list file in the scratchpad, one image a line, `<id> <short file name> <alternative text>`. Downloads go one at a time and wait while Wikimedia says it is busy; an image still refused is marked FAIL, and running the same list again adds only those (the others are already there). Every image of the template comes this way; a photo of a recognizable person goes only where the fictional business would show its own people.
 
 **Done when** each image the brief calls for is in a page or a record, and the check still reports no error.
 
