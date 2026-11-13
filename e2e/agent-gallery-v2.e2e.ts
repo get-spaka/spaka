@@ -220,6 +220,11 @@ describe.skipIf(!real)("Gallery v2 with the real agent, packaged", () => {
 
     // In English.
     checks.english = /<html[^>]*lang="en/.test(read("pages/index.liquid"));
+    // A placed block's texts and samples are lorem ipsum (Q223): none left once the agent is done.
+    report.loremLeft = walk(path)
+      .map((f) => relative(path, f))
+      .filter((f) => /^(pages|parts|data|fragments)\//.test(f) && /\b(lorem|ipsum)\b/i.test(read(f)));
+    checks["no lorem ipsum left"] = (report.loremLeft as string[]).length === 0;
 
     // A picture of every page, and of one event's page.
     const eventRecord = eventPage

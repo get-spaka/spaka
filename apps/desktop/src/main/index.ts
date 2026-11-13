@@ -63,7 +63,14 @@ import { NAVIGATION, pageKey } from "./editing/data-drop";
 import { Editor } from "./editing/editor";
 import { EditRefused } from "./editing/edits";
 import { AgentNotes } from "./editing/notes";
-import { nameRecords, samplesLeftNote, unchangedSamples, useBlocks } from "./editing/use-blocks";
+import {
+  loremLeft,
+  loremLeftNote,
+  nameRecords,
+  samplesLeftNote,
+  unchangedSamples,
+  useBlocks,
+} from "./editing/use-blocks";
 import { readEnvironment } from "./environment";
 import { exportProject, publishChoices } from "./export";
 import { described, Gallery } from "./gallery/catalogue";
@@ -309,6 +316,8 @@ async function main() {
       extraOptions: (project) => {
         // The sample records use_block wrote in this turn, named to the agent once if it leaves them (Q217).
         const placedSamples = new Set<string>();
+        // The parts and record pages it wrote, their lorem ipsum named to the agent once if left (Q223).
+        const placedFiles = new Set<string>();
         return {
           mcpServers: {
             [UPSTART_SERVER]: upstartServer({
@@ -317,8 +326,9 @@ async function main() {
               findImages: async (query, count) => imagesAnswer(query, await images.search(query, count)),
               useImage: (id, name, alt) => useFoundImage(images, project.path, id, name, alt),
               useBlocks: (input) => {
-                const { text, samples } = useBlocks(project.path, input, (id) => gallery.get(id));
+                const { text, samples, files } = useBlocks(project.path, input, (id) => gallery.get(id));
                 for (const path of samples) placedSamples.add(path);
+                for (const path of files) placedFiles.add(path);
                 return text;
               },
             }),
@@ -364,9 +374,15 @@ async function main() {
                     const left = input.stop_hook_active
                       ? []
                       : unchangedSamples(project.path).filter((path) => placedSamples.has(path));
+                    const lorem = input.stop_hook_active ? [] : loremLeft(project.path, placedFiles);
                     placedSamples.clear();
-                    return left.length
-                      ? { decision: "block" as const, reason: samplesLeftNote(left) }
+                    placedFiles.clear();
+                    const notes = [
+                      ...(left.length ? [samplesLeftNote(left)] : []),
+                      ...(lorem.length ? [loremLeftNote(lorem)] : []),
+                    ];
+                    return notes.length
+                      ? { decision: "block" as const, reason: notes.join("\n\n") }
                       : { continue: true };
                   },
                 ],

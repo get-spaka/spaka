@@ -177,12 +177,12 @@ export function placedAnswer(input: Placing, placed: Placed): string {
       line += `, reading data/${p.datasource}/ (${p.family === "collection" ? "a collection shared by the site" : "this section's own list"}), written with the gallery's sample records`;
     if (p.differ?.length)
       line += `; its fields ${p.differ.join(", ")} already exist with another kind and were kept: check the part reads them right`;
-    if (p.recordPage) line += `; and ${p.recordPage}, its page per record, from this page's frame`;
+    if (p.recordPage) line += `; and ${p.recordPage}, its page per record, from this page's frame: write its texts too`;
     lines.push(`${line}.`);
   }
   lines.push(
     "",
-    "Next, part by part, the hero's first: read each part, then write this site's own texts in place of every example, keeping its structure and classes.",
+    "Its texts and sample records are lorem ipsum placeholders, numbers, dates and a form's labels kept. Next, part by part, the hero's first: read each part, then write this site's own texts in place of every placeholder, keeping its structure and classes.",
   );
   if (placed.samples.length)
     lines.push(

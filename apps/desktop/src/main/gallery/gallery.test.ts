@@ -211,7 +211,7 @@ describe.each(blocks.map((b) => [b.id, b] as const))("%s", (_id, b) => {
     },
   );
 
-  test.runIf(!!b.data)("renders with no note once dropped as the app drops it, under its page's name", () => {
+  test("renders with no note once dropped as the app drops it, in lorem ipsum, under its page's name", () => {
     const files: Record<string, string> = {
       "pages/services.liquid":
         "<!doctype html><html><head><title>Services</title></head><body>\n<section>Intro</section>\n</body></html>",
@@ -227,6 +227,8 @@ describe.each(blocks.map((b) => [b.id, b] as const))("%s", (_id, b) => {
       "</body>",
       `{% render '${b.id}' %}</body>`,
     );
+    // Its records, in lorem ipsum (Q223), still read.
+    if (drop.datasource) expect(new Datasources(memorySource(files)).get(drop.datasource)?.problems).toEqual([]);
     const runtime = runtimeOf(files);
     const result = runtime.renderRoute("/services");
     expect(result.notes).toEqual([]);

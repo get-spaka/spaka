@@ -3,7 +3,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, test } from "vitest";
 import type { DroppedBlock } from "./data-drop";
-import { GALLERY_SAMPLES, nameRecords, samplesLeftNote, unchangedSamples, useBlocks } from "./use-blocks";
+import {
+  GALLERY_SAMPLES,
+  loremLeft,
+  loremLeftNote,
+  nameRecords,
+  samplesLeftNote,
+  unchangedSamples,
+  useBlocks,
+} from "./use-blocks";
 
 const faq: DroppedBlock = {
   id: "faq-accordion",
@@ -164,4 +172,24 @@ test("a site from the real gallery: two pages placed, a collection shared, each 
     expect(result.notes).toEqual([]);
   }
   expect(unchangedSamples(root).length).toBeGreaterThan(4);
+});
+
+test("the parts and record pages it wrote are named while they hold lorem ipsum, and no longer once rewritten (Q223)", () => {
+  root = mkdtempSync(join(tmpdir(), "use-blocks-"));
+  const { files } = useBlocks(
+    root,
+    {
+      page: "pages/index.liquid",
+      title: "Le Petit Four",
+      description: "A bistro",
+      blocks: [{ block: events.id, name: "events" }],
+    },
+    block,
+  );
+  expect(files).toEqual(["parts/events.liquid", "pages/events/[events].liquid"]);
+  writeFileSync(join(root, "parts/events.liquid"), "<section>Lorem ipsum</section>\n");
+  expect(loremLeft(root, files)).toEqual(["parts/events.liquid"]);
+  expect(loremLeftNote(["parts/events.liquid"])).toContain("parts/events.liquid");
+  writeFileSync(join(root, "parts/events.liquid"), "<section>Our evenings</section>\n");
+  expect(loremLeft(root, files)).toEqual([]);
 });

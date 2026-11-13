@@ -79,12 +79,12 @@ export function useBlocks(
   root: string,
   input: Placing,
   block: (id: string) => DroppedBlock | undefined,
-): { text: string; samples: string[] } {
+): { text: string; samples: string[]; files: string[] } {
   let placed: ReturnType<typeof placeBlocks>;
   try {
     placed = placeBlocks(input, diskView(root), block);
   } catch (error) {
-    return { text: (error as Error).message, samples: [] };
+    return { text: (error as Error).message, samples: [], files: [] };
   }
   for (const [path, text] of Object.entries(placed.writes)) {
     mkdirSync(dirname(join(root, path)), { recursive: true });
@@ -95,7 +95,8 @@ export function useBlocks(
     for (const path of placed.samples) samples[path] = hash(placed.writes[path]!);
     writeSamples(root, samples);
   }
-  return { text: placedAnswer(input, placed), samples: placed.samples };
+  const files = placed.parts.flatMap((p) => (p.recordPage ? [p.part, p.recordPage] : [p.part]));
+  return { text: placedAnswer(input, placed), samples: placed.samples, files };
 }
 
 /**
@@ -176,6 +177,21 @@ export function unchangedSamples(root: string): string[] {
   }
   if (Object.keys(still).length !== Object.keys(samples).length) writeSamples(root, still);
   return Object.keys(still).sort();
+}
+
+/** The files use_block wrote that still hold lorem ipsum placeholders (Q223). */
+export function loremLeft(root: string, files: Iterable<string>): string[] {
+  return [...new Set(files)]
+    .filter((path) => {
+      const abs = join(root, path);
+      return existsSync(abs) && /\b(lorem|ipsum)\b/i.test(readFileSync(abs, "utf8"));
+    })
+    .sort();
+}
+
+/** What the agent is told when its turn would end with placeholders left (Q223). */
+export function loremLeftNote(paths: string[]): string {
+  return `These files still hold the gallery's lorem ipsum placeholders: ${paths.join(", ")}. Write this site's own texts in their place before you finish.`;
 }
 
 /** What the agent is told when its turn would end with samples left (Q217). */

@@ -84,10 +84,10 @@ describe("names (Q201)", () => {
 });
 
 describe("a collection (Q198)", () => {
-  test("new: its definition and sample records, its name kept", () => {
+  test("new: its definition and sample records, in lorem ipsum (Q223), its name kept", () => {
     const drop = dropData(team, "pages/index.liquid", view({ "pages/index.liquid": home }));
     expect(drop).toMatchObject({ datasource: "team", source: team.source });
-    expect(drop.writes["data/team/anna.md"]).toBe("---\nname: Anna\n---\n");
+    expect(drop.writes["data/team/anna.md"]).toBe("---\nname: Lorem\n---\n");
   });
   test("reused: the fields it lacks added, no sample records, a field of another kind kept", () => {
     const files = {

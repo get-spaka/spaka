@@ -22,12 +22,12 @@ Upstart ships a gallery of blocks: sections written for daisyUI and the theme, r
    `use_block({ page: "pages/index.liquid", title: "Chez Margot", description: "…", lang: "fr", blocks: [{ block: "header-dark", name: "header" }, { block: "hero-editorial", name: "hero" }, { block: "menu-courses", name: "menu" }, { block: "footer-local-shop", name: "footer" }] })`
    - Each block becomes a shared part, `parts/<name>.liquid`, numbered if the name is taken, and its `{% render %}` line goes into the page, a banner and header at the top, a footer at the end.
    - A page that does not exist yet is created with the site's head, header and footer; give its title and description, in the site's language, and the language for the site's first page.
-3. Then, part by part, the hero's first (it is what the maker looks at), read the part and write this project's own texts in place of every example. Keep its structure and classes; change the structure only for what the maker asked. Keep the color classes: they come from the theme.
+3. Then, part by part, the hero's first (it is what the maker looks at), read the part and write this project's own texts in place of every example: a placed block's texts are lorem ipsum placeholders (its numbers, dates, times and a form's labels and button kept as the gallery wrote them), so every lorem ipsum word left is a text still to write. Keep its structure and classes; change the structure only for what the maker asked. Keep the color classes: they come from the theme.
 4. If no block fits a section, write it yourself in the page.
 
 ## A block that lists things
 
-A block that repeats something (questions, plans, team members, posts, dishes, links) reads a datasource, and `use_block` writes it with the gallery's sample records:
+A block that repeats something (questions, plans, team members, posts, dishes, links) reads a datasource, and `use_block` writes it with the gallery's sample records, their texts in lorem ipsum:
 
 - **A collection** (`data.team`, `data.services`, `data.menu`, `data.blog`, `data.products`, `data.events`, `data.testimonials`, `data.gallery`, `data.hours` for the opening hours) is shared by the whole site under that name. If `data/<name>/` exists already, it is reused: its records kept, only the fields the block needs added to its definition.
 - **A list of one section** (questions, plans, features, key figures, steps) belongs to its page and is named after it: `data/home-faq/` on the home page, `data/services-faq/` on /services, read as `data["home-faq"]` in the part.

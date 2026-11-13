@@ -17,6 +17,7 @@ import {
   TEST_RECORDS_DIR,
 } from "@upstart/runtime";
 import { copyName } from "./edits";
+import { loremBlock } from "./lorem";
 
 export type DroppedBlock = {
   id: string;
@@ -168,7 +169,9 @@ function linksOf(header: string): { label: string; href: string }[] {
 }
 
 /** What a dropped block writes besides its part: its datasource, its record page, the site's navigation. */
-export function dropData(block: DroppedBlock, pageFile: string, project: ProjectView): DataDrop {
+export function dropData(gallery: DroppedBlock, pageFile: string, project: ProjectView): DataDrop {
+  // Put into a site, the block shows lorem ipsum in place of the gallery's examples (Q223).
+  const block = loremBlock(gallery);
   if (!block.data || !block.datasource) return { source: block.source, writes: {} };
   const base = block.data.name;
   const writes: Record<string, string> = {};
