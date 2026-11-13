@@ -31,6 +31,8 @@ export type EditorBridge = CommentsBridge & {
   pickImage(): Promise<string | null>;
   /** A dropped file's path on the disk, or "" when it has none. */
   pathOf(file: File): string;
+  /** Asks for edit mode, for a block or an image dragged in from another mode (Q254). */
+  toEdit(): void;
 };
 
 /** The record the trace names for an element: its own, or the one around it. */
@@ -86,7 +88,7 @@ const STYLE = `
 type Selected = { el: HTMLElement; origin: Origin; section?: Origin; info?: EditInfo; sectionInfo?: EditInfo };
 
 export class Editor {
-  private mode: PreviewMode = "edit";
+  private mode: PreviewMode = "visitor";
   private paused = false;
   private hidden = false;
   private readonly host = document.createElement("upstart-editor");
@@ -415,7 +417,9 @@ export class Editor {
     window.addEventListener(
       "dragover",
       (e) => {
-        if (!isBlock(e) || !this.active) return;
+        if (!isBlock(e)) return;
+        this.toEditForDrop();
+        if (!this.active) return;
         e.preventDefault();
         e.stopImmediatePropagation();
         e.dataTransfer!.dropEffect = "copy";
@@ -427,7 +431,9 @@ export class Editor {
     window.addEventListener(
       "dragenter",
       (e) => {
-        if (isBlock(e) && this.mode === "edit" && this.paused) this.toast(t.paused);
+        if (!isBlock(e)) return;
+        this.toEditForDrop();
+        if (this.paused) this.toast(t.paused);
       },
       { capture: true },
     );
@@ -458,11 +464,29 @@ export class Editor {
   }
 
   /**
+   * A block or an image file dragged into the page while it is in visitor or
+   * comment mode: the preview goes to edit mode, here at once so that this very
+   * drag shows its line, and in the app (Q254).
+   */
+  private toEditForDrop() {
+    if (this.mode === "edit") return;
+    this.set("edit", this.paused);
+    this.bridge.toEdit();
+  }
+
+  /**
    * An image file dragged from the Finder onto an image of the page (Q159):
    * the image is outlined, and the drop replaces it. Other files are refused.
    */
   private listenForFiles() {
     const isFiles = (e: DragEvent) => !!e.dataTransfer?.types.includes("Files");
+    window.addEventListener(
+      "dragenter",
+      (e) => {
+        if (isFiles(e)) this.toEditForDrop();
+      },
+      { capture: true },
+    );
     const imageAt = (e: DragEvent) =>
       document
         .elementsFromPoint(e.clientX, e.clientY)
@@ -471,6 +495,7 @@ export class Editor {
       "dragover",
       (e) => {
         if (!isFiles(e)) return;
+        this.toEditForDrop();
         // Never the browser's own drop, which would open the file.
         e.preventDefault();
         e.stopImmediatePropagation();

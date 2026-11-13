@@ -253,6 +253,7 @@ async function main() {
       "preview:edit": (action) => editor.edit(action),
       "preview:edit-info": (file, at) => editor.info(file, at),
       "preview:pick-image": () => pickImage(),
+      "preview:to-edit": () => preview.setMode("edit"),
       "preview:comment-save": (comment) => commentsChanged(current && comments.save(current.id, comment)),
       "preview:comment-remove": (id) => commentsChanged(current && comments.remove(current.id, id)),
       "preview:comments-send": () => sendComments(),

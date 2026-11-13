@@ -212,7 +212,7 @@ describe("the gallery of blocks", () => {
     await until(async () => home().includes(`{% render '${cta.id}-2' %}`));
   });
 
-  test("a block dropped into the page goes where the line shows", async () => {
+  test("a block dropped into the page, from visitor mode, goes where the line shows", async () => {
     const before = home();
     const hero = blocks.find((b) => b.kind === "features")!;
     // The drag the Blocks tab starts, as it reaches the page: below the middle of the first section.
@@ -225,7 +225,11 @@ describe("the gallery of blocks", () => {
         clientX: 200, clientY: Math.round(Math.min(r.bottom - 2, r.top + r.height * 0.75)) });
       return !document.elementFromPoint(200, 10).dispatchEvent(event);
     })()`;
+    // The preview is in visitor mode (Q253); the drag puts it in edit mode by itself (Q254).
+    const pressed = (mode: string) => launched.window.getByTestId(`mode-${mode}`).getAttribute("aria-pressed");
+    expect(await pressed("visitor")).toBe("true");
     expect(await page(drag("dragover"))).toBe(true);
+    await until(async () => (await pressed("edit")) === "true");
     await until(() =>
       page(
         "getComputedStyle(document.querySelector('upstart-editor').shadowRoot.querySelector('[data-testid=insertion-line]')).display !== 'none'",

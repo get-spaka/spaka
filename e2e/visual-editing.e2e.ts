@@ -23,6 +23,8 @@ describe("editing in the preview", () => {
     path = (await invoke("projects:current")).path;
     await invoke("preview:navigate", "/");
     await until(() => page("!!document.querySelector('upstart-editor') && location.pathname === '/'"));
+    // Edit mode: the preview opens in visitor mode (Q253).
+    await invoke("preview:set-mode", "edit");
   }, 60_000);
   afterAll(async () => {
     await launched?.close();

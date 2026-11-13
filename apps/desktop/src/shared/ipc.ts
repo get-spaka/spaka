@@ -832,6 +832,8 @@ export type PreviewInvokes = {
   "preview:edit-info": (file: string, at: number) => EditInfo;
   /** Opens the app's media picker over the window (Q159): the chosen image's address, or null. */
   "preview:pick-image": () => string | null;
+  /** A block or an image file dragged into the page in another mode: the preview goes to edit mode (Q254). */
+  "preview:to-edit": () => void;
   /** Adds a comment, or changes the one with this id. */
   "preview:comment-save": (comment: Omit<PageComment, "id"> & { id?: string }) => PageComment[];
   "preview:comment-remove": (id: string) => PageComment[];

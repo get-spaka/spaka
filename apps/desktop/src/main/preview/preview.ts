@@ -96,8 +96,11 @@ export class Preview {
   /** Whether the preview moves to the page the agent writes; off once the maker navigates. */
   private following = true;
   readonly errors: { message: string; source?: string; at: number }[] = [];
-  /** How the page answers the pointer (Q99), and whether editing waits for the agent (Q91). */
-  private mode: PreviewMode = "edit";
+  /**
+   * How the page answers the pointer (Q99), and whether editing waits for the
+   * agent (Q91). A site opens in visitor mode, its animations playing (Q253, Q255).
+   */
+  private mode: PreviewMode = "visitor";
   private paused = false;
   private chromeHidden: (() => void) | undefined;
   /** Every page as thumbnails (Q128): their views, and which view is shown. */
@@ -183,6 +186,7 @@ export class Preview {
     });
     const site: OpenSite = { project, root: project.path, overlay, runtime, watcher: undefined };
     this.site = site;
+    this.mode = "visitor";
     site.watcher = this.watch(site);
     this.shown = runtime.routes().length > 0;
     // Hidden by close() above: a project with pages is shown again at once.

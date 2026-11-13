@@ -28,6 +28,7 @@ const editor = thumbnail
         edit: (action) => invoke("preview:edit", action),
         info: (file, at) => invoke("preview:edit-info", file, at),
         pickImage: () => invoke("preview:pick-image"),
+        toEdit: () => void invoke("preview:to-edit"),
         pathOf: (file) => webUtils.getPathForFile(file),
         save: (comment) => invoke("preview:comment-save", comment),
         remove: (id) => invoke("preview:comment-remove", id),

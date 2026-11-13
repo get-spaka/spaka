@@ -47,6 +47,8 @@ describe("the media library", () => {
     await w().getByTestId("tab-content").click();
     await w().getByTestId("content-media").click();
     await w().getByTestId("media").waitFor();
+    // Edit mode: the preview opens in visitor mode (Q253).
+    await invoke("preview:set-mode", "edit");
   }, 60_000);
   afterAll(async () => {
     await launched?.close();
