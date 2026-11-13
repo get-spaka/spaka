@@ -5,7 +5,7 @@
 import { chmodSync, mkdirSync, realpathSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { dirname, join, sep } from "node:path";
+import { dirname, join, resolve, sep } from "node:path";
 
 export const systemTmp = realpathSync(tmpdir());
 
@@ -74,6 +74,30 @@ export function confinement({ projectDir, readable, skillsDir }: ConfinementInpu
       },
     },
   };
+}
+
+/** A path with the macOS /private prefix of /var and /tmp left out, for comparing. */
+const unaliased = (path: string) => path.replace(/^\/private(?=\/(?:var|tmp)(?:\/|$))/, "");
+
+/**
+ * Whether Upstart grants itself a shell command the binary would refuse for
+ * joining a cd to a command that writes (Q220): it cannot tell statically
+ * which folder the command writes to, but the operating system's sandbox
+ * confines every command to the project and the temporary folder anyway.
+ * Only one cd, first, to a folder of the project, run in the sandbox, and
+ * nothing of git; everything else stays refused (ADR 0007).
+ */
+export function sandboxedCdGranted(projectDir: string, toolName: string, input: unknown): boolean {
+  if (toolName !== "Bash" || !input || typeof input !== "object") return false;
+  const { command, dangerouslyDisableSandbox } = input as { command?: unknown; dangerouslyDisableSandbox?: unknown };
+  if (typeof command !== "string" || dangerouslyDisableSandbox) return false;
+  const m = /^\s*cd\s+(?:"([^"$`]*)"|'([^']*)'|([^\s;&|"'`$~]+))\s*(?:&&|;)\s*(\S[\s\S]*)$/.exec(command);
+  if (!m) return false;
+  const rest = m[4]!;
+  if (/(?:^|[\s;&|(])cd(?:\s|$)/.test(rest) || /\bgit\b/.test(rest)) return false;
+  const root = unaliased(resolve(projectDir));
+  const target = unaliased(resolve(projectDir, (m[1] ?? m[2] ?? m[3])!));
+  return target === root || target.startsWith(`${root}${sep}`);
 }
 
 /** The official agent binary, from the SDK's package for this platform (ADR 0002). */

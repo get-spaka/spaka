@@ -101,6 +101,17 @@ describe.skipIf(!real)("Gallery v2 with the real agent, packaged", () => {
 
     // The gallery searched, and its blocks put in with use_block.
     report.searches = calls("mcp__upstart__find_blocks");
+    // Shell commands refused, and those joining a cd to a command (Q220).
+    const uses = new Map<string, unknown>();
+    for (const m of messages())
+      if (m?.type === "assistant")
+        for (const c of m.message.content) if (c.type === "tool_use") uses.set(c.id, c.input);
+    report.denied = messages()
+      .filter((m) => m?.type === "system" && m.subtype === "permission_denied")
+      .map((m) => (uses.get(m.tool_use_id) as { command?: string } | undefined)?.command ?? m.tool_name);
+    report.cdCommands = (calls("Bash") as { command: string }[])
+      .map((c) => c.command)
+      .filter((c) => /^\s*cd\s/.test(c));
     const placed = calls("mcp__upstart__use_block") as { page: string; blocks: { block: string; name: string }[] }[];
     report.placed = placed.map((p) => ({ page: p.page, blocks: p.blocks.map((b) => b.block) }));
     const ids = placed.flatMap((p) => p.blocks.map((b) => b.block));
@@ -134,6 +145,8 @@ describe.skipIf(!real)("Gallery v2 with the real agent, packaged", () => {
       if (!dir) return [];
       const ds: string | undefined = JSON.parse(readFileSync(join(dir, "../block.json"), "utf8")).data?.name;
       if (!ds || ds === "navigation") return [];
+      // Only where the name is an address: a datasource with a page per record.
+      if (!walk(join(path, "pages")).some((f) => f.endsWith(`/[${ds}].liquid`))) return [];
       const field = /-\s*name:\s*([\w-]+)\s*\n(?:\s+\w+:.*\n)*?\s+kind:\s*text\b/.exec(
         read(`data/${ds}/_datasource.yaml`),
       )?.[1];
@@ -160,6 +173,7 @@ describe.skipIf(!real)("Gallery v2 with the real agent, packaged", () => {
     const datasources = readdirSync(join(path, "data"), { withFileTypes: true })
       .filter((d) => d.isDirectory())
       .map((d) => d.name);
+    report.strayInData = datasources.filter((d) => d.startsWith("."));
     report.datasources = Object.fromEntries(
       datasources.map((d) => [d, readdirSync(join(path, "data", d)).filter((f) => f !== "_datasource.yaml").length]),
     );
