@@ -645,6 +645,14 @@ export class Preview {
     contents.on("render-process-gone", (_event, details) => {
       if (details.reason !== "clean-exit") setTimeout(() => this.route !== null && void this.navigate(this.route), 300);
     });
+    // The page's errors, its scripts' and Upstart's start script's: read from its console, the page's
+    // own world being out of the preload's reach.
+    contents.on("console-message", (details) => {
+      if (details.level !== "error") return;
+      const source = details.sourceId ? `${details.sourceId}:${details.lineNumber}` : undefined;
+      this.errors.push({ message: details.message, source, at: Date.now() });
+      if (this.errors.length > 50) this.errors.shift();
+    });
     // Nothing in the preview may ask for a permission (camera, location, notifications…).
     contents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
     // The edits and comments the maker makes in the page, from the preview's own script only.
@@ -655,10 +663,6 @@ export class Preview {
       });
     contents.ipc.on("preview:event", (event, message: FromPreview) => {
       if (event.sender !== contents) return;
-      if (message.type === "error") {
-        this.errors.push({ message: message.message, source: message.source, at: Date.now() });
-        if (this.errors.length > 50) this.errors.shift();
-      }
       if (message.type === "chrome-hidden") {
         this.chromeHidden?.();
         this.chromeHidden = undefined;

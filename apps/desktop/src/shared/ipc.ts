@@ -821,7 +821,6 @@ export type PageComment = {
 export type FromPreview =
   | { type: "loaded"; path: string; title: string }
   | { type: "rendered"; ms: number }
-  | { type: "error"; message: string; source?: string }
   | { type: "chrome-hidden" }
   /** A thumbnail of the "All pages" view was clicked, right-clicked, or the pointer came or left (Q132). */
   | { type: "thumb"; action: "click" | "menu" | "enter" | "leave" };

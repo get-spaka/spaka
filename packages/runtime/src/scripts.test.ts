@@ -79,7 +79,7 @@ test("the start script starts the modules on load and on what htmx brings, and w
     stop: () => void calls.push("stop"),
   };
   // The script as the page runs it, its import answered by the module above.
-  const run = new Function("document", "window", "__import", START_JS.replace(/import\(p\)/, "__import(p)"));
+  const run = new Function("document", "window", "__import", START_JS.replace(/import\(path\)/, "__import(path)"));
   run(document, window, async () => module);
   expect(window.__upStart?.started).toBe(false);
   listeners["htmx:after:process"]!({ target: {} });

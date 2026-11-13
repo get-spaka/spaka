@@ -92,13 +92,6 @@ window.addEventListener("DOMContentLoaded", () => {
   else hideScrollbar();
   send({ type: "loaded", path: location.pathname, title: document.title });
 });
-window.addEventListener("error", (event) => {
-  send({
-    type: "error",
-    message: event.message,
-    source: event.filename ? `${event.filename}:${event.lineno}` : undefined,
-  });
-});
 
 function render(html: string, final: boolean) {
   const started = performance.now();

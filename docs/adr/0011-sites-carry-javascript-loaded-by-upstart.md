@@ -1,5 +1,5 @@
 ---
-status: accepted (2026-11-13, Q233-Q243); the runtime, the preview and the exports built on 2026-11-13 (templates slice 1); the agent not yet told
+status: accepted (2026-11-13, Q233-Q243); the runtime, the preview and the exports built on 2026-11-13 (templates slice 1); the agent told, by its instructions and the site-scripts skill, on 2026-11-13 (templates slice 2)
 ---
 
 # A site may carry JavaScript, loaded by Upstart
@@ -25,3 +25,5 @@ Until then a site was HTML, Liquid and CSS only, and the agent was told to write
 - As built: a module's start(root) gets the document on load, then each element htmx brings in, which may itself be the element to start; after a new rendering of the preview it gets stop(document) then start(document) again. The site's stylesheet, styles/*.css, is compiled with Tailwind's, so @apply and the theme's names work in it, in the page in the preview and into site.css once exported.
 - In the preview not one script of the site is in the page outside visitor mode: Upstart's start script loads the libraries and the modules only once told the page is in visitor mode, and leaving that mode loads the page again. Comment mode is still too, as edit mode is. A drag a script of the page makes up is ignored by the editor, so that a script cannot drop a block or an image into the page. A check (`e2e/scripts.e2e.ts`) found nothing of the app within a page script's reach: no Node, no Electron, no bridge, no window it can open, no file above the project. The drags made up could not be checked there, since the app's own checks rely on them.
 - A new rendering of the preview (a file written) puts the page back as the files have it, what htmx brought included, as before.
+- The agent learns all of it from the site-scripts skill, which its instructions tell it to read before its first script: the rules that keep the site editable, a module written out, the checked libraries with their pinned addresses and licences (Motion, Lenis, Splitting, Embla Carousel, OGL), how to add another, and movement done in CSS alone. A check (`e2e/libraries.e2e.ts`, needing the network) loads each library from its address in visitor mode, runs the skill's example module as written, and finds no error.
+- A module that fails, a library that does not load, and any other error of the page reach the agent through the preview's console, by `look_at_preview`. The page's own errors had never reached it before: the page's world is out of the preload's reach.

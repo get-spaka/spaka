@@ -97,6 +97,9 @@ export const STILL_CSS = `html:not([data-up-moving]) *, html:not([data-up-moving
  */
 export const START_JS = `(() => {
   const me = document.currentScript;
+  // In the console, where the preview reads the page's errors and shows them to the agent.
+  const report = (message, error) =>
+    console.error("[upstart] " + message + (error ? ": " + (error.message || error) : ""));
   const list = (name) => (me && me.dataset[name] || "").split(" ").filter(Boolean);
   const paths = list("modules");
   // In the preview, the libraries too wait for visitor mode, loaded one after the other.
@@ -105,21 +108,21 @@ export const START_JS = `(() => {
     const el = document.createElement("script");
     el.src = src;
     el.onload = () => done();
-    el.onerror = () => { console.error("[upstart] could not load " + src); done(); };
+    el.onerror = () => { report("could not load " + src); done(); };
     document.head.append(el);
   });
   let modules = [];
   let started = false;
   const each = async (fn, root) => {
-    for (const m of modules) {
-      if (typeof m[fn] !== "function") continue;
-      try { await m[fn](root); } catch (error) { console.error("[upstart] " + fn + ":", error); }
+    for (const { path, module } of modules) {
+      if (typeof module[fn] !== "function") continue;
+      try { await module[fn](root); } catch (error) { report(path + ": " + fn + "() failed", error); }
     }
   };
-  const load = () => Promise.all(paths.map((p) => import(p).catch((error) => {
-    console.error("[upstart] could not load " + p + ":", error);
-    return {};
-  })));
+  const load = () => Promise.all(paths.map((path) => import(path).then(
+    (module) => ({ path, module }),
+    (error) => { report("could not load " + path, error); return { path, module: {} }; },
+  )));
   const go = async () => {
     if (started) return;
     started = true;

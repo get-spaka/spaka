@@ -157,7 +157,7 @@ describe.skipIf(!real)("Gallery v2 with the real agent, packaged", () => {
         .filter((f) => {
           const title = new RegExp(`^${field}:\\s*["']?(.+?)["']?\\s*$`, "m").exec(read(`data/${ds}/${f}`))?.[1];
           // Its name is words of its title, maybe fewer ("lentil-salad" for "Warm lentil salad").
-          const words = idOf(title).split("-");
+          const words = idOf(title ?? "").split("-");
           return (
             !!title &&
             !f
