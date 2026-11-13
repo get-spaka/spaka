@@ -3,14 +3,14 @@
 // the app, offscreen, into its pictures/ and a review sheet; `pnpm
 // template:image` finds images and adds them with their credits. The checks are
 // the app's own code, bundled here on the fly so that Node runs them as they are.
-// Upstart's own templates are released from the public repository
-// upstart-gg/upstart-templates (Q250, Q265): `pnpm template:publish <its
-// checkout>` copies them there with its release script and CI workflow, `pnpm
-// template:release <out> <tag>` builds a release here as its CI does, and `pnpm
-// template:snapshot` takes the latest release's catalogue and pictures to ship
-// with the app (Q247).
+// Upstart's own templates live in the public repository
+// upstart-gg/upstart-templates, a submodule at apps/desktop/templates (Q250,
+// Q265, Q267), and are released from it: `pnpm template:release <out> <tag>`
+// builds a release here as its CI does, `pnpm template:release-script` rebuilds
+// the script its CI runs, and `pnpm template:snapshot` takes the latest
+// release's catalogue and pictures to ship with the app (Q247).
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -44,7 +44,8 @@ async function releaseScript(out) {
     output: {
       file: out,
       format: "esm",
-      banner: "// Built by `pnpm template:publish` in Upstart's repository, from the app's own checks: do not edit.",
+      banner:
+        "// Built by `pnpm template:release-script` in Upstart's repository, from the app's own checks: do not edit.",
     },
   });
 }
@@ -68,39 +69,10 @@ if (command === "check") {
 } else if (command === "snapshot") {
   const { snapshotMain } = await cli();
   process.exit(await snapshotMain(join(desktop, "templates-catalogue"), process.env.UPSTART_TEMPLATES_URL));
-} else if (command === "publish") {
-  const checkout = args[0] && resolve(args[0]);
-  if (!checkout || !existsSync(join(checkout, ".git"))) {
-    console.error("Usage: pnpm template:publish <checkout of upstart-gg/upstart-templates>");
-    process.exit(2);
-  }
-  // The templates, as they are here: those removed here are removed there.
-  const ids = readdirSync(templates, { withFileTypes: true })
-    .filter((e) => e.isDirectory() && !e.name.startsWith("."))
-    .map((e) => e.name);
-  const there = join(checkout, "templates");
-  mkdirSync(there, { recursive: true });
-  for (const e of readdirSync(there, { withFileTypes: true }))
-    if (e.isDirectory() && !ids.includes(e.name)) rmSync(join(there, e.name), { recursive: true });
-  for (const id of ids) {
-    rmSync(join(there, id), { recursive: true, force: true });
-    cpSync(join(templates, id), join(there, id), { recursive: true, filter: (src) => !src.endsWith(".DS_Store") });
-  }
-  cpSync(join(templates, "README.md"), join(there, "README.md"));
-  const repo = join(here, "templates-repo");
-  cpSync(join(repo, "README.md"), join(checkout, "README.md"));
-  cpSync(join(repo, "gitignore"), join(checkout, ".gitignore"));
-  mkdirSync(join(checkout, ".github/workflows"), { recursive: true });
-  cpSync(join(repo, "release.yml"), join(checkout, ".github/workflows/release.yml"));
-  mkdirSync(join(checkout, "scripts"), { recursive: true });
-  await releaseScript(join(checkout, "scripts/release.mjs"));
-  writeFileSync(
-    join(checkout, "scripts/README.md"),
-    "`release.mjs` is built by `pnpm template:publish` in Upstart's repository: do not edit it here.\n",
-  );
-  console.log(
-    `✓ ${ids.length} templates, the release script and the workflow in ${checkout}: review, commit, push, then tag.`,
-  );
+} else if (command === "release-script") {
+  // The release script of the templates' repository, rebuilt after the checks change here.
+  await releaseScript(join(templates, "scripts/release.mjs"));
+  console.log("✓ apps/desktop/templates/scripts/release.mjs: commit it in the templates' repository.");
 } else if (command === "shoot") {
   const target = args.find((a) => !a.startsWith("--"));
   if (!target) {
@@ -119,7 +91,7 @@ if (command === "check") {
   );
 } else {
   console.error(
-    "Usage: pnpm template:check <folder or .zip> | template:shoot <folder> | template:image find|use … | template:release <out> <tag> | template:snapshot | template:publish <checkout>",
+    "Usage: pnpm template:check <folder or .zip> | template:shoot <folder> | template:image find|use … | template:release <out> <tag> | template:snapshot | template:release-script",
   );
   process.exit(2);
 }

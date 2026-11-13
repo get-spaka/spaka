@@ -1,3 +1,0 @@
----
-name: "Atelier Rio Seco"
----

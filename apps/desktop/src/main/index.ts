@@ -372,7 +372,7 @@ async function main() {
         return {
           mcpServers: {
             [UPSTART_SERVER]: upstartServer({
-              look: () => preview.look(),
+              look: (route) => preview.look(route),
               findBlocks: findBlocksIn(project.path),
               findImages: async (query, count) => imagesAnswer(query, await images.search(query, count)),
               useImage: (id, name, alt) => useFoundImage(images, project.path, id, name, alt),

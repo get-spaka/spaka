@@ -1,7 +1,8 @@
 // `node scripts/release.mjs <templates folder> <out folder> <tag>`: the release
 // of Upstart's templates, as the public repository's CI builds it (Q250, Q265).
-// Bundled, with all it needs, into that repository by `pnpm template:publish`,
-// where it runs with Node alone; `pnpm template:release` runs it here.
+// Bundled, with all it needs, into that repository by `pnpm
+// template:release-script`, where it runs with Node alone; `pnpm
+// template:release` runs it here.
 import { writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { buildRelease } from "./release";

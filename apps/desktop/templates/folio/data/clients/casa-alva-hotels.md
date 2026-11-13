@@ -1,3 +1,0 @@
----
-name: "Casa Alva Hotels"
----

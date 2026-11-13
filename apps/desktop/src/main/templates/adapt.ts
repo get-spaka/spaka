@@ -55,6 +55,7 @@ Adapt it to the maker's business, described below:
 - Replace the template's images with images for this site (find_images, then use_image) and delete the media files no page or record uses any more.
 - Add the pages the description calls for and remove those it does not need, each in data/navigation/; a datasource the site does not need goes with its pages and parts.
 - Keep the design: theme.css, the layout, the type, the effects, the scripts and styles. Change them only where the maker asks.
+- Then look at each page with look_at_preview, giving it each page's route: new texts are longer or shorter than the template's, in another language above all. Fix what they broke (a menu label running into a button, a heading wider than the screen) in the markup, keeping the design.
 At the end Upstart checks that no text of the template is left.
 
 The maker's message:

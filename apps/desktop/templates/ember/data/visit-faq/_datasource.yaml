@@ -1,9 +1,0 @@
-label: Questions
-fields:
-  - name: question
-    kind: text
-    required: true
-  - name: answer
-    kind: markdown
-body: answer
-order: [walk-ins, dietary, children, corkage, access]

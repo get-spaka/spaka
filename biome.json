@@ -3,7 +3,15 @@
   "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!**/*.md", "!spikes", "!**/out", "!**/dist", "!**/vendor"]
+    "includes": [
+      "**",
+      "!**/*.md",
+      "!spikes",
+      "!**/out",
+      "!**/dist",
+      "!**/vendor",
+      "!apps/desktop/templates/scripts/release.mjs"
+    ]
   },
   "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 120 },
   "javascript": { "formatter": { "quoteStyle": "double", "semicolons": "always" } },

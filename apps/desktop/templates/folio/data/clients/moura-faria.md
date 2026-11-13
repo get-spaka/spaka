@@ -1,3 +1,0 @@
----
-name: "Moura Faria Arquitectos"
----

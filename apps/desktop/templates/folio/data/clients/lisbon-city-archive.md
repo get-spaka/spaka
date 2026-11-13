@@ -1,3 +1,0 @@
----
-name: "Lisbon City Archive"
----

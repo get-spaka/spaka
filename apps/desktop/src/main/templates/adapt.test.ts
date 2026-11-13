@@ -43,6 +43,7 @@ describe("a template copied into a new project", () => {
     expect(text).toMatch(/Rewrite every text/);
     expect(text).toMatch(/find_images/);
     expect(text).toMatch(/Keep the design/);
+    expect(text).toMatch(/look at each page with look_at_preview/);
     expect(text.endsWith("A flower shop in Ghent.")).toBe(true);
   });
 });

@@ -1,3 +1,0 @@
----
-name: "Habitar Housing Cooperative"
----

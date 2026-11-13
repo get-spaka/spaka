@@ -104,6 +104,40 @@ describe("a project folder in the preview", () => {
     await until("location.pathname === '/' && document.querySelector('h1')?.textContent === 'Bread since 1952'");
   });
 
+  test("the agent's look at a page given by its address: the preview goes there first", async () => {
+    const look = (route?: string) =>
+      launched.app.evaluate(
+        // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+        async (_electron, route) => {
+          const seen = await (globalThis as any).upstart.preview.look(route);
+          return { route: seen.route, png: !!seen.png, notes: seen.notes };
+        },
+        route,
+      );
+    await expect(look("/menu")).resolves.toMatchObject({ route: "/menu", png: true });
+    await until("location.pathname === '/menu'");
+    await expect(look("/nowhere")).resolves.toMatchObject({
+      route: "/menu",
+      notes: ["No page has the address /nowhere."],
+    });
+    await expect(look()).resolves.toMatchObject({ route: "/menu" });
+    // Asked at once, as the agent does for each page: each answered, with its page's picture.
+    const all = await launched.app.evaluate(async () => {
+      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+      const preview = (globalThis as any).upstart.preview;
+      const seen = await Promise.all(["/", "/menu", "/"].map((r) => preview.look(r)));
+      return seen.map((s: { route: string; png?: Buffer }) => [s.route, !!s.png]);
+    });
+    expect(all).toEqual([
+      ["/", true],
+      ["/menu", true],
+      ["/", true],
+    ]);
+    await look("/menu");
+    await launched.window.getByTestId("page-select").selectOption("/");
+    await until("location.pathname === '/'");
+  });
+
   test("a page cannot leave the preview, open windows or reach the app", async () => {
     await inPage("window.open('https://example.com'); location.href = 'https://example.com'; 1");
     await new Promise((r) => setTimeout(r, 500));

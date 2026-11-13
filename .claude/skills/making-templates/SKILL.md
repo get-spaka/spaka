@@ -7,9 +7,11 @@ description: How to make one of Upstart's templates in this repository — study
 
 A template is a whole website that a maker starts from: Upstart's agent rewrites its texts and replaces its images for their business, and keeps its design. So the design is the product: it must look made by a studio this year, and stay editable in Upstart by someone who cannot code.
 
+`apps/desktop/templates` is a git submodule, the public repository upstart-gg/upstart-templates (never upstart-gg/templates, the old Upstart's): the templates' only source. In a fresh checkout or a new worktree, fill it first with `git submodule update --init`. A template's files are committed there, on a branch of that repository; this repository records only which commit of it it uses.
+
 Read first, and keep open while building:
 
-- `apps/desktop/templates/README.md`: the format and the rules `pnpm template:check` applies. It is the source of truth; this skill does not repeat it.
+- `apps/desktop/templates/FORMAT.md`: the format and the rules `pnpm template:check` applies. It is the source of truth; this skill does not repeat it.
 - `apps/desktop/src/main/agent/instructions.ts` (`UPSTART_INSTRUCTIONS`): what a project is made of, the theme's variables, the classes to use.
 - `apps/desktop/skills/site-scripts/SKILL.md`, before any script or stylesheet.
 - `apps/desktop/skills/datasources/SKILL.md` and `apps/desktop/gallery/README.md`, for lists and blocks.
@@ -44,10 +46,10 @@ Show it to the author and ask for their approval; build nothing before it.
 
 ## 3. Build it
 
-In `apps/desktop/templates/<id>/`, a project folder as the README describes: `template.json`, `theme.css`, `pages/`, `parts/`, `data/`, `scripts/` and `styles/` if it moves, `blocks/`, and its design notes in `.upstart/skills/<id>-design/SKILL.md`.
+In `apps/desktop/templates/<id>/`, a project folder as `FORMAT.md` describes: `template.json`, `theme.css`, `pages/`, `parts/`, `data/`, `scripts/` and `styles/` if it moves, `blocks/`, and its design notes in `.upstart/skills/<id>-design/SKILL.md`.
 
 - **Sections from the gallery**: copy the block's `block.liquid` into `parts/<id>.liquid` and render it, and its `data/` into the project's, as the gallery's README says a drop does; then restyle it to the brief.
-- **Texts**: the fictional business's, as a copywriter would write them, in English with American spelling. Every list a datasource with three to six believable records; `navigation` holds the header's and footer's links.
+- **Texts**: the fictional business's, as a copywriter would write them, in English with American spelling. Makers write in other languages: the header's links and the buttons hold labels a third longer, as in French or German, on one line (`whitespace-nowrap`), the menu button taking over below the width where they all fit. Every list a datasource with three to six believable records; `navigation` holds the header's and footer's links.
 - **Movement** follows the site-scripts skill: the page complete with no script, the hidden state set by the script itself, reduced motion respected.
 - **The design notes** tell the agent that adapts it: the spirit in two or three sentences, each effect and the attribute or class that turns it on (so a new section gets it too), and what not to break. They are a skill; write its description as a pointer the agent will follow: "The <name> template's design notes — read before changing its pages, sections or styles."
 
@@ -91,12 +93,8 @@ Then `pnpm template:check apps/desktop/templates/<id> --finished` and `npx vites
 
 ## 6. Release it, once the author says so
 
-Upstart's templates reach the app through the public repository upstart-gg/upstart-templates (never upstart-gg/templates, the old Upstart's). With the template merged into main and the author's go-ahead, copy them there, review the diff, commit and push, then tag the next `v<n>`: its CI checks every template as finished and attaches the release the app reads.
+The template is committed in the submodule, on a branch of upstart-gg/upstart-templates, and reviewed there. With the author's go-ahead, it goes into that repository's main, which is pushed, then the next `v<n>` is tagged and pushed: its CI checks every template as finished and attaches the release the app reads. Here, commit the submodule's new commit (`git add apps/desktop/templates`) so that the tests and development use it too.
 
-```bash
-pnpm template:publish <checkout of upstart-gg/upstart-templates>
-```
+`pnpm template:release <out folder> <tag>` builds the same release here first, to see it fail before the CI does. The `version` in `template.json` goes up whenever a published template changes, so that the app downloads it again. After a change to the checks in `apps/desktop/src/main/templates/`, `pnpm template:release-script` rebuilds the script the CI runs, committed in the submodule.
 
-`pnpm template:release <out folder> <tag>` builds the same release here first, to see it fail before the CI does. The version in `template.json` goes up whenever a published template changes, so that the app downloads it again.
-
-**Done when** the tag's release on GitHub lists the template's `.zip` and pictures in its `catalogue.json`.
+**Done when** the tag's release on GitHub lists the template's `.zip` and pictures in its `catalogue.json`, and this repository points at the tagged commit.

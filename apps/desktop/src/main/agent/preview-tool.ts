@@ -16,7 +16,9 @@ export const FIND_IMAGES_TOOL = `mcp__${UPSTART_SERVER}__find_images`;
 export const USE_IMAGE_TOOL = `mcp__${UPSTART_SERVER}__use_image`;
 export const USE_BLOCK_TOOL = `mcp__${UPSTART_SERVER}__use_block`;
 
-export type Look = () => Promise<{ route: string | null; png?: Buffer; errors: string[]; notes: string[] }>;
+export type Look = (
+  route?: string,
+) => Promise<{ route: string | null; png?: Buffer; errors: string[]; notes: string[] }>;
 export type FindBlocks = (query: string, kind: string | undefined, limit: number) => Block[];
 export type Wanted = { kind?: string; query: string };
 /** Answers find_images, in text (Q167). */
@@ -171,10 +173,15 @@ export function upstartServer({ look, findBlocks, findImages, useImage, useBlock
       ),
       tool(
         "look_at_preview",
-        "Shows the page the maker currently sees in Upstart's preview, as an image, with the errors the page reported and what Upstart had to repair or skip to render it. Use it to check your work when something may be wrong; it is not needed after every change.",
-        {},
-        async () => {
-          const seen = await look();
+        "Shows a page in Upstart's preview, as an image, with the errors the page reported and what Upstart had to repair or skip to render it: the page the maker currently sees, or the one at `route`, which the preview goes to first. Use it to check your work when something may be wrong, and on each page after rewriting a site's texts; it is not needed after every change.",
+        {
+          route: z
+            .string()
+            .optional()
+            .describe('A page\'s address, e.g. "/menu" or "/work/first-case": the preview shows it first'),
+        },
+        async ({ route }) => {
+          const seen = await look(route);
           const lines = [
             seen.route === null ? "No page is shown." : `Page shown: ${seen.route}`,
             seen.errors.length ? `Errors in the page:\n${seen.errors.join("\n")}` : "No errors in the page.",

@@ -1,3 +1,0 @@
----
-name: "Seeded spelt"
----

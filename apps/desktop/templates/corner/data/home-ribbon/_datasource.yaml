@@ -1,7 +1,0 @@
-label: Ribbon (home)
-fields:
-  - name: name
-    label: Name
-    kind: text
-    required: true
-order: [country-sourdough, dark-rye, seeded-spelt, olive-fougasse, cinnamon-knots, butter-croissants, focaccia]

@@ -1,7 +1,0 @@
-label: Clients
-fields:
-  - name: name
-    label: Name
-    kind: text
-    required: true
-order: [maasveer, kino-zuid, hal-4, spaak-cycles, kade-nights, ploeg]

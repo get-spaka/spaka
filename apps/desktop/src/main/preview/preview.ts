@@ -447,15 +447,37 @@ export class Preview {
   }
 
   /**
-   * What the agent sees when it looks at the preview: the page as shown, the
-   * errors the page reported and what the runtime had to repair or skip.
+   * What the agent sees when it looks at the preview: the page shown, or first
+   * the page at `to` (its address), with the errors the page reported and what
+   * the runtime had to repair or skip. Looks asked at once run one after
+   * another: a capture taken while another look moves the preview never ends.
    */
-  async look(): Promise<{ route: string | null; png?: Buffer; errors: string[]; notes: string[] }> {
+  look(to?: string): Promise<{ route: string | null; png?: Buffer; errors: string[]; notes: string[] }> {
+    const next = this.looking.then(() => this.lookNow(to));
+    this.looking = next.catch(() => {});
+    return next;
+  }
+  private looking: Promise<unknown> = Promise.resolve();
+
+  private async lookNow(
+    to?: string,
+  ): Promise<{ route: string | null; png?: Buffer; errors: string[]; notes: string[] }> {
+    if (to !== undefined && this.site) {
+      if (!this.site.runtime.resolve(to))
+        return { route: this.route, errors: [], notes: [`No page has the address ${to}.`] };
+      if (to !== this.route) await this.navigate(to);
+    }
     const site = this.site;
     const route = this.route;
     const result = site && route !== null && site.runtime.resolve(route) ? site.runtime.renderRoute(route) : undefined;
     const since = Date.now() - 60_000;
-    const png = this.shown ? await this.capture().catch(() => undefined) : undefined;
+    // A capture that does not come is not waited for: the page is described without its picture.
+    const png = this.shown
+      ? await Promise.race([
+          this.capture().catch(() => undefined),
+          new Promise<undefined>((resolve) => setTimeout(resolve, 10_000)),
+        ])
+      : undefined;
     return {
       route,
       png,

@@ -21,7 +21,7 @@
     "template:image": "node apps/desktop/scripts/template.mjs image",
     "template:release": "node apps/desktop/scripts/template.mjs release",
     "template:snapshot": "node apps/desktop/scripts/template.mjs snapshot",
-    "template:publish": "node apps/desktop/scripts/template.mjs publish",
+    "template:release-script": "node apps/desktop/scripts/template.mjs release-script",
     "start": "pnpm --filter @upstart/desktop start"
   },
   "devDependencies": {
