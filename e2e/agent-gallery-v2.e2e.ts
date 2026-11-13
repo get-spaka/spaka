@@ -86,32 +86,14 @@ describe.skipIf(!real)("Gallery v2 with the real agent, packaged", () => {
       "conversation:send",
       "A website for Le Petit Four, a small bistro in Lyon: our menu, the team, upcoming events like wine evenings, and a form to book a table.",
     );
-    // While the agent works, sections placed from the gallery show as a skeleton (Q222):
-    // the preview is looked at every few seconds, and pictured when it shows one.
-    const skeletons: { s: number; marked: number }[] = [];
-    let lastLook = 0;
-    let frames = 0;
     for (;;) {
       const { items } = await invoke("conversation:get");
       const last = items.at(-1);
       if (last?.kind === "agent" && last.status !== "working") break;
       if (Date.now() - started > 900_000) throw new Error("the agent did not finish in 15 minutes");
-      if (Date.now() - lastLook > 3000) {
-        lastLook = Date.now();
-        const marked = await preview<number>("document.querySelectorAll('[data-up-skeleton]').length").catch(() => -1);
-        skeletons.push({ s: Math.round((Date.now() - started) / 1000), marked });
-        if (marked > 0 && frames < 12)
-          writeFileSync(
-            join(shots, `during-${String(frames++).padStart(2, "0")}.png`),
-            Buffer.from(await capture(), "base64"),
-          );
-      }
       await new Promise((r) => setTimeout(r, 500));
     }
     report.turnMs = Date.now() - started;
-    report.skeletons = skeletons;
-    await new Promise((r) => setTimeout(r, 1500));
-    report.skeletonsLeft = await preview<number>("document.querySelectorAll('[data-up-skeleton]').length");
     const path: string = (await invoke("projects:current")).path;
     report.project = path;
     const read = (file: string) => (existsSync(join(path, file)) ? readFileSync(join(path, file), "utf8") : "");
@@ -238,8 +220,6 @@ describe.skipIf(!real)("Gallery v2 with the real agent, packaged", () => {
 
     // In English.
     checks.english = /<html[^>]*lang="en/.test(read("pages/index.liquid"));
-    checks["skeleton while writing"] = skeletons.some((x) => x.marked > 0);
-    checks["no skeleton at the end"] = report.skeletonsLeft === 0;
 
     // A picture of every page, and of one event's page.
     const eventRecord = eventPage

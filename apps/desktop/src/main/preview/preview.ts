@@ -1,7 +1,6 @@
 // The preview: a native view laid over the window's preview column (ADR 0008),
 // showing the open project as served by the runtime. When the project's files
 // change, the page is rendered again and morphed in place, never reloaded.
-
 import { createHash } from "node:crypto";
 import { type FSWatcher, watch } from "node:fs";
 import { join } from "node:path";
@@ -24,7 +23,6 @@ import type {
   Rect,
   ToPreview,
 } from "../../shared/ipc";
-import { markPending, type Placement, pendingFiles } from "../editing/pending";
 import { PageGrid, pictureKey, type ThumbnailAction, type ThumbnailScreen } from "./grid";
 import { PreviewServer, VENDOR_BASE } from "./server";
 import { isTestRecord, TestRecordStore, testRecordsSource } from "./test-records";
@@ -344,11 +342,6 @@ export class Preview {
 
   /** The agent's turn is over: no page is being written. */
   doneWriting() {
-    // Every section shows as it is once the turn ends (Q222).
-    if (this.placements.length) {
-      this.placements = [];
-      this.refresh(true);
-    }
     if (this.writing === null) return;
     this.writing = null;
     this.grid.setWriting(null);
@@ -527,11 +520,7 @@ export class Preview {
     // Nor is a page whose body has not started yet (its head is still being
     // written): the page shown so far stays rather than turning blank.
     if (site.overlay.size > 0 && !hasVisibleBody(result.html)) return this.emit();
-    this.send({
-      type: "render",
-      html: this.marked(site, result.html),
-      final: pending.final && site.overlay.size === 0,
-    });
+    this.send({ type: "render", html: result.html, final: pending.final && site.overlay.size === 0 });
     if (!this.shown) {
       this.shown = true;
       this.layout();
@@ -546,27 +535,8 @@ export class Preview {
       const result = site.runtime.renderRoute(route);
       if (result.status !== 200) continue;
       if (site.overlay.size > 0 && !hasVisibleBody(result.html)) continue;
-      this.grid.render(route, this.marked(site, result.html), final && site.overlay.size === 0);
+      this.grid.render(route, result.html, final && site.overlay.size === 0);
     }
-  }
-
-  /** Sections use_block wrote in the agent's turn, a skeleton until the agent makes them its own (Q222). */
-  private placements: Placement[] = [];
-  private placementsRoot: string | undefined;
-
-  placed(root: string, placements: Placement[]) {
-    if (root !== this.placementsRoot) this.placements = [];
-    this.placementsRoot = root;
-    this.placements.push(...placements);
-    this.refresh(true);
-  }
-
-  private marked(site: OpenSite, html: string) {
-    if (!this.placements.length || site.root !== this.placementsRoot) return html;
-    return markPending(
-      html,
-      pendingFiles(this.placements, (path) => site.overlay.read(path)),
-    );
   }
 
   private send(message: ToPreview) {

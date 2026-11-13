@@ -17,7 +17,6 @@ import {
 } from "@upstart/runtime";
 import { diskSource } from "@upstart/runtime/node";
 import { type DroppedBlock, NAVIGATION, type ProjectView } from "./data-drop";
-import { type Placement, placementsOf } from "./pending";
 import { type Placing, placeBlocks, placedAnswer } from "./place-blocks";
 
 /** path → hash of the text the gallery wrote. */
@@ -80,12 +79,12 @@ export function useBlocks(
   root: string,
   input: Placing,
   block: (id: string) => DroppedBlock | undefined,
-): { text: string; samples: string[]; placements: Placement[] } {
+): { text: string; samples: string[] } {
   let placed: ReturnType<typeof placeBlocks>;
   try {
     placed = placeBlocks(input, diskView(root), block);
   } catch (error) {
-    return { text: (error as Error).message, samples: [], placements: [] };
+    return { text: (error as Error).message, samples: [] };
   }
   for (const [path, text] of Object.entries(placed.writes)) {
     mkdirSync(dirname(join(root, path)), { recursive: true });
@@ -96,7 +95,7 @@ export function useBlocks(
     for (const path of placed.samples) samples[path] = hash(placed.writes[path]!);
     writeSamples(root, samples);
   }
-  return { text: placedAnswer(input, placed), samples: placed.samples, placements: placementsOf(placed) };
+  return { text: placedAnswer(input, placed), samples: placed.samples };
 }
 
 /**
