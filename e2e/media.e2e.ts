@@ -24,13 +24,13 @@ describe("the media library", () => {
     w()
       .getByTestId("media-item")
       .evaluateAll((els) => els.map((e) => e.getAttribute("data-path")));
-  // biome-ignore lint/suspicious/noExplicitAny: the main process's objects, set for checks
-  const routes = async () =>
-    (
-      (await launched.app.evaluate(() => (globalThis as any).upstart.preview.state())) as {
-        routes: { route: string }[];
-      }
-    ).routes.map((r) => r.route);
+  const routes = async () => {
+    const state = (await launched.app.evaluate(
+      // biome-ignore lint/suspicious/noExplicitAny: the main process's objects, set for checks
+      () => (globalThis as any).upstart.preview.state(),
+    )) as { routes: { route: string }[] };
+    return state.routes.map((r) => r.route);
+  };
 
   beforeAll(async () => {
     launched = await launchApp({ env: { UPSTART_IMAGES_FIXTURE: FIXTURE } });

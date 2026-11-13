@@ -21,4 +21,21 @@ fields:
   - name: image
     label: Photo
     kind: image
-order: [country-sourdough, dark-rye, seeded-spelt, olive-fougasse, focaccia, butter-croissant, pain-au-chocolat, cinnamon-knot, almond-croissant, flat-white, filter-coffee, chai, summer-fruit-tart, chocolate-layer-cake, birthday-sponge]
+order:
+  [
+    country-sourdough,
+    dark-rye,
+    seeded-spelt,
+    olive-fougasse,
+    focaccia,
+    butter-croissant,
+    pain-au-chocolat,
+    cinnamon-knot,
+    almond-croissant,
+    flat-white,
+    filter-coffee,
+    chai,
+    summer-fruit-tart,
+    chocolate-layer-cake,
+    birthday-sponge,
+  ]

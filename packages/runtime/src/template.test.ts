@@ -48,7 +48,7 @@ test("drops an unfinished script or style block, keeps a finished one", () => {
   assert.equal(repairTemplate("<div>a</div><script>let x = '<div>").src, "<div>a</div>");
   assert.equal(repairTemplate("<style>.a{color:red").src, "");
   const ok = "<script>if (a < b) { x() }</script><p>ok";
-  assert.equal(repairTemplate(ok).src, ok + "</p>");
+  assert.equal(repairTemplate(ok).src, `${ok}</p>`);
 });
 
 test("closes nested if / for / case in order", () => {

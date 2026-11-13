@@ -479,7 +479,7 @@ function sortRecords(records: DataRecord[], definition: Definition | undefined) 
 }
 
 /** Three records that give the layout its shape before the real ones are written (Q161). */
-function standInRecords(name: string, definition: Definition | undefined): DataRecord[] {
+function standInRecords(_name: string, definition: Definition | undefined): DataRecord[] {
   return Array.from({ length: STAND_INS }, (_, i) => {
     const base: DataRecord = { id: `stand-in-${i + 1}`, __ref: "", __standIn: true };
     if (!definition) return standInProxy(base, i);

@@ -7,6 +7,7 @@ import { infoFile, needsCredit, Runtime, TEST_RECORDS_DIR } from "@upstart/runti
 import { droppedFiles, FIXED_COLOUR } from "../gallery/rules";
 import { parseSkill } from "../skills/skills";
 import { OPEN_LICENCES } from "./manifest";
+import { shotPages } from "./pictures";
 import {
   BLOCKS,
   DESIGN_SKILL,
@@ -247,7 +248,7 @@ export function checkTemplate(files: TemplateFiles, { finished = false } = {}): 
   const missing: string[] = [];
   if (!template.pictures.cover) missing.push("pictures/cover.webp");
   if (!template.pictures.hover) missing.push("pictures/hover.webp");
-  for (const { route } of routes.filter((r) => !r.record && !r.generated)) {
+  for (const { route } of shotPages(files)) {
     const shot = template.pictures.pages.find((p) => p.page === pageName(route));
     if (!shot?.desktop || !shot.phone) missing.push(`pictures/pages/${pageName(route)}-{desktop,phone}.webp`);
   }

@@ -538,7 +538,7 @@ export class Preview {
       return;
     }
     // A rendering that failed is not shown: the last good one stays on screen.
-    if (!result || result.status !== 200) return this.emit();
+    if (result?.status !== 200) return this.emit();
     // Nor is a page whose body has not started yet (its head is still being
     // written): the page shown so far stays rather than turning blank.
     if (site.overlay.size > 0 && !hasVisibleBody(result.html)) return this.emit();

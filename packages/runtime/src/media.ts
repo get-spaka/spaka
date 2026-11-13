@@ -23,7 +23,7 @@ export const CREDITS_ROUTE = "/credits";
 
 /** media/cafe.jpg gives media/cafe.json. */
 export function infoFile(path: string): string {
-  return path.replace(/\.[^./]+$/, "") + ".json";
+  return `${path.replace(/\.[^./]+$/, "")}.json`;
 }
 
 /** Whether a licence asks for the author to be credited where the image is shown. */

@@ -118,6 +118,8 @@ describe.skipIf(!dir)("a template's pictures", () => {
           `async ({ wait, js, png, resize }) => {
             await wait(600);
             await js("for (const el of document.querySelectorAll('*')) if (getComputedStyle(el).position === 'sticky') el.style.position = 'static'");
+            // The page's height once its images have come, for an image of no set size.
+            await js("Promise.race([Promise.all([...document.images].filter((i) => !i.complete).map((i) => new Promise((done) => { i.addEventListener('load', done); i.addEventListener('error', done); }))), new Promise((done) => setTimeout(done, 8000))])");
             const tall = Math.min(await js("document.documentElement.scrollHeight"), ${PAGE_MAX});
             const view = Math.min(tall, ${SLICE});
             await resize(view);

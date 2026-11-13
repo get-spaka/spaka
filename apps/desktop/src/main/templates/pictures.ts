@@ -5,11 +5,16 @@ import { writeFileSync } from "node:fs";
 import { Runtime } from "@upstart/runtime";
 import { pageName, type TemplateFiles, textSource } from "./reader";
 
-/** The pages a template is photographed on: its own, not a record's or the credits'. */
+/**
+ * The pages a template is photographed on: its own, and the first record's page
+ * of each page per record (a project, a post), not the credits'.
+ */
 export function shotPages(files: TemplateFiles): { route: string; name: string }[] {
-  return new Runtime(textSource(files), { repair: false, trace: false })
-    .routes()
-    .filter((r) => !r.record && !r.generated)
+  const routes = new Runtime(textSource(files), { repair: false, trace: false }).routes();
+  const firsts = new Map<string, string>();
+  for (const r of routes) if (r.record && !firsts.has(r.file)) firsts.set(r.file, r.route);
+  return routes
+    .filter((r) => !r.generated && (!r.record || firsts.get(r.file) === r.route))
     .map((r) => ({ route: r.route, name: pageName(r.route) }));
 }
 

@@ -25,7 +25,7 @@ A template is an ordinary Upstart project folder, which its author opens in Upst
   `category` is one of `business`, `portfolio`, `blog`, `launch`, `event`, `app`; `original` marks one of the original, animated designs (Q230). What the project's own files say is not repeated there: the libraries' licences are in `scripts/libraries.json` and at the top of `scripts/lib/` files, each image's credits beside it in `media/`, the pictures in `pictures/`.
 - `blocks/<kind>/<id>/`: its own blocks, in the gallery's format (see `../gallery/README.md`), which the Blocks tab offers first once a site starts from it (Q235). They may overlap and tilt (Q256).
 - `.upstart/skills/<id>-design/SKILL.md`: its design notes for the agent, a skill named `<id>-design`: its spirit, its effects and how to use them, what not to break (Q239).
-- `pictures/`: made by `pnpm template:shoot`: `cover.webp` (the home page's first screen), `hover.webp` (an animated sequence of it, for the start screen), and `pages/<page>-desktop.webp` and `pages/<page>-phone.webp` for each page (`home` for `/`).
+- `pictures/`: made by `pnpm template:shoot`: `cover.webp` (the home page's first screen), `hover.webp` (an animated sequence of it, for the start screen), and `pages/<page>-desktop.webp` and `pages/<page>-phone.webp` for each page (`home` for `/`) and for the first record's page of each page per record (`work-casa-do-pinhal` for `/work/casa-do-pinhal`).
 
 A new site copies everything but `template.json`, `pictures/`, a readme and a licence. Of `.upstart/`, a template keeps only `skills/` and `test-records/`.
 

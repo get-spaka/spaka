@@ -347,6 +347,28 @@ describe("its checks", () => {
     expect(making.warnings.join("\n")).toMatch(/template:shoot/);
   });
 
+  test("its pictures: the first record's page of each page per record, not the others'", () => {
+    const projects = {
+      "data/projects/_datasource.yaml":
+        "label: Projects\nfields:\n  - name: title\n    kind: text\norder: [kiln, vases]\n",
+      "data/projects/kiln.md": '---\ntitle: "The kiln"\n---\n',
+      "data/projects/vases.md": '---\ntitle: "Vases"\n---\n',
+      "pages/work/[projects].liquid": page(
+        "{{ record.title }} — Atelier",
+        "<section><h1>{{ record.title }}</h1></section>",
+      ),
+    };
+    expect(errorsOf(projects)).toMatch(/pictures\/pages\/work-kiln-\{desktop,phone\}\.webp/);
+    expect(errorsOf(projects)).not.toMatch(/work-vases/);
+    expect(
+      errorsOf({
+        ...projects,
+        "pictures/pages/work-kiln-desktop.webp": Buffer.from("5"),
+        "pictures/pages/work-kiln-phone.webp": Buffer.from("6"),
+      }),
+    ).toBe("");
+  });
+
   test("what is no template's is named, programs refused", () => {
     expect(warningsOf({ "notes.txt": "x" })).toMatch(/notes\.txt is not part of a template/);
     expect(errorsOf({ "scripts/install.sh": "rm -rf /" })).toMatch(/no programs/);

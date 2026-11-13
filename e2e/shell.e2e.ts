@@ -34,15 +34,18 @@ describe("the app's shell, launched in the background", () => {
 
   test("the interface reaches the main process only through the contract", async () => {
     const { window } = launched;
+    // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge and the page's globals, untyped here
     const info = await window.evaluate(() => (window as any).upstart.invoke("app:info"));
     expect(info.background).toBe(true);
     const refused = await window.evaluate(() =>
+      // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge, untyped here
       (window as any).upstart.invoke("nope:channel").then(
         () => "answered",
         (e: Error) => e.message,
       ),
     );
     expect(refused).toMatch(/not allowed/);
+    // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge and the page's globals, untyped here
     const hasNode = await window.evaluate(() => typeof (globalThis as any).require);
     expect(hasNode).toBe("undefined");
   });
