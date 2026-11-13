@@ -35,7 +35,7 @@ export class BlockPeek {
     const width = Math.max(240, area.width - 2 * MARGIN);
     const most = Math.max(120, area.height - 2 * MARGIN);
     view.setBounds({ x: area.x + MARGIN, y: area.y + MARGIN, width, height: Math.min(most, 480) });
-    await view.webContents.loadURL(`${this.origin()}/__up/block/${encodeURIComponent(id)}`).catch(() => {});
+    await loaded(view.webContents, `${this.origin()}/__up/block/${encodeURIComponent(id)}`);
     if (n !== this.seq) return;
     const height = (await view.webContents.executeJavaScript(BLOCK_HEIGHT).catch(() => 0)) as number;
     if (n !== this.seq || !this.area) return;
@@ -82,4 +82,27 @@ export class BlockPeek {
     this.view = view;
     return view;
   }
+}
+
+/**
+ * A page loaded: its own load event, or its failure, or a few seconds. Not
+ * loadURL's promise, which on a page whose font is fetched again after a
+ * cache miss settled only at the next navigation, so the peek never showed.
+ */
+function loaded(contents: Electron.WebContents, url: string): Promise<void> {
+  return new Promise((resolve) => {
+    const done = () => {
+      clearTimeout(timer);
+      contents.off("did-finish-load", done);
+      contents.off("did-fail-load", failed);
+      resolve();
+    };
+    const failed = (_event: unknown, _code: number, _description: string, _url: string, mainFrame: boolean) => {
+      if (mainFrame) done();
+    };
+    const timer = setTimeout(done, 3000);
+    contents.on("did-finish-load", done);
+    contents.on("did-fail-load", failed);
+    contents.loadURL(url).catch(() => {});
+  });
 }
