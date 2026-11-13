@@ -161,7 +161,7 @@ function BlockCard({ block, theme, disabled }: { block: GalleryBlock; theme: str
   const resting = useRef<ReturnType<typeof setTimeout>>(undefined);
   const peek = (on: boolean) => {
     clearTimeout(resting.current);
-    if (on) resting.current = setTimeout(() => upstart.send("gallery:peek", block.id), 250);
+    if (on) resting.current = setTimeout(() => upstart.send("gallery:peek", block.id), 150);
     else upstart.send("gallery:peek", null);
   };
   // Leaving the tab while resting on a block hides it.

@@ -2,7 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { PALETTES } from "../apps/desktop/src/shared/palettes.ts";
-import { type LaunchedApp, launchApp } from "./app.ts";
+import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
 import { previewDriver } from "./preview-driver.ts";
 
 // The gallery (Q92, Q100, Q101), with the recorded agent: the Blocks tab lists
@@ -116,12 +116,51 @@ describe("the gallery of blocks", () => {
     const p = await peek();
     expect(p.visible).toBe(true);
     expect(p.top).toBe(true);
-    // Inside the preview, near its top, almost its width.
-    expect(p.bounds.x).toBeGreaterThan(p.preview.x);
-    expect(p.bounds.x + p.bounds.width).toBeLessThan(p.preview.x + p.preview.width);
-    expect(p.bounds.width).toBeGreaterThan(p.preview.width - 40);
-    expect(p.bounds.y - p.preview.y).toBeLessThan(20);
-    expect(p.bounds.height).toBeGreaterThan(100);
+    // Over the preview's column, the block on a backdrop, almost the column's width, whole and centered.
+    expect(p.bounds).toEqual(p.preview);
+    const card = await launched.app.evaluate(async () => {
+      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+      const contents = (globalThis as any).upstart.peek.view.webContents as Electron.WebContents;
+      const zoom = contents.getZoomFactor();
+      const r = await contents.executeJavaScript(
+        "(() => { const r = document.body.firstElementChild.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height, vw: innerWidth, vh: innerHeight, backdrop: getComputedStyle(document.documentElement).backgroundColor }; })()",
+      );
+      return { ...r, zoom };
+    });
+    expect(card.width).toBeGreaterThan(card.vw * card.zoom - 80);
+    expect(card.y).toBeGreaterThanOrEqual(0);
+    expect(card.y + card.height).toBeLessThanOrEqual(card.vh + 1);
+    expect(Math.abs(card.x - (card.vw - card.width - card.x))).toBeLessThan(2);
+    expect(card.backdrop).toMatch(/rgba\(9, 9, 11, 0\.55\)/);
+    writeFileSync(
+      join(runsDir, "peek.png"),
+      Buffer.from(
+        await launched.app.evaluate(async () =>
+          // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+          ((await (globalThis as any).upstart.peek.view.webContents.capturePage()) as Electron.NativeImage)
+            .toPNG()
+            .toString("base64"),
+        ),
+        "base64",
+      ),
+    );
+    // A block taller than the column is scaled down to fit it, whole.
+    const scaled = await launched.app.evaluate(async (_electron, id) => {
+      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+      const { peek } = (globalThis as any).upstart;
+      const area = peek.view.getBounds();
+      peek.setArea({ ...area, height: 200 });
+      await peek.show(id);
+      const contents = peek.view.webContents as Electron.WebContents;
+      const r = await contents.executeJavaScript(
+        "(() => { const r = document.body.firstElementChild.getBoundingClientRect(); return { top: r.y, bottom: r.bottom, vh: innerHeight }; })()",
+      );
+      peek.setArea(area);
+      return { ...r, zoom: contents.getZoomFactor() };
+    }, hero.id);
+    expect(scaled.zoom).toBeLessThan(1);
+    expect(scaled.top).toBeGreaterThanOrEqual(0);
+    expect(scaled.bottom).toBeLessThanOrEqual(scaled.vh + 1);
     const text = await launched.app.evaluate(() =>
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
       (globalThis as any).upstart.peek.view.webContents.executeJavaScript("document.body.innerText"),
@@ -141,7 +180,7 @@ describe("the gallery of blocks", () => {
     expect(g.visible).toBe(true);
     expect(g.top).toBe(true);
     const column = await launched.window.getByTestId("pages-grid").evaluate((el) => el.getBoundingClientRect().x);
-    expect(g.bounds.x).toBeGreaterThan(column);
+    expect(g.bounds.x).toBeGreaterThanOrEqual(column);
     await launched.window.getByTestId("tab-blocks").hover();
     await until(async () => !(await peek()).visible, 5_000);
     await launched.window.getByTestId("view-page").click();
