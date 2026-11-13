@@ -11,22 +11,27 @@ const MARGIN = 24;
 
 /** The block's page made a card on a backdrop, the block at the given width; answers its height. */
 const STAGE = (width: number) => `new Promise((done) => {
+  // The block in a card of its own: the card has the page's background under the block's, and the
+  // block keeps its colors (a style outside Tailwind's layers would win over the block's classes).
+  const block = document.body.firstElementChild;
+  const card = document.createElement("div");
+  card.id = "up-peek-card";
+  if (block) { block.replaceWith(card); card.append(block); }
   const style = document.createElement("style");
   style.setAttribute("data-up-runtime", "");
   style.textContent = \`
     html { background: rgb(9 9 11 / 0.55) !important; height: 100%; overflow: hidden !important; }
     body { background: transparent !important; margin: 0 !important; height: 100%; overflow: hidden !important;
       display: flex !important; align-items: center; justify-content: center; }
-    body > :first-child { flex: none !important; width: ${width}px !important; max-width: none !important;
-      margin: 0 !important; border-radius: 12px; overflow: hidden;
-      box-shadow: 0 24px 64px rgb(0 0 0 / 0.45), 0 0 0 1px rgb(0 0 0 / 0.12); }
-    :where(body > :first-child) { background-color: var(--color-base-100); }\`;
+    #up-peek-card { flex: none; width: ${width}px; border-radius: 12px; overflow: hidden;
+      background-color: var(--color-base-100); color: var(--color-base-content);
+      box-shadow: 0 24px 64px rgb(0 0 0 / 0.45), 0 0 0 1px rgb(0 0 0 / 0.12); }\`;
   document.head.append(style);
   const started = Date.now();
   // Tailwind compiles in the page: its styles first, then the block's height.
   const styled = () => [...document.querySelectorAll("style")].some((s) => !s.hasAttribute("data-up-runtime") && s.textContent.length > 0);
   const wait = () => styled() || Date.now() - started > 3000
-    ? done((document.body.firstElementChild ?? document.body).getBoundingClientRect().height)
+    ? done(card.getBoundingClientRect().height)
     : setTimeout(wait, 10);
   wait();
 })`;

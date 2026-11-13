@@ -123,7 +123,7 @@ describe("the gallery of blocks", () => {
       const contents = (globalThis as any).upstart.peek.view.webContents as Electron.WebContents;
       const zoom = contents.getZoomFactor();
       const r = await contents.executeJavaScript(
-        "(() => { const r = document.body.firstElementChild.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height, vw: innerWidth, vh: innerHeight, backdrop: getComputedStyle(document.documentElement).backgroundColor }; })()",
+        "(() => { const r = document.getElementById('up-peek-card').getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height, vw: innerWidth, vh: innerHeight, backdrop: getComputedStyle(document.documentElement).backgroundColor }; })()",
       );
       return { ...r, zoom };
     });
@@ -144,6 +144,16 @@ describe("the gallery of blocks", () => {
         "base64",
       ),
     );
+    // The block keeps its own colors on its card, as its thumbnail shows them.
+    const banner = await launched.app.evaluate(async () => {
+      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+      const { peek } = (globalThis as any).upstart;
+      await peek.show("banner-dark-event");
+      return peek.view.webContents.executeJavaScript(
+        "(() => { const b = document.getElementById('up-peek-card').firstElementChild; const probe = document.createElement('div'); probe.style.background = 'var(--color-neutral)'; document.body.append(probe); const want = getComputedStyle(probe).backgroundColor; probe.remove(); return { got: getComputedStyle(b).backgroundColor, want }; })()",
+      );
+    });
+    expect(banner.got).toBe(banner.want);
     // A block taller than the column is scaled down to fit it, whole.
     const scaled = await launched.app.evaluate(async (_electron, id) => {
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
@@ -153,7 +163,7 @@ describe("the gallery of blocks", () => {
       await peek.show(id);
       const contents = peek.view.webContents as Electron.WebContents;
       const r = await contents.executeJavaScript(
-        "(() => { const r = document.body.firstElementChild.getBoundingClientRect(); return { top: r.y, bottom: r.bottom, vh: innerHeight }; })()",
+        "(() => { const r = document.getElementById('up-peek-card').getBoundingClientRect(); return { top: r.y, bottom: r.bottom, vh: innerHeight }; })()",
       );
       peek.setArea(area);
       return { ...r, zoom: contents.getZoomFactor() };
