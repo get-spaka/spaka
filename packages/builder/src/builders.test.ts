@@ -173,3 +173,45 @@ test("names: lower case, letters, digits, dashes, starting with a letter", () =>
   expect(slug("2026 menu")).toBe("site-2026-menu");
   expect(slug("!!!")).toBe("website");
 });
+
+describe("a site's scripts and stylesheet (ADR 0011)", () => {
+  const animated = () =>
+    project({
+      "pages/index.liquid": `<html><head><title>Home</title></head><body><h1 class="headline">Hi</h1></body></html>`,
+      "scripts/libraries.json": JSON.stringify([
+        { name: "lenis", url: "https://unpkg.com/lenis@1.3.4/dist/lenis.min.js" },
+      ]),
+      "scripts/lib/split.js": "window.split = 1;",
+      "scripts/reveal.js": "export function start(root) {}",
+      "styles/site.css": ".headline { @apply text-primary; letter-spacing: -0.04em; }",
+    });
+
+  test("the static site loads them, its stylesheet compiled into site.css with Tailwind's", async () => {
+    await builderById("static")!.build(animated(), { outDir: out, formServices: {} });
+    const page = readFileSync(join(out, "index.html"), "utf8");
+    expect(page).toContain('<script src="https://unpkg.com/lenis@1.3.4/dist/lenis.min.js"></script>');
+    expect(page).toContain('<script src="/scripts/lib/split.js"></script>');
+    expect(page).toContain('<script src="/assets/up-start.js" data-modules="/scripts/reveal.js" defer></script>');
+    expect(readFileSync(join(out, "assets/up-start.js"), "utf8")).toContain("__upStart");
+    expect(readFileSync(join(out, "scripts/reveal.js"), "utf8")).toContain("export function start");
+    const css = readFileSync(join(out, "assets/site.css"), "utf8");
+    // @apply and the theme's names work in it.
+    expect(css).toMatch(/\.headline\s*\{[^}]*color: var\(--theme-color-primary[^}]*letter-spacing: -0\.04em/);
+    // Compiled into site.css, not copied as it is.
+    expect(existsSync(join(out, "styles/site.css"))).toBe(false);
+  });
+
+  test("a published site's runtime loads them from site.json", async () => {
+    await builderById("node")!.build(animated(), { outDir: out, serverBundle: "// server" });
+    const site = JSON.parse(readFileSync(join(out, "site.json"), "utf8"));
+    expect(site.assets.modules).toEqual(["scripts/reveal.js"]);
+    expect(existsSync(join(out, "public/assets/up-start.js"))).toBe(true);
+    expect(existsSync(join(out, "public/scripts/reveal.js"))).toBe(true);
+  });
+
+  test("a site without them gets no start script", async () => {
+    await builderById("static")!.build(contact(), { outDir: out, formServices: {} });
+    expect(existsSync(join(out, "assets/up-start.js"))).toBe(false);
+    expect(readFileSync(join(out, "index.html"), "utf8")).not.toContain("up-start");
+  });
+});

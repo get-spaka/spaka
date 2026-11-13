@@ -35,7 +35,7 @@ export {
   TEST_RECORDS_DIR,
   titleOf,
 } from "./data.ts";
-export { ASSETS, exportHead, previewHead, VENDOR } from "./head.ts";
+export { ASSETS, exportHead, previewHead, START_SCRIPT, tailwindStyle, VENDOR } from "./head.ts";
 export {
   decodeText,
   encodeText,
@@ -91,6 +91,15 @@ export {
   Runtime,
   type RuntimeOptions,
 } from "./runtime.ts";
+export {
+  type AddressedLibrary,
+  hasScripts,
+  NO_ASSETS,
+  type SiteAssets,
+  START_JS,
+  STILL_CSS,
+  siteAssets,
+} from "./scripts.ts";
 export { memorySource, Overlay, type ProjectSource } from "./source.ts";
 export { MissingTable, RECORDS_SCHEMA, type SqlDatabase, SqlStore } from "./sql.ts";
 export { injectTrace, type Repair, repairTemplate, type Scan, scan } from "./template.ts";

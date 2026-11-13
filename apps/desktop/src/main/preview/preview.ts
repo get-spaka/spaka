@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import { type FSWatcher, watch } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { Overlay, previewHead, Runtime, themeStyle } from "@upstart/runtime";
+import { Overlay, previewHead, Runtime, tailwindStyle, themeStyle } from "@upstart/runtime";
 import { diskSource } from "@upstart/runtime/node";
 import { type BrowserWindow, shell, WebContentsView } from "electron";
 import type {
@@ -102,6 +102,8 @@ export class Preview {
    */
   private mode: PreviewMode = "visitor";
   private paused = false;
+  /** The site's scripts as the page shown loaded them; a change loads the page again. */
+  private loadedScripts: string | undefined;
   private chromeHidden: (() => void) | undefined;
   /** Every page as thumbnails (Q128): their views, and which view is shown. */
   readonly grid: PageGrid;
@@ -182,7 +184,13 @@ export class Preview {
           this.options.onFileChanged?.(file);
         },
       ),
-      head: () => previewHead({ vendorBase: VENDOR_BASE, theme: runtime.theme() }),
+      head: () =>
+        previewHead({
+          vendorBase: VENDOR_BASE,
+          theme: runtime.theme(),
+          assets: runtime.assets(),
+          styles: runtime.styles(),
+        }),
     });
     const site: OpenSite = { project, root: project.path, overlay, runtime, watcher: undefined };
     this.site = site;
@@ -496,8 +504,18 @@ export class Preview {
     if (!site || !pending) return;
     this.lastPush = Date.now();
     const theme = site.runtime.theme();
-    this.send({ type: "theme", css: themeStyle(theme) });
-    this.grid.setTheme(themeStyle(theme));
+    const styles = tailwindStyle(site.runtime.styles());
+    this.send({ type: "theme", css: themeStyle(theme), styles });
+    this.grid.setTheme(themeStyle(theme), styles);
+    // The site's scripts changed since the page loaded: it loads again, to run them anew (ADR 0011).
+    if (pending.final && site.overlay.size === 0 && this.loadedScripts !== undefined) {
+      const scripts = scriptsKey(site.runtime);
+      if (scripts !== this.loadedScripts) {
+        this.loadedScripts = undefined;
+        this.view.webContents.reload();
+        return;
+      }
+    }
     this.pushGrid(site, pending.final);
     // A file is complete: the pictures of the pages it changed are taken again (Q141).
     if (pending.final) this.grid.filesChanged();
@@ -647,6 +665,7 @@ export class Preview {
       }
       if (message.type === "loaded") {
         this.title = message.title;
+        if (this.site) this.loadedScripts = scriptsKey(this.site.runtime);
         this.sendEditor();
         // Anything that changed while the page was loading.
         this.refresh(true);
@@ -680,4 +699,16 @@ function dataNotes(runtime: Runtime): string[] {
   } catch {
     return [];
   }
+}
+
+/** The site's scripts, what they are and what they hold: what a page that runs them depends on. */
+function scriptsKey(runtime: Runtime): string {
+  const { libraries, lib, modules } = runtime.assets();
+  const hash = createHash("sha256").update(JSON.stringify(libraries));
+  for (const path of [...lib, ...modules])
+    hash
+      .update(path)
+      .update("\0")
+      .update(runtime.source.read(path) ?? "");
+  return hash.digest("hex");
 }

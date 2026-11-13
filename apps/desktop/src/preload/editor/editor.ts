@@ -111,7 +111,7 @@ export class Editor {
   /** `open`: the drawings can be read by the app's own checks, run in the background. */
   constructor(
     private readonly bridge: EditorBridge,
-    open = false,
+    private readonly open = false,
   ) {
     this.host.setAttribute("data-up-runtime", "");
     // Whatever the page's stylesheets say about unknown elements, the host takes no room.
@@ -412,7 +412,8 @@ export class Editor {
    * shows where it will go among the page's sections, and the drop puts it there.
    */
   private listenForBlocks() {
-    const isBlock = (e: DragEvent) => !!e.dataTransfer?.types.includes(BLOCK_TYPE);
+    // Only a drag the maker makes: never one a script of the page makes up (ADR 0011), save in the app's checks.
+    const isBlock = (e: DragEvent) => (e.isTrusted || this.open) && !!e.dataTransfer?.types.includes(BLOCK_TYPE);
     let point: ReturnType<typeof insertionPoint>;
     window.addEventListener(
       "dragover",
@@ -479,7 +480,7 @@ export class Editor {
    * the image is outlined, and the drop replaces it. Other files are refused.
    */
   private listenForFiles() {
-    const isFiles = (e: DragEvent) => !!e.dataTransfer?.types.includes("Files");
+    const isFiles = (e: DragEvent) => (e.isTrusted || this.open) && !!e.dataTransfer?.types.includes("Files");
     window.addEventListener(
       "dragenter",
       (e) => {

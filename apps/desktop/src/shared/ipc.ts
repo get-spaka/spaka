@@ -785,8 +785,8 @@ export type Bridge = {
 export type ToPreview =
   /** A new rendering of the page shown: morph the document into it. `final` once the files are complete. */
   | { type: "render"; html: string; final: boolean }
-  /** The theme changed: replace it in place. */
-  | { type: "theme"; css: string }
+  /** The theme or the site's stylesheets changed: replace them in place (styles: what Tailwind compiles). */
+  | { type: "theme"; css: string; styles?: string }
   /** How the page answers the pointer (Q99), and whether editing waits for the agent (Q91). */
   | { type: "editor"; mode: PreviewMode; paused: boolean }
   /** The maker's comments, all pages included, so the page can show its own. */

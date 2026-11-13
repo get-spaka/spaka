@@ -36,6 +36,7 @@ import {
 import { escapeHtml } from "./escape.ts";
 import { addCreditsLink, CREDITS_ROUTE, creditedMedia, creditsPage, fillAlts, withSrcset } from "./media.ts";
 import { recordTitle } from "./records.ts";
+import { type SiteAssets, siteAssets } from "./scripts.ts";
 import type { ProjectSource } from "./source.ts";
 import { injectTrace, repairTemplate } from "./template.ts";
 import { repairCss, themeStyle } from "./theme.ts";
@@ -282,6 +283,19 @@ export class Runtime {
     const result = this.render(file, scope);
     if (result.status === 200) result.html = withSrcset(addTrapFields(fillAlts(result.html, this.source)), this.images);
     return result;
+  }
+
+  /** The site's scripts and stylesheets (ADR 0011). */
+  assets(): SiteAssets {
+    return siteAssets(this.source).assets;
+  }
+
+  /** The site's stylesheets, styles/*.css, one after the other; a file still being written is repaired. */
+  styles(): string {
+    return this.assets()
+      .styles.map((p) => this.source.read(p) ?? "")
+      .map((css) => (this.repair ? repairCss(css) : css))
+      .join("\n");
   }
 
   /** theme.css, repaired if it is still being written. */

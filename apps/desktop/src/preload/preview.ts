@@ -69,10 +69,12 @@ if (thumbnail) {
 
 ipcRenderer.on("preview:message", (_event, message: ToPreview) => {
   if (message.type === "render") render(message.html, message.final);
-  else if (message.type === "theme") setTheme(message.css);
+  else if (message.type === "theme") setTheme(message.css, message.styles);
   else if (message.type === "clip") thumbStyle(message.top);
-  else if (message.type === "editor") editor?.set(message.mode, message.paused);
-  else if (message.type === "comments") editor?.setComments(message.comments);
+  else if (message.type === "editor") {
+    editor?.set(message.mode, message.paused);
+    if (!thumbnail) setMoving(message.mode === "visitor");
+  } else if (message.type === "comments") editor?.setComments(message.comments);
   else if (message.type === "chrome") {
     editor?.setHidden(message.hidden);
     // Answered once the page has drawn itself without them.
@@ -103,6 +105,7 @@ function render(html: string, final: boolean) {
   const doc = new DOMParser().parseFromString(html, "text/html");
   syncHead(doc);
   syncAttributes(document.documentElement, doc.documentElement);
+  if (moving) document.documentElement.setAttribute("data-up-moving", "");
   syncAttributes(document.body, doc.body);
   Idiomorph.morph(document.body, [...doc.body.childNodes], {
     morphStyle: "innerHTML",
@@ -129,6 +132,8 @@ function render(html: string, final: boolean) {
     runScripts(document.body);
     // htmx lives in the page's world: ask it, from there, to take the new elements in hand.
     pageWorld("window.htmx && htmx.process(document.body)");
+    // The site's modules start again on the new rendering (ADR 0011).
+    if (moving) pageWorld("window.__upStart && window.__upStart.update()");
   }
   editor?.rendered();
   send({ type: "rendered", ms: performance.now() - started });
@@ -172,6 +177,23 @@ function runScripts(root: Element) {
   }
 }
 
+/**
+ * Whether the page moves: in visitor mode its animations play and its
+ * modules start; otherwise it shows its final state, to be edited (Q242).
+ * Leaving visitor mode loads the page again, for the HTML its modules have
+ * not changed.
+ */
+let moving = false;
+function setMoving(on: boolean) {
+  if (on === moving) return;
+  moving = on;
+  if (on) {
+    document.documentElement.setAttribute("data-up-moving", "");
+    pageWorld("window.__upStart && window.__upStart.go()");
+  } else if (document.querySelector("script[data-wait]")) location.reload();
+  else document.documentElement.removeAttribute("data-up-moving");
+}
+
 function pageWorld(code: string) {
   const script = document.createElement("script");
   script.setAttribute("data-up-runtime", "");
@@ -211,7 +233,10 @@ function hideScrollbar() {
   document.head.append(style);
 }
 
-function setTheme(css: string) {
+function setTheme(css: string, styles?: string) {
   const style = document.getElementById("up-theme");
   if (style && style.textContent !== css) style.textContent = css;
+  // Tailwind's browser build watches its style: a change compiles the page again.
+  const own = document.getElementById("up-styles");
+  if (own && styles !== undefined && own.textContent !== styles) own.textContent = styles;
 }

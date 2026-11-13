@@ -2,7 +2,7 @@
 // each fragment rendered once into an HTML file, served by any static file
 // host. It cannot keep what visitors send: a form sends to a form service's
 // address instead (Q178), and a page showing what visitors sent refuses it.
-import { exportHead, injectHead, type ProjectSource, TRAP_FIELD, withSrcset } from "@upstart/runtime";
+import { exportHead, injectHead, type ProjectSource, siteAssets, TRAP_FIELD, withSrcset } from "@upstart/runtime";
 import type { Builder, BuildOptions, BuildProject, BuildResult, ImageCopies } from "../builder.ts";
 import { Output, renderSite, shownCollected, writeAssets, writeImageCopies } from "../shared.ts";
 
@@ -56,7 +56,7 @@ export async function buildStatic(options: {
   const all = [...pages, ...fragments];
   const html = all.map((p) => p.html).join("\n");
   const copies = await writeImageCopies(html, project, options.readFile && options.images, out, warnings);
-  const head = exportHead(project.source.read("theme.css") !== undefined);
+  const head = exportHead(project.source.read("theme.css") !== undefined, siteAssets(project.source).assets);
   for (const page of pages)
     out.write(
       page.rel,

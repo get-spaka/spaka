@@ -48,6 +48,7 @@ export class PageGrid {
   private cells = new Map<string, GridCell>();
   private screen: ThumbnailScreen = { width: 1280, height: 800, mobile: false };
   private theme = "";
+  private styles: string | undefined;
   private writing: string | null = null;
   /** The page just written, still live until its picture is taken: no half-written picture shows meanwhile. */
   private leaving: string | null = null;
@@ -106,10 +107,11 @@ export class PageGrid {
     this.flush(live);
   }
 
-  setTheme(css: string) {
-    if (css === this.theme) return;
+  setTheme(css: string, styles?: string) {
+    if (css === this.theme && styles === this.styles) return;
     this.theme = css;
-    if (this.current?.loaded) this.send(this.current, { type: "theme", css });
+    this.styles = styles;
+    if (this.current?.loaded) this.send(this.current, { type: "theme", css, styles });
   }
 
   /** Files changed on the disk: the pictures whose page changed are taken again, a moment later. */
@@ -192,7 +194,7 @@ export class PageGrid {
       if (message.type === "loaded") {
         live.loaded = true;
         live.sent = false;
-        if (this.theme) this.send(live, { type: "theme", css: this.theme });
+        if (this.theme) this.send(live, { type: "theme", css: this.theme, styles: this.styles });
         if (live.clip) this.send(live, { type: "clip", top: live.clip });
         this.place(false);
         this.o.wantsRendering();

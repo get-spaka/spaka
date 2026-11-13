@@ -5,6 +5,7 @@
 import type { CollectedStore } from "../collected.ts";
 import { exportHead } from "../head.ts";
 import { Runtime } from "../runtime.ts";
+import type { SiteAssets } from "../scripts.ts";
 import { memorySource } from "../source.ts";
 
 /** What an export writes into site.json. */
@@ -13,6 +14,8 @@ export type PublishedSite = {
   files: Record<string, string>;
   /** The widths of the WebP copies made of each image (Q156). */
   images: Record<string, number[]>;
+  /** The site's scripts the head loads (ADR 0011). */
+  assets?: SiteAssets;
 };
 
 export function siteRuntime(site: PublishedSite, collected: CollectedStore, managementToken?: string): Runtime {
@@ -20,7 +23,7 @@ export function siteRuntime(site: PublishedSite, collected: CollectedStore, mana
   return new Runtime(memorySource(site.files), {
     repair: false,
     trace: false,
-    head: () => exportHead(hasTheme),
+    head: () => exportHead(hasTheme, site.assets),
     images: site.images,
     collected,
     ...(managementToken ? { managementToken } : {}),

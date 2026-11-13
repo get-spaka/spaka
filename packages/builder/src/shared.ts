@@ -13,6 +13,9 @@ import {
   infoFile,
   type ProjectSource,
   Runtime,
+  START_JS,
+  START_SCRIPT,
+  siteAssets,
   TAILWIND_THEME,
   themeStyle,
 } from "@upstart/runtime";
@@ -145,7 +148,8 @@ export async function writeImageCopies(
  * media file (its alt text and credits, which are in the pages too).
  */
 export function isStatic(path: string, files: Set<string>) {
-  if (/^(pages|parts|fragments|data)\//.test(path) || path === "theme.css" || path.endsWith(".liquid")) return false;
+  if (/^(pages|parts|fragments|data|styles)\//.test(path) || path === "theme.css" || path.endsWith(".liquid"))
+    return false;
   if (
     /^media\/.+\.json$/i.test(path) &&
     [...files].some((f) => f !== path && f.startsWith("media/") && infoFile(f) === path)
@@ -160,8 +164,11 @@ export function isStatic(path: string, files: Set<string>) {
  * files (images, icons…).
  */
 export async function writeAssets(project: BuildProject, out: Output, texts: string[]) {
-  out.write(`${ASSETS}/site.css`, `${BRIDGE_CSS}\n${await tailwind(candidates(texts.join("\n")))}`);
+  const { assets } = siteAssets(project.source);
+  const styles = assets.styles.map((p) => project.source.read(p) ?? "").join("\n");
+  out.write(`${ASSETS}/site.css`, `${BRIDGE_CSS}\n${await tailwind(candidates(texts.join("\n")), styles)}`);
   out.write(`${ASSETS}/htmx.js`, readFileSync(resolveFrom.resolve("htmx.org/dist/htmx.min.js")));
+  if (assets.modules.length) out.write(`${ASSETS}/${START_SCRIPT}`, START_JS);
   const theme = project.source.read("theme.css");
   if (theme !== undefined) out.write("theme.css", themeStyle(theme));
   const files = new Set(project.files);
@@ -219,9 +226,10 @@ export function candidates(html: string): string[] {
 }
 
 let base: string | undefined;
-async function tailwind(classes: string[]): Promise<string> {
+/** The stylesheet for these classes, the site's own styles/*.css compiled with them (ADR 0011). */
+async function tailwind(classes: string[], styles = ""): Promise<string> {
   base ??= readFileSync(resolveFrom.resolve("tailwindcss/index.css"), "utf8");
-  const compiler = await compile(`${base}\n@plugin "daisyui";\n${TAILWIND_THEME}`, {
+  const compiler = await compile(`${base}\n@plugin "daisyui";\n${TAILWIND_THEME}\n${styles}`, {
     loadModule: async (id, from) => {
       if (id !== "daisyui") throw new Error(`Unexpected plugin: ${id}`);
       return { module: (await import("daisyui")).default, base: from, path: id };
@@ -243,7 +251,14 @@ export async function writePublishedSite(project: BuildProject, options: BuildOp
   const pub = out.under("public");
   const copies = await writeImageCopies(html, project, options.images, pub, warnings);
   await writeAssets(project, pub, [html, ...templateTexts(project)]);
-  out.write("site.json", JSON.stringify({ files: siteFiles(project), images: Object.fromEntries(copies) }));
+  out.write(
+    "site.json",
+    JSON.stringify({
+      files: siteFiles(project),
+      images: Object.fromEntries(copies),
+      assets: siteAssets(project.source).assets,
+    }),
+  );
   out.write(server, options.serverBundle);
   return {
     pages: pages.map((p) => p.route),

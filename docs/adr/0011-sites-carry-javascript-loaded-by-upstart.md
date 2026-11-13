@@ -1,5 +1,5 @@
 ---
-status: accepted (2026-11-13, Q233-Q243); not built yet
+status: accepted (2026-11-13, Q233-Q243); the runtime, the preview and the exports built on 2026-11-13 (templates slice 1); the agent not yet told
 ---
 
 # A site may carry JavaScript, loaded by Upstart
@@ -22,3 +22,6 @@ Until then a site was HTML, Liquid and CSS only, and the agent was told to write
 - An outside template's scripts run in the maker's preview and on their published site; the import shows only its name and pictures (Q248). The preview's isolation from the app (a sandboxed view, the editor's bridge kept from the page) is what protects the app, and is to be verified when building.
 - Scripts that rewrite the page (splitting text, moving elements) would break editing in place, which is why edit mode runs none. A state hidden until a script reveals it must be set by the script, never by the stylesheet alone, or the page would show it hidden in edit mode.
 - The agent's instructions no longer forbid JavaScript; they say where it goes and how it starts.
+- As built: a module's start(root) gets the document on load, then each element htmx brings in, which may itself be the element to start; after a new rendering of the preview it gets stop(document) then start(document) again. The site's stylesheet, styles/*.css, is compiled with Tailwind's, so @apply and the theme's names work in it, in the page in the preview and into site.css once exported.
+- In the preview not one script of the site is in the page outside visitor mode: Upstart's start script loads the libraries and the modules only once told the page is in visitor mode, and leaving that mode loads the page again. Comment mode is still too, as edit mode is. A drag a script of the page makes up is ignored by the editor, so that a script cannot drop a block or an image into the page. A check (`e2e/scripts.e2e.ts`) found nothing of the app within a page script's reach: no Node, no Electron, no bridge, no window it can open, no file above the project. The drags made up could not be checked there, since the app's own checks rely on them.
+- A new rendering of the preview (a file written) puts the page back as the files have it, what htmx brought included, as before.

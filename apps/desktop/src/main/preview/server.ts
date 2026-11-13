@@ -6,7 +6,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { createRequire } from "node:module";
 import { extname, join, normalize, sep } from "node:path";
 import type { Runtime } from "@upstart/runtime";
-import { VENDOR } from "@upstart/runtime";
+import { START_JS, START_SCRIPT, VENDOR } from "@upstart/runtime";
 
 /** Named so that it does not collide with the `require` electron-vite adds to ESM output. */
 const nodeRequire = createRequire(import.meta.url);
@@ -73,6 +73,11 @@ export class PreviewServer {
     const url = new URL(req.url ?? "/", this.origin);
     res.setHeader("cache-control", "no-store");
 
+    if (url.pathname === `${VENDOR_BASE}/${START_SCRIPT}`) {
+      res.writeHead(200, { "content-type": "text/javascript; charset=utf-8" });
+      res.end(START_JS);
+      return;
+    }
     if (url.pathname.startsWith(`${VENDOR_BASE}/`)) {
       const name = url.pathname.slice(VENDOR_BASE.length + 1) as keyof typeof VENDOR;
       const vendor = VENDOR[name];
