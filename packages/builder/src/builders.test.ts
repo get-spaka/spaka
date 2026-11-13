@@ -184,6 +184,8 @@ describe("a site's scripts and stylesheet (ADR 0011)", () => {
       "scripts/lib/split.js": "window.split = 1;",
       "scripts/reveal.js": "export function start(root) {}",
       "styles/site.css": ".headline { @apply text-primary; letter-spacing: -0.04em; }",
+      // A template's blocks, offered by the Blocks tab (Q235): not the site's.
+      "blocks/hero/hero-studio/block.liquid": "<section>Hero</section>",
     });
 
   test("the static site loads them, its stylesheet compiled into site.css with Tailwind's", async () => {
@@ -199,6 +201,7 @@ describe("a site's scripts and stylesheet (ADR 0011)", () => {
     expect(css).toMatch(/\.headline\s*\{[^}]*color: var\(--theme-color-primary[^}]*letter-spacing: -0\.04em/);
     // Compiled into site.css, not copied as it is.
     expect(existsSync(join(out, "styles/site.css"))).toBe(false);
+    expect(existsSync(join(out, "blocks"))).toBe(false);
   });
 
   test("a published site's runtime loads them from site.json", async () => {

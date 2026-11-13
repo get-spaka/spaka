@@ -148,7 +148,8 @@ export async function writeImageCopies(
  * media file (its alt text and credits, which are in the pages too).
  */
 export function isStatic(path: string, files: Set<string>) {
-  if (/^(pages|parts|fragments|data|styles)\//.test(path) || path === "theme.css" || path.endsWith(".liquid"))
+  // blocks/: a template's blocks, which the Blocks tab offers (Q235), not files of the site.
+  if (/^(pages|parts|fragments|data|styles|blocks)\//.test(path) || path === "theme.css" || path.endsWith(".liquid"))
     return false;
   if (
     /^media\/.+\.json$/i.test(path) &&

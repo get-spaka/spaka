@@ -1,0 +1,6 @@
+h1 {
+  letter-spacing: -0.02em;
+}
+.navbar a:hover {
+  color: var(--color-primary);
+}

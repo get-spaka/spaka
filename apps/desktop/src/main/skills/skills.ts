@@ -44,6 +44,11 @@ export function readSkill(folder: string): { name: string; description: string }
   } catch {
     return { problem: "This folder has no SKILL.md file." };
   }
+  return parseSkill(text);
+}
+
+/** A skill's name and description, from the text of its SKILL.md. */
+export function parseSkill(text: string): { name: string; description: string } | { problem: string } {
   const front = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text)?.[1];
   if (!front) return { problem: "SKILL.md does not start with a front matter block (--- … ---)." };
   const field = (key: string) => {

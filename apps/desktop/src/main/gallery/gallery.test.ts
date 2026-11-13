@@ -9,47 +9,13 @@ import { Datasources, memorySource, Runtime, sections, TEST_RECORDS_DIR } from "
 import { describe, expect, test } from "vitest";
 import { BLOCK_KINDS } from "../../shared/ipc";
 import { dropData, isCollected } from "../editing/data-drop";
-import { BLOCK_SOURCES, type Block, readGallery } from "./catalogue";
+import { BLOCK_SOURCES, readGallery } from "./catalogue";
+import { droppedFiles, FIXED_COLOUR, MOODS } from "./rules";
 
 const GALLERY = join(__dirname, "../../../gallery");
 const blocks = readGallery(GALLERY);
 
-/** The moods a block is searched by, one spelling each. */
-const MOODS = [
-  "minimal",
-  "friendly",
-  "bold",
-  "elegant",
-  "playful",
-  "warm",
-  "professional",
-  "editorial",
-  "dark",
-  "colorful",
-];
-
-/** Tailwind's own colours, which do not follow the theme: `bg-blue-600`, `text-white`, `bg-[#fff]`. */
-const FIXED_COLOUR =
-  /(?:^|[\s"':])(?:[a-z]+:)*!?(?:bg|text|border|ring|ring-offset|from|via|to|fill|stroke|outline|divide|shadow|decoration|placeholder|accent|caret)-(?:(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}|black|white|\[(?:#|rgb|hsl|oklch|color))/;
-
-/** The files a block writes into a project when it is dropped, under its own names. */
-function dropped(b: Block): Record<string, string> {
-  const files: Record<string, string> = {
-    "pages/index.liquid": `<!doctype html><html><body>{% render '${b.id}' %}</body></html>`,
-    [`parts/${b.id}.liquid`]: b.source,
-  };
-  if (b.data && b.datasource) {
-    files[`data/${b.data.name}/_datasource.yaml`] = b.datasource.definition;
-    // A form's samples are the preview's test records (Q182).
-    const records = isCollected(b.datasource.definition) ? `${TEST_RECORDS_DIR}/${b.data.name}` : `data/${b.data.name}`;
-    for (const [file, text] of Object.entries(b.datasource.records)) files[`${records}/${file}`] = text;
-  }
-  if (b.data && b.detail) {
-    files[`pages/${b.data.name}/[${b.data.name}].liquid`] = `<!doctype html><html><body>${b.detail}</body></html>`;
-  }
-  for (const [file, text] of Object.entries(b.fragments ?? {})) files[`fragments/${file}`] = text;
-  return files;
-}
+const dropped = droppedFiles;
 
 /** A project's runtime, its test records read from where the app keeps them. */
 function runtimeOf(files: Record<string, string>): Runtime {

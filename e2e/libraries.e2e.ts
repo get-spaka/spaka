@@ -102,6 +102,12 @@ export function stop() {
     await until(
       async () => Number(await page("getComputedStyle(document.querySelector('[data-reveal]')).opacity")) > 0.99,
     );
+    // Back where it is, at its size: an animation to transform "none" leaves Motion's matrix(0, 0, 0, 0, 0, 0).
+    await until(async () =>
+      ["none", "matrix(1, 0, 0, 1, 0, 0)"].includes(
+        await page("getComputedStyle(document.querySelector('[data-reveal]')).transform"),
+      ),
+    );
     expect(await errors()).toEqual([]);
   });
 

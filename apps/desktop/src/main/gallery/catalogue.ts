@@ -64,47 +64,102 @@ export class Gallery {
   }
 }
 
+/** Where blocks are read from: a folder on disk, or a template's files held in memory. */
+export type BlockTree = {
+  /** The entries of a folder, `kind` and `id` folders among them. */
+  entries(dir: string): { name: string; folder: boolean }[];
+  read(path: string): string | undefined;
+};
+
+/** A folder on disk as a block tree. */
+export function diskTree(root: string): BlockTree {
+  return {
+    entries: (dir) => {
+      const abs = join(root, dir);
+      if (!existsSync(abs)) return [];
+      return readdirSync(abs, { withFileTypes: true }).map((e) => ({ name: e.name, folder: e.isDirectory() }));
+    },
+    read: (path) => {
+      try {
+        return readFileSync(join(root, path), "utf8");
+      } catch {
+        return undefined;
+      }
+    },
+  };
+}
+
+/** Files held by path as a block tree, under `prefix` ("blocks/"). */
+export function filesTree(files: Map<string, Buffer>, prefix: string): BlockTree {
+  return {
+    entries: (dir) => {
+      const base = `${prefix}${dir ? `${dir}/` : ""}`;
+      const seen = new Map<string, boolean>();
+      for (const path of files.keys()) {
+        if (!path.startsWith(base)) continue;
+        const [name, ...rest] = path.slice(base.length).split("/");
+        if (name) seen.set(name, (seen.get(name) ?? false) || rest.length > 0);
+      }
+      return [...seen].map(([name, folder]) => ({ name, folder }));
+    },
+    read: (path) => files.get(`${prefix}${path}`)?.toString("utf8"),
+  };
+}
+
 /** The blocks of a gallery folder. A block that does not describe itself properly is left out, with a warning. */
 export function readGallery(dir: string): Block[] {
+  const { blocks, skipped } = readBlocks(diskTree(dir));
+  for (const { id, problem } of skipped) console.warn(`[upstart] gallery block ${id} left out: ${problem}`);
+  return blocks;
+}
+
+/** The blocks of a tree, and those left out for not describing themselves properly, with why. */
+export function readBlocks(tree: BlockTree): { blocks: Block[]; skipped: { id: string; problem: string }[] } {
   const out: Block[] = [];
-  if (!existsSync(dir)) return out;
-  for (const kind of readdirSync(dir, { withFileTypes: true })) {
-    if (!kind.isDirectory()) continue;
-    for (const entry of readdirSync(join(dir, kind.name), { withFileTypes: true })) {
-      if (!entry.isDirectory() || !/^[a-z0-9-]+$/.test(entry.name)) continue;
-      const folder = join(dir, kind.name, entry.name);
+  const skipped: { id: string; problem: string }[] = [];
+  const sorted = (dir: string) => tree.entries(dir).sort((a, b) => a.name.localeCompare(b.name));
+  for (const kind of sorted("")) {
+    if (!kind.folder) continue;
+    for (const entry of sorted(kind.name)) {
+      if (!entry.folder || !/^[a-z0-9-]+$/.test(entry.name)) continue;
+      const folder = `${kind.name}/${entry.name}`;
+      const read = (file: string) => tree.read(`${folder}/${file}`);
       try {
-        const { source: origin, ...described } = Described.parse(
-          JSON.parse(readFileSync(join(folder, "block.json"), "utf8")),
-        );
-        const source = readFileSync(join(folder, "block.liquid"), "utf8");
+        const json = read("block.json");
+        if (json === undefined) throw new Error("block.json is missing");
+        const { source: origin, ...described } = Described.parse(JSON.parse(json));
+        if (described.kind !== kind.name) throw new Error(`its kind is ${described.kind}, in a ${kind.name} folder`);
+        const source = read("block.liquid");
+        if (source === undefined) throw new Error("block.liquid is missing");
         const block: Block = { id: entry.name, ...described, source, origin };
         if (described.data) {
-          const dataDir = join(folder, "data");
-          if (!existsSync(join(dataDir, DEFINITION))) throw new Error(`data/${DEFINITION} is missing`);
+          const definition = read(`data/${DEFINITION}`);
+          if (definition === undefined) throw new Error(`data/${DEFINITION} is missing`);
           const records: Record<string, string> = {};
-          for (const file of readdirSync(dataDir).sort()) {
-            if (file.endsWith(".md")) records[file] = readFileSync(join(dataDir, file), "utf8");
-          }
-          block.datasource = { definition: readFileSync(join(dataDir, DEFINITION), "utf8"), records };
+          for (const file of sorted(`${folder}/data`).map((e) => e.name))
+            if (file.endsWith(".md")) records[file] = read(`data/${file}`) ?? "";
+          block.datasource = { definition, records };
         }
-        if (existsSync(join(folder, "detail.liquid")))
-          block.detail = readFileSync(join(folder, "detail.liquid"), "utf8");
-        const fragmentsDir = join(folder, "fragments");
-        if (existsSync(fragmentsDir)) {
-          const fragments: Record<string, string> = {};
-          for (const file of readdirSync(fragmentsDir).sort())
-            if (/^[a-z0-9][\w-]*\.liquid$/.test(file)) fragments[file] = readFileSync(join(fragmentsDir, file), "utf8");
-          if (Object.keys(fragments).length) block.fragments = fragments;
-        }
+        const detail = read("detail.liquid");
+        if (detail !== undefined) block.detail = detail;
+        const fragments: Record<string, string> = {};
+        for (const file of sorted(`${folder}/fragments`).map((e) => e.name))
+          if (/^[a-z0-9][\w-]*\.liquid$/.test(file)) fragments[file] = read(`fragments/${file}`) ?? "";
+        if (Object.keys(fragments).length) block.fragments = fragments;
         out.push(block);
       } catch (error) {
-        console.warn(`[upstart] gallery block ${entry.name} left out:`, error instanceof Error ? error.message : error);
+        const problem =
+          error instanceof z.ZodError
+            ? error.issues.map((i) => `${i.path.join(".") || "block.json"}: ${i.message}`).join("; ")
+            : error instanceof Error
+              ? error.message
+              : String(error);
+        skipped.push({ id: entry.name, problem });
       }
     }
   }
   const order = (kind: BlockKind) => BLOCK_KINDS.indexOf(kind);
-  return out.sort((a, b) => order(a.kind) - order(b.kind) || a.name.localeCompare(b.name));
+  return { blocks: out.sort((a, b) => order(a.kind) - order(b.kind) || a.name.localeCompare(b.name)), skipped };
 }
 
 /** What the interface shows of a block: everything but its template. */

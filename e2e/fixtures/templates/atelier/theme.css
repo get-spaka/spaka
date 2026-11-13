@@ -1,0 +1,7 @@
+:root {
+  --theme-color-surface: oklch(0.97 0.012 80);
+  --theme-color-text: oklch(0.25 0.02 60);
+  --theme-color-primary: oklch(0.55 0.13 45);
+  --theme-color-accent: oklch(0.7 0.1 150);
+  --theme-radius: 0.5rem;
+}

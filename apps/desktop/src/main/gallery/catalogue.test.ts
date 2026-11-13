@@ -78,6 +78,6 @@ test("a data block without its definition is left out", () => {
   const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
   block(dir, "team", "team-grid", { ...about("team", "Team grid"), data: { name: "team", family: "collection" } });
   expect(readGallery(dir)).toEqual([]);
-  expect(String(warn.mock.calls[0]?.[1])).toContain("_datasource.yaml");
+  expect(warn.mock.calls[0]?.join(" ")).toContain("_datasource.yaml");
   warn.mockRestore();
 });

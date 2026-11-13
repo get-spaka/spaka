@@ -44,7 +44,7 @@ export function start(root) {
     el.style.transform = "translateY(24px)";
     stops.push(
       Motion.inView(el, () => {
-        Motion.animate(el, { opacity: 1, transform: "none" }, { duration: 0.8, ease: [0.22, 1, 0.36, 1] });
+        Motion.animate(el, { opacity: 1, y: [24, 0] }, { duration: 0.8, ease: [0.22, 1, 0.36, 1] });
       }),
     );
   }
@@ -56,6 +56,7 @@ export function stop() {
 }
 ```
 
+- Move with Motion's own `x`, `y`, `scale` and `rotate` (`y: [24, 0]`), or with keyframes of the same functions (`transform: ["translateY(24px)", "translateY(0px)"]`): never to `transform: "none"`, which Motion turns into a transform that shrinks the element to nothing.
 - `start(root)` is called with `document` once the page has loaded, then with each element htmx brings in. That element may itself be the one to start, hence `within`.
 - `stop(root)` undoes what `start` set up: observers, listeners, library instances (`lenis.destroy()`, `embla.destroy()`). In the preview, Upstart calls `stop(document)` then `start(document)` again after each change of a file, so `start` must work a second time.
 - Mark what a script acts on with a `data-` attribute (`data-reveal`, `data-split`, `data-carousel`) rather than a class: the maker's classes stay theirs.

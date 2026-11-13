@@ -16,6 +16,8 @@
     "test": "vitest run",
     "e2e": "pnpm --filter @upstart/desktop build && pnpm background-electron && vitest run --config e2e/vitest.config.ts",
     "background-electron": "node scripts/background-electron.ts",
+    "template:check": "node apps/desktop/scripts/template.mjs check",
+    "template:shoot": "node apps/desktop/scripts/template.mjs shoot",
     "start": "pnpm --filter @upstart/desktop start"
   },
   "devDependencies": {

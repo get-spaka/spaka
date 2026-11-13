@@ -1,0 +1,8 @@
+{
+  "name": "Atelier hero",
+  "kind": "hero",
+  "description": "A very large headline and one line under it, rising into view, on the page's background.",
+  "tags": ["hero", "large type"],
+  "mood": ["elegant", "minimal"],
+  "synonyms": ["hero", "headline", "big title", "en-tête", "accroche", "grand titre"]
+}
