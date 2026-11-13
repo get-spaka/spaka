@@ -15,7 +15,7 @@ describe("editing in the preview", () => {
   const home = () => readFileSync(join(path, "pages/index.liquid"), "utf8");
   beforeAll(async () => {
     launched = await launchApp();
-    await launched.window.getByTestId("conversation").waitFor();
+    await launched.window.getByTestId("message-input").waitFor();
     await invoke("conversation:send", "A bakery in Lyon. Warm colours please.");
     await until(() => launched.window.locator('[data-testid="agent-message"][data-status="done"]').count(), 30_000);
     // The bakery has two pages: the preview went to all of them (Q131); these checks are on one.

@@ -55,7 +55,7 @@ describe.skipIf(!real)("the agent's sandbox, packaged", () => {
         UPSTART_DATA_DIR: dataDir,
       },
     });
-    await launched.window.getByTestId("conversation").waitFor();
+    await launched.window.getByTestId("message-input").waitFor();
   }, 90_000);
   afterAll(async () => {
     await launched?.close();

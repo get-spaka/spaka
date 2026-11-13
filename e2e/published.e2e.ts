@@ -68,7 +68,7 @@ describe("what a published site collected", () => {
     siteUrl = `http://127.0.0.1:${typeof address === "object" && address ? address.port : 0}`;
 
     launched = await launchApp();
-    await w().getByTestId("conversation").waitFor();
+    await w().getByTestId("message-input").waitFor();
     await invoke("conversation:send", "A bakery in Lyon. Warm colours please.");
     await until(() => w().locator('[data-testid="agent-message"][data-status="done"]').count(), 30_000);
     const path = (await invoke("projects:current")).path as string;

@@ -31,7 +31,7 @@ describe("forms in the preview", () => {
 
   beforeAll(async () => {
     launched = await launchApp();
-    await w().getByTestId("conversation").waitFor();
+    await w().getByTestId("message-input").waitFor();
     await invoke("conversation:send", "A bakery in Lyon. Warm colours please.");
     await until(() => w().locator('[data-testid="agent-message"][data-status="done"]').count(), 30_000);
     path = (await invoke("projects:current")).path;

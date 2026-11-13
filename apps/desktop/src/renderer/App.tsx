@@ -6,6 +6,7 @@ import { MediaPicker } from "./components/MediaPicker";
 import { PreviewPane } from "./components/PreviewPane";
 import { Sidebar } from "./components/Sidebar";
 import { SiteSettings } from "./components/SiteSettings";
+import { StartPanel } from "./components/StartPanel";
 import {
   useAgentStatus,
   useConnectors,
@@ -66,22 +67,34 @@ export function App() {
           }}
         />
       )}
-      <Conversation
-        project={current}
-        items={items}
-        status={status}
-        sidebarOpen={sidebarOpen}
-        onExpandSidebar={() => setSidebarOpen(true)}
-        preview={preview}
-      />
-      <PreviewPane
-        project={current}
-        state={preview}
-        working={isWorking(items)}
-        covered={siteShown || settingsOpen || !!picking}
-        layoutKey={sidebarOpen}
-        history={history}
-      />
+      {current ? (
+        <>
+          <Conversation
+            project={current}
+            items={items}
+            status={status}
+            sidebarOpen={sidebarOpen}
+            onExpandSidebar={() => setSidebarOpen(true)}
+            preview={preview}
+          />
+          <PreviewPane
+            project={current}
+            state={preview}
+            working={isWorking(items)}
+            covered={siteShown || settingsOpen || !!picking}
+            layoutKey={sidebarOpen}
+            history={history}
+          />
+        </>
+      ) : (
+        // No website open: the start screen, one large panel (Q245).
+        <StartPanel
+          status={status}
+          sidebarOpen={sidebarOpen}
+          onExpandSidebar={() => setSidebarOpen(true)}
+          covered={settingsOpen}
+        />
+      )}
       {siteShown && current && (
         <SiteSettings
           project={current}

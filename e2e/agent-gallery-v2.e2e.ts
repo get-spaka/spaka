@@ -73,7 +73,7 @@ describe.skipIf(!real)("Gallery v2 with the real agent, packaged", () => {
         UPSTART_DATA_DIR: dataDir,
       },
     });
-    await launched.window.getByTestId("conversation").waitFor();
+    await launched.window.getByTestId("message-input").waitFor();
   }, 90_000);
   afterAll(async () => {
     writeFileSync(join(runsDir, "real-agent-gallery-v2.json"), JSON.stringify(report, null, 2));

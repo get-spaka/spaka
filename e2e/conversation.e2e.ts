@@ -31,7 +31,7 @@ describe("a conversation with the agent", () => {
 
   beforeAll(async () => {
     launched = await launchApp();
-    await launched.window.getByTestId("conversation").waitFor();
+    await launched.window.getByTestId("message-input").waitFor();
   });
   afterAll(async () => {
     await launched?.close();

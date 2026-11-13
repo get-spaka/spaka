@@ -78,7 +78,7 @@ describe.skipIf(!real)("skills with the real agent", () => {
         UPSTART_DATA_DIR: dataDir,
       },
     });
-    await launched.window.getByTestId("conversation").waitFor();
+    await launched.window.getByTestId("message-input").waitFor();
     await until(async () => (await invoke("agent:status")).auth === "signed-in", 30_000);
     // A skill for all websites, added before any project exists.
     const source = mkdtempSync(join(tmpdir(), "skill-"));

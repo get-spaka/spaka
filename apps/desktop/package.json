@@ -91,6 +91,14 @@
         "to": "fonts"
       },
       {
+        "from": "templates",
+        "to": "templates",
+        "filter": [
+          "**/*",
+          "!README.md"
+        ]
+      },
+      {
         "from": "out/hosts",
         "to": "hosts"
       }

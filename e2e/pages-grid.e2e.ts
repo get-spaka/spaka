@@ -63,7 +63,7 @@ describe("all pages as thumbnails", () => {
     writePagesRecording(recording, 3, { chunk: 40, step: 25 });
     launched = await launchApp({ env: { UPSTART_AGENT_REPLAY: recording, UPSTART_AGENT_REPLAY_SPEED: "1" } });
     const w = launched.window;
-    await w.getByTestId("conversation").waitFor();
+    await w.getByTestId("message-input").waitFor();
     await invoke("conversation:send", "A climbing gym in Grenoble, three pages.");
     // Watches the turn: the view, the outline, and what the live thumbnail shows.
     for (const started = Date.now(); ; ) {

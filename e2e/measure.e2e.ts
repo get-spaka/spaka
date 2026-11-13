@@ -43,7 +43,7 @@ describe.skipIf(process.env.UPSTART_MEASURE !== "1")("how fast a website takes s
         UPSTART_AGENT_RECORD: join(runsDir, "measure-agent.jsonl"),
       },
     });
-    await launched.window.getByTestId("conversation").waitFor();
+    await launched.window.getByTestId("message-input").waitFor();
   }, 60_000);
   afterAll(async () => {
     writeFileSync(join(runsDir, "measure.json"), JSON.stringify(results, null, 2));

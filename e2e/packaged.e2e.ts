@@ -79,7 +79,7 @@ describe.runIf(built && process.platform === "darwin")("the packaged app", () =>
     const launched = await launchApp({ packaged: true });
     try {
       const invoke = invokeIn(launched);
-      await launched.window.getByTestId("conversation").waitFor();
+      await launched.window.getByTestId("message-input").waitFor();
       expect(await launched.app.evaluate(({ app }) => app.isPackaged)).toBe(true);
       await invoke("conversation:send", "A bakery in Lyon. Warm colours please.");
       await done(launched, 1, 30_000);
@@ -129,7 +129,7 @@ describe.runIf(built && process.platform === "darwin")("the packaged app", () =>
       });
       try {
         const invoke = invokeIn(launched);
-        await launched.window.getByTestId("conversation").waitFor();
+        await launched.window.getByTestId("message-input").waitFor();
         await until(async () => (await invoke("agent:status")).auth === "signed-in", 30_000);
         const started = Date.now();
         await invoke(
@@ -213,7 +213,7 @@ describe.runIf(built && process.platform === "darwin")("the packaged app", () =>
       const log = (line: string) => process.stdout.write(`[step2] ${line}\n`);
       try {
         const invoke = invokeIn(launched);
-        await launched.window.getByTestId("conversation").waitFor();
+        await launched.window.getByTestId("message-input").waitFor();
         await until(async () => (await invoke("agent:status")).auth === "signed-in", 30_000);
         const started = Date.now();
         await invoke(
@@ -339,7 +339,7 @@ describe.runIf(built && process.platform === "darwin")("the packaged app", () =>
       const w = launched.window;
       try {
         const invoke = invokeIn(launched);
-        await w.getByTestId("conversation").waitFor();
+        await w.getByTestId("message-input").waitFor();
         await until(async () => (await invoke("agent:status")).auth === "signed-in", 30_000);
         const report = await buildBlog(launched, record);
         writeFileSync(join(runsDir, "packaged-step3.json"), JSON.stringify(report, null, 2));
@@ -493,7 +493,7 @@ describe.runIf(built && process.platform === "darwin")("the packaged app", () =>
       let server: ChildProcess | undefined;
       try {
         const invoke = invokeIn(launched);
-        await w.getByTestId("conversation").waitFor();
+        await w.getByTestId("message-input").waitFor();
         await until(async () => (await invoke("agent:status")).auth === "signed-in", 30_000);
         const report = await buildGuestbook(launched);
         writeFileSync(join(runsDir, "packaged-step4.json"), JSON.stringify(report, null, 2));

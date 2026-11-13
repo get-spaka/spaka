@@ -36,7 +36,7 @@ describe.skipIf(process.env.UPSTART_MEASURE_GRID !== "1")("the cost of the All p
       );
     try {
       const w = launched.window;
-      await w.getByTestId("conversation").waitFor();
+      await w.getByTestId("message-input").waitFor();
       const started = Date.now();
       await invoke("conversation:send", "A climbing gym in Grenoble, ten pages.");
       if (view === "pages") {

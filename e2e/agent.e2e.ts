@@ -57,7 +57,7 @@ describe.skipIf(!real)("the real agent", () => {
     launched = await launchApp({
       env: { UPSTART_AGENT_REPLAY: "", UPSTART_AGENT_CONFIG_DIR: configDir, UPSTART_AGENT_RECORD: record },
     });
-    await launched.window.getByTestId("conversation").waitFor();
+    await launched.window.getByTestId("message-input").waitFor();
     await until(async () => (await invoke("agent:status")).auth === "signed-in", 30_000);
   }, 60_000);
   afterAll(async () => {

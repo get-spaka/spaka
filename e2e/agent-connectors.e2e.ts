@@ -62,7 +62,7 @@ describe.skipIf(!real)("connectors with the real agent", () => {
         UPSTART_DATA_DIR: dataDir,
       },
     });
-    await launched.window.getByTestId("conversation").waitFor();
+    await launched.window.getByTestId("message-input").waitFor();
     await until(async () => (await invoke("agent:status")).auth === "signed-in", 30_000);
   }, 60_000);
   afterAll(async () => {

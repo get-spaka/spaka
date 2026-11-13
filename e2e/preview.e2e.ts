@@ -29,7 +29,7 @@ describe("a project folder in the preview", () => {
 
   beforeAll(async () => {
     launched = await launchApp();
-    await launched.window.getByTestId("conversation").waitFor();
+    await launched.window.getByTestId("message-input").waitFor();
     const project = await launched.window.evaluate(() =>
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
       (window as any).upstart.invoke("projects:create", "Chez Margot"),

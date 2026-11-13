@@ -15,11 +15,12 @@ describe("the app's shell, launched in the background", () => {
     await launched?.close();
   });
 
-  test("shows the three columns", async () => {
+  test("shows the sidebar and the start screen, with no website open (Q245)", async () => {
     const { window } = launched;
     await window.getByTestId("sidebar").waitFor();
-    await expect(window.getByTestId("conversation").isVisible()).resolves.toBe(true);
-    await expect(window.getByTestId("preview").isVisible()).resolves.toBe(true);
+    await expect(window.getByTestId("start").isVisible()).resolves.toBe(true);
+    await expect(window.getByTestId("conversation").count()).resolves.toBe(0);
+    await expect(window.getByTestId("preview").count()).resolves.toBe(0);
     const file = await launched.capture("shell");
     expect(file).toMatch(/shell\.png$/);
   });

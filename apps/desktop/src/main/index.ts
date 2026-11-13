@@ -95,6 +95,8 @@ import {
   SiteUnavailable,
 } from "./publish/management";
 import { Skills } from "./skills/skills";
+import { TemplateLibrary } from "./templates/library";
+import { TemplateViewer } from "./templates/viewer";
 import { Fonts } from "./theme/fonts";
 import { readTheme, type ThemeValues, themeColors, writeTheme } from "./theme/theme-file";
 
@@ -262,6 +264,21 @@ async function main() {
   });
   const peek = new BlockPeek(win, () => preview.origin);
   await preview.start();
+  // The templates a new website may start from (Q245, Q249): Upstart's, shipped
+  // beside the app for now (downloaded from the templates' repository later,
+  // Q247), and the maker's imported ones; one is shown large by a viewer of its own.
+  const templates = new TemplateLibrary(
+    app.isPackaged ? join(process.resourcesPath, "templates") : join(here, "../../templates"),
+    join(app.getPath("userData"), "templates"),
+  );
+  const templateViewer = new TemplateViewer(win, {
+    background: env.background,
+    onState: (state) => ipc.emit("templates:view-state", state),
+    font: (path) => fonts.path(path),
+  });
+  await templateViewer.start();
+  /** For automated checks: what a dialog would have answered. */
+  const checks: { importPath?: string } = {};
 
   // The agent (ADR 0002, 0007, 0010). Its configuration, sign-in and
   // conversations live in the app's data, never in the maker's own Claude folder.
@@ -591,6 +608,7 @@ async function main() {
     // A record being written in the Content tab gets its version first (Q162).
     editor.leaveRecord();
     current = project;
+    templateViewer.close();
     watchSkills(project);
     agent.open(project);
     preview.setPaused(agent.isWorking(project.id));
@@ -685,6 +703,26 @@ async function main() {
     // Over the preview's column, the "All pages" view's included, where the page itself is parked.
     peek.setArea(scaled(rect && (area ?? rect)));
   });
+  ipc.handle("templates:list", () => templates.list());
+  ipc.handle("templates:picture", (id, which) => templates.picture(id, which === "hover" ? "hover" : "cover"));
+  ipc.handle("templates:view", async (id, route) => {
+    const dir = id && !current ? templates.dir(id) : undefined;
+    if (!id || !dir) return templateViewer.close();
+    await templateViewer.show(id, dir, typeof route === "string" && route.startsWith("/") ? route : "/");
+  });
+  ipc.on("templates:bounds", (rect) => templateViewer.setBounds(scaled(rect)));
+  ipc.handle("templates:import", async () => {
+    // Checks name the folder to import instead of a dialog, which would take the focus.
+    if (env.background) return checks.importPath ? templates.read(checks.importPath) : null;
+    const answer = await dialog.showOpenDialog(dialogParent(), {
+      title: t.start.importTitle,
+      properties: ["openFile", "openDirectory"],
+      filters: [{ name: "Template", extensions: ["zip"] }],
+    });
+    const path = answer.filePaths[0];
+    return answer.canceled || !path ? null : templates.read(path);
+  });
+  ipc.handle("templates:accept-import", (token) => templates.accept(token));
   // A thumbnail's right-click menu (Q136). Duplicating and deleting are edits by hand:
   // a version each, told to the agent at its next message, waiting while it works.
   const pageItems = (route: string): Electron.MenuItemConstructorOptions[] => {
@@ -780,7 +818,10 @@ async function main() {
       const created = projects.create(projectNameFrom(message));
       const model = typeof settings?.model === "string" ? settings.model : created.model;
       const effort = isEffort(settings?.effort) ? settings.effort : created.effort;
-      project = await opened(projects.update(created.id, { model, effort }));
+      // The template it starts from, if the maker chose one (Q245); copied into it and adapted in slice 7.
+      const chosen = typeof settings?.template === "string" ? templates.get(settings.template) : undefined;
+      const template = chosen && { id: chosen.id, version: chosen.version };
+      project = await opened(projects.update(created.id, { model, effort, ...(template ? { template } : {}) }));
     }
     sendMessage(project, message, message);
   });
@@ -1348,7 +1389,20 @@ async function main() {
   // For automated checks: the main process's objects, reachable from Playwright's evaluate().
   if (env.background)
     Object.assign(globalThis, {
-      upstart: { win, projects, preview, agent, peek, settings, pageItems, images, editor },
+      upstart: {
+        win,
+        projects,
+        preview,
+        agent,
+        peek,
+        settings,
+        pageItems,
+        images,
+        editor,
+        templates,
+        templateViewer,
+        checks,
+      },
     });
 
   await (devUrl ? win.loadURL(devUrl) : win.loadFile(join(here, "../renderer/index.html")));

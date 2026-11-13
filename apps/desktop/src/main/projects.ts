@@ -18,6 +18,8 @@ export type ProjectFile = {
   siteUrl?: string;
   /** Where each collected datasource's form sends in a static export: a form service's address (Q178). */
   formServices?: Record<string, string>;
+  /** The template the website started from, if any (Q245). */
+  template?: { id: string; version: string };
 };
 
 type Entry = { id: string; path: string; name: string; openedAt: number };

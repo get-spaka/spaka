@@ -9,7 +9,7 @@ describe("the preview follows what the agent writes", () => {
 
   beforeAll(async () => {
     launched = await launchApp({ env: { UPSTART_AGENT_REPLAY_SPEED: "0.5" } });
-    await launched.window.getByTestId("conversation").waitFor();
+    await launched.window.getByTestId("message-input").waitFor();
   });
   afterAll(async () => {
     await launched?.close();

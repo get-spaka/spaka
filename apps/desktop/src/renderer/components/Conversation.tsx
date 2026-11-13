@@ -1,5 +1,13 @@
 import { ArrowUp, Check, ChevronRight, CircleSlash, Eraser, Loader2, PanelLeft, Square, X } from "lucide-react";
-import { type KeyboardEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  type KeyboardEvent,
+  type ReactNode,
+  type RefObject,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { type Activity, type AgentPart, type ConversationItem, isWorking } from "../../shared/conversation";
 import type { AgentStatus, Effort, OutputStyle, PreviewState, ProjectInfo } from "../../shared/ipc";
 import { useAppSettings } from "../hooks/useMain";
@@ -64,13 +72,6 @@ export function Conversation({
     setDraft("");
     void upstart.invoke("conversation:send", text, project ? undefined : newSettings).catch(() => setDraft(text));
   };
-  const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
-      event.preventDefault();
-      send();
-    }
-  };
-
   return (
     <section data-testid="conversation" className="relative flex w-[420px] shrink-0 flex-col border-r bg-background">
       {/* Room for the window's buttons when the sidebar is hidden. */}
@@ -161,61 +162,112 @@ export function Conversation({
 
           {signedOut && <SignInPanel status={status} />}
 
-          <form
-            className="p-3"
-            onSubmit={(event) => {
-              event.preventDefault();
-              send();
-            }}
-          >
-            <div className="rounded-xl border bg-background p-2 shadow-xs focus-within:ring-[3px] focus-within:ring-ring/30">
-              <textarea
-                data-testid="message-input"
-                ref={input}
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                onKeyDown={onKeyDown}
-                placeholder={items.length ? t.conversation.placeholderFollowUp : t.conversation.placeholder}
-                rows={3}
-                className="max-h-48 w-full resize-none bg-transparent px-1 py-1 text-sm outline-none placeholder:text-muted-foreground"
-              />
-              <div className="flex items-center gap-1">
-                <ModelControls
-                  project={project}
-                  status={status}
-                  newSettings={newSettings}
-                  onNewSettings={setNewSettings}
-                />
-                <div className="ml-auto">
-                  {working ? (
-                    <Button
-                      type="button"
-                      size="icon-sm"
-                      variant="secondary"
-                      data-testid="stop"
-                      onClick={() => void upstart.invoke("conversation:stop")}
-                      title={t.conversation.stop}
-                    >
-                      <Square className="size-3 fill-current" />
-                    </Button>
-                  ) : (
-                    <Button
-                      type="submit"
-                      size="icon-sm"
-                      data-testid="send"
-                      disabled={!draft.trim() || signedOut}
-                      title={t.conversation.send}
-                    >
-                      <ArrowUp />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </form>
+          <MessageBox
+            project={project}
+            status={status}
+            draft={draft}
+            onDraft={setDraft}
+            onSend={send}
+            input={input}
+            working={working}
+            placeholder={items.length ? t.conversation.placeholderFollowUp : t.conversation.placeholder}
+            newSettings={newSettings}
+            onNewSettings={setNewSettings}
+          />
         </>
       )}
     </section>
+  );
+}
+
+/**
+ * The message field, the model and effort, and the send or stop button: under
+ * the conversation, and at the bottom of the start screen (Q245).
+ */
+export function MessageBox({
+  project,
+  status,
+  draft,
+  onDraft,
+  onSend,
+  input,
+  working,
+  placeholder,
+  newSettings,
+  onNewSettings,
+  className,
+  children,
+}: {
+  project: ProjectInfo | null;
+  status: AgentStatus;
+  draft: string;
+  onDraft: (draft: string) => void;
+  onSend: () => void;
+  input?: RefObject<HTMLTextAreaElement | null>;
+  working: boolean;
+  placeholder: string;
+  newSettings: { model: string; effort: Effort };
+  onNewSettings: (settings: { model: string; effort: Effort }) => void;
+  className?: string;
+  /** Shown above the field, inside its frame: the template chosen (Q249). */
+  children?: ReactNode;
+}) {
+  const signedOut = status.auth === "signed-out" || status.auth === "signing-in";
+  const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+      event.preventDefault();
+      onSend();
+    }
+  };
+  return (
+    <form
+      className={cn("p-3", className)}
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSend();
+      }}
+    >
+      <div className="rounded-xl border bg-background p-2 shadow-xs focus-within:ring-[3px] focus-within:ring-ring/30">
+        {children}
+        <textarea
+          data-testid="message-input"
+          ref={input}
+          value={draft}
+          onChange={(event) => onDraft(event.target.value)}
+          onKeyDown={onKeyDown}
+          placeholder={placeholder}
+          rows={3}
+          className="max-h-48 w-full resize-none bg-transparent px-1 py-1 text-sm outline-none placeholder:text-muted-foreground"
+        />
+        <div className="flex items-center gap-1">
+          <ModelControls project={project} status={status} newSettings={newSettings} onNewSettings={onNewSettings} />
+          <div className="ml-auto">
+            {working ? (
+              <Button
+                type="button"
+                size="icon-sm"
+                variant="secondary"
+                data-testid="stop"
+                onClick={() => void upstart.invoke("conversation:stop")}
+                title={t.conversation.stop}
+              >
+                <Square className="size-3 fill-current" />
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                size="icon-sm"
+                data-testid="send"
+                disabled={!draft.trim() || signedOut}
+                title={t.conversation.send}
+              >
+                <ArrowUp />
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </form>
   );
 }
 

@@ -67,7 +67,7 @@ describe.skipIf(!dir)("a template's pictures", () => {
 
   beforeAll(async () => {
     launched = await launchApp();
-    await launched.window.getByTestId("conversation").waitFor();
+    await launched.window.getByTestId("message-input").waitFor();
     // A copy of it, opened as a site: the template's folder stays as it is.
     const copy = join(launched.projectsDir, id);
     mkdirSync(copy, { recursive: true });

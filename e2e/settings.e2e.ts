@@ -49,7 +49,7 @@ describe("the settings panel", () => {
   beforeAll(async () => {
     launched = await launchApp();
     w = launched.window;
-    await w.getByTestId("conversation").waitFor();
+    await w.getByTestId("message-input").waitFor();
   }, 60_000);
   afterAll(async () => {
     await launched?.close();

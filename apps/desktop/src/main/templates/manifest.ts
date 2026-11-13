@@ -5,9 +5,9 @@
 // in media/, its pictures in pictures/ (made by template:shoot); the reader
 // gathers them.
 import { z } from "zod";
+import { TEMPLATE_CATEGORIES } from "../../shared/ipc";
 
-/** What the start screen's chips filter by (Q249). An original design is also one of them. */
-export const TEMPLATE_CATEGORIES = ["business", "portfolio", "blog", "launch", "event", "app"] as const;
+export { TEMPLATE_CATEGORIES };
 
 /** Licences a library or a template may come under: open, and allowing a website builder. */
 export const OPEN_LICENCES = [

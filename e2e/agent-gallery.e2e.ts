@@ -46,7 +46,7 @@ describe.skipIf(!real)("the gallery with the real agent", () => {
     launched = await launchApp({
       env: { UPSTART_AGENT_REPLAY: "", UPSTART_AGENT_CONFIG_DIR: configDir, UPSTART_AGENT_RECORD: record },
     });
-    await launched.window.getByTestId("conversation").waitFor();
+    await launched.window.getByTestId("message-input").waitFor();
   }, 60_000);
   afterAll(async () => {
     writeFileSync(join(runsDir, "real-agent-gallery.json"), JSON.stringify(report, null, 2));

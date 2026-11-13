@@ -57,7 +57,7 @@ describe("the agent's Markdown in the conversation", () => {
 
   beforeAll(async () => {
     launched = await launchApp({ env: { UPSTART_AGENT_REPLAY: fixture(), UPSTART_AGENT_REPLAY_SPEED: "1" } });
-    await w().getByTestId("conversation").waitFor();
+    await w().getByTestId("message-input").waitFor();
     await invoke("conversation:send", "A bakery in Lyon. Warm colours please.");
     await until(() => w().locator('[data-testid="agent-message"][data-status="done"]').count(), 30_000);
   }, 60_000);

@@ -27,6 +27,8 @@ export type ProjectInfo = ProjectSummary & {
   siteUrl?: string;
   /** Where each collected datasource's form sends in a static export (Q178). */
   formServices?: Record<string, string>;
+  /** The template the website started from, if any (Q245). */
+  template?: { id: string; version: string };
 };
 
 /** Where a skill comes from (ADR 0010): shipped with Upstart, the maker's for all projects, or the project's. */
@@ -447,6 +449,38 @@ export type MediaFound = {
   thumb?: string;
 };
 
+/** What the start screen's chips filter by (Q249, Q263). */
+export const TEMPLATE_CATEGORIES = ["business", "portfolio", "blog", "launch", "event", "app"] as const;
+export type TemplateCategory = (typeof TEMPLATE_CATEGORIES)[number];
+
+/** A template as the start screen lists it (Q249). */
+export type TemplateSummary = {
+  id: string;
+  version: string;
+  name: string;
+  description: string;
+  category: TemplateCategory;
+  /** One of the original, animated designs, shown first with a badge (Q263, Q264). */
+  original: boolean;
+  tags: string[];
+  /** Imported by the maker, rather than one of Upstart's. */
+  imported: boolean;
+};
+
+/** A template shown large in the start screen (Q249): the page shown and the pages to go to. */
+export type TemplateViewState = {
+  id: string | null;
+  route: string | null;
+  title: string;
+  pages: { route: string; name: string }[];
+  loading: boolean;
+};
+
+/** A template read from a folder or a .zip, waiting for the maker to add it (Q248); or why it cannot be one. */
+export type TemplateImport =
+  | { token: string; template: TemplateSummary; cover: string | null; pages: string[] }
+  | { problems: string[] };
+
 export type Invokes = {
   "app:info": () => AppInfo;
   /** A web address from the agent's message, opened in the maker's browser (http and https only). */
@@ -482,7 +516,8 @@ export type Invokes = {
   /** The open project's conversation; empty when no project is open. */
   "conversation:get": () => ConversationState | null;
   /** Sends a message to the agent. Without an open project, a new one is created from it. */
-  "conversation:send": (text: string, newProject?: { model: string; effort: Effort }) => void;
+  /** `newProject`: the settings of the website a first message creates, and the template it starts from (Q245). */
+  "conversation:send": (text: string, newProject?: { model: string; effort: Effort; template?: string }) => void;
   "conversation:stop": () => void;
   "conversation:start-over": () => void;
   "agent:status": () => AgentStatus;
@@ -526,6 +561,16 @@ export type Invokes = {
   "history:undo": () => HistoryEntry[];
   /** An edit by hand; throws with the reason when it cannot be made. */
   "editing:apply": (action: EditAction) => { label: string; files: string[] };
+  /** The templates to start from, originals first (Q249, Q264). */
+  "templates:list": () => TemplateSummary[];
+  /** A template's cover or its animated hover sequence, as a data URL. */
+  "templates:picture": (id: string, which: "cover" | "hover") => string | null;
+  /** Shows a template large, at a page of it; null hides it (Q249). */
+  "templates:view": (id: string | null, route?: string) => void;
+  /** Asks for a template folder or .zip and reads it, to be added once the maker has seen it (Q236, Q248); null if none was chosen. */
+  "templates:import": () => TemplateImport | null;
+  /** Adds an imported template the maker has seen; its summary. */
+  "templates:accept-import": (token: string) => TemplateSummary;
   "gallery:list": () => GalleryBlock[];
   /** A block drawn with the open project's theme, as a PNG data URL. */
   "gallery:thumbnail": (id: string) => string;
@@ -602,6 +647,8 @@ export type Sends = {
   ) => void;
   /** Shows a gallery block large over the preview while the pointer rests on it (Q109); null hides it. */
   "gallery:peek": (id: string | null) => void;
+  /** Where the template shown large sits in the window, in CSS pixels; null to hide it. */
+  "templates:bounds": (rect: Rect | null) => void;
 };
 
 /** One-way messages from the main process to the interface. */
@@ -610,6 +657,7 @@ export type Events = {
   /** A project was opened, or null when none is open any more. */
   "project:opened": (project: ProjectInfo | null) => void;
   "preview:state": (state: PreviewState) => void;
+  "templates:view-state": (state: TemplateViewState) => void;
   /** The pointer is over a page's thumbnail, or left it (Q132). */
   "preview:hover": (route: string | null) => void;
   /** A page's picture in the "All pages" view, as a data URL (Q141). */
@@ -701,6 +749,11 @@ export const channels = {
     "history:restore",
     "history:undo",
     "editing:apply",
+    "templates:list",
+    "templates:picture",
+    "templates:view",
+    "templates:import",
+    "templates:accept-import",
     "gallery:list",
     "gallery:thumbnail",
     "gallery:add",
@@ -735,11 +788,12 @@ export const channels = {
     "media:delete",
     "media:rename",
   ],
-  send: ["app:ready", "preview:bounds", "preview:grid", "gallery:peek"],
+  send: ["app:ready", "preview:bounds", "preview:grid", "gallery:peek", "templates:bounds"],
   events: [
     "projects:changed",
     "project:opened",
     "preview:state",
+    "templates:view-state",
     "preview:hover",
     "preview:picture",
     "preview:page-deleted",
