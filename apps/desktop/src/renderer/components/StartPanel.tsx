@@ -45,9 +45,10 @@ export function StartPanel({
   const [importing, setImporting] = useState<TemplateImport>();
   const viewState = useTemplateView();
   const load = () => upstart.invoke("templates:list").then(setTemplates);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: loaded once
+  // biome-ignore lint/correctness/useExhaustiveDependencies: loaded once, then again when the latest catalogue changes it
   useEffect(() => {
     void load();
+    return upstart.on("templates:changed", () => void load());
   }, []);
 
   const [draft, setDraft] = useState("");
@@ -56,19 +57,30 @@ export function StartPanel({
   const newSettings = settings ?? { model: defaults.newModel, effort: defaults.newEffort };
   const signedOut = status.auth === "signed-out" || status.auth === "signing-in";
   const [sending, setSending] = useState(false);
+  // Why the website could not start from the chosen template (Q247): it could not be downloaded.
+  const [sendProblem, setSendProblem] = useState<string>();
   const input = useRef<HTMLTextAreaElement>(null);
   const send = () => {
     const text = draft.trim();
     if (!text || sending) return;
     setSending(true);
+    setSendProblem(undefined);
     void upstart
       .invoke("conversation:send", text, { ...newSettings, ...(chosen ? { template: chosen } : {}) })
+      .then((problem) => {
+        if (!problem) return;
+        setSending(false);
+        setSendProblem(problem);
+      })
       .catch(() => setSending(false));
   };
 
+  // The template shown large, downloaded first if it has to be; why it cannot be shown.
+  const [viewProblem, setViewProblem] = useState<string>();
   const view = (id: string | undefined) => {
     setViewing(id);
-    void upstart.invoke("templates:view", id ?? null);
+    setViewProblem(undefined);
+    void upstart.invoke("templates:view", id ?? null).then((problem) => problem && setViewProblem(problem));
   };
   // Leaving the start screen hides the template shown large.
   useEffect(() => () => void upstart.invoke("templates:view", null), []);
@@ -120,6 +132,8 @@ export function StartPanel({
           state={viewState.id === viewed.id ? viewState : NO_VIEW}
           chosen={chosen === viewed.id}
           hidden={covered || !!importing}
+          problem={viewProblem}
+          onRetry={() => view(viewed.id)}
           onBack={() => view(undefined)}
           onChoose={() => setChosen(viewed.id)}
         />
@@ -168,6 +182,16 @@ export function StartPanel({
       )}
 
       {signedOut && <SignInPanel status={status} />}
+      {sendProblem && (
+        <div
+          data-testid="start-problem"
+          role="alert"
+          className="mx-auto mb-2 w-full max-w-2xl rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm"
+        >
+          <p>{sendProblem}</p>
+          <p className="text-xs text-muted-foreground">{t.start.orScratch}</p>
+        </div>
+      )}
       <MessageBox
         className="mx-auto w-full max-w-2xl pb-5"
         project={null}
@@ -324,6 +348,8 @@ function TemplateLarge({
   state,
   chosen,
   hidden,
+  problem,
+  onRetry,
   onBack,
   onChoose,
 }: {
@@ -331,6 +357,9 @@ function TemplateLarge({
   state: TemplateViewState;
   chosen: boolean;
   hidden: boolean;
+  /** Why it cannot be shown: it could not be downloaded. */
+  problem: string | undefined;
+  onRetry: () => void;
   onBack: () => void;
   onChoose: () => void;
 }) {
@@ -406,8 +435,22 @@ function TemplateLarge({
         ref={frame}
         data-testid="template-frame"
         data-route={state.route ?? undefined}
-        className="min-h-0 flex-1 overflow-hidden rounded-lg border bg-muted"
-      />
+        className="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-lg border bg-muted"
+      >
+        {/* Under the template's own view: seen while it downloads, or when it cannot be shown. */}
+        {problem ? (
+          <div data-testid="template-problem" role="alert" className="max-w-sm space-y-3 text-center text-sm">
+            <p>{problem}</p>
+            <Button size="sm" variant="outline" onClick={onRetry}>
+              {t.start.tryAgain}
+            </Button>
+          </div>
+        ) : (
+          state.id !== template.id && (
+            <p className="text-sm text-muted-foreground">{t.start.downloading(template.name)}</p>
+          )
+        )}
+      </div>
     </div>
   );
 }

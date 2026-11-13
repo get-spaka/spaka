@@ -19,6 +19,9 @@
     "template:check": "node apps/desktop/scripts/template.mjs check",
     "template:shoot": "node apps/desktop/scripts/template.mjs shoot",
     "template:image": "node apps/desktop/scripts/template.mjs image",
+    "template:release": "node apps/desktop/scripts/template.mjs release",
+    "template:snapshot": "node apps/desktop/scripts/template.mjs snapshot",
+    "template:publish": "node apps/desktop/scripts/template.mjs publish",
     "start": "pnpm --filter @upstart/desktop start"
   },
   "devDependencies": {

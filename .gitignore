@@ -8,3 +8,5 @@ dist/
 # The skills used to work on Upstart itself here (making-templates, Q258).
 !/.claude/skills/
 /e2e/.runs/
+# The latest templates release's catalogue and pictures, shipped with the packaged app (pnpm template:snapshot).
+/apps/desktop/templates-catalogue/

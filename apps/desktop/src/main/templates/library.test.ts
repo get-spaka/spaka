@@ -27,7 +27,7 @@ function outsideTemplate(id: string): string {
 
 describe("the templates to start from", () => {
   test("originals first, then the standard ones, each by name", () => {
-    const list = new TemplateLibrary(BUILT_IN, scratch()).list();
+    const list = new TemplateLibrary({ folder: BUILT_IN }, scratch()).list();
     const originals = list.filter((t) => t.original);
     expect(originals.length).toBeGreaterThanOrEqual(4);
     expect(list.slice(0, originals.length).every((t) => t.original)).toBe(true);
@@ -37,17 +37,17 @@ describe("the templates to start from", () => {
     expect(list.map((t) => t.id)).toContain("reel");
   });
 
-  test("a picture as a data URL; a template or picture it does not have, none", () => {
-    const library = new TemplateLibrary(BUILT_IN, scratch());
-    expect(library.picture("reel", "cover")).toMatch(/^data:image\/webp;base64,/);
-    expect(library.picture("reel", "hover")).toMatch(/^data:image\/webp;base64,/);
-    expect(library.picture("nothing", "cover")).toBeNull();
-    expect(library.dir("../reel")).toBeUndefined();
+  test("a picture as a data URL; a template or picture it does not have, none", async () => {
+    const library = new TemplateLibrary({ folder: BUILT_IN }, scratch());
+    expect(await library.picture("reel", "cover")).toMatch(/^data:image\/webp;base64,/);
+    expect(await library.picture("reel", "hover")).toMatch(/^data:image\/webp;base64,/);
+    expect(await library.picture("nothing", "cover")).toBeNull();
+    await expect(library.dir("../reel")).rejects.toThrow(/no such template/);
   });
 
-  test("an import is read and shown first, then added, listed as imported", () => {
+  test("an import is read and shown first, then added, listed as imported", async () => {
     const imported = scratch();
-    const library = new TemplateLibrary(BUILT_IN, imported);
+    const library = new TemplateLibrary({ folder: BUILT_IN }, imported);
     const answer = library.read(outsideTemplate("lighthouse"));
     if (!("token" in answer)) throw new Error(answer.problems.join("\n"));
     expect(answer.template).toMatchObject({ id: "lighthouse", name: "Lighthouse", imported: true });
@@ -57,12 +57,12 @@ describe("the templates to start from", () => {
     expect(library.get("lighthouse")).toBeUndefined();
     expect(library.accept(answer.token).id).toBe("lighthouse");
     expect(library.get("lighthouse")).toMatchObject({ imported: true });
-    expect(library.dir("lighthouse")).toBe(join(imported, "lighthouse"));
+    expect(await library.dir("lighthouse")).toBe(join(imported, "lighthouse"));
     expect(() => library.accept(answer.token)).toThrow(/import it again/);
   });
 
   test("an import refused: not a template, or named as one of Upstart's", () => {
-    const library = new TemplateLibrary(BUILT_IN, scratch());
+    const library = new TemplateLibrary({ folder: BUILT_IN }, scratch());
     const empty = scratch();
     expect(library.read(empty)).toEqual({ problems: [expect.stringMatching(/template\.json/)] });
     expect(library.read(join(BUILT_IN, "beacon"))).toEqual({

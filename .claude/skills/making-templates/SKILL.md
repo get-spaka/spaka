@@ -88,3 +88,15 @@ The shoot runs the app in the background and writes `pictures/` and a review she
 Then `pnpm template:check apps/desktop/templates/<id> --finished` and `npx vitest run apps/desktop/src/main/templates`.
 
 **Done when** both pass, you have looked at every picture of the latest shoot and found nothing to fix, and the sheet has been sent to the author.
+
+## 6. Release it, once the author says so
+
+Upstart's templates reach the app through the public repository upstart-gg/upstart-templates (never upstart-gg/templates, the old Upstart's). With the template merged into main and the author's go-ahead, copy them there, review the diff, commit and push, then tag the next `v<n>`: its CI checks every template as finished and attaches the release the app reads.
+
+```bash
+pnpm template:publish <checkout of upstart-gg/upstart-templates>
+```
+
+`pnpm template:release <out folder> <tag>` builds the same release here first, to see it fail before the CI does. The version in `template.json` goes up whenever a published template changes, so that the app downloads it again.
+
+**Done when** the tag's release on GitHub lists the template's `.zip` and pictures in its `catalogue.json`.

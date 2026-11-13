@@ -1,12 +1,17 @@
 // `pnpm template:check <folder or .zip>`: a template's checks, for its author
-// (and for us, making the app's own); `pnpm template:image`, its images.
+// (and for us, making the app's own); `pnpm template:image`, its images;
+// `pnpm template:release` and `pnpm template:snapshot`, Upstart's releases.
 // Bundled and run by scripts/template.mjs.
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { useFoundImage as addFoundImage, slug } from "../media/library";
-import { type FoundImage, type ImageFinder, ImageSearch, imagesAnswer } from "../media/search";
+import { type FoundImage, type ImageFinder, ImageSearch, imagesAnswer, USER_AGENT } from "../media/search";
 import { checkTemplate } from "./check";
+import { parseCatalogue, TEMPLATES_RELEASES } from "./library";
 import { readTemplateFolder, readTemplateZip } from "./reader";
+import { CATALOGUE_FILE, type Catalogue } from "./release";
+
+export { releaseMain } from "./release-main";
 
 export function main(args: string[]): number {
   const finished = args.includes("--finished");
@@ -114,4 +119,41 @@ export async function imageMain(args: string[], dir: string): Promise<number> {
     'Usage: pnpm template:image find <words> | pnpm template:image use <template folder> <id> <name> "<alternative text>" | pnpm template:image use <template folder> <list file>',
   );
   return 2;
+}
+
+/**
+ * `pnpm template:snapshot`: the latest release's catalogue and pictures, into
+ * `dir` (apps/desktop/templates-catalogue), shipped with the packaged app
+ * (Q247). Offline, a snapshot taken earlier stays, with a warning.
+ */
+export async function snapshotMain(dir: string, releases = TEMPLATES_RELEASES): Promise<number> {
+  const get = async (url: string) => {
+    const answer = await fetch(url, { headers: { "user-agent": USER_AGENT } });
+    if (!answer.ok) throw new Error(`${url}: HTTP ${answer.status}`);
+    return Buffer.from(await answer.arrayBuffer());
+  };
+  let catalogue: Catalogue | undefined;
+  const pictures = new Map<string, Buffer>();
+  try {
+    const text = (await get(`${releases}/latest/download/${CATALOGUE_FILE}`)).toString("utf8");
+    catalogue = parseCatalogue(text);
+    if (!catalogue) throw new Error("The latest catalogue is of a format this app does not read.");
+    for (const t of catalogue.templates)
+      for (const name of [t.cover, t.hover])
+        if (name) pictures.set(name, await get(`${releases}/download/${catalogue.release}/${name}`));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (existsSync(join(dir, CATALOGUE_FILE))) {
+      console.warn(`! The snapshot of the templates was kept as it was: ${message}`);
+      return 0;
+    }
+    console.error(`✗ No snapshot of the templates: ${message}`);
+    return 1;
+  }
+  rmSync(dir, { recursive: true, force: true });
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, CATALOGUE_FILE), `${JSON.stringify(catalogue, null, 2)}\n`);
+  for (const [name, bytes] of pictures) writeFileSync(join(dir, name), bytes);
+  console.log(`✓ ${catalogue.templates.length} templates of release ${catalogue.release}, in ${dir}`);
+  return 0;
 }

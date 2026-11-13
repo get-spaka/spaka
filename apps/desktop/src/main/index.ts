@@ -102,7 +102,7 @@ import {
   templateLeftNote,
   templateTextsLeft,
 } from "./templates/adapt";
-import { TemplateLibrary } from "./templates/library";
+import { TEMPLATES_RELEASES, TemplateLibrary } from "./templates/library";
 import { TemplateViewer } from "./templates/viewer";
 import { Fonts } from "./theme/fonts";
 import { readTheme, type ThemeValues, themeColors, writeTheme } from "./theme/theme-file";
@@ -281,13 +281,27 @@ async function main() {
   });
   const peek = new BlockPeek(win, () => preview.origin);
   await preview.start();
-  // The templates a new website may start from (Q245, Q249): Upstart's, shipped
-  // beside the app for now (downloaded from the templates' repository later,
-  // Q247), and the maker's imported ones; one is shown large by a viewer of its own.
+  // The templates a new website may start from (Q245, Q249): Upstart's, from
+  // the public repository's releases once packaged (their catalogue and
+  // pictures shipped with the app, a template downloaded when it is needed,
+  // Q247, Q250) or from the repository's folder in development, and the maker's
+  // imported ones; one is shown large by a viewer of its own.
+  const releases = env.templatesUrl ?? (app.isPackaged ? TEMPLATES_RELEASES : undefined);
   const templates = new TemplateLibrary(
-    app.isPackaged ? join(process.resourcesPath, "templates") : join(here, "../../templates"),
+    releases
+      ? {
+          releases,
+          snapshot:
+            env.templatesSnapshot ??
+            (app.isPackaged
+              ? join(process.resourcesPath, "templates-catalogue")
+              : join(here, "../../templates-catalogue")),
+          cache: join(app.getPath("userData"), "template-cache"),
+        }
+      : { folder: join(here, "../../templates") },
     join(app.getPath("userData"), "templates"),
   );
+  void templates.refresh().then((changed) => changed && ipc.emit("templates:changed"));
   const templateViewer = new TemplateViewer(win, {
     background: env.background,
     onState: (state) => ipc.emit("templates:view-state", state),
@@ -733,8 +747,18 @@ async function main() {
   ipc.handle("templates:list", () => templates.list());
   ipc.handle("templates:picture", (id, which) => templates.picture(id, which === "hover" ? "hover" : "cover"));
   ipc.handle("templates:view", async (id, route) => {
-    const dir = id && !current ? templates.dir(id) : undefined;
-    if (!id || !dir) return templateViewer.close();
+    if (!id || current) {
+      templateViewer.close();
+      return;
+    }
+    // Downloaded first if it has to be (Q247); the panel says why it cannot be shown.
+    let dir: string;
+    try {
+      dir = await templates.dir(id);
+    } catch (error) {
+      templateViewer.close();
+      return error instanceof Error ? error.message : String(error);
+    }
     await templateViewer.show(id, dir, typeof route === "string" && route.startsWith("/") ? route : "/");
   });
   ipc.on("templates:bounds", (rect) => templateViewer.setBounds(scaled(rect)));
@@ -842,15 +866,24 @@ async function main() {
     // from it, with the model and effort the maker picked beforehand).
     let project = current;
     if (!project) {
+      // The template it starts from, if the maker chose one (Q245), downloaded
+      // first if it has to be (Q247): copied into it, then adapted by the agent (Q246).
+      let dir: string | undefined;
+      try {
+        dir = typeof settings?.template === "string" ? await templates.dir(settings.template) : undefined;
+      } catch (error) {
+        return error instanceof Error ? error.message : String(error);
+      }
       const created = projects.create(projectNameFrom(message));
       const model = typeof settings?.model === "string" ? settings.model : created.model;
       const effort = isEffort(settings?.effort) ? settings.effort : created.effort;
-      // The template it starts from, if the maker chose one (Q245): copied into it, then adapted by the agent (Q246).
-      const dir = typeof settings?.template === "string" ? templates.dir(settings.template) : undefined;
       const manifest = dir ? copyTemplate(dir, created.path) : undefined;
       const template = manifest && { id: manifest.id, version: manifest.version };
       project = await opened(projects.update(created.id, { model, effort, ...(template ? { template } : {}) }));
-      if (manifest) return sendMessage(project, message, adaptMessage(manifest, message));
+      if (manifest) {
+        sendMessage(project, message, adaptMessage(manifest, message));
+        return;
+      }
     }
     sendMessage(project, message, message);
   });

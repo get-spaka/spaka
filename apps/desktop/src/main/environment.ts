@@ -33,6 +33,15 @@ export type Environment = {
   imagesFixture: string | undefined;
   /** Where to record the agent's stream, to play it back in later checks. */
   agentRecord: string | undefined;
+  /**
+   * Where Upstart's templates are released (Q250): the app then reads their
+   * catalogue and downloads them, as a packaged app does from the public
+   * repository's releases; unset in development, where they are read from the
+   * repository's folder.
+   */
+  templatesUrl: string | undefined;
+  /** The catalogue and pictures shipped with the app, when not its own: checks start with none. */
+  templatesSnapshot: string | undefined;
 };
 
 export function readEnvironment(env: NodeJS.ProcessEnv = process.env): Environment {
@@ -46,5 +55,7 @@ export function readEnvironment(env: NodeJS.ProcessEnv = process.env): Environme
     agentReplaySpeed: Number(env.UPSTART_AGENT_REPLAY_SPEED) || 4,
     imagesFixture: env.UPSTART_IMAGES_FIXTURE || undefined,
     agentRecord: env.UPSTART_AGENT_RECORD || undefined,
+    templatesUrl: env.UPSTART_TEMPLATES_URL || undefined,
+    templatesSnapshot: env.UPSTART_TEMPLATES_SNAPSHOT || undefined,
   };
 }

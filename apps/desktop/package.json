@@ -13,7 +13,7 @@
     "dev:live": "node scripts/bundle-hosts.mjs && UPSTART_SHOW_INACTIVE=1 electron-vite dev --watch",
     "build": "electron-vite build && node scripts/bundle-hosts.mjs",
     "start": "pnpm build && electron .",
-    "package": "pnpm build && electron-builder --mac --arm64 --publish never",
+    "package": "pnpm build && node scripts/template.mjs snapshot && electron-builder --mac --arm64 --publish never",
     "typecheck": "tsc -p tsconfig.node.json && tsc -p tsconfig.web.json",
     "hosts": "node scripts/bundle-hosts.mjs"
   },
@@ -91,12 +91,8 @@
         "to": "fonts"
       },
       {
-        "from": "templates",
-        "to": "templates",
-        "filter": [
-          "**/*",
-          "!README.md"
-        ]
+        "from": "templates-catalogue",
+        "to": "templates-catalogue"
       },
       {
         "from": "out/hosts",

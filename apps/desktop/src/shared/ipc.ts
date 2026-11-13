@@ -519,7 +519,11 @@ export type Invokes = {
   "conversation:get": () => ConversationState | null;
   /** Sends a message to the agent. Without an open project, a new one is created from it. */
   /** `newProject`: the settings of the website a first message creates, and the template it starts from (Q245). */
-  "conversation:send": (text: string, newProject?: { model: string; effort: Effort; template?: string }) => void;
+  /** Sends a message, creating the website first with none open; why it could not, in words the maker reads. */
+  "conversation:send": (
+    text: string,
+    newProject?: { model: string; effort: Effort; template?: string },
+  ) => string | undefined;
   "conversation:stop": () => void;
   "conversation:start-over": () => void;
   "agent:status": () => AgentStatus;
@@ -568,7 +572,8 @@ export type Invokes = {
   /** A template's cover or its animated hover sequence, as a data URL. */
   "templates:picture": (id: string, which: "cover" | "hover") => string | null;
   /** Shows a template large, at a page of it; null hides it (Q249). */
-  "templates:view": (id: string | null, route?: string) => void;
+  /** Shows a template large, downloaded first if it has to be (Q247); why it cannot be, in words the maker reads. */
+  "templates:view": (id: string | null, route?: string) => string | undefined;
   /** Asks for a template folder or .zip and reads it, to be added once the maker has seen it (Q236, Q248); null if none was chosen. */
   "templates:import": () => TemplateImport | null;
   /** Adds an imported template the maker has seen; its summary. */
@@ -660,6 +665,8 @@ export type Events = {
   "project:opened": (project: ProjectInfo | null) => void;
   "preview:state": (state: PreviewState) => void;
   "templates:view-state": (state: TemplateViewState) => void;
+  /** The latest catalogue of Upstart's templates was read, and it changed the list (Q250). */
+  "templates:changed": () => void;
   /** The pointer is over a page's thumbnail, or left it (Q132). */
   "preview:hover": (route: string | null) => void;
   /** A page's picture in the "All pages" view, as a data URL (Q141). */
@@ -796,6 +803,7 @@ export const channels = {
     "project:opened",
     "preview:state",
     "templates:view-state",
+    "templates:changed",
     "preview:hover",
     "preview:picture",
     "preview:page-deleted",

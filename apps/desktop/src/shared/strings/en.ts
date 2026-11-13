@@ -61,6 +61,9 @@ export const en = {
     clear: "Start from scratch instead",
     placeholder: (name: string) => `Describe your website: ${name} is rewritten for it…`,
     home: "Home",
+    downloading: (name: string) => `Downloading ${name}…`,
+    tryAgain: "Try again",
+    orScratch: "Or start from scratch: clear the template below.",
   },
   history: {
     title: "History",
