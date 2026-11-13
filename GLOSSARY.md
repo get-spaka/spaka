@@ -134,7 +134,7 @@ The catalogue of blocks that ships with Upstart.
 _Avoid_: Library, marketplace
 
 **Template**:
-A complete, ready-made project that a maker can start a new project from.
+A complete, ready-made project that a maker can start a new project from, with its own design, its own blocks and notes on its design for the agent. Made by Upstart or by an outside author.
 _Avoid_: Starter, theme; also avoid "template" for the source of a page
 
 ### Running and shipping
