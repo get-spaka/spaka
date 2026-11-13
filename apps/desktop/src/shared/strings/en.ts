@@ -316,13 +316,36 @@ export const en = {
   theme: {
     palettes: "Palettes",
     own: "Site's own",
-    ownTitle: "The colours the agent first chose for this website",
-    colors: "Colours",
-    shape: "Corners",
+    ownTitle: "The colors the agent first chose for this website",
+    colors: "Colors",
+    shape: "Shape",
     fonts: "Fonts",
     heading: "Headings",
     body: "Text",
     radius: "Roundness",
+    // The style values beside the colors (Q226): set apart from a palette, which changes colors only (Q227).
+    styles: {
+      buttons: {
+        label: "Buttons",
+        title: "The corners of buttons, form fields and badges",
+        options: { square: "Square", rest: "Like the rest", pill: "Pill" },
+      },
+      relief: {
+        label: "Relief",
+        title: "A slight shadow and shine on buttons and fields, or none",
+        options: { flat: "Flat", raised: "Raised" },
+      },
+      density: {
+        label: "Density",
+        title: "The size of buttons, fields and checkboxes",
+        options: { compact: "Compact", normal: "Normal", spacious: "Spacious" },
+      },
+      borders: {
+        label: "Borders",
+        title: "The width of the borders of buttons, fields and cards",
+        options: { fine: "Fine", bold: "Bold" },
+      },
+    },
     system: "On every computer",
     shipped: "Shipped with Upstart, copied into the website",
     names: {

@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import { type FSWatcher, watch } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { Overlay, previewHead, Runtime } from "@upstart/runtime";
+import { Overlay, previewHead, Runtime, themeStyle } from "@upstart/runtime";
 import { diskSource } from "@upstart/runtime/node";
 import { type BrowserWindow, shell, WebContentsView } from "electron";
 import type {
@@ -398,7 +398,7 @@ export class Preview {
   /** The maker's comments, drawn by the page on the elements they are about (Q95). */
   /** A theme being set in the Theme tab, shown before it is written (Q93). */
   showTheme(css: string) {
-    if (this.site) this.send({ type: "theme", css });
+    if (this.site) this.send({ type: "theme", css: themeStyle(css) });
   }
 
   setComments(comments: PageComment[]) {
@@ -492,8 +492,8 @@ export class Preview {
     if (!site || !pending) return;
     this.lastPush = Date.now();
     const theme = site.runtime.theme();
-    this.send({ type: "theme", css: theme });
-    this.grid.setTheme(theme);
+    this.send({ type: "theme", css: themeStyle(theme) });
+    this.grid.setTheme(themeStyle(theme));
     this.pushGrid(site, pending.final);
     // A file is complete: the pictures of the pages it changed are taken again (Q141).
     if (pending.final) this.grid.filesChanged();

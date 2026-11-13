@@ -1,5 +1,5 @@
-// The Theme tab (Q93): ready-made palettes, each colour, the roundness and
-// the fonts. The page follows while a gesture lasts (a colour dragged in the
+// The Theme tab (Q93): ready-made palettes, each color, the shape (the
+// roundness, buttons, relief, density and borders, Q226) and the fonts. The page follows while a gesture lasts (a colour dragged in the
 // picker, the slider moved); theme.css is written once, at its end, as one
 // version. Only the theme's core values change; the rest of the file stays.
 import { AlertTriangle, Moon } from "lucide-react";
@@ -140,6 +140,36 @@ export function ThemeTab({ theme, working, onAskDark }: { theme: string; working
           />
           <span className="w-12 text-right tabular-nums text-muted-foreground">{radius}rem</span>
         </div>
+        {STYLES.map((style) => {
+          const strings = t.theme.styles[style.id];
+          const current = style.read(values[style.variable]);
+          return (
+            <div key={style.id} className="flex items-center gap-3 text-xs" title={strings.title}>
+              <span className="w-24 shrink-0">{strings.label}</span>
+              <fieldset
+                aria-label={strings.label}
+                data-testid={`style-${style.id}`}
+                className="flex flex-1 rounded-md border p-0.5"
+              >
+                {Object.entries(style.options).map(([option, value]) => (
+                  <button
+                    key={option}
+                    type="button"
+                    data-testid={`style-${style.id}-${option}`}
+                    aria-pressed={current === option}
+                    onClick={() => current !== option && apply({ [style.variable]: value })}
+                    className={cn(
+                      "flex-1 rounded-sm px-1.5 py-1 disabled:opacity-50",
+                      current === option ? "bg-foreground text-background" : "hover:bg-muted",
+                    )}
+                  >
+                    {(strings.options as Record<string, string>)[option]}
+                  </button>
+                ))}
+              </fieldset>
+            </div>
+          );
+        })}
       </Group>
 
       <Group title={t.theme.fonts}>
@@ -181,6 +211,64 @@ export function ThemeTab({ theme, working, onAskDark }: { theme: string; working
     </fieldset>
   );
 }
+
+/** A length in rem, from rem or px; none for another notation. */
+function rem(value: string | undefined): number | undefined {
+  const m = /^\s*(-?[\d.]+)\s*(rem|px)?\s*$/.exec(value ?? "");
+  if (!m) return undefined;
+  return m[2] === "px" ? Number.parseFloat(m[1]!) / 16 : Number.parseFloat(m[1]!);
+}
+
+/**
+ * The style values (Q226), each with its choices and how a value in
+ * theme.css reads as one of them; absent, as a site looked before them.
+ * A value the agent wrote that is none of them selects no choice.
+ */
+const STYLES = [
+  {
+    id: "buttons",
+    variable: "--theme-radius-field",
+    options: { square: "0rem", rest: "calc(var(--theme-radius) * 0.5)", pill: "9999px" },
+    read: (v?: string) => {
+      if (!v || v.includes("--theme-radius")) return "rest";
+      const n = rem(v);
+      if (n === 0) return "square";
+      if (n !== undefined && n >= 3) return "pill";
+      return undefined;
+    },
+  },
+  {
+    id: "relief",
+    variable: "--theme-depth",
+    options: { flat: "0", raised: "1" },
+    read: (v?: string) => (v && Number.parseFloat(v) === 0 ? "flat" : "raised"),
+  },
+  {
+    id: "density",
+    variable: "--theme-size",
+    options: { compact: "0.21875rem", normal: "0.25rem", spacious: "0.28125rem" },
+    read: (v?: string) => {
+      const n = v ? rem(v) : 0.25;
+      if (n === undefined) return undefined;
+      return n < 0.24 ? "compact" : n > 0.26 ? "spacious" : "normal";
+    },
+  },
+  {
+    id: "borders",
+    variable: "--theme-border",
+    options: { fine: "1px", bold: "2px" },
+    read: (v?: string) => {
+      const n = v ? rem(v) : 1 / 16;
+      if (n === undefined) return undefined;
+      return n * 16 >= 1.5 ? "bold" : "fine";
+    },
+  },
+] as const satisfies readonly {
+  id: keyof typeof t.theme.styles;
+  variable: string;
+  options: Record<string, string>;
+  read: (value?: string) => string | undefined;
+}[];
 
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (

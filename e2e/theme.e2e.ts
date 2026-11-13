@@ -6,8 +6,8 @@ import { PALETTES } from "../apps/desktop/src/shared/palettes.ts";
 import { type LaunchedApp, launchApp } from "./app.ts";
 import { previewDriver } from "./preview-driver.ts";
 
-// The Theme tab (Q93), with the recorded agent: a palette, a colour, the
-// roundness and a font, each written into theme.css in place as one version;
+// The Theme tab (Q93), with the recorded agent: a palette, a color, the
+// roundness, the style values (Q226) and a font, each written into theme.css in place as one version;
 // the page follows during a gesture; a shipped font is copied into the
 // project and exported with it.
 describe("the theme", () => {
@@ -63,7 +63,48 @@ describe("the theme", () => {
     await until(async () => theme().includes("--theme-radius: 1.5rem"));
   });
 
-  test("a text colour hard to read on its background is flagged", async () => {
+  test("buttons, relief, density and borders are set apart, and a palette leaves them as they are (Q226, Q227)", async () => {
+    const pressed = async (id: string) =>
+      (await tab().getByTestId(`style-${id}`).locator('[aria-pressed="true"]').getAttribute("data-testid"))?.replace(
+        "style-",
+        "",
+      );
+    // Absent from theme.css, each shows the look a site had before them.
+    expect(await pressed("buttons")).toBe("buttons-rest");
+    expect(await pressed("relief")).toBe("relief-raised");
+    expect(await pressed("density")).toBe("density-normal");
+    expect(await pressed("borders")).toBe("borders-fine");
+    expect(await shown("--depth")).toBe("1");
+    const choices = [
+      ["buttons-pill", "--theme-radius-field: 9999px", "--radius-field", "9999px"],
+      ["relief-flat", "--theme-depth: 0", "--depth", "0"],
+      ["density-spacious", "--theme-size: 0.28125rem", "--size-field", "0.28125rem"],
+      ["borders-bold", "--theme-border: 2px", "--border", "2px"],
+    ] as const;
+    for (const [choice, line, daisy, value] of choices) {
+      await tab().getByTestId(`style-${choice}`).click();
+      await until(async () => theme().includes(line));
+      await until(async () => (await shown(daisy)) === value);
+      expect(await pressed(choice.split("-")[0]!)).toBe(choice);
+    }
+    await tab().getByTestId("style-borders").scrollIntoViewIfNeeded();
+    await launched.window.screenshot({ path: join(__dirname, ".runs/theme-styles.png") });
+    // The status colors and the color scheme follow the background.
+    const status = () =>
+      page(`(() => { const el = document.createElement("div"); el.style.color = "var(--color-error)";
+        document.body.append(el); const c = getComputedStyle(el).color; el.remove(); return c; })()`);
+    const light = await status();
+    expect(await page("getComputedStyle(document.documentElement).colorScheme")).toBe("light");
+    await launched.window.getByTestId("palette-midnight").click();
+    await until(async () => (await page("getComputedStyle(document.documentElement).colorScheme")) === "dark");
+    expect(await status()).not.toBe(light);
+    for (const [, line] of choices) expect(theme()).toContain(line);
+    expect(await pressed("buttons")).toBe("buttons-pill");
+    await launched.window.getByTestId("palette-forest").click();
+    await until(async () => (await page("getComputedStyle(document.documentElement).colorScheme")) === "light");
+  });
+
+  test("a text color hard to read on its background is flagged", async () => {
     const row = tab().locator('[data-name="--theme-color-primary-content"] input[type="color"]');
     const primary = await tab().locator('[data-name="--theme-color-primary"] input:not([type])').inputValue();
     await row.fill(primary);
@@ -86,6 +127,9 @@ describe("the theme", () => {
     const out = mkdtempSync(join(tmpdir(), "upstart-export-"));
     await invoke("export:run", out, "static");
     expect(existsSync(join(out, "fonts/fraunces/normal.woff2"))).toBe(true);
+    // The published theme carries the color scheme its background calls for, unlike the project's.
+    expect(readFileSync(join(out, "theme.css"), "utf8")).toContain(":root { color-scheme: light; }");
+    expect(theme()).not.toContain("color-scheme");
   });
 
   test("undo takes the font away again", async () => {

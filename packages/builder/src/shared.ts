@@ -14,6 +14,7 @@ import {
   type ProjectSource,
   Runtime,
   TAILWIND_THEME,
+  themeStyle,
 } from "@upstart/runtime";
 import { compile } from "tailwindcss";
 import type { BuildOptions, BuildProject, ImageCopies } from "./builder.ts";
@@ -162,7 +163,7 @@ export async function writeAssets(project: BuildProject, out: Output, texts: str
   out.write(`${ASSETS}/site.css`, `${BRIDGE_CSS}\n${await tailwind(candidates(texts.join("\n")))}`);
   out.write(`${ASSETS}/htmx.js`, readFileSync(resolveFrom.resolve("htmx.org/dist/htmx.min.js")));
   const theme = project.source.read("theme.css");
-  if (theme !== undefined) out.write("theme.css", theme);
+  if (theme !== undefined) out.write("theme.css", themeStyle(theme));
   const files = new Set(project.files);
   for (const path of project.files) if (isStatic(path, files)) out.write(path, project.readFile(path));
 }

@@ -94,4 +94,16 @@ export {
 export { memorySource, Overlay, type ProjectSource } from "./source.ts";
 export { MissingTable, RECORDS_SCHEMA, type SqlDatabase, SqlStore } from "./sql.ts";
 export { injectTrace, type Repair, repairTemplate, type Scan, scan } from "./template.ts";
-export { BRIDGE_CSS, repairCss, TAILWIND_THEME, THEME_MAP, THEME_VARIABLES } from "./theme.ts";
+export {
+  BRIDGE_CSS,
+  lightnessOf,
+  repairCss,
+  STATUS_COLORS,
+  STATUS_TEXT_AT,
+  STATUS_TONES,
+  STYLE_MAP,
+  TAILWIND_THEME,
+  THEME_MAP,
+  THEME_VARIABLES,
+  themeStyle,
+} from "./theme.ts";

@@ -1,7 +1,7 @@
 // What the runtime puts into the <head> of every page of the preview: the
 // libraries a project is written for (ADR 0004, ADR 0006) and its theme.
 // Projects never load them themselves.
-import { BRIDGE_CSS, TAILWIND_THEME } from "./theme.ts";
+import { BRIDGE_CSS, TAILWIND_THEME, themeStyle } from "./theme.ts";
 
 /** The libraries the preview serves, by file name, with the package file each comes from. */
 export const VENDOR = {
@@ -22,7 +22,7 @@ export function previewHead({ vendorBase, theme }: { vendorBase: string; theme: 
     `<meta charset="utf-8" data-up-runtime>`,
     `<meta name="viewport" content="width=device-width, initial-scale=1" data-up-runtime>`,
     `<link rel="stylesheet" href="${base}/daisyui.css" data-up-runtime>`,
-    `<style id="up-theme" data-up-runtime>${theme}</style>`,
+    `<style id="up-theme" data-up-runtime>${themeStyle(theme)}</style>`,
     `<style id="up-bridge" data-up-runtime>${BRIDGE_CSS}</style>`,
     `<style type="text/tailwindcss" data-up-runtime>${TAILWIND_THEME}</style>`,
     `<script src="${base}/tailwind.js" data-up-runtime></script>`,

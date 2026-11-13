@@ -38,7 +38,7 @@ import { addCreditsLink, CREDITS_ROUTE, creditedMedia, creditsPage, fillAlts, wi
 import { recordTitle } from "./records.ts";
 import type { ProjectSource } from "./source.ts";
 import { injectTrace, repairTemplate } from "./template.ts";
-import { repairCss } from "./theme.ts";
+import { repairCss, themeStyle } from "./theme.ts";
 
 const PAGE_EXTENSIONS = [".liquid", ".html"] as const;
 
@@ -303,7 +303,7 @@ export class Runtime {
       return new Response("Method not allowed", { status: 405, headers: { allow: "GET, HEAD" } });
     const query = Object.fromEntries(url.searchParams);
     if (url.pathname === "/theme.css")
-      return new Response(this.theme(), { headers: { "content-type": "text/css; charset=utf-8" } });
+      return new Response(themeStyle(this.theme()), { headers: { "content-type": "text/css; charset=utf-8" } });
     const unavailable = await this.loadCollected();
     if (unavailable) return unavailable;
     const fragment = /^\/fragments\/([\w-]+)\/?$/.exec(url.pathname);

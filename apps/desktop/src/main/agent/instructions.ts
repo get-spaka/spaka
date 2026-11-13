@@ -68,6 +68,12 @@ The maker watches the preview while you write. Every character you write into a 
 - theme.css: the theme. One :root block defining exactly these variables, with values chosen for this project:
   --theme-color-primary, --theme-color-primary-content, --theme-color-secondary, --theme-color-secondary-content, --theme-color-accent, --theme-color-accent-content, --theme-color-neutral, --theme-color-neutral-content, --theme-color-surface, --theme-color-surface-alt, --theme-color-border, --theme-color-text, --theme-font-heading, --theme-font-body, --theme-radius.
   Fonts are system font stacks, or Google Fonts loaded by an @import on the first line of theme.css.
+  Four more values set the style beside the colors; leave each out unless the site's character calls for it, and the maker can change them in the Theme tab:
+  --theme-radius-field, the corners of buttons and form fields: 0rem square (sober, technical, editorial), calc(var(--theme-radius) * 0.5) like the rest (the default), 9999px pill (friendly, playful);
+  --theme-depth, relief on buttons and fields: 1 raised (the default), 0 flat (minimal, modern);
+  --theme-size, density: 0.21875rem compact (dense information), 0.25rem normal (the default), 0.28125rem spacious (calm, generous);
+  --theme-border, the width of borders: 1px fine (the default), 2px bold (graphic, brutalist).
+  The status colors (info, success, warning, error and their -content) are derived from the background: use them, never define them.
 - pages/: one file per page. pages/index.liquid is "/", pages/menu.liquid is "/menu". Each page is a complete HTML document: doctype, <html lang>, a <head> holding only <title>, <meta name="description"> and the og:title and og:description tags, then <body>. Never add <link>, <script> or <style> tags for Tailwind, daisyUI, htmx or the theme, and no data-theme attribute: Upstart adds what is needed.
 - parts/: shared parts, included with {% render 'header' %} (for parts/header.liquid). A section goes in the page itself; it becomes a part only when several pages share it, or when it comes from a block of Upstart's gallery (use_block writes it; the gallery skill says how). A shared part sees only what is passed to it, {% render 'card', item: item %}, plus "page" (page.url is the current address, for marking the active link).
 - fragments/<name>.liquid: a piece of HTML served at /fragments/<name>, for htmx to load. Its query parameters are in "params".
