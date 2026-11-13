@@ -43,7 +43,7 @@ import {
 import { en as t } from "../shared/strings/en";
 import { Agent, projectNameFrom } from "./agent/agent";
 import { AgentAuth } from "./agent/auth";
-import { agentBinary, cleanEnv, nodeLauncher, sandboxedCdGranted } from "./agent/confinement";
+import { agentBinary, cleanEnv, grantedInSandbox, nodeLauncher } from "./agent/confinement";
 import { dataProblemsAfter } from "./agent/data-check";
 import { instructionsFor } from "./agent/instructions";
 import {
@@ -326,12 +326,12 @@ async function main() {
           allowedTools: [LOOK_TOOL, FIND_BLOCKS_TOOL, FIND_IMAGES_TOOL, USE_IMAGE_TOOL, USE_BLOCK_TOOL],
           // A record that does not read is said to the agent at once, with the tool's answer (Q170).
           hooks: {
-            // A cd joined to a command that writes, granted inside the sandbox (Q220).
+            // What the agent tool would ask for, granted when the sandbox confines it (Q220, Q221).
             PermissionRequest: [
               {
                 hooks: [
                   async (input: { tool_name?: string; tool_input?: unknown }) =>
-                    sandboxedCdGranted(project.path, input.tool_name ?? "", input.tool_input)
+                    grantedInSandbox(input.tool_name ?? "", input.tool_input)
                       ? {
                           hookSpecificOutput: {
                             hookEventName: "PermissionRequest" as const,

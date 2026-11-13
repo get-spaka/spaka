@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { cleanEnv, confinement, sandboxedCdGranted } from "./confinement";
+import { cleanEnv, confinement, grantedInSandbox } from "./confinement";
 
 test("the agent's environment keeps nothing of the session that launched the app", () => {
   const env = cleanEnv({
@@ -17,7 +17,9 @@ test("the agent's environment keeps nothing of the session that launched the app
 test("the agent writes only in the project and the temporary folder, and never asks", () => {
   const options = confinement({ projectDir: "/Users/x/Documents/Upstart/site", readable: ["/Users/x/bin"] });
   expect(options.cwd).toBe("/Users/x/Documents/Upstart/site");
-  expect(options.permissionMode).toBe("auto");
+  expect(options.permissionMode).toBe("acceptEdits");
+  // Where the sandbox is not known to hold, auto mode stays (Q221).
+  expect(confinement({ projectDir: "/p", readable: [], platform: "win32" }).permissionMode).toBe("auto");
   expect(options.settingSources).toEqual([]);
   expect(options.settings.permissions).toMatchObject({
     blockWritesOutsideWorkingDirectories: true,
@@ -31,22 +33,18 @@ test("the agent writes only in the project and the temporary folder, and never a
   expect(options.settings.sandbox.filesystem.allowRead).toEqual(["/Users/x/Documents/Upstart/site", "/Users/x/bin"]);
 });
 
-test("a cd joined to a command that writes is granted only inside the sandbox and the project (Q220)", () => {
-  const project = "/Users/x/Documents/Upstart/site";
-  const ok = (command: string, extra: Record<string, unknown> = {}) =>
-    sandboxedCdGranted(project, "Bash", { command, ...extra });
-  expect(ok("cd data && rm team/emma-clarke.md team/ravi-shah.md")).toBe(true);
-  expect(ok("cd data/menu; perl -pi -e 's/a/b/' x.md")).toBe(true);
-  expect(ok(`cd "${project}/data" && rm team/x.md`)).toBe(true);
-  expect(ok("cd . && rm data/x.md")).toBe(true);
-  // Outside the project, out of the sandbox, a second cd, git, or another tool: refused as before.
-  expect(ok("cd .. && rm -rf site")).toBe(false);
-  expect(ok("cd /tmp && rm x")).toBe(false);
-  expect(ok("cd ~ && rm x")).toBe(false);
-  expect(ok("cd data && rm x", { dangerouslyDisableSandbox: true })).toBe(false);
-  expect(ok("cd data && cd .. && rm x")).toBe(false);
-  expect(ok("cd data && git status")).toBe(false);
-  expect(ok("rm data/x.md")).toBe(false);
-  expect(ok("cd $HOME && rm x")).toBe(false);
-  expect(sandboxedCdGranted(project, "Write", { command: "cd data && rm x" })).toBe(false);
+test("without auto mode, a sandboxed command, a connector's tool or a skill is granted; nothing else (Q221)", () => {
+  const ok = (tool: string, input: Record<string, unknown> = {}) => grantedInSandbox(tool, input, "darwin");
+  expect(grantedInSandbox("Bash", { command: "ls" }, "linux")).toBe(false);
+  expect(ok("Bash", { command: "cd data && rm team/emma-clarke.md" })).toBe(true);
+  expect(ok("Bash", { command: "rm data/menu/*.md\nsed -i '' 's/a/b/' parts/header.liquid" })).toBe(true);
+  expect(ok("Bash", { command: "cd data && git status" })).toBe(true);
+  // Out of the sandbox, or a file tool asking (it writes outside the project): refused.
+  expect(ok("Bash", { command: "rm x", dangerouslyDisableSandbox: true })).toBe(false);
+  expect(ok("Bash", {})).toBe(false);
+  expect(ok("Write", { file_path: "/Users/x/escape.txt" })).toBe(false);
+  expect(ok("Edit", { file_path: "/Users/x/.zshrc" })).toBe(false);
+  expect(ok("mcp__upstart__use_block", { page: "pages/index.liquid" })).toBe(true);
+  expect(ok("mcp__notion__search", { query: "x" })).toBe(true);
+  expect(ok("Skill", { skill: "upstart:gallery" })).toBe(true);
 });

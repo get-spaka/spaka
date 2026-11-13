@@ -1,11 +1,11 @@
 // What the agent may do and see (ADR 0007, ADR 0010): it starts with nothing
 // of the maker's own Claude installation, writes only in the project and the
 // system's temporary folder, has a shell inside the operating system's
-// sandbox, runs in auto mode and is never allowed to ask the maker.
+// sandbox, which confines it on its own (Q221), and is never allowed to ask the maker.
 import { chmodSync, mkdirSync, realpathSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve, sep } from "node:path";
+import { dirname, join, sep } from "node:path";
 
 export const systemTmp = realpathSync(tmpdir());
 
@@ -30,17 +30,21 @@ export type ConfinementInput = {
   readable: string[];
   /** The assembled skills (ADR 0010): readable by the agent and its shell, never written. */
   skillsDir?: string;
+  platform?: NodeJS.Platform;
 };
 
 /** The agent's options that confine it. */
-export function confinement({ projectDir, readable, skillsDir }: ConfinementInput) {
+export function confinement({ projectDir, readable, skillsDir, platform = process.platform }: ConfinementInput) {
   const skills = skillsDir ? [skillsDir] : [];
   return {
     cwd: projectDir,
     // The skills' folder is a working directory so that the agent can read the
     // files a skill refers to; a deny rule below keeps it from writing there.
     additionalDirectories: [systemTmp, ...skills],
-    permissionMode: "auto" as const,
+    // Files in the project and the temporary folder written without asking;
+    // sandboxed shell commands allowed by the sandbox setting below (Q221).
+    // Elsewhere auto mode's classifier stays, the only guard on unconfined commands.
+    permissionMode: SANDBOX_HOLDS.includes(platform) ? ("acceptEdits" as const) : ("auto" as const),
     // No user, project or local settings: nothing of the maker's own setup.
     settingSources: [] as [],
     // Only the connectors the app passes.
@@ -76,28 +80,25 @@ export function confinement({ projectDir, readable, skillsDir }: ConfinementInpu
   };
 }
 
-/** A path with the macOS /private prefix of /var and /tmp left out, for comparing. */
-const unaliased = (path: string) => path.replace(/^\/private(?=\/(?:var|tmp)(?:\/|$))/, "");
+/** Where the sandbox was shown to confine the agent on its own (Q221): auto mode is off there. */
+const SANDBOX_HOLDS: NodeJS.Platform[] = ["darwin"];
 
 /**
- * Whether Upstart grants itself a shell command the binary would refuse for
- * joining a cd to a command that writes (Q220): it cannot tell statically
- * which folder the command writes to, but the operating system's sandbox
- * confines every command to the project and the temporary folder anyway.
- * Only one cd, first, to a folder of the project, run in the sandbox, and
- * nothing of git; everything else stays refused (ADR 0007).
+ * What Upstart grants itself when the agent tool would ask (Q220, Q221): with
+ * auto mode off, a shell command run in the operating system's sandbox, which
+ * confines it to the project and the temporary folder whatever it does (the
+ * tool asks for a cd joined to a write, or an rm among several commands,
+ * because it cannot tell statically where they write); a connector's tool or
+ * Upstart's own; a skill. A file tool asks only to write outside the project,
+ * and is refused, like anything else (ADR 0007).
  */
-export function sandboxedCdGranted(projectDir: string, toolName: string, input: unknown): boolean {
+export function grantedInSandbox(toolName: string, input: unknown, platform = process.platform): boolean {
+  // Where the sandbox is not known to hold, auto mode stays, and nothing is granted.
+  if (!SANDBOX_HOLDS.includes(platform)) return false;
+  if (toolName.startsWith("mcp__") || toolName === "Skill") return true;
   if (toolName !== "Bash" || !input || typeof input !== "object") return false;
   const { command, dangerouslyDisableSandbox } = input as { command?: unknown; dangerouslyDisableSandbox?: unknown };
-  if (typeof command !== "string" || dangerouslyDisableSandbox) return false;
-  const m = /^\s*cd\s+(?:"([^"$`]*)"|'([^']*)'|([^\s;&|"'`$~]+))\s*(?:&&|;)\s*(\S[\s\S]*)$/.exec(command);
-  if (!m) return false;
-  const rest = m[4]!;
-  if (/(?:^|[\s;&|(])cd(?:\s|$)/.test(rest) || /\bgit\b/.test(rest)) return false;
-  const root = unaliased(resolve(projectDir));
-  const target = unaliased(resolve(projectDir, (m[1] ?? m[2] ?? m[3])!));
-  return target === root || target.startsWith(`${root}${sep}`);
+  return typeof command === "string" && !dangerouslyDisableSandbox;
 }
 
 /** The official agent binary, from the SDK's package for this platform (ADR 0002). */
