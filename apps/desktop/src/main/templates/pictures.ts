@@ -17,10 +17,38 @@ async function sharp() {
   return (await import("sharp")).default;
 }
 
-/** A photograph (PNG) as a WebP file `width` wide. */
-export async function writeWebp(png: Buffer, width: number, path: string): Promise<void> {
+/** WebP's largest side. */
+const WEBP_MAX = 16_383;
+
+/**
+ * A photograph (PNG) as a WebP file `width` wide; a page too tall to be
+ * captured at once comes in slices, top to bottom, put back together here.
+ * A page taller than WebP allows is made narrower instead.
+ */
+export async function writeWebp(png: Buffer | Buffer[], width: number, path: string): Promise<void> {
   const s = await sharp();
-  writeFileSync(path, await s(png).resize({ width }).webp({ quality: 78 }).toBuffer());
+  const slices = Array.isArray(png) ? png : [png];
+  const sizes = await Promise.all(slices.map(async (slice) => s(slice).metadata()));
+  const wide = sizes[0]?.width ?? width;
+  const tall = sizes.reduce((sum, m) => sum + (m.height ?? 0), 0);
+  let whole = slices[0]!;
+  if (slices.length > 1) {
+    let top = 0;
+    const layers = slices.map((input, i) => {
+      const layer = { input, top, left: 0 };
+      top += sizes[i]!.height ?? 0;
+      return layer;
+    });
+    whole = await s({ create: { width: wide, height: tall, channels: 4, background: "#ffffff" } })
+      .composite(layers)
+      .png()
+      .toBuffer();
+  }
+  const fit = Math.min(width, Math.floor((WEBP_MAX * wide) / tall));
+  writeFileSync(
+    path,
+    await s(whole, { limitInputPixels: false }).resize({ width: fit }).webp({ quality: 78 }).toBuffer(),
+  );
 }
 
 /** Photographs (PNG) as one animated WebP, `width` wide, each shown `every` ms, the last held a while. */

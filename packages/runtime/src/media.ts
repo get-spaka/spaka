@@ -78,7 +78,8 @@ export function fillAlts(html: string, source: ProjectSource): string {
 
 /** The "Image credits" link, at the end of the page's last footer, or of its body without one. */
 export function addCreditsLink(html: string): string {
-  if (html.includes("data-up-credits")) return html;
+  // Already there: the element itself, not a stylesheet's selector naming it.
+  if (/<[a-z][^>]*\sdata-up-credits\b/i.test(html)) return html;
   const link = `<p data-up-credits style="margin:0.75rem 0 0;font-size:0.75rem;opacity:0.7"><a href="${CREDITS_ROUTE}" style="color:inherit">Image credits</a></p>`;
   const footer = html.toLowerCase().lastIndexOf("</footer>");
   if (footer >= 0) return html.slice(0, footer) + link + html.slice(footer);

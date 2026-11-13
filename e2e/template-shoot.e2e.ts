@@ -17,6 +17,9 @@ const DEVICES = [
   { name: "phone", width: 390, height: 844, out: 780 },
 ] as const;
 const HOVER = { width: 640, frames: 14, every: 110, scroll: 14 };
+/** A page is photographed down to this height, in slices of this many pixels. */
+const PAGE_MAX = 16_000;
+const SLICE = 2400;
 
 describe.skipIf(!dir)("a template's pictures", () => {
   let launched: LaunchedApp;
@@ -42,7 +45,8 @@ describe.skipIf(!dir)("a template's pictures", () => {
         });
         const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
         const js = (code: string) => win.webContents.executeJavaScript(code);
-        const png = async () => (await win.webContents.capturePage()).toPNG().toString("base64");
+        const png = async (rect?: { x: number; y: number; width: number; height: number }) =>
+          (await win.webContents.capturePage(rect)).toPNG().toString("base64");
         const resize = async (height: number) => win.setContentSize(device.width, height);
         try {
           await win.loadURL(url);
@@ -92,26 +96,44 @@ describe.skipIf(!dir)("a template's pictures", () => {
     const pictures = join(dir, "pictures");
     rmSync(pictures, { recursive: true, force: true });
     mkdirSync(join(pictures, "pages"), { recursive: true });
-    const webp = (png: string, width: number, path: string) =>
-      writeWebp(Buffer.from(png, "base64"), width, join(dir, path));
+    const webp = (png: string | string[], width: number, path: string) =>
+      writeWebp(
+        Array.isArray(png) ? png.map((p) => Buffer.from(p, "base64")) : Buffer.from(png, "base64"),
+        width,
+        join(dir, path),
+      );
 
     const shots: { route: string; desktop: string; phone: string }[] = [];
     for (const { route, name } of routes) {
       const shot = { route, desktop: "", phone: "" };
       for (const device of DEVICES) {
-        // The page whole: the window made as tall as the page, so that every section is in view and has risen.
-        const png = (await inWindow(
+        // The page whole, in slices (a window, and a capture, have a largest
+        // size): the window a slice tall, scrolled down the page a slice at a
+        // time, each part given time to rise; writeWebp puts them back together.
+        // What stays in place while the page scrolls (sticky) is let go, or it
+        // would be in every slice.
+        const slices = (await inWindow(
           route,
           device,
           `async ({ wait, js, png, resize }) => {
             await wait(600);
-            await resize(Math.min(await js("document.documentElement.scrollHeight"), 9000));
-            await wait(2200);
-            return png();
+            await js("for (const el of document.querySelectorAll('*')) if (getComputedStyle(el).position === 'sticky') el.style.position = 'static'");
+            const tall = Math.min(await js("document.documentElement.scrollHeight"), ${PAGE_MAX});
+            const view = Math.min(tall, ${SLICE});
+            await resize(view);
+            await wait(1200);
+            const slices = [];
+            for (let y = 0; y < tall; y += view) {
+              const top = Math.min(y, tall - view);
+              await js("scrollTo({ top: " + top + ", behavior: 'instant' })");
+              await wait(1800);
+              slices.push(await png({ x: 0, y: y - top, width: ${device.width}, height: Math.min(view, tall - y) }));
+            }
+            return slices;
           }`,
-        )) as string;
+        )) as string[];
         const path = `pictures/pages/${name}-${device.name}.webp`;
-        await webp(png, device.out, path);
+        await webp(slices, device.out, path);
         shot[device.name] = path;
       }
       shots.push(shot);
@@ -150,13 +172,15 @@ describe.skipIf(!dir)("a template's pictures", () => {
     // Frames alike in a row are merged by the encoder: it moves if it has more than one.
     expect(count).toBeGreaterThan(1);
 
-    // The review sheet: the cover, then each page at both widths side by side.
+    // The review sheet: the cover, then every page side by side, at desktop
+    // and phone width, in one row (a screenshot of a very tall page repeats
+    // parts of it, so the sheet stays wide rather than tall).
     const sheets = join(runsDir, "template-sheets");
     mkdirSync(sheets, { recursive: true });
     cpSync(pictures, join(sheets, id), { recursive: true });
-    const rows = shots
+    const columns = shots
       .map(
-        (s) => `<div class="row"><p><b>${s.route}</b></p><div class="cols">
+        (s) => `<div class="page"><p><b>${s.route}</b></p><div class="cols">
 <img class="desktop" src="${id}/${s.desktop.slice("pictures/".length)}"><img class="phone" src="${id}/${s.phone.slice("pictures/".length)}">
 </div></div>`,
       )
@@ -165,16 +189,16 @@ describe.skipIf(!dir)("a template's pictures", () => {
     writeFileSync(
       sheet,
       `<!doctype html><html><head><meta charset="utf-8"><style>
-body{margin:0;padding:24px;font:14px system-ui;background:#e5e5e5;color:#111}
-h1{font-size:20px;margin:0 0 12px} .row{margin:24px 0} .row p{margin:0 0 6px}
-.cols{display:flex;gap:16px;align-items:flex-start} img{display:block;border:1px solid #bbb;background:#fff}
-.cover{width:720px} .desktop{width:720px} .phone{width:240px}
+body{margin:0;padding:24px;font:14px system-ui;background:#e5e5e5;color:#111;width:max-content}
+h1{font-size:20px;margin:0 0 12px} .pages{display:flex;gap:40px;align-items:flex-start;margin-top:24px} .page p{margin:0 0 6px}
+.cols{display:flex;gap:12px;align-items:flex-start} img{display:block;border:1px solid #bbb;background:#fff}
+.cover{width:960px} .desktop{width:420px} .phone{width:140px}
 </style></head><body><h1>${id}: cover, then each page at desktop and phone width (hover: ${id}/hover.webp)</h1>
-<img class="cover" src="${id}/cover.webp">${rows}</body></html>`,
+<img class="cover" src="${id}/cover.webp"><div class="pages">${columns}</div></body></html>`,
     );
     const opened = launched.app.waitForEvent("window", (page) => page.url().endsWith(`/${id}.html`));
     await launched.app.evaluate(async ({ BrowserWindow }, target) => {
-      await new BrowserWindow({ show: false, width: 1040, height: 900 }).loadFile(target);
+      await new BrowserWindow({ show: false, width: 2600, height: 900, enableLargerThanScreen: true }).loadFile(target);
     }, sheet);
     const page = await opened;
     await page.waitForLoadState("load");

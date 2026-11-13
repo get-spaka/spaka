@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { Datasources, recordOf, splitRecord } from "./data.ts";
+import { addCreditsLink } from "./media.ts";
 import { Runtime } from "./runtime.ts";
 import { memorySource, Overlay } from "./source.ts";
 
@@ -183,6 +184,14 @@ describe("media (Q155, Q157)", () => {
     expect(credits.html).toContain("CC BY 4.0");
     expect(credits.html).not.toContain("Unused");
     expect(credits.html).not.toContain("logo.png");
+  });
+
+  test("the credits link is added even when a stylesheet in the page names it", () => {
+    expect(addCreditsLink("<style>footer [data-up-credits] { opacity: 0.6 }</style><footer>x</footer>")).toMatch(
+      /x<p data-up-credits[^>]*>.*<\/p><\/footer>$/,
+    );
+    const once = addCreditsLink("<footer>x</footer>");
+    expect(addCreditsLink(once)).toBe(once);
   });
 
   test("no credits page nor link when no image needs one", () => {
