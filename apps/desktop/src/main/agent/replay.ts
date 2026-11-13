@@ -57,6 +57,9 @@ const MODELS: ModelInfo[] = [
  * `speed`. The files the agent wrote are written again, in the project being
  * checked, so that the preview sees them as it would.
  */
+/** What the played-back agent received, message by message: for checks of what Upstart tells it. */
+export const replayed: string[] = [];
+
 export function replayQuery(file: string, speed = 1) {
   const turns = readTurns(file);
   let next = 0;
@@ -68,7 +71,9 @@ export function replayQuery(file: string, speed = 1) {
     let wake: (() => void) | undefined;
 
     async function* messages() {
-      for await (const _input of params.prompt) {
+      for await (const input of params.prompt) {
+        const content = input.message.content;
+        replayed.push(typeof content === "string" ? content : JSON.stringify(content));
         const turn = turns[next++];
         interrupted = false;
         if (!turn) {

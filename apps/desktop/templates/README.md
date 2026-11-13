@@ -48,6 +48,10 @@ As a `.zip` (an outside author's, Q236), the same files at its root or in the on
 
 No program, no `package.json`; anything at its root that is not part of a template is named and not copied.
 
+## Starting a website from one
+
+The start screen lists the templates (originals first) and shows one large, real and moving. Chosen, the template's site is copied into the new project (not its manifest or pictures), its sentences are noted in `.upstart/template-texts.json`, and the agent is told to adapt it: read the design notes, rewrite every text and record for the maker's business, replace the images, add or remove pages, keep the design. At the end of its turns Upstart names the template's sentences still in the site to the agent once, as it does for lorem ipsum. So write texts that are plainly of the invented business, in full sentences: a sentence of three words or more is checked; a short label (Menu, See the work) is not.
+
 ## Commands
 
 ```bash

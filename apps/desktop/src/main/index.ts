@@ -55,7 +55,7 @@ import {
   USE_IMAGE_TOOL,
   upstartServer,
 } from "./agent/preview-tool";
-import { Recorder, replayQuery } from "./agent/replay";
+import { Recorder, replayed, replayQuery } from "./agent/replay";
 import { AppSettingsStore, zoomFor } from "./app-settings";
 import { Connectors, type Vault } from "./connectors/connectors";
 import { Comments, commentsMessage } from "./editing/comments";
@@ -95,6 +95,13 @@ import {
   SiteUnavailable,
 } from "./publish/management";
 import { Skills } from "./skills/skills";
+import {
+  adaptMessage,
+  copyTemplate,
+  forgetTemplateTexts,
+  templateLeftNote,
+  templateTextsLeft,
+} from "./templates/adapt";
 import { TemplateLibrary } from "./templates/library";
 import { TemplateViewer } from "./templates/viewer";
 import { Fonts } from "./theme/fonts";
@@ -336,6 +343,8 @@ async function main() {
         const placedSamples = new Set<string>();
         // The parts and record pages it wrote, their lorem ipsum named to the agent once if left (Q223).
         const placedFiles = new Set<string>();
+        // Whether it was told of the template's texts left in this turn (Q246).
+        let templateTold = false;
         return {
           mcpServers: {
             [UPSTART_SERVER]: upstartServer({
@@ -395,9 +404,16 @@ async function main() {
                     const lorem = input.stop_hook_active ? [] : loremLeft(project.path, placedFiles);
                     placedSamples.clear();
                     placedFiles.clear();
+                    // The template's texts, named once; those it keeps after that are kept on purpose (Q246).
+                    const fromTemplate = templateTextsLeft(project.path);
+                    const tellTemplate = !input.stop_hook_active && fromTemplate.length > 0;
+                    if (!tellTemplate)
+                      forgetTemplateTexts(project.path, templateTold ? fromTemplate.flatMap((l) => l.texts) : []);
+                    templateTold = tellTemplate;
                     const notes = [
                       ...(left.length ? [samplesLeftNote(left)] : []),
                       ...(lorem.length ? [loremLeftNote(lorem)] : []),
+                      ...(tellTemplate ? [templateLeftNote(fromTemplate)] : []),
                     ];
                     return notes.length
                       ? { decision: "block" as const, reason: notes.join("\n\n") }
@@ -818,10 +834,12 @@ async function main() {
       const created = projects.create(projectNameFrom(message));
       const model = typeof settings?.model === "string" ? settings.model : created.model;
       const effort = isEffort(settings?.effort) ? settings.effort : created.effort;
-      // The template it starts from, if the maker chose one (Q245); copied into it and adapted in slice 7.
-      const chosen = typeof settings?.template === "string" ? templates.get(settings.template) : undefined;
-      const template = chosen && { id: chosen.id, version: chosen.version };
+      // The template it starts from, if the maker chose one (Q245): copied into it, then adapted by the agent (Q246).
+      const dir = typeof settings?.template === "string" ? templates.dir(settings.template) : undefined;
+      const manifest = dir ? copyTemplate(dir, created.path) : undefined;
+      const template = manifest && { id: manifest.id, version: manifest.version };
       project = await opened(projects.update(created.id, { model, effort, ...(template ? { template } : {}) }));
+      if (manifest) return sendMessage(project, message, adaptMessage(manifest, message));
     }
     sendMessage(project, message, message);
   });
@@ -1402,6 +1420,7 @@ async function main() {
         templates,
         templateViewer,
         checks,
+        replayed,
       },
     });
 

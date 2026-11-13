@@ -1,4 +1,4 @@
-import { cpSync, mkdtempSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
@@ -154,6 +154,27 @@ describe("the start screen", () => {
     );
     expect(project.template).toEqual({ id: "reel", version: "1.0.0" });
     expect(JSON.parse(readFileSync(join(project.path, ".upstart/project.json"), "utf8")).template.id).toBe("reel");
+    // The template is copied into the website, without its manifest and pictures (Q229, Q246)…
+    for (const path of [
+      "pages/work.liquid",
+      "parts/header.liquid",
+      "scripts/libraries.json",
+      ".upstart/skills/reel-design/SKILL.md",
+      ".upstart/template-texts.json",
+    ])
+      expect(existsSync(join(project.path, path)), path).toBe(true);
+    expect(existsSync(join(project.path, "template.json"))).toBe(false);
+    // The preview shows the template's site at once, its pages among them.
+    const routes = await main<string[]>("globalThis.upstart.preview.state().routes.map((r) => r.route)");
+    expect(routes).toEqual(expect.arrayContaining(["/", "/work", "/studio", "/contact"]));
+    await until(() => main<boolean>("globalThis.upstart.preview.view.getVisible()"));
+    expect(existsSync(join(project.path, "pictures"))).toBe(false);
+    // …the conversation shows the maker's words, and the agent gets them with what adapting the template means.
+    await expect(w.getByTestId("maker-message").textContent()).resolves.toBe("A ceramics studio in Lisbon.");
+    const received = await main<string[]>("globalThis.upstart.replayed");
+    expect(received.at(-1)).toContain('template "Reel"');
+    expect(received.at(-1)).toContain("reel-design skill");
+    expect(received.at(-1)?.endsWith("A ceramics studio in Lisbon.")).toBe(true);
     await expect(main<boolean>("globalThis.upstart.templateViewer.view.getVisible()")).resolves.toBe(false);
     await launched.capture("start-sent");
   });
