@@ -73,9 +73,9 @@ import {
 } from "./editing/use-blocks";
 import { readEnvironment } from "./environment";
 import { exportProject, publishChoices } from "./export";
-import { described, Gallery } from "./gallery/catalogue";
+import { described, Gallery, ProjectBlocks } from "./gallery/catalogue";
 import { BlockPeek } from "./gallery/peek";
-import { BlockIndex } from "./gallery/search";
+import { BlockIndex, findWithDesign } from "./gallery/search";
 import { blockShown } from "./gallery/shown";
 import { Thumbnails } from "./gallery/thumbnails";
 import { History } from "./history/history";
@@ -222,12 +222,21 @@ async function main() {
     index ??= new BlockIndex(gallery.list());
     return index;
   };
+  // The open project's blocks (Q235): its own design's first, then the gallery's.
+  let current: ProjectInfo | undefined;
+  const blocks = new ProjectBlocks(gallery, () => current?.path);
+  /** find_blocks for a project: its own design's blocks first (Q235), read afresh, then the gallery's. */
+  const findBlocksIn = (root: string) => (query: string, kind: string | undefined, limit: number | undefined) =>
+    findWithDesign(new BlockIndex(new ProjectBlocks(gallery, () => root).designBlocks()), blockIndex(), query, {
+      kind,
+      limit,
+    });
   // The open fonts the Theme tab offers (Q93), shipped the same way.
   const fonts = new Fonts(app.isPackaged ? join(process.resourcesPath, "fonts") : join(here, "../../fonts"));
   let contentTimer: NodeJS.Timeout | undefined;
   const preview: Preview = new Preview(win, {
     block: (id) => {
-      const block = gallery.get(id);
+      const block = blocks.get(id);
       return block && blockShown(block);
     },
     font: (path) => fonts.path(path),
@@ -236,6 +245,7 @@ async function main() {
     // The Content tab reads again when a datasource or a media file changes,
     // or a template, which decides which page shows a list (Q210, Q211).
     onFileChanged: (path) => {
+      blocks.changed(path);
       if (!/^(data|media|pages|parts|\.upstart\/test-records)\//.test(path)) return;
       clearTimeout(contentTimer);
       contentTimer = setTimeout(() => ipc.emit("content:changed"), 80);
@@ -349,11 +359,13 @@ async function main() {
           mcpServers: {
             [UPSTART_SERVER]: upstartServer({
               look: () => preview.look(),
-              findBlocks: (query, kind, limit) => blockIndex().find(query, { kind, limit }),
+              findBlocks: findBlocksIn(project.path),
               findImages: async (query, count) => imagesAnswer(query, await images.search(query, count)),
               useImage: (id, name, alt) => useFoundImage(images, project.path, id, name, alt),
               useBlocks: (input) => {
-                const { text, samples, files } = useBlocks(project.path, input, (id) => gallery.get(id));
+                const { text, samples, files } = useBlocks(project.path, input, (id) =>
+                  new ProjectBlocks(gallery, () => project.path).get(id),
+                );
                 for (const path of samples) placedSamples.add(path);
                 for (const path of files) placedFiles.add(path);
                 return text;
@@ -485,7 +497,7 @@ async function main() {
   // The maker's edits by hand, written by the app (Q90), each a snapshot of its own (Q94).
   const editor = new Editor({
     root: () => current?.path,
-    block: (id) => gallery.get(id),
+    block: (id) => blocks.get(id),
     busy: () => !!current && agent.isWorking(current.id),
     before: () => history?.store.snapshot("outside", ""),
     changed: (change) => {
@@ -534,7 +546,6 @@ async function main() {
   });
   if (!env.agentReplay) void agent.checkSignIn();
 
-  let current: ProjectInfo | undefined;
   // A website's view in the preview, and whether it already went to all its pages on its own (Q131).
   type ViewData = { view?: PreviewView; switched?: boolean };
   const viewFile = () => current && join(projects.dataFor(current.id), "preview.json");
@@ -979,7 +990,7 @@ async function main() {
   ipc.handle("editing:apply", (action) => editor.apply(action));
   const thumbnails = new Thumbnails(join(userData, "gallery-thumbnails"), () => preview.origin);
   ipc.on("gallery:peek", (id) => {
-    if (id && gallery.get(id)) void peek.show(id);
+    if (id && blocks.get(id)) void peek.show(id);
     else peek.hide();
   });
   // Its hidden window must not keep the app open once the maker's window is closed.
@@ -988,9 +999,9 @@ async function main() {
     peek.close();
     preview.grid.close();
   });
-  ipc.handle("gallery:list", () => gallery.list().map(described));
+  ipc.handle("gallery:list", () => blocks.list().map(described));
   ipc.handle("gallery:thumbnail", (id) => {
-    const block = gallery.get(id);
+    const block = blocks.get(id);
     const theme = preview.runtime?.theme();
     if (!block || theme === undefined) throw new Error("No such block, or no project open.");
     return thumbnails.get(id, blockShown(block), theme);

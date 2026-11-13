@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { expect, test } from "vitest";
 import type { Block } from "./catalogue";
 import { readGallery } from "./catalogue";
-import { BlockIndex, words } from "./search";
+import { BlockIndex, findWithDesign, words } from "./search";
 
 const b = (id: string, kind: Block["kind"], name: string, more: Partial<Block> = {}): Block => ({
   id,
@@ -79,4 +79,28 @@ test("the shipped gallery answers everyday requests", () => {
   expect(top("newsletter signup")).toMatch(/newsletter|cta/);
   expect(top("formulaire de contact")).toBe("forms");
   expect(top("horaires d'ouverture")).toBe("contact");
+});
+
+test("a project's own design first: what fits, or its block of the kind asked for, then the gallery's (Q235)", () => {
+  const design = new BlockIndex([
+    b("team-reel-pile", "team", "Pile of cards", { description: "The team as tilted cards.", design: true }),
+    b("hero-reel-kinetic", "hero", "Kinetic headline", { description: "Letters that rise.", design: true }),
+  ]);
+  const gallery = new BlockIndex([
+    b("team-grid", "team", "Team grid", { description: "The team in a grid of portraits." }),
+    b("team-list", "team", "Team list", { description: "The team as a list." }),
+  ]);
+  expect(findWithDesign(design, gallery, "team", { limit: 3 }).map((x) => x.id)).toEqual([
+    "team-reel-pile",
+    "team-grid",
+    "team-list",
+  ]);
+  // Of the kind asked for, its own even with no word in common.
+  expect(findWithDesign(design, gallery, "portraits", { kind: "team", limit: 2 }).map((x) => x.id)).toEqual([
+    "team-reel-pile",
+    "team-grid",
+  ]);
+  // None of its own fits: the gallery's alone.
+  expect(findWithDesign(design, gallery, "portraits", { limit: 2 }).map((x) => x.id)).toEqual(["team-grid"]);
+  expect(findWithDesign(new BlockIndex([]), gallery, "team", { limit: 1 }).map((x) => x.id)).toEqual(["team-grid"]);
 });

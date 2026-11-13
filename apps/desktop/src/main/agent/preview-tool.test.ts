@@ -80,3 +80,12 @@ test("a data block says what it lists: a collection, with its page per record, a
   expect(text).toContain("It lists faq, a list of this section of its own.");
   expect(text).toContain("It reads the site's navigation.");
 });
+
+test("the site's own design's blocks are marked, and the agent told to prefer them (Q235)", () => {
+  const own = { ...block("team-reel-pile", "team", "Pile of cards"), design: true };
+  const text = blocksAnswer([{ kind: "team", query: "the people" }], () => [own, block("team-grid", "team", "Grid")]);
+  expect(text).toContain("- team-reel-pile: Pile of cards (team, this site's own design)");
+  expect(text).toContain("- team-grid: Grid (team)\n");
+  expect(text).toMatch(/come from the template this site started from.*prefer them/);
+  expect(blocksAnswer([{ query: "x" }], () => [block("team-grid", "team", "Grid")])).not.toContain("own design");
+});

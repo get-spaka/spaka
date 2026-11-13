@@ -1,7 +1,8 @@
 // The Blocks tab (Q92, Q100, Q204): the gallery's blocks by kind, each drawn
 // with the project's theme, narrowed by a search or a kind's chip; with
 // neither, each kind is a group showing its count and its first blocks,
-// opened to show them all. A block is dragged into the preview, where the
+// opened to show them all. The project's own blocks, the design of the
+// template it started from, come first in a group of their own (Q235). A block is dragged into the preview, where the
 // line shows where it goes (Q101, Q112).
 import { ChevronDown, ChevronRight, Search, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -11,14 +12,29 @@ import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 
-export function BlocksTab({ theme, hasPage, working }: { theme: string; hasPage: boolean; working: boolean }) {
+export function BlocksTab({
+  projectId,
+  theme,
+  hasPage,
+  working,
+}: {
+  projectId?: string;
+  theme: string;
+  hasPage: boolean;
+  working: boolean;
+}) {
   const [blocks, setBlocks] = useState<GalleryBlock[]>([]);
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<BlockKind>();
   const [open, setOpen] = useState<Set<BlockKind>>(() => new Set());
+  // biome-ignore lint/correctness/useExhaustiveDependencies: another project has other blocks of its own
   useEffect(() => {
-    void upstart.invoke("gallery:list").then(setBlocks);
-  }, []);
+    let live = true;
+    void upstart.invoke("gallery:list").then((list) => live && setBlocks(list));
+    return () => {
+      live = false;
+    };
+  }, [projectId]);
   // The theme changes many times while the agent writes it: the thumbnails wait for it to settle.
   const [settled, setSettled] = useState(theme);
   useEffect(() => {
@@ -31,6 +47,7 @@ export function BlocksTab({ theme, hasPage, working }: { theme: string; hasPage:
   // A search or a chip shows every block it finds; otherwise a group shows its first ones until opened.
   const narrowed = !!kind || !!query.trim();
   const kinds = BLOCK_KINDS.filter((k) => blocks.some((b) => b.kind === k));
+  const design = shown.filter((b) => b.design);
   const toggle = (k: BlockKind) =>
     setOpen((was) => {
       const next = new Set(was);
@@ -98,8 +115,21 @@ export function BlocksTab({ theme, hasPage, working }: { theme: string; hasPage:
             {t.gallery.noMatch(query.trim())}
           </p>
         )}
+        {design.length > 0 && (
+          <section className="space-y-2" data-testid="blocks-design">
+            <div className="space-y-0.5">
+              <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t.gallery.design}</h2>
+              {!narrowed && <p className="text-[11px] text-muted-foreground">{t.gallery.designIntro}</p>}
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {design.map((block) => (
+                <BlockCard key={block.id} block={block} theme={settled} disabled={disabled} />
+              ))}
+            </div>
+          </section>
+        )}
         {BLOCK_KINDS.map((k) => {
-          const list = shown.filter((b) => b.kind === k);
+          const list = shown.filter((b) => b.kind === k && !b.design);
           if (!list.length) return null;
           const all = narrowed || open.has(k);
           const visible = all ? list : list.slice(0, FIRST);

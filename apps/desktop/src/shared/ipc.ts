@@ -79,6 +79,8 @@ export type GalleryBlock = {
    * for the whole site; a section list is named after the page it is dropped on.
    */
   data?: { name: string; family: "collection" | "section" };
+  /** One of the project's own blocks, in its blocks/ folder: the design of the template it started from (Q235). */
+  design?: boolean;
 };
 
 /** Values of the theme's core variables, by name ("--theme-color-primary" → "#9a3412"). */

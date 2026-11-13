@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test, vi } from "vitest";
-import { described, Gallery, readGallery } from "./catalogue";
+import { described, Gallery, ProjectBlocks, readGallery } from "./catalogue";
 
 const block = (dir: string, kind: string, id: string, json: object | string, source = `<section>${id}</section>`) => {
   mkdirSync(join(dir, kind, id), { recursive: true });
@@ -80,4 +80,31 @@ test("a data block without its definition is left out", () => {
   expect(readGallery(dir)).toEqual([]);
   expect(warn.mock.calls[0]?.join(" ")).toContain("_datasource.yaml");
   warn.mockRestore();
+});
+
+test("a project's blocks: its own design's first, marked, then the gallery's; read again when blocks/ changes (Q235)", () => {
+  const gallery = mkdtempSync(join(tmpdir(), "gallery-"));
+  block(gallery, "hero", "hero-split", about("hero", "Split hero"));
+  block(gallery, "team", "team-grid", about("team", "Team grid"));
+  const root = mkdtempSync(join(tmpdir(), "project-"));
+  block(join(root, "blocks"), "team", "team-pile", about("team", "Pile of cards"));
+  // A block of the project's with a gallery block's id: the project's.
+  block(join(root, "blocks"), "hero", "hero-split", about("hero", "The design's split hero"));
+  let open: string | undefined = root;
+  const blocks = new ProjectBlocks(new Gallery(gallery), () => open);
+  expect(blocks.list().map((b) => [b.id, !!b.design])).toEqual([
+    ["hero-split", true],
+    ["team-pile", true],
+    ["team-grid", false],
+  ]);
+  expect(blocks.get("hero-split")?.name).toBe("The design's split hero");
+  expect(described(blocks.get("team-pile")!).design).toBe(true);
+  expect(described(blocks.get("team-grid")!)).not.toHaveProperty("design");
+  block(join(root, "blocks"), "about", "about-statement", about("about", "Statement"));
+  expect(blocks.list().some((b) => b.id === "about-statement")).toBe(false);
+  blocks.changed("blocks/about/about-statement/block.json");
+  expect(blocks.list().some((b) => b.id === "about-statement")).toBe(true);
+  // No project open: the gallery's alone.
+  open = undefined;
+  expect(blocks.list().map((b) => b.id)).toEqual(["hero-split", "team-grid"]);
 });

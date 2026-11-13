@@ -43,16 +43,16 @@ export type UpstartTools = {
 export function blocksAnswer(wanted: Wanted[], find: FindBlocks): string {
   const limit = wanted.length > 1 ? 3 : 5;
   const described = new Set<string>();
-  const parts = wanted.map(({ kind, query }) => {
+  const found = wanted.map(({ kind, query }) => ({ kind, query, blocks: find(query, kind, limit) }));
+  const parts = found.map(({ kind, query, blocks }) => {
     const title = `# ${kind ? `${kind}: ` : ""}"${query}"`;
-    const blocks = find(query, kind, limit);
     if (!blocks.length)
       return `${title}
 No block of the gallery fits: write this section yourself.`;
     return [
       title,
       ...blocks.map((b) => {
-        const head = `- ${b.id}: ${b.name} (${b.kind})`;
+        const head = `- ${b.id}: ${b.name} (${b.kind}${b.design ? ", this site's own design" : ""})`;
         if (described.has(b.id)) return `${head}, described above.`;
         described.add(b.id);
         const about = [b.description];
@@ -72,8 +72,14 @@ No block of the gallery fits: write this section yourself.`;
       }),
     ].join("\n");
   });
+  const own = found.some(({ blocks }) => blocks.some((b) => b.design));
   return [
     "Blocks of Upstart's gallery. Choose one per section, then put them into the page with use_block, in reading order: it writes each as a shared part with its datasource and sample records, and the page's {% render %} lines.",
+    ...(own
+      ? [
+          "Blocks marked \"this site's own design\" come from the template this site started from, in its blocks/ folder: prefer them when they fit, they keep the site's style and effects.",
+        ]
+      : []),
     ...parts,
   ].join("\n\n");
 }

@@ -127,6 +127,7 @@ export function Conversation({
 
       {shownTab === "blocks" ? (
         <BlocksTab
+          projectId={project?.id}
           theme={preview.theme}
           hasPage={preview.route !== null && preview.routes.length > 0}
           working={working}

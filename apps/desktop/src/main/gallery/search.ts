@@ -88,3 +88,21 @@ export class BlockIndex {
     return scored.slice(0, limit).map((s) => s.d.block);
   }
 }
+
+/**
+ * find_blocks over a project's blocks (Q235): those of its own design that fit
+ * first, at most two, or for a kind asked for, its own of that kind even
+ * without a word in common; then the gallery's, `limit` in all.
+ */
+export function findWithDesign(
+  design: BlockIndex,
+  gallery: BlockIndex,
+  query: string,
+  { kind, limit = 4 }: { kind?: string; limit?: number } = {},
+): Block[] {
+  let own = design.find(query, { kind, limit: 2 });
+  if (!own.length && kind) own = design.find("", { kind, limit: 1 });
+  const ids = new Set(own.map((b) => b.id));
+  const rest = gallery.find(query, { kind, limit }).filter((b) => !ids.has(b.id));
+  return [...own, ...rest].slice(0, Math.max(limit, own.length));
+}

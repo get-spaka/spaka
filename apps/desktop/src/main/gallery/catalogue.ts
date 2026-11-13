@@ -64,6 +64,52 @@ export class Gallery {
   }
 }
 
+/**
+ * The blocks a project can use (Q235): its own, in its blocks/ folder (the
+ * design of the template it started from), first, then the gallery's. The
+ * project's are read again when a file of blocks/ changes.
+ */
+export class ProjectBlocks {
+  private design: { root: string; blocks: Block[] } | undefined;
+  private merged: { design: Block[]; blocks: Block[] } | undefined;
+
+  constructor(
+    private readonly gallery: Gallery,
+    private readonly root: () => string | undefined,
+  ) {}
+
+  /** The project's own blocks, marked as its design. */
+  designBlocks(): Block[] {
+    const root = this.root();
+    if (!root) return [];
+    if (this.design?.root !== root) {
+      const { blocks, skipped } = readBlocks(diskTree(join(root, "blocks")));
+      for (const { id, problem } of skipped) console.warn(`[upstart] the project's block ${id} left out: ${problem}`);
+      this.design = { root, blocks: blocks.map((b) => ({ ...b, design: true })) };
+    }
+    return this.design.blocks;
+  }
+
+  /** Every block: the project's first, then the gallery's, a gallery block of the same id left out. */
+  list(): Block[] {
+    const design = this.designBlocks();
+    if (this.merged?.design !== design) {
+      const ids = new Set(design.map((b) => b.id));
+      this.merged = { design, blocks: [...design, ...this.gallery.list().filter((b) => !ids.has(b.id))] };
+    }
+    return this.merged.blocks;
+  }
+
+  get(id: string): Block | undefined {
+    return this.list().find((b) => b.id === id);
+  }
+
+  /** A file of the project changed: under blocks/, its blocks are read again. */
+  changed(path: string) {
+    if (path === "blocks" || path.startsWith("blocks/")) this.design = undefined;
+  }
+}
+
 /** Where blocks are read from: a folder on disk, or a template's files held in memory. */
 export type BlockTree = {
   /** The entries of a folder, `kind` and `id` folders among them. */
@@ -164,6 +210,16 @@ export function readBlocks(tree: BlockTree): { blocks: Block[]; skipped: { id: s
 
 /** What the interface shows of a block: everything but its template. */
 export function described(block: Block): GalleryBlock {
-  const { id, kind, name, description, tags, mood, synonyms, data } = block;
-  return { id, kind, name, description, tags, mood, synonyms, ...(data ? { data } : {}) };
+  const { id, kind, name, description, tags, mood, synonyms, data, design } = block;
+  return {
+    id,
+    kind,
+    name,
+    description,
+    tags,
+    mood,
+    synonyms,
+    ...(data ? { data } : {}),
+    ...(design ? { design } : {}),
+  };
 }

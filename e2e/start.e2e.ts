@@ -178,4 +178,59 @@ describe("the start screen", () => {
     await expect(main<boolean>("globalThis.upstart.templateViewer.view.getVisible()")).resolves.toBe(false);
     await launched.capture("start-sent");
   });
+
+  test("the Blocks tab shows this design's blocks first, and one dragged into the page goes in (Q235)", async () => {
+    const w = launched.window;
+    await until(() => w.locator('[data-testid="agent-message"][data-status="done"]').count(), 30_000);
+    const project = await w.evaluate(() =>
+      // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
+      (window as any).upstart.invoke("projects:current"),
+    );
+    await w.getByTestId("tab-blocks").click();
+    const design = w.getByTestId("blocks-design");
+    await design.waitFor();
+    const ids = await design.getByTestId("block").evaluateAll((els) => els.map((el) => el.getAttribute("data-block")));
+    expect(ids).toHaveLength(7);
+    expect(ids).toEqual(expect.arrayContaining(["hero-reel-kinetic", "team-reel-pile", "gallery-reel-horizontal"]));
+    // First in the tab, and not again in the kinds' groups below.
+    const first = await w.getByTestId("block").first().getAttribute("data-block");
+    expect(ids).toContain(first);
+    await expect(w.locator('[data-testid="blocks-group"] [data-block="team-reel-pile"]').count()).resolves.toBe(0);
+    await design.locator("img").first().waitFor({ timeout: 20_000 });
+    await launched.capture("start-design-blocks");
+
+    // Dragged into the home page, below its first section.
+    const page = (js: string) =>
+      main<unknown>(`globalThis.upstart.preview.view.webContents.executeJavaScript(${JSON.stringify(js)})`);
+    await w.evaluate(() =>
+      // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
+      (window as any).upstart.invoke("preview:navigate", "/"),
+    );
+    await until(() => page("!!document.querySelector('upstart-editor') && location.pathname === '/'"));
+    const home = () => readFileSync(join(project.path, "pages/index.liquid"), "utf8");
+    const before = home();
+    const drag = (type: string) => `(() => {
+      const first = document.querySelector('main > *, body > section');
+      const r = first.getBoundingClientRect();
+      const data = new DataTransfer();
+      data.setData('application/x-upstart-block', 'team-reel-pile');
+      const event = new DragEvent(${JSON.stringify(type)}, { bubbles: true, cancelable: true, dataTransfer: data,
+        clientX: 200, clientY: Math.round(Math.min(r.bottom - 2, r.top + r.height * 0.75)) });
+      return !document.elementFromPoint(200, 10).dispatchEvent(event);
+    })()`;
+    await page(drag("dragover"));
+    await page(drag("drop"));
+    await until(async () => home() !== before);
+    expect(home()).toContain("{% render 'team-reel-pile' %}");
+    const part = readFileSync(join(project.path, "parts/team-reel-pile.liquid"), "utf8");
+    // The design's own markup, its texts as lorem ipsum for the site's own (Q223).
+    const block = readFileSync(
+      join(import.meta.dirname, "../apps/desktop/templates/reel/blocks/team/team-reel-pile/block.liquid"),
+      "utf8",
+    );
+    expect(part.split("\n")[0]).toBe(block.split("\n")[0]);
+    expect(part).toContain("{{ member.obsession }}");
+    expect(part).toMatch(/\b(?:lorem|ipsum|amet|adipiscing)\b/i);
+    expect(existsSync(join(project.path, "data/team/_datasource.yaml"))).toBe(true);
+  });
 });

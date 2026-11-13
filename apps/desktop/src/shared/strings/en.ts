@@ -406,6 +406,8 @@ export const en = {
     clearSearch: "Clear the search",
     noMatch: (query: string) => `No block matches “${query}”.`,
     kindsLabel: "Kinds of block",
+    design: "This design",
+    designIntro: "The blocks of the template this site started from, in its style.",
     showAll: (n: number) => `Show all ${n}`,
     kinds: {
       banner: "Banners",
