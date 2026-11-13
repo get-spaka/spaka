@@ -131,6 +131,20 @@ describe("the gallery of blocks", () => {
     expect(await page("document.body.innerText")).not.toContain(text.trim().slice(0, 40));
     await launched.window.getByTestId("tab-blocks").hover();
     await until(async () => !(await peek()).visible, 5_000);
+
+    // In the "All pages" view too, where the page itself is parked out of sight.
+    await launched.window.getByTestId("view-pages").click();
+    await launched.window.getByTestId("pages-grid").waitFor();
+    await launched.window.locator(`[data-block="${hero.id}"]`).hover();
+    await until(async () => (await peek()).shown === hero.id, 10_000);
+    const g = await peek();
+    expect(g.visible).toBe(true);
+    expect(g.top).toBe(true);
+    const column = await launched.window.getByTestId("pages-grid").evaluate((el) => el.getBoundingClientRect().x);
+    expect(g.bounds.x).toBeGreaterThan(column);
+    await launched.window.getByTestId("tab-blocks").hover();
+    await until(async () => !(await peek()).visible, 5_000);
+    await launched.window.getByTestId("view-page").click();
   });
 
   test("a block added goes where its kind usually goes, as a part of its own", async () => {
