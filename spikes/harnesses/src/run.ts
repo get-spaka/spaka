@@ -1,5 +1,7 @@
 // One run of a harness on one of spike 1's requests:
 //   node src/run.ts codex|pi|opencode [--request launch] [--model <id>] [--label <text>]
+//   node src/run.ts pi --text-files --model …   (files written in the reply's text, not by a tool)
+//   node src/run.ts pi --thinking low --model …   (Pi's thinking level: off, minimal, low, medium, high…)
 //   node src/run.ts codex --provider openrouter --model openai/gpt-6.1-sol   (an API key instead of ChatGPT)
 import { runCodex } from "./codex.ts";
 import { keys, type RequestName, startRun } from "./common.ts";
@@ -20,7 +22,7 @@ const timeout = setTimeout(() => {
 }, 600_000);
 const runners: Record<string, () => Promise<Record<string, unknown>>> = {
   codex: () => runCodex(run, { model, provider: opt("--provider") as "openrouter" | undefined, env: keys() }),
-  pi: () => runPi(run, { model, env: keys() }),
+  pi: () => runPi(run, { model, env: keys(), textFiles: rest.includes("--text-files"), thinking: opt("--thinking") }),
   opencode: () => runOpencode(run, { model, env: keys() }),
 };
 if (!runners[harness!]) throw new Error(`unknown harness ${harness}`);

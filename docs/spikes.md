@@ -81,7 +81,12 @@ Asked by Matt on 2026-11-14, after the templates; it reopens "Codex only after a
 
 **Decides.** Which agents Upstart offers, in what order, and the shape of the agent layer (a new ADR, or ADR 0002 reopened).
 
-**Outcome.** Run on 2026-11-14, see the [report](../spikes/harnesses/REPORT.md): only Pi with an OpenAI model on an API key keeps the live preview, at about twice Claude's time to a complete page; Codex (code mode), opencode 2 and every Gemini route send a file only once it is written; no subscription other than Claude's may be used by an app like Upstart. Which agents Upstart offers waits for Matt's decision (Q268).
+**Outcome.** Run on 2026-11-14, see the [report](../spikes/harnesses/REPORT.md).
+- **Ready-made harnesses:** only Pi with an OpenAI model on an API key keeps the live preview, at about twice Claude's time to a complete page. Codex (code mode), opencode 2 and every Gemini route send a file only once it is written.
+- **A harness of Upstart's own on Pi's libraries** (second round, the same day, on Matt's question) gives every model the live preview when the model writes its files in its reply's text. Gemini 4 Hydrogen this way, with its thinking low, matches Claude's pace (complete at 22.5 s against 23.6 s) for $0.05 a page.
+- **Subscriptions:** a Claude subscription stays on the Agent SDK. ChatGPT Plus or Pro can be plugged in through Sign in with ChatGPT only if OpenAI accepts Upstart. Google offers apps no subscription route. Otherwise, the maker's API key.
+
+Which agents Upstart offers waits for Matt's decision (Q268).
 
 ## What the spikes need from Matt
 

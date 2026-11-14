@@ -57,6 +57,12 @@ const NAMES: Record<string, string> = {
   "pi gemini-4-argon": "Pi, Gemini 4 Argon (Google API)",
   "pi google/gemini-4-hydrogen": "Pi, Gemini 4 Hydrogen (OpenRouter)",
   "pi gemini-4-hydrogen": "Pi, Gemini 4 Hydrogen (Google API)",
+  "pi gpt-6.1-sol": "Pi, GPT-6.1 Sol (OpenAI API)",
+  "pi gpt-6.1-sol text": "Pi, GPT-6.1 Sol (OpenAI API), files in the text",
+  "pi gemini-4-hydrogen text": "Pi, Gemini 4 Hydrogen (Google API), files in the text",
+  "pi gemini-4-argon text": "Pi, Gemini 4 Argon (Google API), files in the text",
+  "pi openai/gpt-6.1-sol low": "Pi, GPT-6.1 Sol (OpenRouter), thinking low",
+  "pi gemini-4-hydrogen text low": "Pi, Gemini 4 Hydrogen (Google API), files in the text, thinking low",
   "opencode openrouter/openai/gpt-6.1-sol": "opencode, GPT-6.1 Sol (OpenRouter)",
   "codex gpt-6-luna": "Codex, GPT-6 Luna (ChatGPT sign-in)",
   "codex openai/gpt-6.1-sol": "Codex, GPT-6.1 Sol (OpenRouter)",
@@ -66,7 +72,7 @@ for (const id of readdirSync(join(ROOT, "runs")).sort()) {
   if (!existsSync(join(dir, "run.json"))) continue;
   const run = JSON.parse(readFileSync(join(dir, "run.json"), "utf8"));
   if (run.summary.request !== request) continue;
-  const key = `${run.summary.harness} ${run.summary.model}`;
+  const key = `${run.summary.harness} ${run.summary.model}${run.summary.textFiles ? " text" : ""}${run.summary.thinking ? ` ${run.summary.thinking}` : ""}`;
   const g = row(NAMES[key] ?? key);
   const s = summarize(run.summary.total, run.contents, run.disk);
   g.starts.push(s.homeFirstStreamed ?? s.homeComplete);
