@@ -12,7 +12,21 @@ const arg = (n: string, d?: string) => (process.argv.includes(n) ? process.argv[
 const model = arg("--model", "gemini-4-hydrogen")!;
 const thinking = arg("--thinking", "low")!;
 const vertex = !process.argv.includes("--gemini-api");
-const ai = new GoogleGenAI(vertex ? { vertexai: true, apiKey: keys().VERTEX_API_KEY ?? keys().GEMINI_API_KEY } : { apiKey: keys().GEMINI_API_KEY });
+// On Vertex: the express mode's key when there is one, else Application Default Credentials
+// (`gcloud auth application-default login`), with the project and region given by
+// --project / --location, VERTEX_PROJECT / VERTEX_LOCATION in keys.env, or gcloud's project.
+const project = arg("--project", keys().VERTEX_PROJECT ?? process.env.GOOGLE_CLOUD_PROJECT);
+const location = arg("--location", keys().VERTEX_LOCATION ?? "global")!;
+const ai = new GoogleGenAI(
+  !vertex
+    ? { apiKey: keys().GEMINI_API_KEY }
+    : keys().VERTEX_API_KEY
+      ? { vertexai: true, apiKey: keys().VERTEX_API_KEY }
+      : { vertexai: true, project: project ?? gcloudProject(), location },
+);
+function gcloudProject() {
+  return req("node:child_process").execFileSync("gcloud", ["config", "get-value", "project"], { encoding: "utf8" }).trim();
+}
 const t0 = Date.now();
 const parts: { t: number; name?: string; partial?: number; args?: number; willContinue?: boolean; text?: number }[] = [];
 try {
