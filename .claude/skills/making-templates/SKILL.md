@@ -39,7 +39,7 @@ The brief is a page, in the author's language:
 - **Motion**: what moves, when, with which library or CSS; what the page shows under reduced motion and in edit mode, where nothing runs.
 - **Pages**: each page with its sections in order, which come from the gallery (`apps/desktop/gallery/<kind>/<id>`) and which are the template's own; its datasources.
 - **Its own blocks**: the sections a maker will want to add again elsewhere, which go into `blocks/`.
-- **Its questions**: 1 to 3 on what really varies in the design and costs the agent work to change (how a visitor books, orders or signs up, which pages exist, what is sold and how), each with 2 to 4 choices, the first the template as built. Never a fact the agent asks after (the hours, the prices).
+- **What varies**: 1 to 3 choices on what really varies in the design and costs the agent work to change (how a visitor books, orders or signs up, which pages exist, what is sold and how), each with 2 to 4 options, the first the one recommended, most often the template as built. Never a fact the agent asks after (the hours, the prices).
 
 Show it to the author and ask for their approval; build nothing before it.
 
@@ -47,13 +47,13 @@ Show it to the author and ask for their approval; build nothing before it.
 
 ## 3. Build it
 
-In `apps/desktop/templates/<id>/`, a project folder as `FORMAT.md` describes: `template.json`, `theme.css`, `pages/`, `parts/`, `data/`, `scripts/` and `styles/` if it moves, `blocks/`, and its design notes in `.upstart/skills/<id>-design/SKILL.md`.
+In `apps/desktop/templates/<id>/`, a project folder as `FORMAT.md` describes: `template.json`, `TEMPLATE.md`, `theme.css`, `pages/`, `parts/`, `data/`, `scripts/` and `styles/` if it moves, `blocks/`, and its design notes in `.upstart/skills/<id>-design/SKILL.md`.
 
 - **Sections from the gallery**: copy the block's `block.liquid` into `parts/<id>.liquid` and render it, and its `data/` into the project's, as the gallery's README says a drop does; then restyle it to the brief.
 - **Texts**: the fictional business's, as a copywriter would write them, in English with American spelling. Makers write in other languages: the header's links and the buttons hold labels a third longer, as in French or German, on one line (`whitespace-nowrap`), the menu button taking over below the width where they all fit. Every list a datasource with three to six believable records; `navigation` holds the header's and footer's links.
 - **Movement** follows the site-scripts skill: the page complete with no script, the hidden state set by the script itself, reduced motion respected.
-- **The design notes** tell the agent that adapts it: the spirit in two or three sentences, each effect and the attribute or class that turns it on (so a new section gets it too), and what not to break. They are a skill; write its description as a pointer the agent will follow: "The <name> template's design notes — read before changing its pages, sections or styles."
-- **Its questions** go in `template.json`, as `FORMAT.md` shows, and its design notes end with `## Template questions`: a `### ` heading per question, written exactly as asked, and for each answer the files to change and how.
+- **The guide**, `TEMPLATE.md`, tells the agent that adapts it what matters only then, in the outline `FORMAT.md` shows: what it is and whom it suits, how it is made, when adapting (where the name and the address appear, what to leave out rather than guess), and `## Before building` with the brief's choices, each option with what it means for the maker and the files to change.
+- **The design notes** stay with the website for the agent's later turns: the spirit in two or three sentences, the type, the colors and shapes, each effect and the attribute or class that turns it on (so a new section gets it too), how the lists work, and the rules that hold for the website's whole life. They are a skill; write its description as a pointer the agent will follow: "The <name> template's design notes — read before changing its pages, sections or styles." A line goes in one of the two documents, never both.
 
 Run `pnpm template:check apps/desktop/templates/<id>` as you go.
 

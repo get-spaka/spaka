@@ -30,6 +30,10 @@ export type Template = {
 export const PICTURES = "pictures";
 export const BLOCKS = "blocks";
 export const DESIGN_SKILL = (id: string) => `.upstart/skills/${id}-design`;
+/** Its guide, for the agent that adapts it (Q299): read once, never copied into the website. */
+export const GUIDE = "TEMPLATE.md";
+/** Where the guide says what to ask before building (Q300). */
+export const BEFORE_BUILDING = "## Before building";
 
 /** What a template holds at its root; anything else is not copied into a project. */
 export const TEMPLATE_ENTRIES = new Set([
@@ -46,6 +50,7 @@ export const TEMPLATE_ENTRIES = new Set([
   "blocks",
   "pictures",
   ".upstart",
+  "TEMPLATE.md",
   "README.md",
   "LICENSE",
   "LICENSE.md",
@@ -188,12 +193,18 @@ function picturesOf(files: TemplateFiles): TemplatePictures {
   };
 }
 
-/** What a new project copies of a template: its site's files, not its manifest, pictures, readme or licence (Q240). */
+/** What a new project copies of a template: its site's files, not its manifest, guide, pictures, readme or licence (Q240, Q299). */
 export function projectFiles(files: TemplateFiles): TemplateFiles {
   return new Map(
     [...files].filter(([path]) => {
       const top = path.split("/")[0]!;
-      return TEMPLATE_ENTRIES.has(top) && path !== MANIFEST && top !== PICTURES && !/^(?:README|LICEN[CS]E)/.test(top);
+      return (
+        TEMPLATE_ENTRIES.has(top) &&
+        path !== MANIFEST &&
+        path !== GUIDE &&
+        top !== PICTURES &&
+        !/^(?:README|LICEN[CS]E)/.test(top)
+      );
     }),
   );
 }

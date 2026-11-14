@@ -268,7 +268,6 @@ function summaryOf(m: Manifest, imported: boolean): TemplateSummary {
     original: m.original,
     tags: m.tags,
     imported,
-    questions: m.questions,
   };
 }
 

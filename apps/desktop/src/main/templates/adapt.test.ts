@@ -11,7 +11,6 @@ import {
   forgetTemplateTexts,
   sentencesOf,
   TEMPLATE_TEXTS,
-  templateAnswers,
   templateLeftNote,
   templateTextsLeft,
 } from "./adapt";
@@ -22,8 +21,11 @@ const project = () => mkdtempSync(join(tmpdir(), "upstart-adapt-"));
 describe("a template copied into a new project", () => {
   test("its site, its blocks and design notes; not its manifest or pictures", () => {
     const root = project();
-    const manifest = copyTemplate(CORNER, root);
+    const { manifest, guide } = copyTemplate(CORNER, root);
     expect(manifest).toMatchObject({ id: "corner", name: "Corner" });
+    // Its guide is for the first message only (Q299).
+    expect(guide).toMatch(/^## Before building$/m);
+    expect(existsSync(join(root, "TEMPLATE.md"))).toBe(false);
     expect(existsSync(join(root, "pages/index.liquid"))).toBe(true);
     expect(existsSync(join(root, "theme.css"))).toBe(true);
     expect(existsSync(join(root, ".upstart/skills/corner-design/SKILL.md"))).toBe(true);
@@ -48,63 +50,44 @@ describe("a template copied into a new project", () => {
     expect(text).toMatch(/Keep the design/);
     expect(text).toMatch(/look at each page with look_at_preview/);
     expect(text.endsWith("A flower shop in Ghent.")).toBe(true);
-    // A template without questions says nothing of them.
-    expect(text).not.toMatch(/template's questions on the start screen/);
+    // Without a guide, nothing to ask before building.
+    expect(text).not.toMatch(/guide|Before building/);
   });
 
-  test("its questions as the maker left them: chosen, or on the recommended answer (Q287)", () => {
-    const questions = [
-      {
-        question: "How do guests book a table?",
-        header: "Booking",
-        options: [
-          { label: "Online", description: "" },
-          { label: "By phone", description: "" },
-        ],
-        multiSelect: false,
-      },
-      {
-        question: "Private dining and events?",
-        header: "Pages",
-        options: [
-          { label: "Both", description: "" },
-          { label: "Events only", description: "" },
-        ],
-        multiSelect: false,
-      },
-      {
-        question: "Which drinks?",
-        header: "Drinks",
-        options: [
-          { label: "Wine", description: "" },
-          { label: "Cocktails", description: "" },
-          { label: "Beer", description: "" },
-        ],
-        multiSelect: true,
-      },
-    ];
+  test("its guide, and the choices the message leaves open asked before building (Q297-Q301)", () => {
+    const guide = `# Ember
+
+An evening restaurant.
+
+## Before building
+
+### How do guests book a table?
+
+- **Online, with the form** (as built): the reservation form stays.
+- **By phone**: a call button in place of the form.`;
     const text = adaptMessage(
-      { id: "ember", name: "Ember", description: "An evening restaurant.", questions },
+      { id: "ember", name: "Ember", description: "An evening restaurant." },
       "A jazz bar in Lyon, booking by phone only.",
-      // A label the question does not have is left on the recommended one; several are kept in its order.
-      {
-        "How do guests book a table?": "By phone",
-        "Private dining and events?": "Neither",
-        "Which drinks?": ["Beer", "Wine"],
-      },
+      guide,
     );
-    expect(text).toContain("- How do guests book a table? → By phone (the maker's choice)");
-    expect(text).toContain("- Private dining and events? → Both (left on the recommended answer)");
-    expect(text).toContain("- Which drinks? → Wine, Beer (the maker's choice)");
-    expect(text).toMatch(/the message wins over an answer left on the recommended one/);
-    expect(text).toMatch(/the template's questions are answered already/);
-    expect(text.indexOf("template's questions on the start screen")).toBeLessThan(text.indexOf("Adapt it"));
-    // Nothing sent: every question on its recommended answer.
-    expect(templateAnswers(questions).map((a) => [a.labels, a.chosen])).toEqual([
-      [["Online"], false],
-      [["Both"], false],
-      [["Wine"], false],
-    ]);
+    expect(text).toContain(`<template-guide>\n${guide}\n</template-guide>`);
+    expect(text).toMatch(/it is not in the project/);
+    // Before any file, one card of the choices the message does not settle; none when it settles them all.
+    expect(text).toMatch(/before you change any file: read the maker's message against the guide's "Before building"/);
+    expect(text).toMatch(/when it settles them all, ask nothing and build at once/);
+    expect(text).toMatch(/the guide's first option recommended/);
+    // Then the card on what was guessed, at the end (Q301).
+    expect(text).toMatch(/the choices of the guide's Before building are settled already/);
+    expect(text.indexOf("<template-guide>")).toBeLessThan(text.indexOf("Adapt it"));
+    expect(text.indexOf('Before building". Each choice')).toBeLessThan(text.indexOf("Rewrite every text"));
+    // A guide without the section: read, nothing asked before building.
+    const plain = adaptMessage(
+      { id: "ember", name: "Ember", description: "An evening restaurant." },
+      "A bar.",
+      "# Ember",
+    );
+    expect(plain).toContain("<template-guide>");
+    expect(plain).not.toMatch(/before you change any file/);
   });
 });
 

@@ -95,6 +95,21 @@ Calm, generous spacing; sections rise into view (scripts/reveal.js).
     "pictures/pages/about-desktop.webp": Buffer.from("3"),
     "pictures/pages/about-phone.webp": Buffer.from("4"),
     "README.md": "# Atelier\n",
+    "TEMPLATE.md": `# Atelier
+
+A calm studio site, for a ceramicist or a small workshop.
+
+## How it is made
+
+- \`/\`: the hero, then the studio's work.
+
+## Before building
+
+### Do you sell your pieces?
+
+- **Yes, online** (as built): the shop page stays.
+- **No**: the shop page goes.
+`,
   };
 }
 
@@ -146,7 +161,7 @@ describe("a good template", () => {
     expect(copied).toContain("blocks/hero/hero-atelier/block.liquid");
     expect(copied).toContain(".upstart/skills/atelier-design/SKILL.md");
     expect(copied).toContain("media/studio.json");
-    for (const left of ["template.json", "pictures/cover.webp", "README.md", "notes.txt"])
+    for (const left of ["template.json", "TEMPLATE.md", "pictures/cover.webp", "README.md", "notes.txt"])
       expect(copied).not.toContain(left);
   });
 });
@@ -206,35 +221,15 @@ describe("its checks", () => {
     );
   });
 
-  test("its questions (Q287, Q293): AskUserQuestion's form, each said in its design notes", () => {
-    const question = {
-      question: "How do guests book a table?",
-      header: "Booking",
-      options: [
-        { label: "Online", description: "The reservation form." },
-        { label: "By phone", description: "A call button." },
-      ],
-    };
-    const notes = (body: string) =>
-      `---\nname: atelier-design\ndescription: Atelier's design notes.\n---\n\n# Atelier\n\n${body}`;
-    const withQuestions = (questions: unknown[], body = "") => ({
-      "template.json": JSON.stringify({ ...MANIFEST, questions }),
-      ".upstart/skills/atelier-design/SKILL.md": notes(body),
-    });
-    const documented = `## Template questions\n\n### How do guests book a table?\n\n- Online: keep the form.\n- By phone: a call button in its place.`;
-    expect(errorsOf(withQuestions([question], documented))).toBe("");
-    expect(warningsOf(withQuestions([question], documented))).toBe("");
-    // Each said in the design notes.
-    expect(warningsOf(withQuestions([question]))).toMatch(/what each answer to "How do guests book a table\?" changes/);
-    // AskUserQuestion's form: 2 to 4 choices, each of its own, each question once, 4 at most.
-    expect(errorsOf(withQuestions([{ ...question, options: [question.options[0]] }], documented))).toMatch(
-      /questions\.0\.options/,
+  test("its guide (Q299, Q300): there, with what to ask before building", () => {
+    expect(warningsOf({ "TEMPLATE.md": null })).toMatch(/TEMPLATE\.md is missing/);
+    expect(warningsOf({ "TEMPLATE.md": "# Atelier\n\nA calm studio site.\n" })).toMatch(
+      /TEMPLATE\.md has no "## Before building" section/,
     );
-    expect(
-      errorsOf(withQuestions([{ ...question, options: [question.options[0], question.options[0]] }], documented)),
-    ).toMatch(/a label of its own/);
-    expect(errorsOf(withQuestions([question, question], documented))).toMatch(/asked once/);
-    expect(errorsOf(withQuestions(Array(5).fill(question), documented))).toMatch(/questions/);
+    expect(warningsOf({ "TEMPLATE.md": "# Atelier\n\n## Before building\n\nNothing to ask.\n" })).toBe("");
+    // An older template.json with questions is read without them.
+    const old = { ...MANIFEST, questions: [{ question: "How?", options: [{ label: "A" }, { label: "B" }] }] };
+    expect(errorsOf({ "template.json": JSON.stringify(old) })).toBe("");
   });
 
   test("a home page and a theme", () => {

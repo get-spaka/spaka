@@ -9,13 +9,16 @@
 // - plan: a larger website in plan mode (Q286, Q290): its questions answered
 //   with the recommended choices, nothing written before the plan, a change
 //   asked, the new plan built with Build, the website back on Build;
-// - ember: Ember with its questions answered on the start screen (Q287), from
-//   a release built here of the templates' repository and served on
-//   127.0.0.1, since the published one does not have them yet.
+// - ember: Ember from a message that settles how guests book and not private
+//   dining (Q297-Q301): one card before any file changes, on private dining
+//   only, then the site as answered and the card on what was guessed; from a
+//   release built here of the templates' repository and served on 127.0.0.1,
+//   since the published one has no guides yet.
 //
 // Upstart's own harness, with Gemini 4 Hydrogen and the AI Studio key of
 // spikes/harnesses/homes/keys.env, in the development build
-// (UPSTART_REAL_PI=1): a website, its card answered, then a plan built.
+// (UPSTART_REAL_PI=1): a website, its card answered, then a plan built, then
+// the same Ember case (UPSTART_QUESTIONS_CASE=ember runs it alone).
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
@@ -129,6 +132,71 @@ function siteText(path: string): string {
 }
 
 const CLAUDE_CASES = ["card", "plan", "ember"].filter((c) => !only || c === only);
+const PI_CASES = ["card", "plan", "ember"].filter((c) => !only || c === only);
+
+const EMBER = join(import.meta.dirname, "../apps/desktop/templates/ember");
+const EMBER_MESSAGE =
+  "A website for Bodega Triana, a tapas and sherry bar in Seville, open in the evenings, with flamenco nights on Thursdays. Guests book by phone only.";
+
+/**
+ * Ember once its first message is sent: the card before building holds the
+ * choices the message left open (private dining, not booking), answered
+ * "Events only"; the site follows both; later cards take the recommended
+ * choices.
+ */
+async function emberCase(m: ReturnType<typeof maker>, timeout: number) {
+  await m.w().getByTestId("conversation").waitFor({ timeout: 300_000 });
+  let cardsSeen = 0;
+  const first: { questions: string[]; unchanged: boolean } = { questions: [], unchanged: false };
+  const turn = await m.drive(
+    {
+      question: async () => {
+        if (cardsSeen++ > 0) return m.answerRecommended();
+        const { path } = await m.invoke<{ path: string }>("projects:current");
+        const same = (f: string) => readFileSync(join(path, f), "utf8") === readFileSync(join(EMBER, f), "utf8");
+        first.unchanged = same("pages/index.liquid") && same("parts/reserve.liquid") && same("parts/header.liquid");
+        const card = (await m.cards()).filter((c) => c.kind === "question").at(-1)?.card as
+          | { questions: { question: string }[] }
+          | undefined;
+        first.questions = (card?.questions ?? []).map((q) => q.question);
+        const waiting = m.waitingQuestion();
+        const sets = waiting.locator("fieldset");
+        const count = await sets.count();
+        const one = count <= 1 ? waiting : undefined;
+        for (let i = 0; i < Math.max(count, 1); i++) {
+          const set = one ?? sets.nth(i);
+          const text = (await set.textContent()) ?? "";
+          const events = set.getByTestId("question-choice").filter({ hasText: /events only/i });
+          await (/private|dining/i.test(text) && (await events.count()) ? events : set.getByTestId("question-choice"))
+            .first()
+            .click();
+        }
+        const answer = waiting.getByTestId("question-answer");
+        if (await answer.count()) await answer.click();
+      },
+    },
+    timeout,
+  );
+  const project = await m.invoke<{ path: string; template?: { id: string; version: string } }>("projects:current");
+  const read = (f: string) => (existsSync(join(project.path, f)) ? readFileSync(join(project.path, f), "utf8") : "");
+  const markup = walk(project.path)
+    .filter((f) => f.endsWith(".liquid"))
+    .map((f) => readFileSync(f, "utf8"))
+    .join("\n");
+  const checks = {
+    "from Ember 1.1.0": project.template?.version === "1.1.0",
+    "a card before any file changed": first.unchanged,
+    "it asks about private dining": first.questions.some((q) => /private|dining/i.test(q)),
+    "not about booking, which the message settled": !first.questions.some((q) => /book|reserv/i.test(q)),
+    "then the card on what was guessed": cardsSeen >= 2,
+    "no reservation form": !existsSync(join(project.path, "data/reservations")) && !/_data\/reservations/.test(markup),
+    "a call button": /href="tel:/.test(markup),
+    "no private dining page": !existsSync(join(project.path, "pages/private-dining.liquid")),
+    "events kept": existsSync(join(project.path, "data/events")),
+    "about the bar": /triana/i.test(read("pages/index.liquid") + read("parts/header.liquid")),
+  };
+  return { turn, checks, first, cards: await m.cards() };
+}
 
 describe.skipIf(!realClaude || !CLAUDE_CASES.length)("questions and plans with Claude, packaged", () => {
   let launched: LaunchedApp;
@@ -249,125 +317,124 @@ describe.skipIf(!realClaude || !CLAUDE_CASES.length)("questions and plans with C
   );
 
   test.runIf(CLAUDE_CASES.includes("ember"))(
-    "ember: its questions answered on the start screen are followed",
+    "ember: the choices its message leaves open asked before building, then followed",
     async () => {
       await fresh();
-      const w = m.w();
-      await w.locator('[data-testid="template-card"][data-template="ember"] button[aria-pressed]').click();
-      const rows = w.getByTestId("template-question");
-      await rows.first().waitFor();
-      expect(await rows.count()).toBe(2);
-      await rows.nth(0).getByRole("button", { name: "By phone" }).click();
-      await rows.nth(1).getByRole("button", { name: "Events only" }).click();
-      await launched.capture("real-ember-questions");
-      await m.send(
-        "A website for Bodega Triana, a tapas and sherry bar in Seville, open in the evenings, with flamenco nights on Thursdays.",
-      );
-      await w.getByTestId("conversation").waitFor({ timeout: 300_000 });
-      const turn = await m.drive({});
-      const project = await m.invoke<{ path: string; template?: { id: string; version: string } }>("projects:current");
-      const read = (f: string) =>
-        existsSync(join(project.path, f)) ? readFileSync(join(project.path, f), "utf8") : "";
-      const markup = walk(project.path)
-        .filter((f) => f.endsWith(".liquid"))
-        .map((f) => readFileSync(f, "utf8"))
-        .join("\n");
-      const checks = {
-        "from Ember 1.1.0": project.template?.version === "1.1.0",
-        "no reservation form":
-          !existsSync(join(project.path, "data/reservations")) && !/_data\/reservations/.test(markup),
-        "a call button": /href="tel:/.test(markup),
-        "no private dining page": !existsSync(join(project.path, "pages/private-dining.liquid")),
-        "events kept": existsSync(join(project.path, "data/events")),
-        "about the bar": /triana/i.test(read("pages/index.liquid") + read("parts/header.liquid")),
-      };
-      report.ember = { turnMs: turn.ms, status: turn.last.status, checks, cards: await m.cards() };
-      say(`[ember] ${turn.ms / 1000} s: ${JSON.stringify(checks)}`);
+      await m.w().locator('[data-testid="template-card"][data-template="ember"] button[aria-pressed]').click();
+      await m.send(EMBER_MESSAGE);
+      const { turn, checks, first, cards } = await emberCase(m, 1_800_000);
+      report.ember = { turnMs: turn.ms, status: turn.last.status, checks, first, cards };
+      say(`[ember] ${turn.ms / 1000} s, first card ${JSON.stringify(first.questions)}: ${JSON.stringify(checks)}`);
       expect(turn.last.status).toBe("done");
       expect(checks).toEqual(Object.fromEntries(Object.keys(checks).map((k) => [k, true])));
     },
   );
 });
 
-describe.skipIf(!realPi)("questions and plans with Upstart's own harness, Gemini 4 Hydrogen", () => {
-  let launched: LaunchedApp;
-  const m = maker(() => launched);
-  const hydrogen = "gemini/gemini-4-hydrogen";
-  const report: Record<string, unknown> = {};
+describe.skipIf(!realPi || !PI_CASES.length)(
+  "questions and plans with Upstart's own harness, Gemini 4 Hydrogen",
+  () => {
+    let launched: LaunchedApp;
+    const m = maker(() => launched);
+    const hydrogen = "gemini/gemini-4-hydrogen";
+    const report: Record<string, unknown> = {};
 
-  beforeAll(async () => {
-    launched = await launchApp({ env: { UPSTART_AGENT_REPLAY: "" } });
-    await launched.window.getByTestId("message-input").waitFor();
-    const gemini = key("GEMINI_API_KEY");
-    if (!gemini) throw new Error(`No GEMINI_API_KEY in ${keysFile}`);
-    // The key goes from the file to the main process, never printed.
-    await launched.app.evaluate(
-      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      (_electron, k) => (globalThis as any).upstart.piAccounts.setKey("gemini", k),
-      gemini,
-    );
-  }, 60_000);
-  afterAll(async () => {
-    mkdirSync(runsDir, { recursive: true });
-    writeFileSync(join(runsDir, "real-pi-questions.json"), JSON.stringify(report, null, 2));
-    await launched?.close();
-  });
-
-  test("a website, then its card answered with the recommended choices", async () => {
-    await m.invoke("conversation:send", "A one-page website for a florist in Nantes, Fleur de Loire.", {
-      model: hydrogen,
-      effort: "medium",
+    beforeAll(async () => {
+      launched = await launchApp({ env: { UPSTART_AGENT_REPLAY: "" } });
+      await launched.window.getByTestId("message-input").waitFor();
+      const gemini = key("GEMINI_API_KEY");
+      if (!gemini) throw new Error(`No GEMINI_API_KEY in ${keysFile}`);
+      // The key goes from the file to the main process, never printed.
+      await launched.app.evaluate(
+        // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+        (_electron, k) => (globalThis as any).upstart.piAccounts.setKey("gemini", k),
+        gemini,
+      );
+    }, 60_000);
+    afterAll(async () => {
+      mkdirSync(runsDir, { recursive: true });
+      writeFileSync(join(runsDir, "real-pi-questions.json"), JSON.stringify(report, null, 2));
+      await launched?.close();
     });
-    await m.w().getByTestId("conversation").waitFor();
-    let asked = 0;
-    const turn = await m.drive(
-      {
-        question: async () => {
-          asked++;
-          await launched.capture("real-pi-card");
-          await m.answerRecommended();
-        },
-      },
-      600_000,
-    );
-    const cards = await m.cards();
-    report.card = { turnMs: turn.ms, status: turn.last.status, cards };
-    say(`[pi card] ${turn.ms / 1000} s, ${asked} card(s): ${JSON.stringify(cards.map((c) => c.card))}`);
-    // What the agent said last: a question asked in words rather than with the card shows here.
-    const { items } = await m.invoke<{ items: { kind: string; parts?: { kind: string; text?: string }[] }[] }>(
-      "conversation:get",
-    );
-    const words = (items.at(-1)?.parts ?? []).filter((p) => p.kind === "text").map((p) => p.text);
-    say(`[pi card] its last words: ${words.join(" / ").slice(-800)}`);
-    expect(turn.last.status).toBe("done");
-    expect(asked).toBe(1);
-  });
 
-  test("plan mode: a plan, nothing written meanwhile, Build, then the build", async () => {
-    const project = await m.invoke<{ path: string }>("projects:current");
-    await m.invoke("agent:set-mode", "plan");
-    const before = siteText(project.path);
-    let unchanged = true;
-    await m.send("Add a page for weddings: the arrangements, how we work with couples, and a request form.");
-    const turn = await m.drive(
-      {
-        plan: async () => {
-          unchanged = siteText(project.path) === before;
-          await m.w().getByTestId("plan-build").click();
-        },
+    test.runIf(PI_CASES.includes("card"))(
+      "a website, then its card answered with the recommended choices",
+      async () => {
+        await m.invoke("conversation:send", "A one-page website for a florist in Nantes, Fleur de Loire.", {
+          model: hydrogen,
+          effort: "medium",
+        });
+        await m.w().getByTestId("conversation").waitFor();
+        let asked = 0;
+        const turn = await m.drive(
+          {
+            question: async () => {
+              asked++;
+              await launched.capture("real-pi-card");
+              await m.answerRecommended();
+            },
+          },
+          600_000,
+        );
+        const cards = await m.cards();
+        report.card = { turnMs: turn.ms, status: turn.last.status, cards };
+        say(`[pi card] ${turn.ms / 1000} s, ${asked} card(s): ${JSON.stringify(cards.map((c) => c.card))}`);
+        // What the agent said last: a question asked in words rather than with the card shows here.
+        const { items } = await m.invoke<{ items: { kind: string; parts?: { kind: string; text?: string }[] }[] }>(
+          "conversation:get",
+        );
+        const words = (items.at(-1)?.parts ?? []).filter((p) => p.kind === "text").map((p) => p.text);
+        say(`[pi card] its last words: ${words.join(" / ").slice(-800)}`);
+        expect(turn.last.status).toBe("done");
+        expect(asked).toBe(1);
       },
-      600_000,
     );
-    const plans = (await m.cards()).filter((c) => c.kind === "plan");
-    const pages = walk(join(project.path, "pages")).map((f) => relative(project.path, f));
-    report.plan = { turnMs: turn.ms, status: turn.last.status, plans, unchanged, pages };
-    say(
-      `[pi plan] ${turn.ms / 1000} s, pages ${pages.join(", ")}; plan: ${String(plans.at(-1)?.card.text).slice(0, 400)}`,
+
+    test.runIf(PI_CASES.includes("plan") && PI_CASES.includes("card"))(
+      "plan mode: a plan, nothing written meanwhile, Build, then the build",
+      async () => {
+        const project = await m.invoke<{ path: string }>("projects:current");
+        await m.invoke("agent:set-mode", "plan");
+        const before = siteText(project.path);
+        let unchanged = true;
+        await m.send("Add a page for weddings: the arrangements, how we work with couples, and a request form.");
+        const turn = await m.drive(
+          {
+            plan: async () => {
+              unchanged = siteText(project.path) === before;
+              await m.w().getByTestId("plan-build").click();
+            },
+          },
+          600_000,
+        );
+        const plans = (await m.cards()).filter((c) => c.kind === "plan");
+        const pages = walk(join(project.path, "pages")).map((f) => relative(project.path, f));
+        report.plan = { turnMs: turn.ms, status: turn.last.status, plans, unchanged, pages };
+        say(
+          `[pi plan] ${turn.ms / 1000} s, pages ${pages.join(", ")}; plan: ${String(plans.at(-1)?.card.text).slice(0, 400)}`,
+        );
+        expect(turn.last.status).toBe("done");
+        expect(unchanged).toBe(true);
+        expect(plans.map((p) => p.card.state)).toEqual(["approved"]);
+        expect(pages.some((p) => /wedding/i.test(p))).toBe(true);
+        expect((await m.invoke<{ mode?: string }>("projects:current")).mode ?? "build").toBe("build");
+      },
     );
-    expect(turn.last.status).toBe("done");
-    expect(unchanged).toBe(true);
-    expect(plans.map((p) => p.card.state)).toEqual(["approved"]);
-    expect(pages.some((p) => /wedding/i.test(p))).toBe(true);
-    expect((await m.invoke<{ mode?: string }>("projects:current")).mode ?? "build").toBe("build");
-  });
-});
+
+    test.runIf(PI_CASES.includes("ember"))(
+      "ember: the choices its message leaves open asked before building, then followed",
+      async () => {
+        if (!(await m.w().getByTestId("start").count())) {
+          await m.invoke("projects:close");
+          await m.w().getByTestId("start").waitFor();
+        }
+        await m.invoke("conversation:send", EMBER_MESSAGE, { model: hydrogen, effort: "medium", template: "ember" });
+        const { turn, checks, first, cards } = await emberCase(m, 1_800_000);
+        report.ember = { turnMs: turn.ms, status: turn.last.status, checks, first, cards };
+        say(`[pi ember] ${turn.ms / 1000} s, first card ${JSON.stringify(first.questions)}: ${JSON.stringify(checks)}`);
+        expect(turn.last.status).toBe("done");
+        expect(checks).toEqual(Object.fromEntries(Object.keys(checks).map((k) => [k, true])));
+      },
+    );
+  },
+);

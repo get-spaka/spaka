@@ -23,29 +23,6 @@ export const OPEN_LICENCES = [
 
 export const MANIFEST = "template.json";
 
-/**
- * A question on what varies in the template's design (Q287, Q293), in
- * AskUserQuestion's form: shown on the start screen once the template is
- * chosen, set to its first choice, the recommended one. Its design notes say
- * what each answer changes.
- */
-export const TemplateQuestion = z
-  .object({
-    question: z.string().min(1).max(120),
-    /** A word or two. */
-    header: z.string().max(16).default(""),
-    options: z
-      .array(z.object({ label: z.string().min(1).max(40), description: z.string().max(160).default("") }))
-      .min(2)
-      .max(4),
-    multiSelect: z.boolean().default(false),
-  })
-  .refine((q) => new Set(q.options.map((o) => o.label)).size === q.options.length, {
-    message: "each choice has a label of its own",
-  });
-
-export type TemplateQuestion = z.infer<typeof TemplateQuestion>;
-
 export const Manifest = z.object({
   /** Its folder's name, and the name of its design notes' skill: `<id>-design`. */
   id: z.string().regex(/^[a-z][a-z0-9-]{1,47}$/, "lowercase letters, digits and dashes, starting with a letter"),
@@ -61,12 +38,6 @@ export const Manifest = z.object({
   author: z.object({ name: z.string().min(1), url: z.url().optional() }),
   /** The template's own licence: what a maker and another author may do with it. */
   licence: z.string().min(1),
-  /** 1 to 4 questions on what varies in its design, answered on the start screen (Q287). */
-  questions: z
-    .array(TemplateQuestion)
-    .max(4)
-    .default([])
-    .refine((qs) => new Set(qs.map((q) => q.question)).size === qs.length, { message: "each question is asked once" }),
 });
 
 export type Manifest = z.infer<typeof Manifest>;

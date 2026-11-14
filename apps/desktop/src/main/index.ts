@@ -876,13 +876,14 @@ async function main() {
       const effort = isEffort(settings?.effort) ? settings.effort : created.effort;
       // Created in plan mode, the agent plans before it builds (Q286).
       const mode = settings?.mode === "plan" ? ("plan" as const) : undefined;
-      const manifest = dir ? copyTemplate(dir, created.path) : undefined;
+      const copied = dir ? copyTemplate(dir, created.path) : undefined;
+      const manifest = copied?.manifest;
       const template = manifest && { id: manifest.id, version: manifest.version };
       project = await opened(
         projects.update(created.id, { model, effort, ...(template ? { template } : {}), ...(mode ? { mode } : {}) }),
       );
-      if (manifest) {
-        sendMessage(project, message, adaptMessage(manifest, message, answersOf(settings?.answers)));
+      if (copied) {
+        sendMessage(project, message, adaptMessage(copied.manifest, message, copied.guide));
         return;
       }
     }
@@ -1518,13 +1519,3 @@ main().catch((error) => {
   console.error("[upstart] failed to start", error);
   app.exit(1);
 });
-
-/** The template's answers the start screen sent (Q287): labels by question, nothing else. */
-function answersOf(raw: unknown): Record<string, string | string[]> | undefined {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
-  const answers: Record<string, string | string[]> = {};
-  for (const [question, value] of Object.entries(raw))
-    if (typeof value === "string") answers[question] = value;
-    else if (Array.isArray(value) && value.every((v) => typeof v === "string")) answers[question] = value;
-  return answers;
-}

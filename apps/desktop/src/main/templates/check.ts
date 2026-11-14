@@ -9,8 +9,10 @@ import { parseSkill } from "../skills/skills";
 import { OPEN_LICENCES } from "./manifest";
 import { shotPages } from "./pictures";
 import {
+  BEFORE_BUILDING,
   BLOCKS,
   DESIGN_SKILL,
+  GUIDE,
   pageName,
   readTemplate,
   TEMPLATE_ENTRIES,
@@ -208,11 +210,17 @@ export function checkTemplate(files: TemplateFiles, { finished = false } = {}): 
     const skill = parseSkill(text(notes));
     if ("problem" in skill) errors.push(`${notes}: ${skill.problem}`);
     else if (skill.name !== `${manifest.id}-design`) errors.push(`${notes}: its name is ${manifest.id}-design.`);
-    // What each answer to its questions changes (Q293), each question named as asked.
-    for (const q of manifest.questions)
-      if (!text(notes).includes(q.question))
-        warnings.push(`${notes}: say under "## Template questions" what each answer to "${q.question}" changes.`);
   }
+
+  // ---- its guide (Q299, Q300) -------------------------------------------------
+  if (!files.has(GUIDE))
+    warnings.push(
+      `${GUIDE} is missing: the guide the agent reads to adapt it (what it is, how it is made, how to adapt it, ${BEFORE_BUILDING}).`,
+    );
+  else if (!new RegExp(`^${BEFORE_BUILDING}\\s*$`, "m").test(text(GUIDE)))
+    warnings.push(
+      `${GUIDE} has no "${BEFORE_BUILDING}" section: the choices that vary, each option with what it changes, the first the template as built (or "Nothing to ask.").`,
+    );
 
   // ---- its blocks (Q235) ------------------------------------------------------
   const blockFolders = new Set(
