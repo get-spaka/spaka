@@ -44,8 +44,12 @@ export function start(root) {
     el.style.transform = "translateY(24px)";
     stops.push(
       Motion.inView(el, () => {
-        Motion.animate(el, { opacity: 1, y: [24, 0] }, { duration: 0.8, ease: [0.22, 1, 0.36, 1] });
+        Motion.animate(el, { opacity: [0, 1], y: [24, 0] }, { duration: 0.8, ease: [0.22, 1, 0.36, 1] });
       }),
+      () => {
+        el.style.opacity = "";
+        el.style.transform = "";
+      },
     );
   }
 }
@@ -58,7 +62,9 @@ export function stop() {
 
 - Move with Motion's own `x`, `y`, `scale` and `rotate` (`y: [24, 0]`), or with keyframes of the same functions (`transform: ["translateY(24px)", "translateY(0px)"]`): never to `transform: "none"`, which Motion turns into a transform that shrinks the element to nothing.
 - `start(root)` is called with `document` once the page has loaded, then with each element htmx brings in. That element may itself be the one to start, hence `within`.
-- `stop(root)` undoes what `start` set up: observers, listeners, library instances (`lenis.destroy()`, `embla.destroy()`). In the preview, Upstart calls `stop(document)` then `start(document)` again after each change of a file, so `start` must work a second time.
+- `stop(root)` undoes what `start` set up: observers, listeners, library instances (`lenis.destroy()`, `embla.destroy()`), styles it set, elements it moved or added. In the preview, after each change of a file, Upstart calls `stop(document)` on the page as `start` left it, puts the new rendering in its place, then calls `start(document)` again on the same elements. So `start` must work a second time:
+  - Give every animated value where it starts from: `opacity: [0, 1]`, never `opacity: 1`. Motion remembers the last value it set on an element and would see nothing to animate, leaving it hidden.
+  - Leave what `start` needs again: stop a WebGL loop and clear the canvas, but keep its context (no `WEBGL_lose_context`), since the same canvas starts again.
 - Mark what a script acts on with a `data-` attribute (`data-reveal`, `data-split`, `data-carousel`) rather than a class: the maker's classes stay theirs.
 - One module per effect, named after it: `scripts/reveal.js`, `scripts/smooth-scroll.js`, `scripts/carousel.js`.
 

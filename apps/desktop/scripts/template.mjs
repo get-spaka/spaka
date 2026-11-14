@@ -1,6 +1,7 @@
 // The template commands (Q232): `pnpm template:check <folder or .zip>` runs a
 // template's checks; `pnpm template:shoot <folder>` photographs its pages in
-// the app, offscreen, into its pictures/ and a review sheet; `pnpm
+// the app, offscreen, into its pictures/ and a review sheet, and renders each
+// page again as after an edit, checking nothing is left hidden; `pnpm
 // template:image` finds images and adds them with their credits. The checks are
 // the app's own code, bundled here on the fly so that Node runs them as they are.
 // Upstart's own templates live in the public repository
@@ -84,10 +85,14 @@ if (command === "check") {
       .status ?? 1;
   if (!args.includes("--no-build") && run("pnpm", ["--filter", "@upstart/desktop", "build"]) !== 0) process.exit(1);
   process.exit(
-    run("npx", ["vitest", "run", "--config", "e2e/vitest.config.ts", "e2e/template-shoot.e2e.ts"], {
-      UPSTART_BACKGROUND: "1",
-      UPSTART_TEMPLATE_SHOOT: resolve(target),
-    }),
+    run(
+      "npx",
+      ["vitest", "run", "--config", "e2e/vitest.config.ts", "e2e/template-shoot.e2e.ts", "e2e/templates-again.e2e.ts"],
+      {
+        UPSTART_BACKGROUND: "1",
+        UPSTART_TEMPLATE_SHOOT: resolve(target),
+      },
+    ),
   );
 } else {
   console.error(

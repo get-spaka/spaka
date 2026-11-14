@@ -106,14 +106,11 @@ describe("a project folder in the preview", () => {
 
   test("the agent's look at a page given by its address: the preview goes there first", async () => {
     const look = (route?: string) =>
-      launched.app.evaluate(
+      launched.app.evaluate(async (_electron, route) => {
         // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-        async (_electron, route) => {
-          const seen = await (globalThis as any).upstart.preview.look(route);
-          return { route: seen.route, png: !!seen.png, notes: seen.notes };
-        },
-        route,
-      );
+        const seen = await (globalThis as any).upstart.preview.look(route);
+        return { route: seen.route, png: !!seen.png, notes: seen.notes };
+      }, route);
     await expect(look("/menu")).resolves.toMatchObject({ route: "/menu", png: true });
     await until("location.pathname === '/menu'");
     await expect(look("/nowhere")).resolves.toMatchObject({

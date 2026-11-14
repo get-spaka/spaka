@@ -92,8 +92,10 @@ export const STILL_CSS = `html:not([data-up-moving]) *, html:not([data-up-moving
  * Upstart's start script, the same in the preview and once published. It
  * imports the site's modules and calls start(document) once the page has
  * loaded, then start(root) on what htmx brings in. In the preview (data-wait)
- * it waits for window.__upStart.go(), and the preview calls update() after
- * each new rendering: stop(document), then start(document) again.
+ * it waits for window.__upStart.go(). Before a new rendering takes the page's
+ * place, the preview calls stop(), which runs each module's stop(document) at
+ * once, on the page its start changed; once the rendering is complete, start()
+ * runs start(document) again.
  */
 export const START_JS = `(() => {
   const me = document.currentScript;
@@ -135,9 +137,28 @@ export const START_JS = `(() => {
     if (!started || root === document.body || root === document.documentElement) return;
     void each("start", root);
   });
+  // Stopped at once, not awaited: the preview changes the page right after.
+  let stopped = false;
+  const stop = () => {
+    if (!started || stopped) return;
+    stopped = true;
+    for (const { path, module } of modules) {
+      if (typeof module.stop !== "function") continue;
+      try {
+        const done = module.stop(document);
+        if (done && typeof done.catch === "function") done.catch((error) => report(path + ": stop() failed", error));
+      } catch (error) { report(path + ": stop() failed", error); }
+    }
+  };
+  const start = async () => {
+    if (!started || !stopped) return;
+    stopped = false;
+    await each("start", document);
+  };
   window.__upStart = {
     go,
-    update: async () => { if (!started) return; await each("stop", document); await each("start", document); },
+    stop,
+    start,
     get started() { return started; },
   };
   if (me && me.hasAttribute("data-wait")) return;

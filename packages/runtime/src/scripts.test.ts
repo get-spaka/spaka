@@ -59,7 +59,7 @@ test("in the preview no script of the site is in the head: the start script load
   expect(previewHead({ vendorBase: "/v", theme: "" })).not.toContain("up-start");
 });
 
-test("the start script starts the modules on load and on what htmx brings, and waits in the preview", async () => {
+test("the start script starts the modules on load and on what htmx brings, waits in the preview, and stops and starts them around a new rendering", async () => {
   const calls: string[] = [];
   const listeners: Record<string, (e: { target: unknown }) => void> = {};
   const script = { dataset: { modules: "/a.js" }, hasAttribute: (n: string) => n === "data-wait" };
@@ -73,7 +73,7 @@ test("the start script starts the modules on load and on what htmx brings, and w
       listeners[type] = fn;
     },
   };
-  const window: { __upStart?: { go(): Promise<void>; update(): Promise<void>; started: boolean } } = {};
+  const window: { __upStart?: { go(): Promise<void>; stop(): void; start(): Promise<void>; started: boolean } } = {};
   const module = {
     start: (root: unknown) => void calls.push(`start ${root === document ? "document" : "part"}`),
     stop: () => void calls.push("stop"),
@@ -90,6 +90,11 @@ test("the start script starts the modules on load and on what htmx brings, and w
   listeners["htmx:after:process"]!({ target: {} });
   await new Promise((r) => setTimeout(r, 0));
   expect(calls).toEqual(["start document", "start part"]);
-  await window.__upStart!.update();
+  // Before a new rendering, stopped at once; started again once it is complete, once.
+  window.__upStart!.stop();
+  window.__upStart!.stop();
+  expect(calls.slice(2)).toEqual(["stop"]);
+  await window.__upStart!.start();
+  await window.__upStart!.start();
   expect(calls.slice(2)).toEqual(["stop", "start document"]);
 });

@@ -152,7 +152,8 @@ describe("the start screen", () => {
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
       (window as any).upstart.invoke("projects:current"),
     );
-    expect(project.template).toEqual({ id: "reel", version: "1.0.0" });
+    const reel = join(import.meta.dirname, "../apps/desktop/templates/reel/template.json");
+    expect(project.template).toEqual({ id: "reel", version: JSON.parse(readFileSync(reel, "utf8")).version });
     expect(JSON.parse(readFileSync(join(project.path, ".upstart/project.json"), "utf8")).template.id).toBe("reel");
     // The template is copied into the website, without its manifest and pictures (Q229, Q246)…
     for (const path of [

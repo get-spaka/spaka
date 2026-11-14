@@ -96,6 +96,9 @@ window.addEventListener("DOMContentLoaded", () => {
 function render(html: string, final: boolean) {
   const started = performance.now();
   const doc = new DOMParser().parseFromString(html, "text/html");
+  // The site's modules stop first, on the page their start changed, which they put back;
+  // they start again once the rendering is complete (ADR 0011).
+  if (moving) pageWorld("window.__upStart && window.__upStart.stop()");
   syncHead(doc);
   syncAttributes(document.documentElement, doc.documentElement);
   if (moving) document.documentElement.setAttribute("data-up-moving", "");
@@ -126,7 +129,7 @@ function render(html: string, final: boolean) {
     // htmx lives in the page's world: ask it, from there, to take the new elements in hand.
     pageWorld("window.htmx && htmx.process(document.body)");
     // The site's modules start again on the new rendering (ADR 0011).
-    if (moving) pageWorld("window.__upStart && window.__upStart.update()");
+    if (moving) pageWorld("window.__upStart && window.__upStart.start()");
   }
   editor?.rendered();
   send({ type: "rendered", ms: performance.now() - started });

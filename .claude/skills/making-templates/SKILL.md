@@ -85,7 +85,7 @@ pnpm template:check apps/desktop/templates/<id>
 pnpm template:shoot apps/desktop/templates/<id>
 ```
 
-The shoot runs the app in the background and writes `pictures/` and a review sheet, `e2e/.runs/template-sheets/<id>.png`. Look at the sheet and at each picture, page by page, at both widths, and fix what is wrong: a section still hidden or half-risen, text over an image that cannot be read, something wider than the phone, an empty space where an image failed, a section that looks like any template rather than this one. Shoot again after each fix (`--no-build` when only the template changed).
+The shoot runs the app in the background and writes `pictures/` and a review sheet, `e2e/.runs/template-sheets/<id>.png`. It then renders each page again in the preview, twice, as after an edit, at desktop and phone width: its scripts are stopped and started again on the same elements, and nothing that was shown may stay hidden, nor any error be raised (`e2e/.runs/templates-again-<id>.json` lists what went wrong). The site-scripts skill says how a script survives it: animations that say where they start from (`opacity: [0, 1]`), and a stop that keeps what start needs again. Look at the sheet and at each picture, page by page, at both widths, and fix what is wrong: a section still hidden or half-risen, text over an image that cannot be read, something wider than the phone, an empty space where an image failed, a section that looks like any template rather than this one. Shoot again after each fix (`--no-build` when only the template changed).
 
 Then `pnpm template:check apps/desktop/templates/<id> --finished` and `npx vitest run apps/desktop/src/main/templates`.
 

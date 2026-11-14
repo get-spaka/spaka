@@ -7,6 +7,10 @@ import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { type LaunchedApp, launchApp } from "./app.ts";
 
+/** A template's version in the repository's templates, of which the release is built. */
+const version = (id: string): string =>
+  JSON.parse(readFileSync(join(import.meta.dirname, "../apps/desktop/templates", id, "template.json"), "utf8")).version;
+
 // Upstart's templates as a packaged app has them (Q247, Q250, Q265): from the
 // releases of the public repository, here a release built from the
 // repository's templates as its CI builds one and served on this machine. The
@@ -73,7 +77,7 @@ describe("Upstart's templates, downloaded", () => {
     const ids = await w.getByTestId("template-card").evaluateAll((els) => els.map((el) => el.dataset.template));
     expect(ids).toHaveLength(8);
     await until(() => w.locator('[data-template="reel"] img[src^="data:image/webp"]').count());
-    expect(asked).toContain("/releases/download/v1/reel-1.0.0-cover.webp");
+    expect(asked).toContain(`/releases/download/v1/reel-${version("reel")}-cover.webp`);
     expect(zips()).toEqual([]);
   });
 
@@ -90,13 +94,13 @@ describe("Upstart's templates, downloaded", () => {
     await w.getByTestId("template-problem").getByRole("button").click();
     await until(() => w.locator('[data-testid="template-frame"][data-route="/"]').count());
     await until(() => main<boolean>("globalThis.upstart.templateViewer.view.getVisible()"));
-    expect(zips().filter((u) => u.endsWith("reel-1.0.0.zip"))).toHaveLength(2);
+    expect(zips().filter((u) => u.endsWith(`reel-${version("reel")}.zip`))).toHaveLength(2);
     // Kept: viewed again, it is not downloaded again.
     await w.getByTestId("template-back").click();
     await card.hover();
     await card.getByTestId("template-view").click();
     await until(() => w.locator('[data-testid="template-frame"][data-route="/"]').count());
-    expect(zips().filter((u) => u.endsWith("reel-1.0.0.zip"))).toHaveLength(2);
+    expect(zips().filter((u) => u.endsWith(`reel-${version("reel")}.zip`))).toHaveLength(2);
     await w.getByTestId("template-back").click();
   });
 
@@ -116,7 +120,7 @@ describe("Upstart's templates, downloaded", () => {
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
       (window as any).upstart.invoke("projects:current"),
     );
-    expect(project.template).toEqual({ id: "ember", version: "1.0.0" });
+    expect(project.template).toEqual({ id: "ember", version: version("ember") });
     expect(existsSync(join(project.path, "pages/index.liquid"))).toBe(true);
     expect(existsSync(join(project.path, ".upstart/skills/ember-design/SKILL.md"))).toBe(true);
   });
