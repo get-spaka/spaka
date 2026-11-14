@@ -36,4 +36,6 @@ Pi streams a tool call's arguments as OpenAI sends them: GPT-6.1 Sol's page grow
 - Upstart holds credentials for the second layer: the maker's API keys, and the tokens of Sign in with ChatGPT, which Pi's libraries obtain under Upstart's own name. Claude's sign-in stays the official binary's alone.
 - Sign in with ChatGPT admits open-source apps; Upstart v2 is open source under MIT. Whether OpenAI admits it shows at the first sign-in under Upstart's name.
 - Google offers apps no route to a Google AI subscription: Gemini means the maker's key, billed by Google Cloud, a paid one in the EEA.
+- Upstart does for the Pi harness what the official binary does for Claude: the shell's sandbox (Q278), the connectors and their OAuth sign-in (Q277), the web search through the provider's own (Q276).
+- Gemini keeps the live preview through tools: a long file in several calls on an AI Studio key, or the arguments streamed on Vertex AI (Q273).
 - An ACP adapter can be added later if a vendor's agent brings what Pi does not.
