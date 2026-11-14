@@ -305,6 +305,9 @@ test("the detailed output style's details: what was run or searched", () => {
 
 test("the reply style is added to the instructions, and says the website does not change", async () => {
   expect(instructionsFor("short").startsWith(UPSTART_INSTRUCTIONS)).toBe(true);
+  // When the agent asks, for Claude and the harness's families alike (Q288, Q289, Q291, Q295).
+  for (const family of ["claude", "openai", "gemini"] as const)
+    expect(instructionsFor("short", family)).toMatch(/# Questions to the maker[\s\S]*one card per turn at most/i);
   expect(instructionsFor("teaching")).toContain("how they could do it themselves");
   expect(instructionsFor("explained")).toContain("the website is written the same way");
   const { s, fake } = session([], { instructions: () => instructionsFor("teaching") });

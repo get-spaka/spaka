@@ -56,6 +56,7 @@ Adapt it to the maker's business, described below:
 - Add the pages the description calls for and remove those it does not need, each in data/navigation/; a datasource the site does not need goes with its pages and parts.
 - Keep the design: theme.css, the layout, the type, the effects, the scripts and styles. Change them only where the maker asks.
 - Then look at each page with look_at_preview, giving it each page's route: new texts are longer or shorter than the template's, in another language above all. Fix what they broke (a menu label running into a button, a heading wider than the screen) in the markup, keeping the design.
+- Last, once the pages are adapted and looked at, ask the maker one card on what you guessed that matters, as for any new website (see Questions to the maker).
 At the end Upstart checks that no text of the template is left.
 
 The maker's message:

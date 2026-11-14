@@ -41,6 +41,8 @@ describe("a template copied into a new project", () => {
     expect(text).toContain('template "Corner"');
     expect(text).toContain("corner-design skill");
     expect(text).toMatch(/Rewrite every text/);
+    // The card on what the agent guessed, at the end of the adaptation (Q288).
+    expect(text).toMatch(/ask the maker one card on what you guessed that matters/);
     expect(text).toMatch(/find_images/);
     expect(text).toMatch(/Keep the design/);
     expect(text).toMatch(/look at each page with look_at_preview/);
