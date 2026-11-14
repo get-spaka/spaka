@@ -69,7 +69,7 @@ describe("the accounts", () => {
     await w.getByTestId("sign-in-key-input").press("Enter");
     await until(async () => (await w.getByTestId("sign-in").count()) === 0);
     const status = await invoke("agent:status");
-    expect(status.accounts).toEqual({ chatgpt: false, openai: false, gemini: true });
+    expect(status.accounts).toEqual({ chatgpt: false, openai: false, gemini: true, vertex: false });
     expect(await groups()).toEqual(["Gemini: Gemini 4 Hydrogen, Gemini 4 Carbon"]);
     expect(await w.getByTestId("model-select").inputValue()).toBe("gemini/gemini-4-hydrogen");
     expect(await w.getByTestId("send").isDisabled()).toBe(false);
@@ -83,7 +83,7 @@ describe("the accounts", () => {
     await until(async () => (await w.getByTestId("settings-title").textContent()) === "Accounts");
     // The panel asks for the accounts as it opens.
     await until(async () => (await w.getByTestId("settings-account").textContent())?.includes("Gemini"));
-    for (const id of ["account", "api-key", "chatgpt", "openai-key", "gemini-key"])
+    for (const id of ["account", "api-key", "chatgpt", "openai-key", "gemini-key", "vertex-key", "vertex-gcloud"])
       expect(await w.locator(`[data-setting="${id}"]`).count()).toBe(1);
     expect(await w.locator('[data-setting="gemini-key"]').textContent()).toContain("kept");
     expect(await w.getByTestId("chatgpt-sign-in").textContent()).toBe("Sign in…");
@@ -108,5 +108,31 @@ describe("the accounts", () => {
     await w.getByTestId("model-select").selectOption("connect-another-account");
     await until(async () => (await w.getByTestId("settings-title").textContent()) === "Accounts");
     await invoke("agent:set-key", "openai", null);
+  });
+
+  test("Vertex AI connects with an express key, or with gcloud's sign-in and a project, one replacing the other (Q280)", async () => {
+    await invoke("settings:open", "agent");
+    await w.getByTestId("vertex-key-use").click();
+    await w.getByTestId("vertex-key-input").fill("AQ.e2e-stand-in-not-a-key");
+    await w.getByTestId("vertex-key-input").press("Enter");
+    await until(async () => (await invoke("agent:status")).accounts.vertex === true);
+    await w.getByTestId("settings-close").click();
+    await until(async () => (await w.getByTestId("sign-in").count()) === 0);
+    expect(await groups()).toEqual(["Vertex AI: Gemini 4 Hydrogen, Gemini 4 Carbon"]);
+    expect(await w.getByTestId("model-select").inputValue()).toBe("vertex/gemini-4-hydrogen");
+    expect(readFileSync(join(launched.dataDir, "accounts/keys.bin"), "utf8")).not.toContain("AQ.e2e");
+
+    // A project on gcloud's sign-in replaces the key; whether the sign-in is made depends on this computer.
+    await invoke("settings:open", "agent");
+    await w.getByTestId("vertex-gcloud-use").click();
+    await w.getByTestId("vertex-gcloud-input").fill("e2e-project");
+    await w.getByTestId("vertex-gcloud-input").press("Enter");
+    await until(async () => (await invoke("agent:status")).vertexGcloud?.project === "e2e-project");
+    await until(async () => (await w.locator('[data-setting="vertex-gcloud"]').textContent())?.includes("e2e-project"));
+    expect(await w.locator('[data-setting="vertex-key"]').textContent()).not.toContain("kept");
+    await launched.capture("accounts-vertex");
+    await w.getByTestId("vertex-gcloud-stop").click();
+    await until(async () => !(await invoke("agent:status")).vertexGcloud);
+    expect((await invoke("agent:status")).accounts.vertex).toBe(false);
   });
 });

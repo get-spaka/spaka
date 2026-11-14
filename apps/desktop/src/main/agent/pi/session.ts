@@ -57,6 +57,8 @@ export type PiDeps = {
   recorder?: PiRecorder;
   /** The web search in place of the provider's: a played-back one, in checks. */
   search?: (query: string) => Promise<string>;
+  /** What to tell the maker when an account's sign-in was refused, if not to connect it again in Accounts. */
+  signInHelp?: (account: PiAccount) => string | undefined;
 };
 
 /** What a project's harness keeps between launches. */
@@ -330,7 +332,7 @@ export class PiSession implements AgentRunner {
     this.problems.push(`pi ${reason ?? "failure"}: ${error ?? ""}`);
     if (error && SIGN_IN.test(error)) {
       this.handlers.onSignInNeeded?.();
-      return this.endTurn("failed", en.errors.accountNeeded);
+      return this.endTurn("failed", this.deps.signInHelp?.(this.account) ?? en.errors.accountNeeded);
     }
     return this.endTurn("failed", en.errors.agentStopped);
   }

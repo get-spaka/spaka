@@ -1,11 +1,14 @@
-// The accounts of Upstart's own harness (Q269, Q275): ChatGPT Plus or Pro
-// through Sign in with ChatGPT, under Upstart's own name, and the maker's
-// OpenAI and Gemini keys. What they give Upstart is encrypted by the system's
-// keychain (the Vault) and kept in the app's data; the environment is never
-// read for keys, so a key of the maker's shell never reaches the harness
-// unasked. Claude's sign-in stays the official binary's alone (auth.ts).
+// The accounts of Upstart's own harness (Q269, Q275, Q280): ChatGPT Plus or
+// Pro through Sign in with ChatGPT, under Upstart's own name, the maker's
+// OpenAI and Gemini keys, and Vertex AI on a key of its express mode or on the
+// Google Cloud sign-in the maker made with gcloud, with a project. What they
+// give Upstart is encrypted by the system's keychain (the Vault) and kept in
+// the app's data; the environment is never read for keys, so a key of the
+// maker's shell never reaches the harness unasked. Claude's sign-in stays the
+// official binary's alone (auth.ts).
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
 import {
   type ClientIdentity,
@@ -18,9 +21,24 @@ import {
 import { googleProvider } from "@earendil-works/pi-ai/providers/google";
 import { openaiProvider } from "@earendil-works/pi-ai/providers/openai";
 import type { Vault } from "../auth";
-import type { PiAccount } from "./models";
+import { PI_MODELS, type PiAccount, piModel } from "./models";
+import { GCLOUD_SIGN_IN, type VertexConfig, vertexProvider } from "./vertex";
 
-export type KeyAccount = Extract<PiAccount, "openai" | "gemini">;
+export type KeyAccount = Extract<PiAccount, "openai" | "gemini" | "vertex">;
+
+/** Vertex AI on gcloud's sign-in: the project, and the region, global unless said. */
+export type VertexGcloud = { project: string; location: string };
+
+/** Where gcloud keeps the sign-in made with `gcloud auth application-default login`. */
+export function gcloudSignInFile(): string {
+  return process.platform === "win32"
+    ? join(
+        process.env.APPDATA ?? join(homedir(), "AppData", "Roaming"),
+        "gcloud",
+        "application_default_credentials.json",
+      )
+    : join(homedir(), ".config", "gcloud", "application_default_credentials.json");
+}
 
 /** The sign-ins pi-ai keeps (ChatGPT's tokens), encrypted in one file. */
 export class VaultCredentials implements CredentialStore {
@@ -109,6 +127,12 @@ export class PiAccounts {
     });
     this.models.setProvider(openaiProvider());
     this.models.setProvider(googleProvider());
+    this.models.setProvider(
+      vertexProvider(
+        () => this.vertexConfig(),
+        PI_MODELS.filter((m) => m.account === "vertex").flatMap((m) => piModel("vertex", m.id) ?? []),
+      ),
+    );
   }
 
   /** Reads what is kept; call once before asking which accounts are connected. */
@@ -123,14 +147,25 @@ export class PiAccounts {
       ...(this.chatgpt ? (["chatgpt"] as const) : []),
       ...(keys.openai ? (["openai"] as const) : []),
       ...(keys.gemini ? (["gemini"] as const) : []),
+      ...(this.vertexConfig() ? (["vertex"] as const) : []),
     ];
   }
 
-  /** The key a request of this account carries; ChatGPT's sign-in is the collection's own. */
+  /**
+   * The key a request of this account carries; ChatGPT's sign-in is the
+   * collection's own, and on gcloud's sign-in Vertex gets a stand-in that
+   * pi-ai reads as none.
+   */
   apiKey(account: PiAccount): string | undefined {
-    return account === "chatgpt" ? undefined : this.readKeys()[account];
+    if (account === "chatgpt") return undefined;
+    if (account === "vertex") {
+      const config = this.vertexConfig();
+      return config ? ("key" in config ? config.key : GCLOUD_SIGN_IN) : undefined;
+    }
+    return this.readKeys()[account];
   }
 
+  /** A key; a Vertex key replaces gcloud's sign-in, as only one of them is used. */
   setKey(account: KeyAccount, key: string | null) {
     const keys = { ...this.readKeys() };
     if (key?.trim()) keys[account] = key.trim();
@@ -139,7 +174,51 @@ export class PiAccounts {
     const file = join(this.o.dir, "keys.bin");
     if (!Object.keys(keys).length) rmSync(file, { force: true });
     else writeFileSync(file, this.o.vault.encrypt(JSON.stringify(keys)));
+    if (account === "vertex" && key?.trim()) rmSync(this.gcloudFile(), { force: true });
     this.o.onChange();
+  }
+
+  /** Vertex AI on gcloud's sign-in, for a project; null stops using it. It replaces a Vertex key. */
+  setVertexGcloud(project: string | null, location = "global") {
+    if (project?.trim()) {
+      writeFileSync(
+        this.gcloudFile(),
+        JSON.stringify({ project: project.trim(), location: location.trim() || "global" }),
+      );
+      if (this.readKeys().vertex) this.setKey("vertex", null);
+    } else rmSync(this.gcloudFile(), { force: true });
+    this.o.onChange();
+  }
+
+  hasVertexKey() {
+    return !!this.readKeys().vertex;
+  }
+
+  /** Vertex AI as connected: gcloud's project, and whether gcloud's sign-in is on this computer. */
+  vertexGcloud(): (VertexGcloud & { signedIn: boolean }) | undefined {
+    const gcloud = this.readGcloud();
+    return gcloud ? { ...gcloud, signedIn: existsSync(gcloudSignInFile()) } : undefined;
+  }
+
+  /** How Vertex AI is reached now, if it is: the express key, or gcloud's sign-in once it is made. */
+  private vertexConfig(): VertexConfig | undefined {
+    const key = this.readKeys().vertex;
+    if (key) return { key };
+    const gcloud = this.readGcloud();
+    return gcloud && existsSync(gcloudSignInFile()) ? gcloud : undefined;
+  }
+
+  private gcloudFile() {
+    return join(this.o.dir, "vertex-gcloud.json");
+  }
+
+  private readGcloud(): VertexGcloud | undefined {
+    try {
+      const { project, location } = JSON.parse(readFileSync(this.gcloudFile(), "utf8"));
+      return typeof project === "string" && project ? { project, location: location || "global" } : undefined;
+    } catch {
+      return undefined;
+    }
   }
 
   chatgptState(): ChatGPTSignIn {

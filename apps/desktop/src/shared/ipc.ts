@@ -208,14 +208,14 @@ export type GridCell = {
 };
 
 /**
- * The accounts an agent runs on (Q269, Q275): Claude through the official
+ * The accounts an agent runs on (Q269, Q275, Q280): Claude through the official
  * binary, and in Upstart's own harness ChatGPT Plus or Pro, an OpenAI key, a
- * Gemini key.
+ * Gemini key, and Vertex AI on a key of its express mode or gcloud's sign-in.
  */
-export const AGENT_ACCOUNTS = ["claude", "chatgpt", "openai", "gemini"] as const;
+export const AGENT_ACCOUNTS = ["claude", "chatgpt", "openai", "gemini", "vertex"] as const;
 export type AgentAccount = (typeof AGENT_ACCOUNTS)[number];
 /** The accounts of Upstart's own harness that the maker gives a key for. */
-export type KeyAccount = "openai" | "gemini";
+export type KeyAccount = "openai" | "gemini" | "vertex";
 
 /** The account of a project's model: "gemini/gemini-4-hydrogen" is the Gemini key's; an id without one, Claude's. */
 export function accountOf(model: string): AgentAccount {
@@ -240,7 +240,9 @@ export type AgentStatus = {
   signInUrl?: string;
   signInFailed?: boolean;
   /** The accounts of Upstart's own harness that are connected. */
-  accounts: { chatgpt: boolean; openai: boolean; gemini: boolean };
+  accounts: { chatgpt: boolean; openai: boolean; gemini: boolean; vertex: boolean };
+  /** Vertex AI on gcloud's sign-in: its project, and whether gcloud's sign-in is on this computer. */
+  vertexGcloud?: { project: string; signedIn: boolean };
   /** Sign in with ChatGPT under way, or how it failed. */
   chatgpt: { signingIn: boolean; failed?: string };
   /** The models of the connected accounts. */
@@ -574,8 +576,10 @@ export type Invokes = {
   "agent:set-api-key": (key: string | null) => AgentStatus;
   "agent:set-model": (model: string) => ProjectInfo;
   "agent:set-effort": (effort: Effort) => ProjectInfo;
-  /** Keeps an OpenAI or Gemini key for Upstart's own harness, encrypted by the system; null removes it. */
+  /** Keeps an OpenAI, Gemini or Vertex AI key for Upstart's own harness, encrypted by the system; null removes it. */
   "agent:set-key": (account: KeyAccount, key: string | null) => AgentStatus;
+  /** Vertex AI on the Google Cloud sign-in made with gcloud, for a project; null stops using it (Q280). */
+  "agent:set-vertex-gcloud": (project: string | null) => AgentStatus;
   /** Sign in with ChatGPT: opens the maker's browser; the status says when it is done. */
   "agent:chatgpt-sign-in": () => void;
   "agent:chatgpt-cancel": () => void;
@@ -782,6 +786,7 @@ export const channels = {
     "agent:set-model",
     "agent:set-effort",
     "agent:set-key",
+    "agent:set-vertex-gcloud",
     "agent:chatgpt-sign-in",
     "agent:chatgpt-cancel",
     "agent:chatgpt-sign-out",

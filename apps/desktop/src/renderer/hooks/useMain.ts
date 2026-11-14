@@ -70,7 +70,7 @@ export function useHistory(projectId: string | undefined) {
 const NO_STATUS: AgentStatus = {
   auth: "unknown",
   hasApiKey: false,
-  accounts: { chatgpt: false, openai: false, gemini: false },
+  accounts: { chatgpt: false, openai: false, gemini: false, vertex: false },
   chatgpt: { signingIn: false },
   models: [],
 };

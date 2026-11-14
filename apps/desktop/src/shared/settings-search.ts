@@ -44,6 +44,16 @@ export const SETTINGS: SettingEntry[] = [
   { page: "agent", id: "gemini-key", words: [t.agent.geminiKey, "Google", "AI Studio", "key", "token", "clé"] },
   {
     page: "agent",
+    id: "vertex-key",
+    words: [t.agent.vertexKey, "Vertex", "Gemini", "Google", "express", "key", "clé"],
+  },
+  {
+    page: "agent",
+    id: "vertex-gcloud",
+    words: [t.agent.vertexGcloud, "Vertex", "Gemini", "gcloud", "Google Cloud", "project", "projet"],
+  },
+  {
+    page: "agent",
     id: "model",
     words: [t.agent.model, "Sonnet", "Opus", "Haiku", "GPT", "Gemini", "modèle", t.agent.forNew],
   },

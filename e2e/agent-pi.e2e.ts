@@ -3,7 +3,10 @@
 // UPSTART_REAL_PI=1, with GEMINI_API_KEY in spikes/harnesses/homes/keys.env
 // (ignored by git). The key goes from that file to the app's main process,
 // never printed. With UPSTART_PI_RECORD=<file>, the model's replies are
-// recorded, for agent-pi-replay.e2e.ts to play back.
+// recorded, for agent-pi-replay.e2e.ts to play back. With
+// UPSTART_REAL_PI_VERTEX_PROJECT=<project>, Gemini runs on Vertex AI instead,
+// on the Google Cloud sign-in made with gcloud (Q280), its calls' arguments
+// streamed to the preview.
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
@@ -11,6 +14,9 @@ import { type LaunchedApp, launchApp } from "./app.ts";
 
 const keysFile = join(import.meta.dirname, "../spikes/harnesses/homes/keys.env");
 const real = process.env.UPSTART_REAL_PI === "1";
+const vertexProject = process.env.UPSTART_REAL_PI_VERTEX_PROJECT;
+const account = vertexProject ? "vertex" : "gemini";
+const hydrogen = `${account}/gemini-4-hydrogen`;
 
 function key(name: string): string | undefined {
   if (!existsSync(keysFile)) return undefined;
@@ -26,7 +32,7 @@ const say = (line: string) => process.stdout.write(`${line}\n`);
 
 type Logged = { t: number; kind: string; name?: string; path?: string; length?: number };
 
-describe.skipIf(!real)("Upstart's own harness, with Gemini", () => {
+describe.skipIf(!real)(`Upstart's own harness, with Gemini on ${account}`, () => {
   let launched: LaunchedApp;
   // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
   const main = <T>(fn: (upstart: any, arg: any) => T, arg?: unknown) =>
@@ -61,9 +67,12 @@ describe.skipIf(!real)("Upstart's own harness, with Gemini", () => {
     const record = process.env.UPSTART_PI_RECORD;
     launched = await launchApp({ env: { UPSTART_AGENT_REPLAY: "", ...(record ? { UPSTART_PI_RECORD: record } : {}) } });
     await launched.window.getByTestId("message-input").waitFor();
-    const gemini = key("GEMINI_API_KEY");
-    if (!gemini) throw new Error(`No GEMINI_API_KEY in ${keysFile}`);
-    await main((u, k) => u.piAccounts.setKey("gemini", k), gemini);
+    if (vertexProject) await main((u, p) => u.piAccounts.setVertexGcloud(p), vertexProject);
+    else {
+      const gemini = key("GEMINI_API_KEY");
+      if (!gemini) throw new Error(`No GEMINI_API_KEY in ${keysFile}`);
+      await main((u, k) => u.piAccounts.setKey("gemini", k), gemini);
+    }
     // What the agent streams, with its time, to see the page grow (ADR 0009).
     await main((u) => {
       const log: Logged[] = [];
@@ -90,9 +99,9 @@ describe.skipIf(!real)("Upstart's own harness, with Gemini", () => {
 
   test("the key connects the account: its models are offered", async () => {
     const status = await invoke("agent:status");
-    expect(status.accounts.gemini).toBe(true);
+    expect(status.accounts[account]).toBe(true);
     expect(status.models.map((m: { id: string }) => m.id)).toEqual(
-      expect.arrayContaining(["gemini/gemini-4-hydrogen", "gemini/gemini-4-carbon"]),
+      expect.arrayContaining([hydrogen, `${account}/gemini-4-carbon`]),
     );
   });
 
@@ -101,7 +110,7 @@ describe.skipIf(!real)("Upstart's own harness, with Gemini", () => {
     await invoke(
       "conversation:send",
       "Un site d'une page pour un fleuriste à Nantes, Fleur de Loire : le thème et la page d'accueil avec trois sections.",
-      { model: "gemini/gemini-4-hydrogen", effort: "medium" },
+      { model: hydrogen, effort: "medium" },
     );
     await turnEnded(0, 400_000);
     const done = Date.now();
@@ -114,6 +123,11 @@ describe.skipIf(!real)("Upstart's own harness, with Gemini", () => {
     const firstWrite = log.find((e) => e.kind === "tool-input" && e.length);
     const firstBlock = log.find((e) => e.kind === "tool-result" && e.name === "mcp__upstart__use_block");
     const calls = log.filter((e) => e.kind === "tool-input-end");
+    // How finely the home page reached the preview: each piece is a new rendering of it.
+    const pagePieces = log.filter((e) => e.kind === "tool-input" && e.path === "pages/index.liquid" && e.length);
+    say(
+      `[pi] pages/index.liquid: ${pagePieces.length} pieces, first at ${at(pagePieces[0])}, last at ${at(pagePieces.at(-1))}`,
+    );
     say(
       `[pi] turn ${((done - started) / 1000).toFixed(1)} s; first text written at ${at(firstWrite)} (${firstWrite?.path}); first block placed at ${at(firstBlock)}; ${calls.length} tool calls`,
     );

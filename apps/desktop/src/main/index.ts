@@ -1389,8 +1389,12 @@ async function main() {
     return agent.status();
   });
   ipc.handle("agent:set-key", (account, key) => {
-    if (account !== "openai" && account !== "gemini") throw new Error("Unknown account.");
+    if (account !== "openai" && account !== "gemini" && account !== "vertex") throw new Error("Unknown account.");
     agent.setKey(account, key);
+    return agent.status();
+  });
+  ipc.handle("agent:set-vertex-gcloud", (project) => {
+    agent.setVertexGcloud(project);
     return agent.status();
   });
   ipc.handle("agent:chatgpt-sign-in", () => {

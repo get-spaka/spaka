@@ -153,6 +153,7 @@ export class Agent {
     const auth = this.o.auth;
     const connected = this.o.pi?.accounts.connected() ?? [];
     const chatgpt = this.o.pi?.accounts.chatgptState();
+    const vertexGcloud = this.o.pi?.accounts.vertexGcloud();
     return {
       auth: auth.signingIn
         ? "signing-in"
@@ -169,15 +170,22 @@ export class Agent {
         chatgpt: connected.includes("chatgpt"),
         openai: connected.includes("openai"),
         gemini: connected.includes("gemini"),
+        vertex: connected.includes("vertex"),
       },
+      ...(vertexGcloud ? { vertexGcloud: { project: vertexGcloud.project, signedIn: vertexGcloud.signedIn } } : {}),
       chatgpt: { signingIn: !!chatgpt?.signingIn, ...(chatgpt?.failed ? { failed: chatgpt.failed } : {}) },
       models: [...(this.authState?.loggedIn !== false ? this.claudeModels : []), ...piChoices(connected)],
     };
   }
 
-  /** An OpenAI or Gemini key for Upstart's own harness; null removes it. */
+  /** An OpenAI, Gemini or Vertex AI key for Upstart's own harness; null removes it. */
   setKey(account: KeyAccount, key: string | null) {
     this.o.pi?.accounts.setKey(account, key);
+  }
+
+  /** Vertex AI on gcloud's sign-in, for a project; null stops using it (Q280). */
+  setVertexGcloud(project: string | null) {
+    this.o.pi?.accounts.setVertexGcloud(project);
   }
 
   signInChatGPT() {
@@ -265,6 +273,11 @@ export class Agent {
               models: pi.replay?.models ?? pi.accounts.models,
               ...(pi.replay ? { search: pi.replay.search } : {}),
               apiKey: (account) => pi.accounts.apiKey(account),
+              // On gcloud's sign-in, the maker signs in again in a terminal, not in Upstart.
+              signInHelp: (account) =>
+                account === "vertex" && pi.accounts.vertexGcloud() && !pi.accounts.hasVertexKey()
+                  ? en.errors.gcloudSignInNeeded
+                  : undefined,
             },
             handlers,
           )

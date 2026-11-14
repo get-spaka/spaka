@@ -208,7 +208,9 @@ function accountLine(status: AgentStatus): string {
   if (status.auth === "unknown") return t.settings.account.checking;
   const names = [
     ...(status.auth === "signed-in" ? [t.accounts.names.claude] : []),
-    ...(["chatgpt", "openai", "gemini"] as const).filter((a) => status.accounts[a]).map((a) => t.accounts.names[a]),
+    ...(["chatgpt", "openai", "gemini", "vertex"] as const)
+      .filter((a) => status.accounts[a])
+      .map((a) => t.accounts.names[a]),
   ];
   return names.length ? t.settings.account.connected(names) : t.settings.account.none;
 }
@@ -367,6 +369,17 @@ function AgentPage() {
           />
         ))}
       </Group>
+      <Group title={a.vertex} caption={a.vertexHelp} testid="settings-vertex">
+        <KeyRow
+          id="vertex-key"
+          label={a.vertexKey}
+          kept={status.accounts.vertex && !status.vertexGcloud}
+          keptText={a.vertexKept}
+          noneText={a.vertexNone}
+          onSave={(key) => upstart.invoke("agent:set-key", "vertex", key)}
+        />
+        <GcloudRow gcloud={status.vertexGcloud} />
+      </Group>
       <Group title={t.settings.agent.forNew} caption={t.settings.agent.forNewHelp} testid="settings-new-websites">
         <ModelRows
           idPrefix="new"
@@ -460,6 +473,68 @@ function KeyRow({
           />
           <Push onClick={close}>{a.cancel}</Push>
           <Push type="submit" primary disabled={!key.trim()}>
+            {a.saveKey}
+          </Push>
+        </form>
+      )}
+    </>
+  );
+}
+
+/** Vertex AI on the Google Cloud sign-in made with gcloud: the project it uses, or a field to give one (Q280). */
+function GcloudRow({ gcloud }: { gcloud: AgentStatus["vertexGcloud"] }) {
+  const a = t.settings.agent;
+  const [open, setOpen] = useState(false);
+  const [project, setProject] = useState("");
+  const close = () => {
+    setProject("");
+    setOpen(false);
+  };
+  return (
+    <>
+      <Row
+        id="vertex-gcloud"
+        label={a.vertexGcloud}
+        detail={
+          gcloud
+            ? gcloud.signedIn
+              ? a.vertexGcloudOn(gcloud.project)
+              : a.vertexGcloudWaiting(gcloud.project)
+            : a.vertexGcloudOff
+        }
+      >
+        {gcloud ? (
+          <Push testid="vertex-gcloud-stop" onClick={() => void upstart.invoke("agent:set-vertex-gcloud", null)}>
+            {a.stopProject}
+          </Push>
+        ) : (
+          !open && (
+            <Push testid="vertex-gcloud-use" onClick={() => setOpen(true)}>
+              {a.useProject}
+            </Push>
+          )
+        )}
+      </Row>
+      {open && !gcloud && (
+        <form
+          className="flex items-center gap-2 px-3 py-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (project.trim()) void upstart.invoke("agent:set-vertex-gcloud", project.trim()).then(close);
+          }}
+        >
+          <input
+            autoComplete="off"
+            spellCheck={false}
+            value={project}
+            onChange={(event) => setProject(event.target.value)}
+            placeholder={a.projectPlaceholder}
+            aria-label={a.vertexGcloud}
+            className={cn(inputClass, "flex-1")}
+            data-testid="vertex-gcloud-input"
+          />
+          <Push onClick={close}>{a.cancel}</Push>
+          <Push type="submit" primary disabled={!project.trim()}>
             {a.saveKey}
           </Push>
         </form>

@@ -135,6 +135,8 @@ export const en = {
     signInNeeded: "Upstart is not signed in to Claude yet. Sign in to continue.",
     accountNeeded:
       "This website's model could not reach its account: its key was refused or its sign-in ended. Connect it again in the settings, under Accounts.",
+    gcloudSignInNeeded:
+      "This website's model could not reach Vertex AI: the Google Cloud sign-in made with gcloud has ended, or does not give access to the project. Run gcloud auth application-default login in a terminal, then send your message again.",
     agentStopped: "The agent stopped before finishing. You can send your message again.",
     agentLimit: "The agent stopped: it reached the limit of steps for one message.",
     notIsolated: "The agent did not start in Upstart's isolated setup, so it was stopped.",
@@ -158,7 +160,7 @@ export const en = {
   },
   /** The accounts an agent runs on, as the maker knows them (Q275). */
   accounts: {
-    names: { claude: "Claude", chatgpt: "ChatGPT", openai: "OpenAI", gemini: "Gemini" },
+    names: { claude: "Claude", chatgpt: "ChatGPT", openai: "OpenAI", gemini: "Gemini", vertex: "Vertex AI" },
     connectAnother: "Connect another account…",
   },
   preview: {
@@ -505,7 +507,7 @@ export const en = {
     },
     agent: {
       intro:
-        "Upstart's agent works with Claude, ChatGPT, OpenAI or Gemini: connect the accounts you have. It works only on your websites, apart from anything else installed on this computer.",
+        "Upstart's agent works with Claude, ChatGPT, OpenAI, Gemini or Vertex AI: connect the accounts you have. It works only on your websites, apart from anything else installed on this computer.",
       account: "Accounts",
       claude: "Claude",
       signedInAs: (how: string) => `Signed in with ${how === "API key" ? "an API key" : `your ${how}`}`,
@@ -529,6 +531,21 @@ export const en = {
       geminiKey: "Gemini API key",
       geminiKept: "A key from Google AI Studio is kept, encrypted by the system.",
       geminiNone: "Use Gemini models with a key from Google AI Studio.",
+      vertex: "Google Vertex AI",
+      vertexHelp:
+        "On Vertex AI, Gemini's page appears in the preview as it is written. Use a key of Vertex AI's express mode, or the Google Cloud sign-in made on this computer with gcloud.",
+      vertexKey: "Express mode key",
+      vertexKept: "A key of Vertex AI's express mode is kept, encrypted by the system.",
+      vertexNone: "A key from Vertex AI's express mode, which Google gives to Gmail accounts.",
+      vertexGcloud: "Google Cloud with gcloud",
+      vertexGcloudOn: (project: string) => `Uses gcloud's sign-in on this computer, with the project ${project}.`,
+      vertexGcloudWaiting: (project: string) =>
+        `Project ${project}: sign in first in a terminal with gcloud auth application-default login.`,
+      vertexGcloudOff:
+        "For an organization that refuses keys: sign in with gcloud auth application-default login, then give the project.",
+      useProject: "Use a project…",
+      stopProject: "Stop using it",
+      projectPlaceholder: "Project ID",
       useKey: "Use a key…",
       removeKey: "Remove",
       keyPlaceholder: "Paste the key",
