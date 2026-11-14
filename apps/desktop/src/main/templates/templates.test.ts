@@ -206,6 +206,37 @@ describe("its checks", () => {
     );
   });
 
+  test("its questions (Q287, Q293): AskUserQuestion's form, each said in its design notes", () => {
+    const question = {
+      question: "How do guests book a table?",
+      header: "Booking",
+      options: [
+        { label: "Online", description: "The reservation form." },
+        { label: "By phone", description: "A call button." },
+      ],
+    };
+    const notes = (body: string) =>
+      `---\nname: atelier-design\ndescription: Atelier's design notes.\n---\n\n# Atelier\n\n${body}`;
+    const withQuestions = (questions: unknown[], body = "") => ({
+      "template.json": JSON.stringify({ ...MANIFEST, questions }),
+      ".upstart/skills/atelier-design/SKILL.md": notes(body),
+    });
+    const documented = `## Template questions\n\n### How do guests book a table?\n\n- Online: keep the form.\n- By phone: a call button in its place.`;
+    expect(errorsOf(withQuestions([question], documented))).toBe("");
+    expect(warningsOf(withQuestions([question], documented))).toBe("");
+    // Each said in the design notes.
+    expect(warningsOf(withQuestions([question]))).toMatch(/what each answer to "How do guests book a table\?" changes/);
+    // AskUserQuestion's form: 2 to 4 choices, each of its own, each question once, 4 at most.
+    expect(errorsOf(withQuestions([{ ...question, options: [question.options[0]] }], documented))).toMatch(
+      /questions\.0\.options/,
+    );
+    expect(
+      errorsOf(withQuestions([{ ...question, options: [question.options[0], question.options[0]] }], documented)),
+    ).toMatch(/a label of its own/);
+    expect(errorsOf(withQuestions([question, question], documented))).toMatch(/asked once/);
+    expect(errorsOf(withQuestions(Array(5).fill(question), documented))).toMatch(/questions/);
+  });
+
   test("a home page and a theme", () => {
     expect(errorsOf({ "pages/index.liquid": null })).toMatch(/pages\/index\.liquid is missing/);
     expect(errorsOf({ "theme.css": null })).toMatch(/theme\.css is missing/);

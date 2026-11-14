@@ -83,6 +83,8 @@ export const en = {
     importProblems: "This is not a template Upstart can use:",
     startingFrom: (name: string) => `Starting from ${name}`,
     fromScratch: "From scratch",
+    /** Above a template's questions, under the message box (Q287). */
+    questions: (name: string) => `${name}'s choices, set to what it recommends`,
     clear: "Start from scratch instead",
     placeholder: (name: string) => `Describe your website: ${name} is rewritten for it…`,
     home: "Home",

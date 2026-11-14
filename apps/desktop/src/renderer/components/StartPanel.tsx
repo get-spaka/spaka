@@ -7,6 +7,7 @@
 // website, and the window takes its usual layout.
 import { ArrowLeft, Check, Eye, PanelLeft, Upload, X } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { AgentQuestion } from "../../shared/conversation";
 import {
   type AgentStatus,
   accountReady,
@@ -52,6 +53,8 @@ export function StartPanel({
 
   const [draft, setDraft] = useState("");
   const [newSettings, setSettings] = useNewSettings(status);
+  // The chosen template's questions as the maker set them, by template (Q287): its recommended choices until changed.
+  const [answers, setAnswers] = useState<{ template?: string; labels: Record<string, string[]> }>({ labels: {} });
   const [sending, setSending] = useState(false);
   // Why the website could not start from the chosen template (Q247): it could not be downloaded.
   const [sendProblem, setSendProblem] = useState<string>();
@@ -62,7 +65,10 @@ export function StartPanel({
     setSending(true);
     setSendProblem(undefined);
     void upstart
-      .invoke("conversation:send", text, { ...newSettings, ...(chosen ? { template: chosen } : {}) })
+      .invoke("conversation:send", text, {
+        ...newSettings,
+        ...(chosen ? { template: chosen, answers: sentAnswers(chosenTemplate, answers) } : {}),
+      })
       .then((problem) => {
         if (!problem) return;
         setSending(false);
@@ -191,7 +197,7 @@ export function StartPanel({
         </div>
       )}
       <MessageBox
-        className="mx-auto w-full max-w-2xl pb-5"
+        className={cn("mx-auto w-full max-w-2xl", chosenTemplate?.questions.length ? "pb-1" : "pb-5")}
         project={null}
         status={status}
         draft={draft}
@@ -227,6 +233,13 @@ export function StartPanel({
           )}
         </div>
       </MessageBox>
+      {chosenTemplate && chosenTemplate.questions.length > 0 && (
+        <TemplateQuestions
+          template={chosenTemplate}
+          labels={answers.template === chosenTemplate.id ? answers.labels : {}}
+          onChange={(labels) => setAnswers({ template: chosenTemplate.id, labels })}
+        />
+      )}
 
       {importing && (
         <ImportDialog
@@ -546,4 +559,85 @@ function useTemplateView() {
   const [state, setState] = useState<TemplateViewState>(NO_VIEW);
   useEffect(() => upstart.on("templates:view-state", setState), []);
   return state;
+}
+
+/** The labels a question is set to: the maker's, or its recommended choice, the first. */
+function labelsOf(q: AgentQuestion, labels: Record<string, string[]>): string[] {
+  return labels[q.question]?.length ? labels[q.question]! : [q.options[0]!.label];
+}
+
+/** What the start screen sends of a template's questions: each one's labels, by question. */
+function sentAnswers(
+  template: TemplateSummary | undefined,
+  answers: { template?: string; labels: Record<string, string[]> },
+): Record<string, string | string[]> {
+  const labels = answers.template === template?.id ? answers.labels : {};
+  return Object.fromEntries(
+    (template?.questions ?? []).map((q) => {
+      const set = labelsOf(q, labels);
+      return [q.question, q.multiSelect ? set : set[0]!];
+    }),
+  );
+}
+
+/**
+ * A template's questions under the message box (Q287): each set to its
+ * recommended choice, which the maker may change before sending; nothing waits.
+ */
+function TemplateQuestions({
+  template,
+  labels,
+  onChange,
+}: {
+  template: TemplateSummary;
+  labels: Record<string, string[]>;
+  onChange: (labels: Record<string, string[]>) => void;
+}) {
+  const choose = (q: AgentQuestion, label: string) => {
+    const now = labelsOf(q, labels);
+    const next = q.multiSelect
+      ? now.includes(label)
+        ? now.filter((l) => l !== label)
+        : q.options.map((o) => o.label).filter((l) => l === label || now.includes(l))
+      : [label];
+    onChange({ ...labels, [q.question]: next });
+  };
+  return (
+    <div data-testid="template-questions" className="mx-auto w-full max-w-2xl space-y-1.5 px-4 pb-5">
+      <p className="text-[11px] text-muted-foreground">{t.start.questions(template.name)}</p>
+      {template.questions.map((q) => {
+        const set = labelsOf(q, labels);
+        return (
+          <fieldset
+            key={q.question}
+            data-testid="template-question"
+            aria-label={q.question}
+            className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1"
+          >
+            <span className="min-w-0 flex-1 basis-56 text-xs">{q.question}</span>
+            <span className="flex flex-wrap gap-1">
+              {q.options.map((option) => (
+                <button
+                  key={option.label}
+                  type="button"
+                  data-testid="template-choice"
+                  aria-pressed={set.includes(option.label)}
+                  title={option.description || undefined}
+                  onClick={() => choose(q, option.label)}
+                  className={cn(
+                    "rounded-full border px-2.5 py-0.5 text-xs",
+                    set.includes(option.label)
+                      ? "border-foreground bg-foreground text-background"
+                      : "text-muted-foreground hover:border-foreground/40 hover:text-foreground",
+                  )}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </span>
+          </fieldset>
+        );
+      })}
+    </div>
+  );
 }

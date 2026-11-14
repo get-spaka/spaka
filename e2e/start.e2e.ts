@@ -142,6 +142,14 @@ describe("the start screen", () => {
 
   test("the first message creates the website from the chosen template; the window takes its usual layout", async () => {
     const w = launched.window;
+    // Reel's questions under the message box, each on its recommended choice (Q287); the maker changes one.
+    const rows = w.getByTestId("template-question");
+    expect(await rows.count()).toBe(2);
+    const pressed = w.locator('[data-testid="template-choice"][aria-pressed="true"]');
+    await expect(pressed.allTextContents()).resolves.toEqual(["The brief form", "No open roles"]);
+    await rows.nth(1).getByRole("button", { name: "Yes" }).click();
+    await expect(pressed.allTextContents()).resolves.toEqual(["The brief form", "Yes"]);
+    await launched.capture("start-questions");
     await w.getByTestId("message-input").fill("A ceramics studio in Lisbon.");
     await w.getByTestId("message-input").press("Enter");
     await w.getByTestId("conversation").waitFor();
@@ -176,6 +184,10 @@ describe("the start screen", () => {
     expect(received.at(-1)).toContain('template "Reel"');
     expect(received.at(-1)).toContain("reel-design skill");
     expect(received.at(-1)?.endsWith("A ceramics studio in Lisbon.")).toBe(true);
+    expect(received.at(-1)).toContain("- Are you hiring? → Yes (the maker's choice)");
+    expect(received.at(-1)).toContain(
+      "- How do clients get in touch? → The brief form (left on the recommended answer)",
+    );
     await expect(main<boolean>("globalThis.upstart.templateViewer.view.getVisible()")).resolves.toBe(false);
     await launched.capture("start-sent");
   });

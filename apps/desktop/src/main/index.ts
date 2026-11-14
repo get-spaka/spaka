@@ -882,7 +882,7 @@ async function main() {
         projects.update(created.id, { model, effort, ...(template ? { template } : {}), ...(mode ? { mode } : {}) }),
       );
       if (manifest) {
-        sendMessage(project, message, adaptMessage(manifest, message));
+        sendMessage(project, message, adaptMessage(manifest, message, answersOf(settings?.answers)));
         return;
       }
     }
@@ -1518,3 +1518,13 @@ main().catch((error) => {
   console.error("[upstart] failed to start", error);
   app.exit(1);
 });
+
+/** The template's answers the start screen sent (Q287): labels by question, nothing else. */
+function answersOf(raw: unknown): Record<string, string | string[]> | undefined {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+  const answers: Record<string, string | string[]> = {};
+  for (const [question, value] of Object.entries(raw))
+    if (typeof value === "string") answers[question] = value;
+    else if (Array.isArray(value) && value.every((v) => typeof v === "string")) answers[question] = value;
+  return answers;
+}

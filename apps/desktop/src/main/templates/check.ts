@@ -208,6 +208,10 @@ export function checkTemplate(files: TemplateFiles, { finished = false } = {}): 
     const skill = parseSkill(text(notes));
     if ("problem" in skill) errors.push(`${notes}: ${skill.problem}`);
     else if (skill.name !== `${manifest.id}-design`) errors.push(`${notes}: its name is ${manifest.id}-design.`);
+    // What each answer to its questions changes (Q293), each question named as asked.
+    for (const q of manifest.questions)
+      if (!text(notes).includes(q.question))
+        warnings.push(`${notes}: say under "## Template questions" what each answer to "${q.question}" changes.`);
   }
 
   // ---- its blocks (Q235) ------------------------------------------------------

@@ -11,6 +11,7 @@ import {
   forgetTemplateTexts,
   sentencesOf,
   TEMPLATE_TEXTS,
+  templateAnswers,
   templateLeftNote,
   templateTextsLeft,
 } from "./adapt";
@@ -47,6 +48,63 @@ describe("a template copied into a new project", () => {
     expect(text).toMatch(/Keep the design/);
     expect(text).toMatch(/look at each page with look_at_preview/);
     expect(text.endsWith("A flower shop in Ghent.")).toBe(true);
+    // A template without questions says nothing of them.
+    expect(text).not.toMatch(/template's questions on the start screen/);
+  });
+
+  test("its questions as the maker left them: chosen, or on the recommended answer (Q287)", () => {
+    const questions = [
+      {
+        question: "How do guests book a table?",
+        header: "Booking",
+        options: [
+          { label: "Online", description: "" },
+          { label: "By phone", description: "" },
+        ],
+        multiSelect: false,
+      },
+      {
+        question: "Private dining and events?",
+        header: "Pages",
+        options: [
+          { label: "Both", description: "" },
+          { label: "Events only", description: "" },
+        ],
+        multiSelect: false,
+      },
+      {
+        question: "Which drinks?",
+        header: "Drinks",
+        options: [
+          { label: "Wine", description: "" },
+          { label: "Cocktails", description: "" },
+          { label: "Beer", description: "" },
+        ],
+        multiSelect: true,
+      },
+    ];
+    const text = adaptMessage(
+      { id: "ember", name: "Ember", description: "An evening restaurant.", questions },
+      "A jazz bar in Lyon, booking by phone only.",
+      // A label the question does not have is left on the recommended one; several are kept in its order.
+      {
+        "How do guests book a table?": "By phone",
+        "Private dining and events?": "Neither",
+        "Which drinks?": ["Beer", "Wine"],
+      },
+    );
+    expect(text).toContain("- How do guests book a table? → By phone (the maker's choice)");
+    expect(text).toContain("- Private dining and events? → Both (left on the recommended answer)");
+    expect(text).toContain("- Which drinks? → Wine, Beer (the maker's choice)");
+    expect(text).toMatch(/the message wins over an answer left on the recommended one/);
+    expect(text).toMatch(/the template's questions are answered already/);
+    expect(text.indexOf("template's questions on the start screen")).toBeLessThan(text.indexOf("Adapt it"));
+    // Nothing sent: every question on its recommended answer.
+    expect(templateAnswers(questions).map((a) => [a.labels, a.chosen])).toEqual([
+      [["Online"], false],
+      [["Both"], false],
+      [["Wine"], false],
+    ]);
   });
 });
 

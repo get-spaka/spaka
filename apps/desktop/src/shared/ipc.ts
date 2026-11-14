@@ -4,7 +4,7 @@
 // both sides are checked against the same definition. The preload exposes
 // only these channels, and the main process accepts them only from the
 // interface's own main frame.
-import type { ConversationEvent, ConversationItem, QuestionAnswer } from "./conversation";
+import type { AgentQuestion, ConversationEvent, ConversationItem, QuestionAnswer } from "./conversation";
 
 export type AppInfo = {
   version: string;
@@ -513,6 +513,8 @@ export type TemplateSummary = {
   tags: string[];
   /** Imported by the maker, rather than one of Upstart's. */
   imported: boolean;
+  /** What varies in its design, asked on the start screen, the first choice recommended (Q287). */
+  questions: AgentQuestion[];
 };
 
 /** A template shown large in the start screen (Q249): the page shown and the pages to go to. */
@@ -568,7 +570,14 @@ export type Invokes = {
   /** Sends a message, creating the website first with none open; why it could not, in words the maker reads. */
   "conversation:send": (
     text: string,
-    newProject?: { model: string; effort: Effort; template?: string; mode?: AgentMode },
+    newProject?: {
+      model: string;
+      effort: Effort;
+      template?: string;
+      /** The template's questions as the maker left them on the start screen: labels by question (Q287). */
+      answers?: Record<string, string | string[]>;
+      mode?: AgentMode;
+    },
   ) => string | undefined;
   "conversation:stop": () => void;
   "conversation:start-over": () => void;

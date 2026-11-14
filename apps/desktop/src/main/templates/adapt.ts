@@ -8,7 +8,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { splitRecord } from "@upstart/runtime";
-import { MANIFEST, type Manifest } from "./manifest";
+import { MANIFEST, Manifest, type TemplateQuestion } from "./manifest";
 import { DESIGN_SKILL, projectFiles, readTemplateFolder, type TemplateFiles } from "./reader";
 
 export const TEMPLATE_TEXTS = ".upstart/template-texts.json";
@@ -25,7 +25,10 @@ const TEXT_FILE = /^(?:pages|parts|fragments)\/.+\.(?:liquid|html?)$|^data\/[^/]
  */
 export function copyTemplate(dir: string, root: string): Manifest {
   const files = readTemplateFolder(dir);
-  const manifest = JSON.parse(files.get(MANIFEST)!.toString("utf8")) as Manifest;
+  const raw = JSON.parse(files.get(MANIFEST)!.toString("utf8"));
+  // Read with its defaults (its questions' among them), as the catalogue reads it.
+  const parsed = Manifest.safeParse(raw);
+  const manifest = parsed.success ? parsed.data : (raw as Manifest);
   for (const [path, bytes] of projectFiles(files)) {
     const file = join(root, path);
     mkdirSync(dirname(file), { recursive: true });
@@ -43,12 +46,51 @@ export function templateTexts(files: TemplateFiles): string[] {
   return [...texts].sort();
 }
 
+/** A template's question as the maker left it on the start screen (Q287): the labels, and whether they chose them. */
+export type TemplateAnswer = { question: TemplateQuestion; labels: string[]; chosen: boolean };
+
 /**
- * What the agent receives with the maker's first message: the template, what
- * adapting it means, and the message itself (Q246).
+ * The answers to a template's questions: what the maker chose, each question
+ * they did not answer (or answered with labels it does not have) left on its
+ * recommended choice, the first.
  */
-export function adaptMessage(manifest: Pick<Manifest, "id" | "name" | "description">, message: string): string {
-  return `This website starts from Upstart's template "${manifest.name}" (${manifest.description}), already copied into the project: its pages, parts, data, media, fonts, scripts, styles and blocks. The project is not empty, so read before you write: first the template's design notes, the ${DESIGN_SKILL(manifest.id).split("/").pop()} skill, then the pages and parts you change.
+export function templateAnswers(
+  questions: TemplateQuestion[],
+  given: Record<string, string | string[]> = {},
+): TemplateAnswer[] {
+  return questions.map((question) => {
+    const recommended = [question.options[0]!.label];
+    const labels = question.options.map((o) => o.label);
+    const raw = given[question.question];
+    const asked = (Array.isArray(raw) ? raw : raw === undefined ? [] : [raw]).filter((l) => labels.includes(l));
+    const kept = question.multiSelect ? labels.filter((l) => asked.includes(l)) : asked.slice(0, 1);
+    if (!kept.length) return { question, labels: recommended, chosen: false };
+    return { question, labels: kept, chosen: kept.join("\n") !== recommended.join("\n") };
+  });
+}
+
+/**
+ * What the agent receives with the maker's first message: the template, how
+ * its questions were answered, what adapting it means, and the message itself
+ * (Q246, Q287).
+ */
+export function adaptMessage(
+  manifest: Pick<Manifest, "id" | "name" | "description"> & { questions?: TemplateQuestion[] },
+  message: string,
+  given?: Record<string, string | string[]>,
+): string {
+  const answers = templateAnswers(manifest.questions ?? [], given);
+  const answered = answers.length
+    ? `\n\nThe maker answered the template's questions on the start screen; its design notes say what each answer changes:\n${answers
+        .map(
+          (a) =>
+            `- ${a.question.question} → ${a.labels.join(", ")} (${a.chosen ? "the maker's choice" : "left on the recommended answer"})`,
+        )
+        .join(
+          "\n",
+        )}\nFollow these answers. Where the maker's message says otherwise, the message wins over an answer left on the recommended one.`
+    : "";
+  return `This website starts from Upstart's template "${manifest.name}" (${manifest.description}), already copied into the project: its pages, parts, data, media, fonts, scripts, styles and blocks. The project is not empty, so read before you write: first the template's design notes, the ${DESIGN_SKILL(manifest.id).split("/").pop()} skill, then the pages and parts you change.${answered}
 
 Adapt it to the maker's business, described below:
 - Rewrite every text for this business, in the language of the maker's message: the pages' titles and descriptions, every part, every fragment, every record of every datasource (data/navigation/ included), the alternative texts. Keep no sentence of the template's own: its business is invented.
@@ -56,7 +98,7 @@ Adapt it to the maker's business, described below:
 - Add the pages the description calls for and remove those it does not need, each in data/navigation/; a datasource the site does not need goes with its pages and parts.
 - Keep the design: theme.css, the layout, the type, the effects, the scripts and styles. Change them only where the maker asks.
 - Then look at each page with look_at_preview, giving it each page's route: new texts are longer or shorter than the template's, in another language above all. Fix what they broke (a menu label running into a button, a heading wider than the screen) in the markup, keeping the design.
-- Last, once the pages are adapted and looked at, ask the maker one card on what you guessed that matters, as for any new website (see Questions to the maker).
+- Last, once the pages are adapted and looked at, ask the maker one card on what you guessed that matters, as for any new website (see Questions to the maker); the template's questions are answered already.
 At the end Upstart checks that no text of the template is left.
 
 The maker's message:
