@@ -81,6 +81,8 @@ Asked by Matt on 2026-11-14, after the templates; it reopens "Codex only after a
 
 **Decides.** Which agents Upstart offers, in what order, and the shape of the agent layer (a new ADR, or ADR 0002 reopened).
 
+**Outcome.** Run on 2026-11-14, see the [report](../spikes/harnesses/REPORT.md): only Pi with an OpenAI model on an API key keeps the live preview, at about twice Claude's time to a complete page; Codex (code mode), opencode 2 and every Gemini route send a file only once it is written; no subscription other than Claude's may be used by an app like Upstart. Which agents Upstart offers waits for Matt's decision (Q268).
+
 ## What the spikes need from Matt
 
 - Claude signed in on the machine (it is).
