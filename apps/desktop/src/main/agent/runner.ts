@@ -1,8 +1,12 @@
 // One project's agent, whichever layer runs it (ADR 0012): Claude through the
 // Agent SDK (session.ts), or Upstart's own harness on Pi's libraries.
-import type { Effort, ProjectInfo } from "../../shared/ipc";
+import type { QuestionAnswer } from "../../shared/conversation";
+import type { AgentMode, Effort, ProjectInfo } from "../../shared/ipc";
 import type { TurnChecks } from "./turn-checks";
 import type { UpstartTools } from "./upstart-tools";
+
+/** What the maker made of a plan: approved with Build, or changes asked for in their own words (Q290). */
+export type PlanDecision = { approved: true } | { changes: string };
 
 export interface AgentRunner {
   readonly projectId: string;
@@ -15,8 +19,14 @@ export interface AgentRunner {
   /** `forAgent` is what the agent receives, when it differs from what the maker typed. */
   send(text: string, forAgent?: string): void;
   stop(): Promise<void>;
+  /** Answers the card of questions the turn waits on (Q283); a card it does not wait on is left alone. */
+  answer(cardId: string, answer: QuestionAnswer): void;
+  /** Settles the plan the turn waits on (Q286): Build, or the maker's changes, after which the agent hands in another. */
+  settlePlan(cardId: string, decision: PlanDecision): void;
   setModel(model: string): Promise<void>;
   setEffort(effort: Effort): Promise<void>;
+  /** Build or plan, from the next message (Q286, Q296). */
+  setMode(mode: AgentMode): Promise<void>;
   /** Clears the agent's memory of the conversation; what is shown stays. */
   startOver(): void;
   /** Clears its memory without a word in the conversation: another agent took over (Q274). */

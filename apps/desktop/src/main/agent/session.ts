@@ -6,14 +6,14 @@
 import { readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Query, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
-import type { ConversationEvent } from "../../shared/conversation";
-import type { Effort, ProjectInfo } from "../../shared/ipc";
+import type { ConversationEvent, QuestionAnswer } from "../../shared/conversation";
+import type { AgentMode, Effort, ProjectInfo } from "../../shared/ipc";
 import { en } from "../../shared/strings/en";
 import type { AssembledSkills } from "../skills/skills";
 import { Activities } from "./activity";
 import { confinement } from "./confinement";
 import { UPSTART_INSTRUCTIONS } from "./instructions";
-import type { AgentRunner } from "./runner";
+import type { AgentRunner, PlanDecision } from "./runner";
 import { type AgentEvent, StreamReader } from "./stream";
 
 /** The agent's tools. No MultiEdit: the live preview cannot follow it (ADR 0009). */
@@ -187,6 +187,14 @@ export class AgentSession implements AgentRunner {
     this.project = { ...this.project, effort };
     await this.q?.applyFlagSettings({ effortLevel: effort }).catch(() => this.restart());
   }
+
+  // Questions and plans (Q283, Q286): the agent asks nothing yet and has no
+  // plan mode, so nothing waits for these (agent-questions plan, slices 1 and 4).
+  answer(_cardId: string, _answer: QuestionAnswer) {}
+
+  settlePlan(_cardId: string, _decision: PlanDecision) {}
+
+  async setMode(_mode: AgentMode) {}
 
   /** The models the agent offers, with the effort levels each accepts. Works before signing in. */
   supportedModels() {

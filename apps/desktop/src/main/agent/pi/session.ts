@@ -8,15 +8,15 @@ import { existsSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSy
 import { join } from "node:path";
 import { type AgentMessage, Agent as Loop, type AgentEvent as LoopEvent } from "@earendil-works/pi-agent-core";
 import type { Api, AssistantMessage, ClientIdentity, Model, Models, ToolCall } from "@earendil-works/pi-ai";
-import type { ConversationEvent } from "../../../shared/conversation";
-import type { Effort, ProjectInfo } from "../../../shared/ipc";
+import type { ConversationEvent, QuestionAnswer } from "../../../shared/conversation";
+import type { AgentMode, Effort, ProjectInfo } from "../../../shared/ipc";
 import { en } from "../../../shared/strings/en";
 import type { McpConfig } from "../../connectors/connectors";
 import { type AssembledSkills, readSkill } from "../../skills/skills";
 import { Activities } from "../activity";
 import type { InstructionsFamily, SkillListing } from "../instructions";
 import { parsePartialInput } from "../partial-input";
-import type { AgentKit, AgentRunner } from "../runner";
+import type { AgentKit, AgentRunner, PlanDecision } from "../runner";
 import type { SessionDeps, SessionHandlers } from "../session";
 import type { AgentEvent } from "../stream";
 import { upstartTools } from "../upstart-tools";
@@ -225,6 +225,14 @@ export class PiSession implements AgentRunner {
     this.project = { ...this.project, effort };
     if (this.loop) this.loop.state.thinkingLevel = thinkingFor(this.model(), effort);
   }
+
+  // Questions and plans (Q283, Q286): the agent asks nothing yet and has no
+  // plan mode, so nothing waits for these (agent-questions plan, slices 2 and 4).
+  answer(_cardId: string, _answer: QuestionAnswer) {}
+
+  settlePlan(_cardId: string, _decision: PlanDecision) {}
+
+  async setMode(_mode: AgentMode) {}
 
   startOver() {
     this.close();

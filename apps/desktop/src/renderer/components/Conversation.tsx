@@ -359,7 +359,11 @@ function Messages({ items }: { items: ConversationItem[] }) {
  * thinking, in grey.
  */
 function AgentParts({ parts, working, style }: { parts: AgentPart[]; working: boolean; style: OutputStyle }) {
-  const shown = style === "detailed" ? parts : parts.filter((p) => p.kind !== "thinking");
+  // Questions and plans get their cards in the build's slice 3; until then they are not drawn.
+  const drawn = parts.filter(
+    (p): p is Exclude<AgentPart, { kind: "question" | "plan" }> => p.kind !== "question" && p.kind !== "plan",
+  );
+  const shown = style === "detailed" ? drawn : drawn.filter((p) => p.kind !== "thinking");
   if (style !== "discreet")
     return shown.map((part, index) =>
       part.kind === "activity" ? (
@@ -370,7 +374,10 @@ function AgentParts({ parts, working, style }: { parts: AgentPart[]; working: bo
       ),
     );
   // Runs of steps, between the agent's words.
-  const groups: ({ kind: "steps"; activities: Activity[] } | Exclude<AgentPart, { kind: "activity" }>)[] = [];
+  const groups: (
+    | { kind: "steps"; activities: Activity[] }
+    | Exclude<AgentPart, { kind: "activity" | "question" | "plan" }>
+  )[] = [];
   for (const part of shown) {
     const last = groups.at(-1);
     if (part.kind !== "activity") groups.push(part);

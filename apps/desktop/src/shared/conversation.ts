@@ -12,11 +12,41 @@ export type ActivityState = "running" | "done" | "failed" | "refused";
  */
 export type Activity = { id: string; label: string; state: ActivityState; detail?: string; error?: string };
 
+/** One choice of a question; `preview` is `block:<id>` or an image of the site (Q291). */
+export type QuestionOption = { label: string; description: string; preview?: string };
+
+/** A question of the agent's, in AskUserQuestion's form (Q285): its first choice is the one it recommends. */
+export type AgentQuestion = { question: string; header: string; options: QuestionOption[]; multiSelect: boolean };
+
+/**
+ * What the maker did with a card of questions: chose for each question (the
+ * labels, or their own words for one of them), answered all of it in their own
+ * words in the message box, or skipped it (Q284, Q295).
+ */
+export type QuestionAnswer =
+  | { kind: "choices"; answers: Record<string, string | string[]> }
+  | { kind: "words"; text: string }
+  | { kind: "skipped" };
+
+/** Waiting for the maker; answered or skipped; or left when the turn ended (Stop, the app closed). */
+export type QuestionState = "waiting" | "answered" | "skipped" | "unanswered";
+
+/** One to four questions the agent asks at once, its turn waiting for the answer (Q283). */
+export type QuestionCard = { id: string; questions: AgentQuestion[]; state: QuestionState; answer?: QuestionAnswer };
+
+/** Handed in, approved with Build, replaced by a new one after the maker asked for changes, or left when the turn ended. */
+export type PlanState = "proposed" | "approved" | "replaced" | "unanswered";
+
+/** The plan the agent hands in in plan mode (Q286, Q290); `changes` are the maker's words when they asked for another. */
+export type PlanCard = { id: string; text: string; state: PlanState; changes?: string };
+
 export type AgentPart =
   | { kind: "text"; text: string }
   | { kind: "activity"; activity: Activity }
   /** The agent's thinking, when the model gives it; shown in the detailed style only. */
-  | { kind: "thinking"; text: string };
+  | { kind: "thinking"; text: string }
+  | { kind: "question"; card: QuestionCard }
+  | { kind: "plan"; card: PlanCard };
 
 export type TurnStatus = "working" | "done" | "stopped" | "failed";
 
@@ -39,7 +69,13 @@ export type ConversationEvent =
   | { type: "thinking"; text: string }
   | { type: "activity"; activity: Activity }
   | { type: "turn-end"; status: Exclude<TurnStatus, "working">; error?: string }
-  | { type: "notice"; id: string; text: string; at: number };
+  | { type: "notice"; id: string; text: string; at: number }
+  /** The agent asks; its turn waits for the answer. */
+  | { type: "question"; card: QuestionCard }
+  | { type: "question-settled"; id: string; state: Exclude<QuestionState, "waiting">; answer?: QuestionAnswer }
+  /** The agent hands in a plan; its turn waits for Build or the maker's changes. */
+  | { type: "plan"; card: PlanCard }
+  | { type: "plan-settled"; id: string; state: Exclude<PlanState, "proposed">; changes?: string };
 
 export function applyEvent(items: ConversationItem[], event: ConversationEvent): ConversationItem[] {
   if (event.type === "turn-start")
@@ -66,19 +102,68 @@ export function applyEvent(items: ConversationItem[], event: ConversationEvent):
     else parts.push({ kind: "activity", activity: event.activity });
     return [...items.slice(0, -1), { ...last, parts }];
   }
-  // turn-end: whatever was still running did not finish.
-  const settled = parts.map((p) =>
-    p.kind === "activity" && p.activity.state === "running" && event.status !== "done"
-      ? { ...p, activity: { ...p.activity, state: "failed" as const } }
-      : p.kind === "activity" && p.activity.state === "running"
-        ? { ...p, activity: { ...p.activity, state: "done" as const } }
-        : p,
-  );
+  if (event.type === "question" || event.type === "plan") {
+    parts.push(event.type === "question" ? { kind: "question", card: event.card } : { kind: "plan", card: event.card });
+    return [...items.slice(0, -1), { ...last, parts }];
+  }
+  if (event.type === "question-settled") {
+    const at = parts.findIndex((p) => p.kind === "question" && p.card.id === event.id);
+    const part = parts[at];
+    if (part?.kind !== "question") return items;
+    parts[at] = { kind: "question", card: { ...part.card, state: event.state, answer: event.answer } };
+    return [...items.slice(0, -1), { ...last, parts }];
+  }
+  if (event.type === "plan-settled") {
+    const at = parts.findIndex((p) => p.kind === "plan" && p.card.id === event.id);
+    const part = parts[at];
+    if (part?.kind !== "plan") return items;
+    parts[at] = { kind: "plan", card: { ...part.card, state: event.state, changes: event.changes } };
+    return [...items.slice(0, -1), { ...last, parts }];
+  }
+  // turn-end: whatever was still running did not finish, and whatever still
+  // waited for the maker was not answered.
+  const settled = parts.map((p): AgentPart => {
+    if (p.kind === "activity" && p.activity.state === "running")
+      return { ...p, activity: { ...p.activity, state: event.status !== "done" ? "failed" : "done" } };
+    if (p.kind === "question" && p.card.state === "waiting") return { ...p, card: { ...p.card, state: "unanswered" } };
+    if (p.kind === "plan" && p.card.state === "proposed") return { ...p, card: { ...p.card, state: "unanswered" } };
+    return p;
+  });
   return [...items.slice(0, -1), { ...last, parts: settled, status: event.status, error: event.error }];
 }
 
-/** Whether the agent is in the middle of a turn. */
+/** Whether the agent is in the middle of a turn, waiting for the maker or not. */
 export function isWorking(items: ConversationItem[]): boolean {
   const last = items.at(-1);
   return last?.kind === "agent" && last.status === "working";
+}
+
+/** What the agent's turn waits for: a card of questions, or a plan to approve (Q283, Q286). */
+export function waitingFor(items: ConversationItem[]): QuestionCard | PlanCard | undefined {
+  const last = items.at(-1);
+  if (last?.kind !== "agent" || last.status !== "working") return undefined;
+  for (const part of last.parts) {
+    if (part.kind === "question" && part.card.state === "waiting") return part.card;
+    if (part.kind === "plan" && part.card.state === "proposed") return part.card;
+  }
+  return undefined;
+}
+
+/** Whether the agent's turn waits for the maker: editing by hand comes back meanwhile (Q294). */
+export function isWaiting(items: ConversationItem[]): boolean {
+  return waitingFor(items) !== undefined;
+}
+
+/** A settled card in a few words, for summaries: "Which color? → Blue". */
+export function answerText(card: QuestionCard): string {
+  const { answer } = card;
+  if (card.state === "skipped" || answer?.kind === "skipped") return "skipped";
+  if (card.state === "unanswered" || card.state === "waiting" || !answer) return "not answered";
+  if (answer.kind === "words") return answer.text;
+  return card.questions
+    .map((q) => {
+      const a = answer.answers[q.question];
+      return `${q.question} → ${a === undefined ? "not answered" : Array.isArray(a) ? a.join(", ") : a}`;
+    })
+    .join("; ");
 }

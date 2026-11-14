@@ -17,6 +17,9 @@ export type AppInfo = {
 
 export type Effort = "low" | "medium" | "high" | "xhigh" | "max";
 
+/** Build, the usual way, or plan mode, where the agent writes nothing and hands in a plan (Q286). */
+export type AgentMode = "build" | "plan";
+
 /** A project as the sidebar lists it. */
 export type ProjectSummary = { id: string; name: string; path: string };
 

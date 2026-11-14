@@ -2,7 +2,7 @@
 // of Upstart's own harness (Q274): a fresh memory, from a summary of the
 // conversation as shown. What the maker changed by hand since reaches it
 // through the usual notes (editing/notes.ts).
-import type { ConversationItem } from "../../shared/conversation";
+import { answerText, type ConversationItem } from "../../shared/conversation";
 import { clip } from "./activity";
 
 const TURNS = 12;
@@ -24,9 +24,22 @@ export function handoverNote(items: ConversationItem[]): string | undefined {
         ? [p.activity.label]
         : [],
     );
+    // Its questions and plans, with what the maker made of them (Q283, Q286).
+    const asked = reply?.parts.flatMap((p) => {
+      if (p.kind === "question")
+        return [
+          `The agent asked: ${p.card.questions.map((q) => q.question).join(" ")} The maker: ${clip(answerText(p.card), 600)}.`,
+        ];
+      if (p.kind === "plan")
+        return [
+          `The agent handed in a plan, ${p.card.state === "approved" ? "which the maker approved" : p.card.state === "replaced" ? `which the maker asked to change: ${clip(p.card.changes ?? "", 600)}` : "which the maker did not approve"}:\n${clip(p.card.text, 1500)}`,
+        ];
+      return [];
+    });
     turns.push(
       [
         `The maker: ${clip(item.text.trim(), 1500)}`,
+        ...(asked ?? []),
         ...(steps?.length ? [`The agent: ${[...new Set(steps)].join("; ")}.`] : []),
         ...(words ? [`The agent said: ${clip(words, 1500)}`] : []),
         ...(reply && reply.status !== "done"
