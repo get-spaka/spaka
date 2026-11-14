@@ -1,4 +1,4 @@
-# The two spikes that come before building
+# The spikes
 
 Both spikes are throwaway code under `spikes/`, run in parallel. Each ends with a report (`spikes/<name>/REPORT.md`) giving the measurements against the criteria below, short screen recordings, and the decisions it settles, which are then written into the ADRs. A spike stops as soon as its questions are answered. Anything it could not answer is reported as unanswered.
 
@@ -59,6 +59,27 @@ Both spikes are throwaway code under `spikes/`, run in parallel. Each ends with 
 **Decides.** The desktop shell (new ADR).
 
 **Outcome.** Electron ([ADR 0008](adr/0008-electron-is-the-desktop-shell.md)), decided on 2026-11-10 from the [report](../spikes/desktop-shell/REPORT.md). A follow-up the same day compared the preview as a native view and as an iframe, with a real pointer: the native view is kept, since a block cannot be dragged natively into an iframe of another origin.
+
+## Spike 3: other agents and harnesses
+
+Asked by Matt on 2026-11-14, after the templates; it reopens "Codex only after a speed trial" and "Gemini is out" (see v2.0-decisions.md, Agent).
+
+**Question.** Can a maker build a site in Upstart with another agent than Claude's, as well as with Claude: OpenAI's Codex, Google's Gemini CLI, or an open harness that drives many models (Pi, opencode)? And what must Upstart's agent layer become to hold several?
+
+**For each, studied first, then tried on this Mac.**
+
+- **Sign-in**: with the maker's own subscription (ChatGPT, Google, …) and with an API key (an AI Studio key for Gemini, Matt notes), whether a third-party app may start it that way, and where it keeps its sign-in (never in the maker's own folders, as for Claude: ADR 0010).
+- **Driven by an app**: a headless mode, an SDK or a server; the events it streams.
+- **The live preview** (ADR 0009): whether a file's content arrives while it is being written, token by token, or only once written; what the preview would show in each case.
+- **Confinement** (ADR 0007): its own sandbox and auto mode, or Upstart's around it; a refused action answered without asking the maker.
+- **What Upstart gives the agent**: its tools (an MCP server), skills (Agent Skills), instructions, hooks at the end of a turn and after a tool (the Stop and PostToolUse hooks Upstart uses).
+- **Speed**: the launch page request of spike 1, run three times: time to the first file content, to the complete home page, and the longest stretch with nothing moving.
+- **Quality**: the page it writes, judged against Claude's on the same request (Liquid, htmx 4, the theme), and the cost.
+- **Shipping it**: its licence, whether its binary can be shipped inside the app or must be downloaded, its size.
+
+**What gets built.** Throwaway code in `spikes/harnesses/`: each harness installed locally, a script that drives it on the same request in its own isolated configuration and records its stream with timestamps, and a probe per question above.
+
+**Decides.** Which agents Upstart offers, in what order, and the shape of the agent layer (a new ADR, or ADR 0002 reopened).
 
 ## What the spikes need from Matt
 
