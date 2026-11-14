@@ -16,7 +16,18 @@ import { type AssembledSkills, readSkill } from "../../skills/skills";
 import { Activities } from "../activity";
 import type { InstructionsFamily, SkillListing } from "../instructions";
 import { parsePartialInput } from "../partial-input";
-import { ASK_TOOL, CLOSED_UNANSWERED, Waits } from "../questions";
+import {
+  ASK_TOOL,
+  CLOSED_UNANSWERED,
+  NOT_PLANNING,
+  PLAN_APPROVED,
+  PLAN_REFUSED,
+  PLAN_TOOL,
+  PLAN_WRITERS,
+  planChanges,
+  planMessage,
+  Waits,
+} from "../questions";
 import type { AgentKit, AgentRunner, PlanDecision } from "../runner";
 import type { SessionDeps, SessionHandlers } from "../session";
 import type { AgentEvent } from "../stream";
@@ -25,7 +36,15 @@ import { PiConnectors, type VaultSignIns } from "./connectors";
 import { familyOf, type PiAccount, parseModelId, piModel, thinkingFor } from "./models";
 import type { PiRecorder } from "./replay";
 import { shellAvailable } from "./shell";
-import { type Answered, canonicalTool, type HarnessTool, piAskTool, piFileTools, piUpstartTools } from "./tools";
+import {
+  type Answered,
+  canonicalTool,
+  type HarnessTool,
+  piAskTool,
+  piFileTools,
+  piPlanTool,
+  piUpstartTools,
+} from "./tools";
 import { canSearch, providerSearch, searchResult } from "./web-search";
 
 export type PiDeps = {
@@ -90,8 +109,12 @@ export class PiSession implements AgentRunner {
   private searchCost = 0;
   /** The cards of questions the turn waits on (Q283). */
   private readonly waits = new Waits<QuestionAnswer>();
-  /** The questions' calls that wait, by the card each shows: answered as not answered if Upstart closes. */
-  private readonly openQuestions = new Map<string, string>();
+  /** The plans the turn waits on (Q290). */
+  private readonly planWaits = new Waits<PlanDecision>();
+  /** The calls of questions and plans that wait, with their tool: answered as not answered if Upstart closes. */
+  private readonly openCards = new Map<string, string>();
+  /** Build, or plan mode (Q286): the tools that change the project are refused until the plan is approved. */
+  private mode: AgentMode;
   /** What the maker changed by hand while a question waited, told with its answer (Q294). */
   private answerNote: string | undefined;
   readonly problems: string[] = [];
@@ -102,6 +125,7 @@ export class PiSession implements AgentRunner {
     private readonly deps: PiDeps,
     private readonly handlers: SessionHandlers,
   ) {
+    this.mode = project.mode ?? "build";
     this.activities = new Activities(
       () => this.project.path,
       (event) => this.conversation(event),
@@ -153,6 +177,7 @@ export class PiSession implements AgentRunner {
       }),
       ...piUpstartTools(upstart),
       piAskTool((callId, questions, signal) => this.ask(callId, questions, signal)),
+      piPlanTool((callId, plan, signal) => this.proposePlan(callId, plan, signal)),
     ];
     this.baseTools = tools;
     this.startConnectors();
@@ -170,6 +195,11 @@ export class PiSession implements AgentRunner {
       toolExecution: "parallel",
       sessionId: this.project.id,
       identity: this.deps.identity,
+      // Plan mode (Q286): what changes the project waits for the plan's approval.
+      beforeToolCall: async ({ toolCall }) =>
+        this.mode === "plan" && PLAN_WRITERS.has(canonicalTool(toolCall.name, this.upstartNames))
+          ? { block: true, reason: PLAN_REFUSED }
+          : undefined,
       afterToolCall: async ({ toolCall, args, result }) => {
         const note = kit.checks.afterTool(canonicalTool(toolCall.name, this.upstartNames), args);
         return note ? { content: [...result.content, { type: "text", text: note }] } : undefined;
@@ -201,13 +231,14 @@ export class PiSession implements AgentRunner {
     this.turnStart = Date.now();
     this.searchCost = 0;
     this.handlers.onConversation({ type: "turn-start", id: newId(), text, at: Date.now() });
-    void this.run(this.loop!, forAgent);
+    void this.run(this.loop!, this.mode === "plan" ? planMessage(forAgent) : forAgent);
   }
 
   async stop() {
     if (!this.working || !this.loop) return;
     this.stopping = true;
     this.waits.cancelAll();
+    this.planWaits.cancelAll();
     this.loop.abort();
   }
 
@@ -215,10 +246,10 @@ export class PiSession implements AgentRunner {
   private async ask(callId: string, questions: AgentQuestion[], signal?: AbortSignal): Promise<Answered | undefined> {
     if (!this.working) return undefined;
     const id = newId();
-    this.openQuestions.set(callId, id);
+    this.openCards.set(callId, ASK_TOOL);
     this.conversation({ type: "question", card: { id, questions, state: "waiting" } });
     const answer = await this.waits.wait(id, signal);
-    this.openQuestions.delete(callId);
+    this.openCards.delete(callId);
     if (!answer) return undefined;
     this.conversation({
       type: "question-settled",
@@ -255,16 +286,43 @@ export class PiSession implements AgentRunner {
     if (this.loop) this.loop.state.thinkingLevel = thinkingFor(this.model(), effort);
   }
 
+  /** Shows the agent's plan and waits for Build or the maker's changes (Q290). */
+  private async proposePlan(callId: string, text: string, signal?: AbortSignal): Promise<string | undefined> {
+    if (!this.working) return undefined;
+    if (this.mode !== "plan") return NOT_PLANNING;
+    const id = newId();
+    this.openCards.set(callId, PLAN_TOOL);
+    this.conversation({ type: "plan", card: { id, text, state: "proposed" } });
+    const decision = await this.planWaits.wait(id, signal);
+    this.openCards.delete(callId);
+    if (!decision) return undefined;
+    const note = this.answerNote;
+    this.answerNote = undefined;
+    if ("changes" in decision) {
+      this.conversation({ type: "plan-settled", id, state: "replaced", changes: decision.changes });
+      return planChanges(decision.changes, note);
+    }
+    this.conversation({ type: "plan-settled", id, state: "approved" });
+    this.mode = "build";
+    return PLAN_APPROVED + (note ? `\n\n${note}` : "");
+  }
+
   answer(cardId: string, answer: QuestionAnswer, note?: string) {
     if (!this.waits.has(cardId)) return;
     this.answerNote = note;
     this.waits.settle(cardId, answer);
   }
 
-  // Plan mode (Q286): built in the agent-questions plan's slice 4.
-  settlePlan(_cardId: string, _decision: PlanDecision) {}
+  settlePlan(cardId: string, decision: PlanDecision, note?: string) {
+    if (!this.planWaits.has(cardId)) return;
+    this.answerNote = note;
+    this.planWaits.settle(cardId, decision);
+  }
 
-  async setMode(_mode: AgentMode) {}
+  /** The Build / Plan selector, for the next message (Q286, Q296). */
+  async setMode(mode: AgentMode) {
+    this.mode = mode;
+  }
 
   startOver() {
     this.close();
@@ -286,9 +344,10 @@ export class PiSession implements AgentRunner {
     const loop = this.loop;
     this.loop = undefined;
     // What the turn did so far is kept, a question left waiting answered as such.
-    if (this.working && loop) this.save([...loop.state.messages, ...this.closedQuestions()]);
+    if (this.working && loop) this.save([...loop.state.messages, ...this.closedCards()]);
     this.waits.cancelAll();
-    this.openQuestions.clear();
+    this.planWaits.cancelAll();
+    this.openCards.clear();
     if (this.working) this.endTurn("stopped");
     this.unsubscribe?.();
     this.unsubscribe = undefined;
@@ -335,12 +394,12 @@ export class PiSession implements AgentRunner {
     void set.connect();
   }
 
-  /** The results of the questions' calls that still wait, for the agent to read at its next message. */
-  private closedQuestions(): AgentMessage[] {
-    return [...this.openQuestions.keys()].map((toolCallId) => ({
+  /** The results of the calls that still wait, for the agent to read at its next message. */
+  private closedCards(): AgentMessage[] {
+    return [...this.openCards].map(([toolCallId, toolName]) => ({
       role: "toolResult" as const,
       toolCallId,
-      toolName: ASK_TOOL,
+      toolName,
       content: [{ type: "text" as const, text: CLOSED_UNANSWERED }],
       isError: true,
       timestamp: Date.now(),

@@ -92,6 +92,10 @@ import { readTheme, type ThemeValues, themeColors, writeTheme } from "./theme/th
 
 const here = fileURLToPath(new URL(".", import.meta.url));
 const env = readEnvironment();
+/** The conversation's events after which editing by hand may pause or come back (Q91, Q294). */
+const PAUSING = new Set(["turn-start", "turn-end", "question", "question-settled", "plan", "plan-settled"]);
+/** Those after which the websites waiting for the maker may have changed (Q292). */
+const WAITING = new Set(["turn-end", "question", "question-settled", "plan", "plan-settled"]);
 
 if (env.dataDir) app.setPath("userData", env.dataDir);
 
@@ -161,6 +165,19 @@ async function main() {
     note.on("click", () => {
       win.show();
       win.focus();
+    });
+    note.show();
+  };
+  // A question of the agent's notifies as a finished turn does (Q292).
+  const notifyWaiting = (projectId: string, kind: "question" | "plan") => {
+    if (env.background || win.isFocused() || !settings.get().notifyDone || !Notification.isSupported()) return;
+    const name = projects.list().find((p) => p.id === projectId)?.name ?? t.app.name;
+    const body = kind === "plan" ? t.notify.plan : t.notify.question;
+    const note = new Notification({ title: name, body, silent: false });
+    note.on("click", () => {
+      win.show();
+      win.focus();
+      if (current?.id !== projectId) void opened(projects.open(projectId));
     });
     note.show();
   };
@@ -414,10 +431,22 @@ async function main() {
     dataFor: (id) => projects.dataFor(id),
     emitConversation: (projectId, event) => {
       ipc.emit("conversation:event", { projectId, event });
-      // Editing by hand waits while the agent works on the project shown (Q91).
-      if (projectId === current?.id && (event.type === "turn-start" || event.type === "turn-end"))
-        preview.setPaused(event.type === "turn-start");
-      if (projectId === current?.id && event.type === "turn-end") preview.doneWriting();
+      // Editing by hand waits while the agent works on the project shown (Q91), and
+      // comes back while it waits for the maker's answer (Q294).
+      if (projectId === current?.id && PAUSING.has(event.type)) preview.setPaused(agentBusy(projectId));
+      if (WAITING.has(event.type)) ipc.emit("agent:waiting", agent.waiting());
+      if (event.type === "question" || event.type === "plan") notifyWaiting(projectId, event.type);
+      // An approved plan puts the selector back on Build (Q290, Q296).
+      if (event.type === "plan-settled" && event.state === "approved") {
+        const project = projects.update(projectId, { mode: "build" });
+        if (current?.id === projectId) changed(project);
+      }
+      // The agent writes nothing while it waits for the maker either.
+      if (
+        projectId === current?.id &&
+        (event.type === "turn-end" || event.type === "question" || event.type === "plan")
+      )
+        preview.doneWriting();
       // A version of the project after each turn of the agent (decisions: history).
       if (event.type === "turn-end" && history?.projectId === projectId) {
         history.store.snapshot("turn", history.lastMessage ?? "");
@@ -466,7 +495,7 @@ async function main() {
   const editor = new Editor({
     root: () => current?.path,
     block: (id) => blocks.get(id),
-    busy: () => !!current && agent.isWorking(current.id),
+    busy: () => !!current && agentBusy(current.id),
     before: () => history?.store.snapshot("outside", ""),
     changed: (change) => {
       history?.store.snapshot("hand", change.label);
@@ -606,7 +635,7 @@ async function main() {
     templateViewer.close();
     watchSkills(project);
     agent.open(project);
-    preview.setPaused(agent.isWorking(project.id));
+    preview.setPaused(agentBusy(project.id));
     // The view the maker left this website in (Q131).
     void preview.setView(viewData().view ?? "page", { animate: false });
     await preview.open(project);
@@ -735,7 +764,7 @@ async function main() {
     const file = preview.state().routes.find((r) => r.route === route)?.file;
     if (!project || !file) return [];
     const m = t.preview.pageMenu;
-    const busy = agent.isWorking(project.id);
+    const busy = agentBusy(project.id);
     const edit = (fn: () => unknown) => {
       try {
         fn();
@@ -808,12 +837,26 @@ async function main() {
     preview.setGrid(cells?.map((c) => ({ ...c, rect: scaled(c.rect) })) ?? null, laidOut);
   });
 
+  /** The agent works on a project and does not wait for the maker: editing by hand waits (Q91, Q294). */
+  function agentBusy(projectId: string) {
+    return agent.isWorking(projectId) && !agent.waitingFor(projectId);
+  }
   ipc.handle("conversation:get", () =>
     current ? { projectId: current.id, items: agent.conversation(current.id) } : null,
   );
   ipc.handle("conversation:send", async (text, settings) => {
     const message = text.trim();
     if (!message) return;
+    // While the agent waits, what the maker types answers it (Q284).
+    const waiting = current && agent.waitingFor(current.id);
+    if (current && waiting) {
+      editor.leaveRecord();
+      const note = notesFor(current.id).take();
+      if ("questions" in waiting) agent.answer(current.id, waiting.id, { kind: "words", text: message }, note);
+      // The maker's changes to the plan (Q290).
+      else agent.settlePlan(current.id, waiting.id, { changes: message }, note);
+      return;
+    }
     // The agent hears of the record the maker was writing with this message (Q162).
     editor.leaveRecord();
     // A first message without a project creates one (decisions: built at once
@@ -831,9 +874,13 @@ async function main() {
       const created = projects.create(projectNameFrom(message));
       const model = typeof settings?.model === "string" ? settings.model : created.model;
       const effort = isEffort(settings?.effort) ? settings.effort : created.effort;
+      // Created in plan mode, the agent plans before it builds (Q286).
+      const mode = settings?.mode === "plan" ? ("plan" as const) : undefined;
       const manifest = dir ? copyTemplate(dir, created.path) : undefined;
       const template = manifest && { id: manifest.id, version: manifest.version };
-      project = await opened(projects.update(created.id, { model, effort, ...(template ? { template } : {}) }));
+      project = await opened(
+        projects.update(created.id, { model, effort, ...(template ? { template } : {}), ...(mode ? { mode } : {}) }),
+      );
       if (manifest) {
         sendMessage(project, message, adaptMessage(manifest, message));
         return;
@@ -854,6 +901,17 @@ async function main() {
     agent.send(project, shown, note ? `${note}\n\n${forAgent}` : forAgent);
   }
   ipc.handle("conversation:stop", () => current && agent.stop(current.id));
+  ipc.handle("conversation:answer", (cardId, answer) => {
+    if (!current) return;
+    editor.leaveRecord();
+    agent.answer(current.id, cardId, answer, notesFor(current.id).take());
+  });
+  ipc.handle("agent:waiting", () => agent.waiting());
+  ipc.handle("conversation:approve-plan", (cardId) => {
+    if (!current) return;
+    editor.leaveRecord();
+    agent.settlePlan(current.id, cardId, { approved: true }, notesFor(current.id).take());
+  });
   ipc.handle("conversation:start-over", () => current && agent.startOver(current));
   // The static export (decisions): into a folder the maker picks, remembered per project on this machine.
   const lastExportFile = () => current && join(projects.dataFor(current.id), "export.json");
@@ -1409,6 +1467,13 @@ async function main() {
     if (!current) throw new Error("No project is open.");
     const project = changed(projects.update(current.id, { model }));
     await agent.setModel(project, model);
+    return project;
+  });
+  ipc.handle("agent:set-mode", async (mode) => {
+    if (!current) throw new Error("No project is open.");
+    if (mode !== "build" && mode !== "plan") throw new Error("Unknown mode.");
+    const project = changed(projects.update(current.id, { mode }));
+    await agent.setMode(project, mode);
     return project;
   });
   ipc.handle("agent:set-effort", async (effort) => {

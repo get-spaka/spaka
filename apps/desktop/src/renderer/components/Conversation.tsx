@@ -8,8 +8,16 @@ import {
   useRef,
   useState,
 } from "react";
-import { type Activity, type AgentPart, type ConversationItem, isWorking } from "../../shared/conversation";
 import {
+  type Activity,
+  type AgentPart,
+  type ConversationItem,
+  isWaiting,
+  isWorking,
+  waitingFor,
+} from "../../shared/conversation";
+import {
+  type AgentMode,
   type AgentStatus,
   accountOf,
   accountReady,
@@ -27,6 +35,8 @@ import { ModelOptions } from "../settings/model";
 import { AgentText } from "./AgentText";
 import { BlocksTab } from "./BlocksTab";
 import { ContentTab } from "./ContentTab";
+import { PlanCard } from "./PlanCard";
+import { QuestionCard } from "./QuestionCard";
 import { SignInPanel } from "./SignInPanel";
 import { ThemeTab } from "./ThemeTab";
 import { Button } from "./ui/button";
@@ -53,6 +63,10 @@ export function Conversation({
   // Before the first message there is no project yet: the choice waits for it.
   const [newSettings, setNewSettings] = useNewSettings(status);
   const working = isWorking(items);
+  // The agent waits for the maker's answer: editing comes back, and the message box answers (Q284, Q294).
+  const waiting = isWaiting(items);
+  const planWaits = waiting && !("questions" in (waitingFor(items) ?? {}));
+  const editingPaused = working && !waiting;
   const model = project?.model ?? newSettings.model;
   const input = useRef<HTMLTextAreaElement>(null);
   // "Ask the agent about it" (Q136): the page's address starts the message, the field takes the keyboard.
@@ -75,7 +89,7 @@ export function Conversation({
 
   const send = () => {
     const text = draft.trim();
-    if (!text || working) return;
+    if (!text || editingPaused) return;
     setDraft("");
     void upstart.invoke("conversation:send", text, project ? undefined : newSettings).catch(() => setDraft(text));
   };
@@ -137,11 +151,11 @@ export function Conversation({
           projectId={project?.id}
           theme={preview.theme}
           hasPage={preview.route !== null && preview.routes.length > 0}
-          working={working}
+          working={editingPaused}
         />
       ) : shownTab === "content" ? (
         <ContentTab
-          working={working}
+          working={editingPaused}
           onAsk={(text) => {
             setTab("conversation");
             setDraft((d) => (d.trim() ? `${d.trimEnd()}\n${text}` : text));
@@ -151,7 +165,7 @@ export function Conversation({
       ) : shownTab === "theme" ? (
         <ThemeTab
           theme={preview.theme}
-          working={working}
+          working={editingPaused}
           onAskDark={() => {
             setTab("conversation");
             void upstart.invoke("conversation:send", t.theme.askDarkMessage);
@@ -178,7 +192,16 @@ export function Conversation({
             onSend={send}
             input={input}
             working={working}
-            placeholder={items.length ? t.conversation.placeholderFollowUp : t.conversation.placeholder}
+            waiting={waiting}
+            placeholder={
+              planWaits
+                ? t.conversation.changesPlaceholder
+                : waiting
+                  ? t.conversation.answerPlaceholder
+                  : items.length
+                    ? t.conversation.placeholderFollowUp
+                    : t.conversation.placeholder
+            }
             newSettings={newSettings}
             onNewSettings={setNewSettings}
           />
@@ -194,10 +217,13 @@ export function Conversation({
  */
 export function useNewSettings(status: AgentStatus) {
   const defaults = useAppSettings();
-  const [chosen, setChosen] = useState<{ model: string; effort: Effort }>();
-  const asked = chosen ?? { model: defaults.newModel, effort: defaults.newEffort };
+  const [chosen, setChosen] = useState<NewSettings>();
+  const asked = chosen ?? { model: defaults.newModel, effort: defaults.newEffort, mode: "build" as const };
   return [{ ...asked, model: usableModel(status, asked.model) }, setChosen] as const;
 }
+
+/** The model, effort and Build / Plan mode of a website not created yet (Q117, Q286). */
+export type NewSettings = { model: string; effort: Effort; mode: AgentMode };
 
 /** A model as the maker knows it, or its account's name when its account is not connected. */
 export function modelName(status: AgentStatus, model: string): string {
@@ -216,6 +242,7 @@ export function MessageBox({
   onSend,
   input,
   working,
+  waiting = false,
   placeholder,
   newSettings,
   onNewSettings,
@@ -229,9 +256,11 @@ export function MessageBox({
   onSend: () => void;
   input?: RefObject<HTMLTextAreaElement | null>;
   working: boolean;
+  /** The agent waits for the maker's answer: what is typed answers it (Q284). */
+  waiting?: boolean;
   placeholder: string;
-  newSettings: { model: string; effort: Effort };
-  onNewSettings: (settings: { model: string; effort: Effort }) => void;
+  newSettings: NewSettings;
+  onNewSettings: (settings: NewSettings) => void;
   className?: string;
   /** Shown above the field, inside its frame: the template chosen (Q249). */
   children?: ReactNode;
@@ -264,9 +293,15 @@ export function MessageBox({
           className="max-h-48 w-full resize-none bg-transparent px-1 py-1 text-sm outline-none placeholder:text-muted-foreground"
         />
         <div className="flex items-center gap-1">
-          <ModelControls project={project} status={status} newSettings={newSettings} onNewSettings={onNewSettings} />
-          <div className="ml-auto">
-            {working ? (
+          <ModelControls
+            project={project}
+            status={status}
+            newSettings={newSettings}
+            onNewSettings={onNewSettings}
+            working={working}
+          />
+          <div className="ml-auto flex items-center gap-1">
+            {working && (
               <Button
                 type="button"
                 size="icon-sm"
@@ -277,7 +312,8 @@ export function MessageBox({
               >
                 <Square className="size-3 fill-current" />
               </Button>
-            ) : (
+            )}
+            {(!working || waiting) && (
               <Button
                 type="submit"
                 size="icon-sm"
@@ -359,25 +395,18 @@ function Messages({ items }: { items: ConversationItem[] }) {
  * thinking, in grey.
  */
 function AgentParts({ parts, working, style }: { parts: AgentPart[]; working: boolean; style: OutputStyle }) {
-  // Questions and plans get their cards in the build's slice 3; until then they are not drawn.
-  const drawn = parts.filter(
-    (p): p is Exclude<AgentPart, { kind: "question" | "plan" }> => p.kind !== "question" && p.kind !== "plan",
-  );
-  const shown = style === "detailed" ? drawn : drawn.filter((p) => p.kind !== "thinking");
+  const shown = style === "detailed" ? parts : parts.filter((p) => p.kind !== "thinking");
   if (style !== "discreet")
     return shown.map((part, index) =>
       part.kind === "activity" ? (
         <ActivityLine key={part.activity.id} activity={part.activity} detailed={style === "detailed"} />
       ) : (
         // biome-ignore lint/suspicious/noArrayIndexKey: parts only grow at the end
-        <PartText key={index} part={part} streaming={working && index === shown.length - 1} />
+        <PartView key={index} part={part} streaming={working && index === shown.length - 1} />
       ),
     );
   // Runs of steps, between the agent's words.
-  const groups: (
-    | { kind: "steps"; activities: Activity[] }
-    | Exclude<AgentPart, { kind: "activity" | "question" | "plan" }>
-  )[] = [];
+  const groups: ({ kind: "steps"; activities: Activity[] } | Exclude<AgentPart, { kind: "activity" }>)[] = [];
   for (const part of shown) {
     const last = groups.at(-1);
     if (part.kind !== "activity") groups.push(part);
@@ -387,12 +416,19 @@ function AgentParts({ parts, working, style }: { parts: AgentPart[]; working: bo
   return groups.map((group, index) => {
     if (group.kind !== "steps")
       // biome-ignore lint/suspicious/noArrayIndexKey: parts only grow at the end
-      return <PartText key={index} part={group} streaming={working && index === groups.length - 1} />;
+      return <PartView key={index} part={group} streaming={working && index === groups.length - 1} />;
     const steps = group.activities;
     if (working && index === groups.length - 1) return <ActivityLine key={steps.at(-1)!.id} activity={steps.at(-1)!} />;
     if (steps.length === 1) return <ActivityLine key={steps[0]!.id} activity={steps[0]!} />;
     return <Steps key={steps[0]!.id} activities={steps} />;
   });
+}
+
+/** The agent's words, its thinking, or a card of its questions or of its plan. */
+function PartView({ part, streaming }: { part: Exclude<AgentPart, { kind: "activity" }>; streaming: boolean }) {
+  if (part.kind === "question") return <QuestionCard card={part.card} />;
+  if (part.kind === "plan") return <PlanCard card={part.card} />;
+  return <PartText part={part} streaming={streaming} />;
 }
 
 function PartText({
@@ -477,27 +513,32 @@ function ModelControls({
   status,
   newSettings,
   onNewSettings,
+  working = false,
 }: {
   project: ProjectInfo | null;
   status: AgentStatus;
-  newSettings: { model: string; effort: Effort };
-  onNewSettings: (settings: { model: string; effort: Effort }) => void;
+  newSettings: NewSettings;
+  onNewSettings: (settings: NewSettings) => void;
+  /** Whether the agent works: the mode waits for its next message (Q286). */
+  working?: boolean;
 }) {
   // A choice on its way to the main process, shown until the project says it.
-  const [sent, setSent] = useState<{ projectId?: string; model?: string; effort?: Effort }>({});
+  const [sent, setSent] = useState<{ projectId?: string; model?: string; effort?: Effort; mode?: AgentMode }>({});
   const pending = sent.projectId === project?.id ? sent : {};
   const model = pending.model ?? project?.model ?? newSettings.model;
   const effort = pending.effort ?? project?.effort ?? newSettings.effort;
+  const mode = pending.mode ?? (project ? (project.mode ?? "build") : newSettings.mode);
   const models = status.models;
   const choice = models.find((m) => m.id === model);
   const efforts: Effort[] = choice?.efforts.length ? choice.efforts : ["low", "medium", "high"];
 
-  const change = (next: { model?: string; effort?: Effort }) => {
-    if (!project) return onNewSettings({ model, effort, ...next });
+  const change = (next: { model?: string; effort?: Effort; mode?: AgentMode }) => {
+    if (!project) return onNewSettings({ model, effort, mode, ...next });
     setSent({ projectId: project.id, ...next });
     const done = () => setSent({});
     if (next.model) void upstart.invoke("agent:set-model", next.model).finally(done);
     if (next.effort) void upstart.invoke("agent:set-effort", next.effort).finally(done);
+    if (next.mode) void upstart.invoke("agent:set-mode", next.mode).finally(done);
   };
 
   const select = "h-7 rounded-md bg-transparent px-1.5 text-xs text-muted-foreground outline-none hover:bg-accent";
@@ -528,6 +569,21 @@ function ModelControls({
         {efforts.map((level) => (
           <option key={level} value={level}>
             {t.conversation.efforts[level]}
+          </option>
+        ))}
+      </select>
+      <select
+        aria-label={t.conversation.mode}
+        title={t.conversation.planHint}
+        data-testid="mode-select"
+        className={cn(select, mode === "plan" && "text-foreground")}
+        disabled={working}
+        value={mode}
+        onChange={(event) => change({ mode: event.target.value as AgentMode })}
+      >
+        {(["build", "plan"] as const).map((m) => (
+          <option key={m} value={m}>
+            {t.conversation.modes[m]}
           </option>
         ))}
       </select>

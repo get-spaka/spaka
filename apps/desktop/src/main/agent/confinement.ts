@@ -60,6 +60,8 @@ export function confinement({ projectDir, readable, skillsDir, platform = proces
       autoMemoryEnabled: false,
       // A question waits for the maker as long as it takes (Q283).
       dialogExpiry: "never" as const,
+      // Plan mode (Q286) asks canUseTool rather than auto mode's classifier.
+      useAutoModeDuringPlan: false,
       permissions: {
         blockWritesOutsideWorkingDirectories: true,
         blockReadsOutsideWorkingDirectories: true,

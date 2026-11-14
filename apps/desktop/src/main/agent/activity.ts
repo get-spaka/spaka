@@ -69,6 +69,9 @@ export class Activities {
 /** The short line shown for a tool call. */
 export function activityLabel(name: string, input: Record<string, unknown>, projectDir: string): string {
   const path = typeof input.file_path === "string" ? shortPath(input.file_path, projectDir) : undefined;
+  // Claude writes its plan in a file of its own, outside the project, in plan mode (Q286).
+  if ((name === "Write" || name === "Edit") && path && isAbsolute(path) && PLAN_FILE.test(path))
+    return en.activity.writePlan;
   switch (name) {
     case "Write":
     case "Append":
@@ -110,6 +113,9 @@ export function activityLabel(name: string, input: Record<string, unknown>, proj
       return en.activity.other(name);
   }
 }
+
+/** The file Claude writes its plan in: `<its configuration>/plans/<words>.md`. */
+const PLAN_FILE = /[\\/]plans[\\/][\w-]+\.md$/;
 
 /** What the detailed output style shows under a step (Q127): what was run or searched. */
 export function activityDetail(name: string, input: Record<string, unknown>): string | undefined {

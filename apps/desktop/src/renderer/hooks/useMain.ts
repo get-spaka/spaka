@@ -75,6 +75,16 @@ const NO_STATUS: AgentStatus = {
   models: [],
 };
 
+/** The websites whose agent waits for the maker's answer (Q292). */
+export function useWaiting() {
+  const [ids, setIds] = useState<string[]>([]);
+  useEffect(() => {
+    void upstart.invoke("agent:waiting").then(setIds);
+    return upstart.on("agent:waiting", setIds);
+  }, []);
+  return ids;
+}
+
 export function useAgentStatus() {
   const [status, setStatus] = useState<AgentStatus>(NO_STATUS);
   useEffect(() => {

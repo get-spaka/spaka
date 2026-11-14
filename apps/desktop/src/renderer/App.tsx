@@ -15,6 +15,7 @@ import {
   usePreviewState,
   useProjects,
   useSkills,
+  useWaiting,
 } from "./hooks/useMain";
 import { upstart } from "./lib/bridge";
 import { usePickRequest } from "./lib/picker";
@@ -29,6 +30,7 @@ export function App() {
   const status = useAgentStatus();
   const skills = useSkills(current?.id);
   const connectors = useConnectors(current?.id);
+  const waiting = useWaiting();
   // A website's own settings (Q118), over the window.
   const [siteOpen, setSiteOpen] = useState(false);
   const siteShown = siteOpen && !!current;
@@ -53,6 +55,7 @@ export function App() {
       {sidebarOpen && (
         <Sidebar
           projects={projects}
+          waiting={waiting}
           current={current}
           onCollapse={() => setSidebarOpen(false)}
           onNew={() => void upstart.invoke("projects:close")}

@@ -4,7 +4,7 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
-import type { Effort, ProjectInfo, ProjectSummary } from "../shared/ipc";
+import type { AgentMode, Effort, ProjectInfo, ProjectSummary } from "../shared/ipc";
 
 export const DEFAULT_MODEL = "claude-sonnet-5-5";
 export const DEFAULT_EFFORT: Effort = "medium";
@@ -20,6 +20,8 @@ export type ProjectFile = {
   formServices?: Record<string, string>;
   /** The template the website started from, if any (Q245). */
   template?: { id: string; version: string };
+  /** The Build / Plan selector, kept for the website (Q296); Build when absent. */
+  mode?: AgentMode;
 };
 
 type Entry = { id: string; path: string; name: string; openedAt: number };
@@ -142,6 +144,7 @@ export function readProjectFile(folder: string): ProjectFile | undefined {
       effort: isEffort(raw.effort) ? raw.effort : DEFAULT_EFFORT,
       ...(typeof raw.siteUrl === "string" && raw.siteUrl ? { siteUrl: raw.siteUrl } : {}),
       ...(formServices(raw.formServices) ? { formServices: formServices(raw.formServices) } : {}),
+      ...(raw.mode === "plan" ? { mode: "plan" as const } : {}),
     };
   } catch {
     return undefined;

@@ -383,7 +383,7 @@ const asked = {
   ],
 };
 const askReply = (input: unknown = asked) =>
-  fauxAssistantMessage([fauxToolCall("AskUserQuestion", input)], { stopReason: "toolUse" });
+  fauxAssistantMessage([fauxToolCall("AskUserQuestion", input as never)], { stopReason: "toolUse" });
 /** A reply that keeps what the model was given, then ends the turn. */
 const seen: { messages: { role: string; content?: unknown; toolName?: string; isError?: boolean }[] }[] = [];
 const keepContext = (text: string) => (context: { messages: unknown[] }) => {
@@ -475,7 +475,7 @@ test("a question left when Upstart closes is read, at the next launch, as not an
   await second.turn("Bonjour");
   const results = seen[0]!.messages.filter((m) => m.role === "toolResult");
   expect(results).toHaveLength(1);
-  expect(JSON.stringify(results[0]!.content)).toContain("Upstart was closed while the question waited");
+  expect(JSON.stringify(results[0]!.content)).toContain("Upstart was closed while it waited");
 });
 
 test("questions without the tool's form are refused by the tool's schema, and no card shows", async () => {
@@ -486,4 +486,52 @@ test("questions without the tool's form are refused by the tool's schema, and no
   await turn("Une fleuriste");
   expect(questionCard(items())).toBeUndefined();
   expect(toolResults(0)[0]).toContain("questions.0.options: expected at least 2 items");
+});
+
+const planCards = (items: ConversationItem[]) => {
+  const last = items.at(-1);
+  return last?.kind === "agent" ? last.parts.flatMap((p) => (p.kind === "plan" ? [p.card] : [])) : [];
+};
+
+test("plan mode: what writes is refused, the plan waits; changes, then Build, and the agent builds in the same turn", async () => {
+  seen.length = 0;
+  const { f, models } = faux();
+  const plan = (text: string) =>
+    fauxAssistantMessage([fauxToolCall("ExitPlanMode", { plan: text })], { stopReason: "toolUse" });
+  f.setResponses([
+    fauxAssistantMessage([fauxToolCall("Write", { file_path: "pages/index.liquid", content: "<h1>Trop tôt</h1>" })], {
+      stopReason: "toolUse",
+    }),
+    plan("## Pages\n- Accueil"),
+    plan("## Pages\n- Accueil\n- Mariages"),
+    (context: { messages: unknown[] }) => {
+      seen.push({ messages: context.messages as never });
+      return fauxAssistantMessage(
+        [fauxToolCall("Write", { file_path: "pages/index.liquid", content: "<h1>Fleur</h1>" })],
+        {
+          stopReason: "toolUse",
+        },
+      );
+    },
+    fauxAssistantMessage([fauxText("C'est construit.")]),
+  ]);
+  project = { ...project, mode: "plan" };
+  const { s, turn, items } = session(models);
+  const ended = turn("Une fleuriste, avec un plan d'abord");
+  await until(() => planCards(items()).at(-1)?.state === "proposed");
+  expect(existsSync(join(project.path, "pages/index.liquid"))).toBe(false);
+  s.settlePlan(planCards(items())[0]!.id, { changes: "Une page pour les mariages" });
+  await until(() => planCards(items()).length === 2 && planCards(items())[1]!.state === "proposed");
+  expect(planCards(items())[0]).toMatchObject({ state: "replaced", changes: "Une page pour les mariages" });
+  s.settlePlan(planCards(items())[1]!.id, { approved: true });
+  await ended;
+  expect(planCards(items())[1]).toMatchObject({ state: "approved", text: "## Pages\n- Accueil\n- Mariages" });
+  expect(readFileSync(join(project.path, "pages/index.liquid"), "utf8")).toBe("<h1>Fleur</h1>");
+  const said = seen[0]!.messages;
+  // The plan-mode instructions came with the maker's message.
+  expect(JSON.stringify(said.find((m) => m.role === "user")?.content)).toContain("[Upstart: plan mode.");
+  const results = said.filter((m) => m.role === "toolResult").map((m) => JSON.stringify(m.content));
+  expect(results[0]).toContain("Plan mode: nothing is written");
+  expect(results[1]).toContain("The maker wants changes to the plan: Une page pour les mariages");
+  expect(results[2]).toContain("The maker approved your plan.");
 });

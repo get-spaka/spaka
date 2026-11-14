@@ -13,6 +13,7 @@ export const en = {
     collapse: "Hide the sidebar",
     expand: "Show the sidebar",
     settings: "Settings",
+    waiting: "The agent is waiting for your answer",
   },
   conversation: {
     placeholder: "Describe the website you want…",
@@ -31,6 +32,30 @@ export const en = {
     steps: (count: number, failed: number) =>
       `${count} ${count === 1 ? "step" : "steps"}${failed ? ` · ${failed} did not work` : ""}`,
     thinking: "Thinking",
+    answerPlaceholder: "Answer in your own words…",
+    changesPlaceholder: "Say what to change in the plan…",
+    mode: "Build or plan",
+    modes: { build: "Build", plan: "Plan" },
+    planHint: "Plan: the agent asks and proposes a plan before it builds.",
+  },
+  /** The agent's plan in plan mode (Q290). */
+  plan: {
+    title: "Plan",
+    build: "Build",
+    changeHint: "Or say below what to change.",
+    approved: "Plan approved",
+    replaced: "Plan replaced",
+    notAnswered: "Plan not answered",
+  },
+  /** The agent's questions to the maker (Q284, Q295). */
+  question: {
+    recommended: "Recommended",
+    answer: "Answer",
+    skip: "Skip",
+    skipped: "Skipped",
+    notAnswered: "Not answered",
+    yourWords: "In your words",
+    previewMissing: "No preview",
   },
   start: {
     title: "Start a new website",
@@ -118,6 +143,7 @@ export const en = {
   activity: {
     write: (path?: string) => (path ? `Writing ${path}` : "Writing a file…"),
     edit: (path?: string) => (path ? `Editing ${path}` : "Editing a file…"),
+    writePlan: "Writing the plan",
     read: (path?: string) => (path ? `Reading ${path}` : "Reading a file…"),
     search: "Searching the project",
     look: "Looking at the preview",
@@ -596,6 +622,8 @@ export const en = {
     done: "The agent is done. Have a look at the preview.",
     stopped: "The agent stopped.",
     failed: "The agent stopped: something went wrong.",
+    question: "The agent has a question for you.",
+    plan: "The agent's plan is ready for you.",
   },
   site: {
     open: (name: string) => `Settings of ${name}`,

@@ -7,6 +7,7 @@ import { Button } from "./ui/button";
 
 export function Sidebar({
   projects,
+  waiting = [],
   current,
   onCollapse,
   onNew,
@@ -14,6 +15,8 @@ export function Sidebar({
   onSiteSettings,
 }: {
   projects: ProjectSummary[];
+  /** The websites whose agent waits for the maker's answer (Q292). */
+  waiting?: string[];
   current: ProjectInfo | null;
   onCollapse: () => void;
   onNew: () => void;
@@ -63,7 +66,18 @@ export function Sidebar({
                 onClick={() => void upstart.invoke("projects:open", project.id)}
                 className="min-w-0 flex-1 px-2 py-1.5 text-left text-sm"
               >
-                <span className="block truncate">{project.name}</span>
+                <span className="flex items-center gap-1.5">
+                  <span className="truncate">{project.name}</span>
+                  {waiting.includes(project.id) && (
+                    <span
+                      data-testid="project-waiting"
+                      title={t.sidebar.waiting}
+                      className="size-2 shrink-0 rounded-full bg-primary"
+                    >
+                      <span className="sr-only">{t.sidebar.waiting}</span>
+                    </span>
+                  )}
+                </span>
               </button>
               <button
                 type="button"

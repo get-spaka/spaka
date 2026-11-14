@@ -8,7 +8,7 @@ import { activityDetail, activityLabel } from "./activity";
 import { modelChoices, projectNameFrom } from "./agent";
 import { findSignInUrl, parseAuthStatus } from "./auth";
 import { instructionsFor, UPSTART_INSTRUCTIONS } from "./instructions";
-import { ASK_TOOL, NOT_ANSWERED } from "./questions";
+import { ASK_TOOL, NOT_ANSWERED, PLAN_INSTRUCTIONS, PLAN_REFUSED, PLAN_TOOL } from "./questions";
 import { AgentSession, DENY_MESSAGE, isolationProblem, type SessionDeps, TOOLS } from "./session";
 
 // A stand-in for the SDK's query(): each message the session sends gets the
@@ -53,6 +53,7 @@ function fakeQuery(turns: Turn[]) {
       },
       setModel: async (model: string) => void run.calls.push({ model }),
       applyFlagSettings: async (settings: unknown) => void run.calls.push(settings),
+      setPermissionMode: async (mode: string) => void run.calls.push({ permissionMode: mode }),
       supportedModels: async () => [],
       close: () => run.calls.push("close"),
     });
@@ -101,13 +102,13 @@ afterEach(() => {
   rmSync(data, { recursive: true, force: true });
 });
 
-function session(turns: Turn[], extra: Partial<SessionDeps> = {}) {
+function session(turns: Turn[], extra: Partial<SessionDeps> = {}, mode?: "plan") {
   const fake = fakeQuery(turns);
   const events: ConversationEvent[] = [];
   let items: ConversationItem[] = [];
   let idle: () => void = () => {};
   const s = new AgentSession(
-    { id: "p1", name: "Bakery", path: dir, model: "claude-sonnet-5-5", effort: "medium" },
+    { id: "p1", name: "Bakery", path: dir, model: "claude-sonnet-5-5", effort: "medium", ...(mode ? { mode } : {}) },
     data,
     { binary: "/bin/claude", env: () => ({ PATH: "/usr/bin" }), readable: [], query: fake.query, ...extra },
     {
@@ -272,6 +273,9 @@ test("a sign-in failure says so", async () => {
 test("activity lines", () => {
   expect(activityLabel("Edit", { file_path: "/p/theme.css" }, "/p")).toBe("Editing theme.css");
   expect(activityLabel("Read", { file_path: "/etc/hosts" }, "/p")).toBe("Reading /etc/hosts");
+  expect(activityLabel("Write", { file_path: "/data/agent/plans/a-bakery-calm-otter.md" }, "/p")).toBe(
+    "Writing the plan",
+  );
   expect(activityLabel("Bash", { command: "ls -la\necho" }, "/p")).toBe("Running ls -la");
   expect(activityLabel("Skill", { skill: "project:menu-format" }, "/p")).toBe("Following the skill menu-format");
   expect(activityLabel("Grep", {}, "/p")).toBe("Searching the project");
@@ -513,7 +517,7 @@ test("a question waits for the maker, then the agent gets the answer and what wa
   // The hand edits made while it waited reach the agent with the answer, once (Q294).
   // biome-ignore lint/suspicious/noExplicitAny: hooks as the kit receives them
   const after = (fake.runs[0]!.options.hooks as any).PostToolUse as { matcher?: string; hooks: (() => unknown)[] }[];
-  const hook = after.find((h) => h.matcher === ASK_TOOL)!.hooks[0]!;
+  const hook = after.find((h) => h.matcher?.split("|").includes(ASK_TOOL))!.hooks[0]!;
   expect(await hook()).toEqual({
     hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: "Edited: x" },
   });
@@ -573,4 +577,90 @@ test("questions without AskUserQuestion's form are refused, as is any other ask"
     permission: { behavior: "deny", message: expect.stringMatching(/AskUserQuestion's form/) },
   });
   expect(questionCard(items())).toBeUndefined();
+});
+
+const planCard = (items: ConversationItem[], index = -1) => {
+  const last = items.at(-1);
+  const plans = last?.kind === "agent" ? last.parts.filter((p) => p.kind === "plan") : [];
+  const part = plans.at(index);
+  return part?.kind === "plan" ? part.card : undefined;
+};
+/** A turn in plan mode: the agent reads, tries to write, then hands in a plan twice. */
+const planTurn = () => [
+  init(),
+  { type: "ask", name: "mcp__upstart__find_blocks", input: { sections: [] } },
+  { type: "ask", name: "mcp__upstart__use_block", input: {} },
+  { type: "ask", name: "Write", input: { file_path: `${dir}/pages/index.liquid`, content: "x" } },
+  { type: "ask", name: PLAN_TOOL, input: { plan: "## Pages\n- Home" } },
+  { type: "ask", name: PLAN_TOOL, input: { plan: "## Pages\n- Home\n- Weddings" } },
+  { type: "ask", name: "mcp__upstart__use_block", input: { page: "pages/index.liquid" } },
+  { type: "result", subtype: "success", is_error: false, result: "Built.", duration_ms: 10 },
+];
+
+test("plan mode: the agent reads, writes nothing, hands in a plan; changes, then Build lets it build in the same turn", async () => {
+  const { s, fake, items, turnEnd } = session([planTurn()], {}, "plan");
+  s.start();
+  const options = fake.runs[0]!.options;
+  expect(options).toMatchObject({ permissionMode: "plan", planModeInstructions: PLAN_INSTRUCTIONS });
+  expect(options.tools).toContain(PLAN_TOOL);
+  const ended = turnEnd();
+  s.send("A bakery, plan first");
+  await vi.waitFor(() => expect(planCard(items())?.state).toBe("proposed"));
+  const calls = fake.runs[0]!.calls;
+  expect(calls.slice(0, 3)).toEqual([
+    { permission: { behavior: "allow", updatedInput: { sections: [] } } },
+    { permission: { behavior: "deny", message: PLAN_REFUSED } },
+    { permission: { behavior: "deny", message: PLAN_REFUSED } },
+  ]);
+  // Editing by hand comes back while the plan waits (Q294).
+  expect(s.busy).toBe(true);
+
+  s.settlePlan(planCard(items())!.id, { changes: "Add a page for weddings" }, "[Upstart: edited]");
+  await vi.waitFor(() => expect(planCard(items(), 1)?.state).toBe("proposed"));
+  expect(planCard(items(), 0)).toMatchObject({ state: "replaced", changes: "Add a page for weddings" });
+  expect(calls[3]).toEqual({
+    permission: { behavior: "deny", message: expect.stringContaining("Add a page for weddings") },
+  });
+  expect((calls[3] as { permission: { message: string } }).permission.message).toContain("[Upstart: edited]");
+
+  s.settlePlan(planCard(items())!.id, { approved: true });
+  await ended;
+  expect(planCard(items())).toMatchObject({ state: "approved", text: "## Pages\n- Home\n- Weddings" });
+  expect(calls).toContainEqual({ permissionMode: "acceptEdits" });
+  // Back in build mode: what plan mode let through is no longer canUseTool's to grant.
+  expect(calls.at(-1)).toEqual({ permission: { behavior: "deny", message: DENY_MESSAGE } });
+});
+
+test("the Build / Plan selector changes the agent's mode for the next message; outside plan mode a plan is refused", async () => {
+  const { s, fake, turnEnd } = session([
+    [init(), { type: "ask", name: PLAN_TOOL, input: { plan: "x" } }, writeTurn(dir).at(-1)!],
+  ]);
+  s.start();
+  expect(fake.runs[0]!.options.permissionMode).toBe("acceptEdits");
+  const ended = turnEnd();
+  s.send("Hi");
+  await ended;
+  expect(fake.runs[0]!.calls[0]).toEqual({
+    permission: { behavior: "deny", message: "Not in plan mode: do what the maker asked." },
+  });
+  await s.setMode("plan");
+  await s.setMode("plan");
+  expect(fake.runs[0]!.calls.filter((c) => typeof c === "object" && c && "permissionMode" in c)).toEqual([
+    { permissionMode: "plan" },
+  ]);
+});
+
+test("in plan mode the hooks that grant what the agent asks for stand aside", async () => {
+  const granted = { hookSpecificOutput: { hookEventName: "PermissionRequest", decision: { behavior: "allow" } } };
+  const { s, fake } = session(
+    [],
+    { extraOptions: () => ({ hooks: { PermissionRequest: [{ hooks: [async () => granted] }] } }) },
+    "plan",
+  );
+  s.start();
+  // biome-ignore lint/suspicious/noExplicitAny: hooks as the kit receives them
+  const hook = (fake.runs[0]!.options.hooks as any).PermissionRequest[0].hooks[0] as () => Promise<unknown>;
+  expect(await hook()).toEqual({ continue: true });
+  await s.setMode("build");
+  expect(await hook()).toEqual(granted);
 });

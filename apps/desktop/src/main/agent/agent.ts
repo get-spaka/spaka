@@ -13,6 +13,7 @@ import {
   waitingFor,
 } from "../../shared/conversation";
 import {
+  type AgentMode,
   type AgentStatus,
   accountOf,
   type Effort,
@@ -129,6 +130,11 @@ export class Agent {
     return this.isWorking(projectId) ? waitingFor(this.conversation(projectId)) : undefined;
   }
 
+  /** The websites whose agent waits for the maker (Q292). */
+  waiting(): string[] {
+    return [...this.sessions.keys()].filter((id) => this.waitingFor(id));
+  }
+
   /** The maker's answer to a card of questions; `note` says what they changed by hand meanwhile (Q294). */
   answer(projectId: string, cardId: string, answer: QuestionAnswer, note?: string) {
     this.sessions.get(projectId)?.answer(cardId, answer, note);
@@ -168,6 +174,13 @@ export class Agent {
 
   async setEffort(project: ProjectInfo, effort: Effort) {
     await this.sessions.get(project.id)?.setEffort(effort);
+  }
+
+  /** The Build / Plan selector (Q286, Q296), for the next message. */
+  async setMode(project: ProjectInfo, mode: AgentMode) {
+    const session = this.sessions.get(project.id);
+    session?.update(project);
+    await session?.setMode(mode);
   }
 
   status(): AgentStatus {

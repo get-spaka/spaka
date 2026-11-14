@@ -13,16 +13,31 @@ import type { AssembledSkills } from "../skills/skills";
 import { Activities } from "./activity";
 import { confinement } from "./confinement";
 import { UPSTART_INSTRUCTIONS } from "./instructions";
-import { ASK_TOOL, BAD_FORM, claudeAnswer, NOT_ANSWERED, readQuestions, Waits } from "./questions";
+import {
+  ASK_TOOL,
+  BAD_FORM,
+  claudeAnswer,
+  NOT_ANSWERED,
+  NOT_PLANNING,
+  PLAN_INSTRUCTIONS,
+  PLAN_REFUSED,
+  PLAN_TOOL,
+  planChanges,
+  readPlan,
+  readQuestions,
+  readsOnly,
+  Waits,
+} from "./questions";
 import type { AgentRunner, PlanDecision } from "./runner";
 import { type AgentEvent, StreamReader } from "./stream";
 
 /**
  * The agent's tools. No MultiEdit: the live preview cannot follow it (ADR 0009).
  * The web's two for every project (Q257): trends for a template, a maker's own pages, a fact.
- * AskUserQuestion for its questions to the maker, whose answer its turn waits for (Q283).
+ * AskUserQuestion for its questions to the maker, whose answer its turn waits for (Q283);
+ * ExitPlanMode to hand in its plan in plan mode (Q286).
  */
-export const TOOLS = ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebSearch", "WebFetch", ASK_TOOL];
+export const TOOLS = ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebSearch", "WebFetch", ASK_TOOL, PLAN_TOOL];
 
 export const DENY_MESSAGE =
   "Upstart does not ask the maker for permissions. This action is refused: find another way or say what you could not do.";
@@ -97,8 +112,14 @@ export class AgentSession implements AgentRunner {
   private serverStatus: { name: string; status: string; error?: string }[] = [];
   /** The cards of questions the turn waits on (Q283). */
   private readonly waits = new Waits<QuestionAnswer>();
+  /** The plans the turn waits on (Q290). */
+  private readonly planWaits = new Waits<PlanDecision>();
   /** What the maker changed by hand while a question waited, told with its answer (Q294). */
   private answerNote: string | undefined;
+  /** Build, or plan mode (Q286): the agent writes nothing until its plan is approved. */
+  private mode: AgentMode;
+  /** The permission mode the agent builds in (confinement.ts). */
+  private buildMode: "acceptEdits" | "auto" = "acceptEdits";
   readonly problems: string[] = [];
 
   constructor(
@@ -107,6 +128,7 @@ export class AgentSession implements AgentRunner {
     private readonly deps: SessionDeps,
     private readonly handlers: SessionHandlers,
   ) {
+    this.mode = project.mode ?? "build";
     this.activities = new Activities(
       () => this.project.path,
       (event) => this.handlers.onConversation(event),
@@ -133,10 +155,19 @@ export class AgentSession implements AgentRunner {
       names: Object.keys(servers),
       fingerprint: this.deps.connectorServers?.fingerprint(this.project) ?? "",
     };
+    const confined = confinement({
+      projectDir: this.project.path,
+      readable: this.deps.readable,
+      skillsDir: skills?.dir,
+    });
+    this.buildMode = confined.permissionMode;
     const q = this.deps.query({
       prompt: inbox,
       options: {
-        ...confinement({ projectDir: this.project.path, readable: this.deps.readable, skillsDir: skills?.dir }),
+        ...confined,
+        // Plan mode (Q286): the agent reads, asks, then hands in its plan with ExitPlanMode.
+        permissionMode: this.mode === "plan" ? "plan" : confined.permissionMode,
+        planModeInstructions: PLAN_INSTRUCTIONS,
         pathToClaudeCodeExecutable: this.deps.binary,
         env: this.deps.env(),
         model: this.project.model,
@@ -152,11 +183,14 @@ export class AgentSession implements AgentRunner {
         toolConfig: { askUserQuestion: { previewFormat: "markdown" } },
         ...extra,
         mcpServers: { ...servers, ...extra.mcpServers },
-        hooks: withAnswerNote(extra.hooks, () => {
-          const note = this.answerNote;
-          this.answerNote = undefined;
-          return note;
-        }),
+        hooks: withAnswerNote(
+          withPlanGuard(extra.hooks, () => this.mode === "plan"),
+          () => {
+            const note = this.answerNote;
+            this.answerNote = undefined;
+            return note;
+          },
+        ),
         stderr: (data: string) => {
           this.stderr = (this.stderr + data).slice(-4000);
         },
@@ -191,16 +225,27 @@ export class AgentSession implements AgentRunner {
     if (!this.working || !this.q) return;
     this.stopping = true;
     this.waits.cancelAll();
+    this.planWaits.cancelAll();
     await this.q.interrupt().catch(() => {});
   }
 
   /**
-   * What the agent asks for. Its questions are shown and wait for the maker
-   * (Q283); anything else is refused, the app never asking the maker for
+   * What the agent asks for. Its questions and its plan are shown and wait
+   * for the maker (Q283, Q290); in plan mode, what only reads is let through
+   * (Q286); anything else is refused, the app never asking the maker for
    * permissions (ADR 0007).
    */
   private async permission(name: string, input: Record<string, unknown>, signal: AbortSignal) {
-    if (name !== ASK_TOOL || !this.working) return { behavior: "deny" as const, message: DENY_MESSAGE };
+    const deny = (message: string) => ({ behavior: "deny" as const, message });
+    if (!this.working) return deny(DENY_MESSAGE);
+    if (name === ASK_TOOL) return this.askQuestions(input, signal);
+    if (name === PLAN_TOOL) return this.proposePlan(input, signal);
+    if (this.mode === "plan")
+      return readsOnly(name) ? { behavior: "allow" as const, updatedInput: input } : deny(PLAN_REFUSED);
+    return deny(DENY_MESSAGE);
+  }
+
+  private async askQuestions(input: Record<string, unknown>, signal: AbortSignal) {
     const questions = readQuestions(input);
     if (!questions) return { behavior: "deny" as const, message: BAD_FORM };
     const id = newId();
@@ -214,6 +259,30 @@ export class AgentSession implements AgentRunner {
       answer,
     });
     return { behavior: "allow" as const, updatedInput: claudeAnswer(questions, answer) };
+  }
+
+  /**
+   * The agent's plan (Q290): Build lets the agent build in the same turn, the
+   * maker's changes send it back to plan, in their words.
+   */
+  private async proposePlan(input: Record<string, unknown>, signal: AbortSignal) {
+    if (this.mode !== "plan") return { behavior: "deny" as const, message: NOT_PLANNING };
+    const text = readPlan(input);
+    if (!text) return { behavior: "deny" as const, message: "ExitPlanMode needs the plan's text in `plan`." };
+    const id = newId();
+    this.handlers.onConversation({ type: "plan", card: { id, text, state: "proposed" } });
+    const decision = await this.planWaits.wait(id, signal);
+    if (!decision) return { behavior: "deny" as const, message: NOT_ANSWERED };
+    if ("changes" in decision) {
+      this.handlers.onConversation({ type: "plan-settled", id, state: "replaced", changes: decision.changes });
+      const note = this.answerNote;
+      this.answerNote = undefined;
+      return { behavior: "deny" as const, message: planChanges(decision.changes, note) };
+    }
+    this.handlers.onConversation({ type: "plan-settled", id, state: "approved" });
+    this.mode = "build";
+    await this.q?.setPermissionMode(this.buildMode).catch(() => {});
+    return { behavior: "allow" as const, updatedInput: input };
   }
 
   async setModel(model: string) {
@@ -232,10 +301,19 @@ export class AgentSession implements AgentRunner {
     this.waits.settle(cardId, answer);
   }
 
-  // Plan mode (Q286): built in the agent-questions plan's slice 4.
-  settlePlan(_cardId: string, _decision: PlanDecision) {}
+  settlePlan(cardId: string, decision: PlanDecision, note?: string) {
+    if (!this.planWaits.has(cardId)) return;
+    this.answerNote = note;
+    this.planWaits.settle(cardId, decision);
+  }
 
-  async setMode(_mode: AgentMode) {}
+  /** The Build / Plan selector, for the next message (Q286, Q296). */
+  async setMode(mode: AgentMode) {
+    if (mode === this.mode) return;
+    this.mode = mode;
+    if (this.q && !this.working)
+      await this.q.setPermissionMode(mode === "plan" ? "plan" : this.buildMode).catch(() => this.restart());
+  }
 
   /** The models the agent offers, with the effort levels each accepts. Works before signing in. */
   supportedModels() {
@@ -263,6 +341,7 @@ export class AgentSession implements AgentRunner {
 
   close() {
     this.waits.cancelAll();
+    this.planWaits.cancelAll();
     const q = this.q;
     this.q = undefined;
     this.inbox?.close();
@@ -467,7 +546,27 @@ export function isolationProblem(
   return undefined;
 }
 
-type HookList = { matcher?: string; hooks: ((input: never) => Promise<unknown>)[] }[];
+type HookList = { matcher?: string; hooks: ((...args: never[]) => Promise<unknown>)[] }[];
+
+/**
+ * The project's hooks, those that grant what the agent would ask for (Q221)
+ * standing aside in plan mode: there canUseTool alone decides (Q286).
+ */
+function withPlanGuard(hooks: Record<string, unknown> | undefined, planning: () => boolean) {
+  const asks = hooks?.PermissionRequest as HookList | undefined;
+  if (!asks) return hooks;
+  return {
+    ...hooks,
+    PermissionRequest: asks.map((entry) => ({
+      ...entry,
+      hooks: entry.hooks.map(
+        (hook) =>
+          async (...args: never[]) =>
+            planning() ? { continue: true } : hook(...args),
+      ),
+    })),
+  };
+}
 
 /**
  * The project's hooks, plus one telling the agent, with a question's answer,
@@ -480,7 +579,7 @@ function withAnswerNote(hooks: Record<string, unknown> | undefined, take: () => 
     PostToolUse: [
       ...after,
       {
-        matcher: ASK_TOOL,
+        matcher: `${ASK_TOOL}|${PLAN_TOOL}`,
         hooks: [
           async () => {
             const note = take();

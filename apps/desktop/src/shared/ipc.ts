@@ -4,7 +4,7 @@
 // both sides are checked against the same definition. The preload exposes
 // only these channels, and the main process accepts them only from the
 // interface's own main frame.
-import type { ConversationEvent, ConversationItem } from "./conversation";
+import type { ConversationEvent, ConversationItem, QuestionAnswer } from "./conversation";
 
 export type AppInfo = {
   version: string;
@@ -32,6 +32,8 @@ export type ProjectInfo = ProjectSummary & {
   formServices?: Record<string, string>;
   /** The template the website started from, if any (Q245). */
   template?: { id: string; version: string };
+  /** The Build / Plan selector, kept for the website (Q296); Build when absent. */
+  mode?: AgentMode;
 };
 
 /** Where a skill comes from (ADR 0010): shipped with Upstart, the maker's for all projects, or the project's. */
@@ -566,10 +568,18 @@ export type Invokes = {
   /** Sends a message, creating the website first with none open; why it could not, in words the maker reads. */
   "conversation:send": (
     text: string,
-    newProject?: { model: string; effort: Effort; template?: string },
+    newProject?: { model: string; effort: Effort; template?: string; mode?: AgentMode },
   ) => string | undefined;
   "conversation:stop": () => void;
   "conversation:start-over": () => void;
+  /** Answers the open project's waiting question card (Q283); words typed in the message box go through conversation:send. */
+  "conversation:answer": (cardId: string, answer: QuestionAnswer) => void;
+  /** Build: the maker approves the plan the agent waits on (Q290); changes are typed in the message box. */
+  "conversation:approve-plan": (cardId: string) => void;
+  /** The Build / Plan selector of the open website (Q286, Q296), for its next message. */
+  "agent:set-mode": (mode: AgentMode) => ProjectInfo;
+  /** The websites whose agent waits for the maker's answer (Q292). */
+  "agent:waiting": () => string[];
   "agent:status": () => AgentStatus;
   "agent:sign-in": (method: SignInMethod) => void;
   "agent:cancel-sign-in": () => void;
@@ -738,6 +748,8 @@ export type Events = {
   /** "Replace…" in the preview: the media picker opens, and answers with media:picked (Q159). */
   "media:pick-request": (request: { id: number }) => void;
   "conversation:event": (message: { projectId: string; event: ConversationEvent }) => void;
+  /** The websites whose agent waits for the maker's answer changed (Q292). */
+  "agent:waiting": (projectIds: string[]) => void;
   "agent:status": (status: AgentStatus) => void;
   "history:changed": (message: { projectId: string; entries: HistoryEntry[] }) => void;
   /** The skills changed: added, removed, or written by the agent. */
@@ -781,6 +793,10 @@ export const channels = {
     "conversation:send",
     "conversation:stop",
     "conversation:start-over",
+    "conversation:answer",
+    "conversation:approve-plan",
+    "agent:set-mode",
+    "agent:waiting",
     "agent:status",
     "agent:sign-in",
     "agent:cancel-sign-in",
@@ -871,6 +887,7 @@ export const channels = {
     "content:changed",
     "media:pick-request",
     "conversation:event",
+    "agent:waiting",
     "agent:status",
     "history:changed",
     "skills:changed",

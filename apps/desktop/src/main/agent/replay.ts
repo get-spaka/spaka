@@ -119,8 +119,13 @@ export function replayQuery(file: string, speed = 1) {
           if (asked && ask) {
             const controller = new AbortController();
             stopAsking = () => controller.abort();
-            await ask(asked.name, asked.input, { signal: controller.signal });
+            const answer = await ask(asked.name, asked.input, { signal: controller.signal });
             stopAsking = undefined;
+            // What the agent reads: the app's answer, and what its hooks add to it, as the binary would.
+            replayed.push(`[${asked.name}] ${JSON.stringify(answer)}`);
+            if ((answer as { behavior?: string })?.behavior === "allow")
+              for (const added of await afterTool(params.options.hooks, asked.name, asked.input))
+                replayed.push(`[PostToolUse] ${added}`);
             start = Date.now() - (turn[i + 1]?.t ?? line.t) / speed;
           }
         }
@@ -149,6 +154,32 @@ export function replayQuery(file: string, speed = 1) {
       calls,
     });
   };
+}
+
+type Hook = (
+  input: Record<string, unknown>,
+  toolUseId: string | undefined,
+  options: { signal: AbortSignal },
+) => unknown;
+
+/** What the app's PostToolUse hooks add for a tool call: the context the binary would give the agent. */
+async function afterTool(hooks: unknown, name: string, input: Record<string, unknown>): Promise<string[]> {
+  const entries = ((hooks as Record<string, unknown> | undefined)?.PostToolUse ?? []) as {
+    matcher?: string;
+    hooks: Hook[];
+  }[];
+  const added: string[] = [];
+  for (const entry of entries) {
+    if (entry.matcher && !new RegExp(`^(?:${entry.matcher})$`).test(name)) continue;
+    for (const hook of entry.hooks) {
+      const output = (await hook({ hook_event_name: "PostToolUse", tool_name: name, tool_input: input }, undefined, {
+        signal: new AbortController().signal,
+      })) as { hookSpecificOutput?: { additionalContext?: string } } | undefined;
+      const context = output?.hookSpecificOutput?.additionalContext;
+      if (context) added.push(context);
+    }
+  }
+  return added;
 }
 
 /** A recorded question or plan of the agent's, which asks the app before the recording goes on. */

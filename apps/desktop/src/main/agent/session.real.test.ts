@@ -17,7 +17,7 @@ const configDir = join(import.meta.dirname, "../../../../../.cache/agent-config"
 const real = test.skipIf(!process.env.UPSTART_REAL_CLAUDE);
 
 /** An agent session as the app starts it, on a throwaway project. */
-function realSession() {
+function realSession(mode?: "plan") {
   const dir = mkdtempSync(join(tmpdir(), "upstart-real-"));
   const data = mkdtempSync(join(tmpdir(), "upstart-real-data-"));
   mkdirSync(join(dir, "pages"));
@@ -25,7 +25,7 @@ function realSession() {
   let items: ConversationItem[] = [];
   let idle: () => void = () => {};
   const s = new AgentSession(
-    { id: "p", name: "Bakery", path: dir, model: "claude-sonnet-5-5", effort: "low" },
+    { id: "p", name: "Bakery", path: dir, model: "claude-sonnet-5-5", effort: "low", ...(mode ? { mode } : {}) },
     data,
     {
       binary: agentBinary(),
@@ -117,4 +117,41 @@ real(
     }
   },
   240_000,
+);
+
+real(
+  "plan mode under the app's confinement: a plan handed in, changed, then built in the same turn",
+  async () => {
+    const r = realSession("plan");
+    const plans = () => (lastAgent(r.items())?.parts ?? []).flatMap((p) => (p.kind === "plan" ? [p.card] : []));
+    const proposed = async (count: number) => {
+      for (let waited = 0; waited < 180_000; waited += 500) {
+        if (plans().length >= count && plans().at(-1)?.state === "proposed") return plans().at(-1)!;
+        if (lastAgent(r.items())?.status !== "working") break;
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+      console.log(JSON.stringify(r.items(), null, 1), r.s.problems);
+      throw new Error("No plan was handed in.");
+    };
+    try {
+      const ended = r.send("A one-page site for the bakery: a title and opening hours. Plan it first.");
+      const first = await proposed(1);
+      expect(readFileSync(join(r.dir, "pages/index.liquid"), "utf8")).toBe("<h1>Bakery</h1>\n");
+      r.s.settlePlan(first.id, { changes: "Also a line saying we bake every morning." });
+      const second = await proposed(2);
+      expect(plans()[0]).toMatchObject({ state: "replaced" });
+      r.s.settlePlan(second.id, { approved: true });
+      await ended;
+      expect(lastAgent(r.items())).toMatchObject({ status: "done" });
+      expect(plans().at(-1)).toMatchObject({ state: "approved" });
+      // Built once approved (where depends on Upstart's instructions, not given here).
+      const written = r.items().flatMap((i) => (i.kind === "agent" ? i.parts : []));
+      expect(
+        written.some((p) => p.kind === "activity" && /^(Writing|Editing) (?!the plan)/.test(p.activity.label)),
+      ).toBe(true);
+    } finally {
+      r.close();
+    }
+  },
+  400_000,
 );

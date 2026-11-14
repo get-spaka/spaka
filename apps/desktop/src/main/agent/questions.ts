@@ -3,6 +3,14 @@
 // tool of the same form. The turn waits for the maker's answer, then goes on.
 import { z } from "zod";
 import type { AgentQuestion, QuestionAnswer } from "../../shared/conversation";
+import {
+  FIND_BLOCKS_TOOL,
+  FIND_IMAGES_TOOL,
+  LOOK_TOOL,
+  UPSTART_SERVER,
+  USE_BLOCK_TOOL,
+  USE_IMAGE_TOOL,
+} from "./upstart-tools";
 
 /** The tool the agent asks with, under Claude's name for every agent. */
 export const ASK_TOOL = "AskUserQuestion";
@@ -97,7 +105,7 @@ export function answerResult(questions: AgentQuestion[], answer: QuestionAnswer)
 export const NOT_ANSWERED = "The maker did not answer: the turn was stopped.";
 
 /** Said to the agent, at its next message, of a question left when Upstart closed. */
-export const CLOSED_UNANSWERED = "The maker did not answer: Upstart was closed while the question waited.";
+export const CLOSED_UNANSWERED = "The maker did not answer: Upstart was closed while it waited.";
 
 /** Said to the agent when its questions do not have the tool's form. */
 export const BAD_FORM =
@@ -114,3 +122,68 @@ export const ASK_DESCRIPTION = [
   "A choice's preview, optional, is shown with it: block:<id> for a block of the gallery, or the path of an image in the project.",
   "The maker may also answer in their own words, or skip the questions: then decide by yourself and say what you chose.",
 ].join(" ");
+
+/**
+ * Plan mode (Q286, Q290): what the agent is told, whichever agent it is.
+ * Claude gets it as its plan-mode instructions, the Pi harness in its own.
+ */
+export const PLAN_INSTRUCTIONS = [
+  "The maker chose plan mode: they want a plan before you build. Write nothing in the project until they approve it.",
+  "Read what helps: the project's files, the template it started from, the gallery with find_blocks and find_images, a page the maker points you to with WebFetch.",
+  "When a choice is the maker's and costly to guess, ask it with AskUserQuestion.",
+  "Then hand in your plan with ExitPlanMode: short formatted text, in the maker's language, with the pages and their sections, the style (colors, fonts, mood), and what you will invent because the maker did not say it.",
+  "Once the maker approves it, build it at once. If they ask for changes, hand in a new plan.",
+].join(" ");
+
+/** The Pi harness's tool to hand the plan in with, under Claude's name. */
+export const PLAN_DESCRIPTION =
+  "In plan mode only: hands in your plan to the maker and waits. They approve it, and you build it at once, or they ask for changes, and you hand in a new plan.";
+
+/** Said to the agent of a tool that writes, in plan mode. */
+export const PLAN_REFUSED =
+  "Plan mode: nothing is written until the maker approves your plan. Read, ask, then hand in your plan with ExitPlanMode.";
+
+/** Said to the agent that hands in a plan outside plan mode. */
+export const NOT_PLANNING = "Not in plan mode: do what the maker asked.";
+
+/** Said to the Pi harness's agent when the maker approves its plan. */
+export const PLAN_APPROVED = "The maker approved your plan. Build it now, as planned.";
+
+/** The maker's changes to the plan, said to the agent. */
+export function planChanges(words: string, note?: string): string {
+  return `The maker wants changes to the plan: ${words}\n\nHand in a new plan with ExitPlanMode.${note ? `\n\n${note}` : ""}`;
+}
+
+/** The plan's text from ExitPlanMode's input. */
+export function readPlan(input: unknown): string | undefined {
+  const plan = (input as { plan?: unknown } | undefined)?.plan;
+  return typeof plan === "string" && plan.trim() ? plan.trim() : undefined;
+}
+
+/** The tools that only read, which plan mode lets through: Claude's names, Upstart's under the SDK's. */
+const PLAN_READS = new Set([
+  "Read",
+  "Glob",
+  "Grep",
+  "WebSearch",
+  "WebFetch",
+  "Skill",
+  ASK_TOOL,
+  PLAN_TOOL,
+  LOOK_TOOL,
+  FIND_BLOCKS_TOOL,
+  FIND_IMAGES_TOOL,
+]);
+
+/** Whether plan mode lets a tool through: those that only read, and the maker's connectors (ADR 0010). */
+export function readsOnly(name: string): boolean {
+  return PLAN_READS.has(name) || (name.startsWith("mcp__") && !name.startsWith(`mcp__${UPSTART_SERVER}__`));
+}
+
+/** The tools that change the project, which plan mode refuses in the Pi harness: canonical names. */
+export const PLAN_WRITERS = new Set(["Write", "Edit", "Append", "Bash", USE_BLOCK_TOOL, USE_IMAGE_TOOL]);
+
+/** What the agent of the Pi harness reads with the maker's message in plan mode. */
+export function planMessage(text: string): string {
+  return `[Upstart: plan mode. ${PLAN_INSTRUCTIONS}]\n\n${text}`;
+}

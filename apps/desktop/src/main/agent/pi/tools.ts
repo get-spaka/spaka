@@ -18,7 +18,17 @@ import { dirname, extname, isAbsolute, join, relative, resolve } from "node:path
 import type { AgentTool, AgentToolResult } from "@earendil-works/pi-agent-core";
 import { z } from "zod";
 import type { AgentQuestion, QuestionAnswer } from "../../../shared/conversation";
-import { ASK_DESCRIPTION, ASK_TOOL, AskInput, answerResult, BAD_FORM, NOT_ANSWERED, readQuestions } from "../questions";
+import {
+  ASK_DESCRIPTION,
+  ASK_TOOL,
+  AskInput,
+  answerResult,
+  BAD_FORM,
+  NOT_ANSWERED,
+  PLAN_DESCRIPTION,
+  PLAN_TOOL,
+  readQuestions,
+} from "../questions";
 import { type UpstartToolDef, upstartToolName } from "../upstart-tools";
 import type { PiFamily } from "./models";
 import { runShell, type ShellPlace } from "./shell";
@@ -348,6 +358,31 @@ export function piAskTool(
       const got = await ask(id, questions, signal);
       if (!got) throw new Error(NOT_ANSWERED);
       return answer(answerResult(questions, got.answer) + (got.note ? `\n\n${got.note}` : ""));
+    },
+  };
+}
+
+/**
+ * The tool the agent hands its plan in with, in plan mode (Q286, Q290):
+ * `propose` shows it and resolves with what the agent reads back (approved,
+ * or the maker's changes), or undefined when the turn stopped first.
+ */
+export function piPlanTool(
+  propose: (callId: string, plan: string, signal?: AbortSignal) => Promise<string | undefined>,
+): HarnessTool {
+  return {
+    name: PLAN_TOOL,
+    label: PLAN_TOOL,
+    description: PLAN_DESCRIPTION,
+    parameters: fileSchema({ plan: str("The plan, as short formatted text (Markdown), in the maker's language") }, [
+      "plan",
+    ]),
+    executionMode: "sequential",
+    async execute(id: string, { plan }: { plan: string }, signal?: AbortSignal) {
+      if (typeof plan !== "string" || !plan.trim()) throw new Error("Give the plan's text in `plan`.");
+      const said = await propose(id, plan.trim(), signal);
+      if (said === undefined) throw new Error(NOT_ANSWERED);
+      return answer(said);
     },
   };
 }
