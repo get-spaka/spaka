@@ -131,7 +131,7 @@ export const PLAN_INSTRUCTIONS = [
   "The maker chose plan mode: they want a plan before you build. Write nothing in the project until they approve it.",
   "Read what helps: the project's files, the template it started from, the gallery with find_blocks and find_images, a page the maker points you to with WebFetch.",
   "When a choice is the maker's and costly to guess, ask it with AskUserQuestion.",
-  "Then hand in your plan with ExitPlanMode: short formatted text, in the maker's language, with the pages and their sections, the style (colors, fonts, mood), and what you will invent because the maker did not say it.",
+  "Then hand in your plan with ExitPlanMode: short formatted text written for the maker, who reads no code, in their language: the pages and their sections, each named by what it shows (no addresses, file names, block ids or datasources), the style (colors, fonts, mood), and what you will invent because the maker did not say it.",
   "Once the maker approves it, build it at once. If they ask for changes, hand in a new plan.",
 ].join(" ");
 
