@@ -52,6 +52,14 @@ _Avoid_: Play mode, live mode
 The single, continuous exchange between the maker and the agent about a project.
 _Avoid_: Session, thread, chat
 
+**Question**:
+A choice the agent puts to the maker in the conversation, with the answers it offers and the one it recommends. The agent waits for the answer, which the maker may also give in their own words or skip.
+_Avoid_: Prompt, dialog, questionnaire, permission
+
+**Plan mode**:
+The way of working in which the agent changes nothing in the project: it reads, asks its questions and hands in a plan of what it will build, which the maker approves before anything is written. Building is the other way, and the usual one.
+_Avoid_: Draft mode, design step, mock-up
+
 **Snapshot**:
 A saved state of a project that the maker can return to. One is taken after every agent turn and every manual edit, and together they form the project's history.
 _Avoid_: Checkpoint, version, commit
@@ -136,6 +144,10 @@ _Avoid_: Library, marketplace
 **Template**:
 A complete, ready-made project that a maker can start a new project from, with its own design, its own blocks and notes on its design for the agent. Made by Upstart or by an outside author.
 _Avoid_: Starter, theme; also avoid "template" for the source of a page
+
+**Template question**:
+A question a template asks about what varies in its design, answered on the start screen before the first message, each set to its recommended answer until the maker changes it.
+_Avoid_: Template option, template setting
 
 ### Running and shipping
 
