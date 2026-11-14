@@ -385,7 +385,7 @@ It asks the client for permission (`session/request_permission`). If the client 
 - **The tokens.**
   - With Codex, the app runs the OAuth and holds the tokens. That is against Upstart's rule of never handling a maker's tokens.
   - Pi implements SIWC itself (with the host app's name) and keeps the tokens in its own folder, so Upstart would not hold them.
-- **Upstart's eligibility depends on facts not settled here.** Is Upstart open source? Is it paid? Not confirmed either way.
+- **Upstart is in the first category:** v2 is open source under MIT and free (`docs/v2.0-decisions.md`, confirmed by Matt on 2026-11-14). Whether OpenAI admits it is seen at the first sign-in under Upstart's name.
 
 **Tried with Matt's Plus plan, taken on 2026-11-14:**
 - **Signing in:** `pi auth login openai` printed OpenAI's sign-in address. Matt signed in in his browser, and Pi kept the tokens in its own folder (`homes/pi/auth.json`, readable by Matt alone). The client was registered under the name Pi; Upstart's would carry its own.
@@ -668,28 +668,32 @@ The spike drove the `pi` program over RPC (`src/pi.ts`); the libraries themselve
 - **What Antigravity offers an app beyond the run:** its addition to the system prompt, MCP servers passed at session start, its own sandbox and modes.
 - **Upstart's tools, skills and hooks inside Pi, Codex or Google's agents.**
 - **Windows and Linux.**
-- **Whether Upstart qualifies for Sign in with ChatGPT.** It depends on whether Upstart is open source or paid; ask OpenAI.
+- **Sign in with ChatGPT under Upstart's own name.** Upstart is open source, the program's first category; the sign-in was tried under Pi's name.
 - **Whether Upstart may fetch Antigravity from Google at first use**, since it may not ship it.
 
-## Recommendation
+## If the maker installs the agent
 
-1. **Keep Claude, through the Agent SDK, as Upstart's agent for a Claude subscription.** No other route to that subscription is allowed.
-2. **For other models, build a harness of Upstart's own on Pi's libraries, not on a ready-made harness.**
-   - Files written in the reply's text, so every model has the live preview.
-   - Upstart's own execution environment, reaching the project alone.
-   - First, Gemini 4 Hydrogen on the maker's Gemini key, thinking low: Claude's pace, at about 60% of its API price.
-   - Then OpenAI: on the maker's key, and on ChatGPT Plus or Pro through Sign in with ChatGPT once OpenAI confirms Upstart may use it. It works today in Pi, but slowly (Sol 92 s, Terra 55 s).
-3. **Antigravity over ACP is the fastest route for Gemini, and the one to keep in mind,** not the one to build on:
-   - it is Google's own and tuned for Gemini 4, and its ACP server is the richest;
-   - but it is closed and may not be shipped, updates itself, reaches only Gemini on a key, and is forbidden on a Google sign-in, which is how most people would want to use it.
-   If Google gave it a licence and a way to stop its updates, it would become a candidate for Gemini alone.
-4. **When to build the second harness (2.0 or after) is Matt's call (Q268).** It is a second agent layer to build and keep:
-   - the adapter;
-   - the instructions and checks per model family;
-   - the execution environment;
-   - the keys;
-   - the file format, checked over whole sessions.
-5. **Come back to Codex** if a later version passes on what code mode writes, and if OpenAI opens ChatGPT sign-in to an app like Upstart.
+Matt's question after the report: rather than shipping Antigravity or Codex, could Upstart ask the maker to install it, and drive it? That settles the licence and nothing else.
+
+| Installed by the maker | What it settles | What stays |
+|---|---|---|
+| Antigravity | The licence: Upstart distributes nothing | A Google sign-in stays forbidden: starting the unmodified `agy acp` from a third-party app breaches §6 on it. On an AI Studio key it is allowed, but Pi does almost as well (22.5 s against 20.1 s, cheaper). It updates itself, so Upstart cannot hold its version or its ACP behaviour. |
+| Codex | Nothing: Apache-2.0, Upstart could ship it already | No live preview: Codex does not pass on what code mode writes. Its ChatGPT sign-in is not OpenAI's route for apps; Sign in with ChatGPT is, and Pi has it. |
+| Claude Code | This is today's design: the official binary, driven by the Agent SDK | The message to Anthropic about the subscription (ADR 0002). |
+
+**Pi in front of the vendors' agents** (Claude Code, Codex, agy) would only relay: two nested agent loops, the preview still decided by the agent underneath, the subscription by its terms. `pi-claude-bridge` does it for Claude. The single point Upstart needs is its own agent layer, one interface with an adapter per agent; for vendors' agents, ACP is the standard protocol.
+
+## Recommendation, and Matt's decision
+
+**Decided (Q268, Matt, 2026-11-14): two adapters behind one interface.**
+1. **Claude, through the Agent SDK** and the official binary, as today: a Claude subscription or an Anthropic key. No other route to that subscription is allowed.
+2. **A harness of Upstart's own on Pi's libraries** for other models:
+   - files written in the reply's text, so every model has the live preview;
+   - Upstart's own execution environment, reaching the project alone;
+   - ChatGPT Plus or Pro through Sign in with ChatGPT (Upstart is open source), the maker's Gemini key from AI Studio first (Hydrogen, thinking low: Claude's pace at about 60% of its API price), then other keys.
+3. **Antigravity and Codex stay out,** even installed by the maker: they open no subscription Upstart may use, and Codex gives no live preview. An ACP adapter can come later if a vendor's agent brings what Pi does not.
+
+Its design follows, from Q269, in `docs/v2.0-decisions.md`.
 
 ## How to run it again
 

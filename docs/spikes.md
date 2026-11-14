@@ -87,7 +87,7 @@ Asked by Matt on 2026-11-14, after the templates; it reopens "Codex only after a
 - **Google's own agents over ACP, on an AI Studio key** (third round, the same day): with files in the text, Antigravity at effort low completes the page at 20.1 s for $0.065, the fastest of the spike, and Gemini CLI at 41.7 s. Antigravity has no licence, so Upstart may not ship it, and it updates itself.
 - **Subscriptions:** a Claude subscription stays on the Agent SDK. ChatGPT Plus works through Sign in with ChatGPT in Pi (tried with Matt's plan, but slow: Sol complete at 92 s), and an app like Upstart needs OpenAI's acceptance. Google offers apps no subscription route; an AI Studio key may drive both Google agents. Otherwise, the maker's API key.
 
-Which agents Upstart offers waits for Matt's decision (Q268).
+Matt's decision (Q268): two adapters behind one interface, Claude through the Agent SDK and a harness of Upstart's own on Pi's libraries ([ADR 0012](adr/0012-a-second-agent-layer-of-upstarts-own-on-pi.md)).
 
 ## What the spikes need from Matt
 
