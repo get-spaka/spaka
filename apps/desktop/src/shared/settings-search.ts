@@ -32,10 +32,21 @@ export const SETTINGS: SettingEntry[] = [
   {
     page: "agent",
     id: "account",
-    words: [t.agent.account, "Claude", "sign in", "login", "subscription", "compte", "connexion"],
+    words: [t.agent.account, "Claude", "sign in", "login", "subscription", "Anthropic", "compte", "connexion"],
   },
-  { page: "agent", id: "api-key", words: [t.agent.apiKey, "Console", "key", "token", "clé"] },
-  { page: "agent", id: "model", words: [t.agent.model, "Sonnet", "Opus", "Haiku", "modèle", t.agent.forNew] },
+  { page: "agent", id: "api-key", words: [t.agent.apiKey, "Console", "Anthropic", "key", "token", "clé"] },
+  {
+    page: "agent",
+    id: "chatgpt",
+    words: [t.agent.chatgpt, "OpenAI", "GPT", "Plus", "Pro", "sign in", "login", "subscription", "compte", "connexion"],
+  },
+  { page: "agent", id: "openai-key", words: [t.agent.openaiKey, "GPT", "platform", "key", "token", "clé"] },
+  { page: "agent", id: "gemini-key", words: [t.agent.geminiKey, "Google", "AI Studio", "key", "token", "clé"] },
+  {
+    page: "agent",
+    id: "model",
+    words: [t.agent.model, "Sonnet", "Opus", "Haiku", "GPT", "Gemini", "modèle", t.agent.forNew],
+  },
   { page: "agent", id: "effort", words: [t.agent.effort, "thinking", "speed", "effort", t.agent.forNew] },
   { page: "skills", id: "skills-app", words: [t.pages.skills, "SKILL.md", "tone", "voice", "compétences"] },
   { page: "connectors", id: "connectors-app", words: [t.pages.connectors, "MCP", "server", "tools", "connecteurs"] },
@@ -45,7 +56,12 @@ export const SETTINGS: SettingEntry[] = [
     words: [t.privacy.statistics, "analytics", "telemetry", "tracking", "statistiques", "confidentialité"],
   },
   { page: "about", id: "version", words: [t.pages.about, "version", "licence", "license", "MIT", "update"] },
-].map((e) => ({ ...e, page: e.page as SettingsPage, words: [...e.words, t.pages[e.page as SettingsPage]] }));
+].map((e) => ({
+  ...e,
+  page: e.page as SettingsPage,
+  // The Accounts page was the Agent page: both names find it.
+  words: [...e.words, t.pages[e.page as SettingsPage], ...(e.page === "agent" ? ["agent"] : [])],
+}));
 
 /** The settings a search finds, or null when nothing is typed. */
 export function searchSettings(query: string, entries: SettingEntry[] = SETTINGS): SettingEntry[] | null {

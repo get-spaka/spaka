@@ -67,7 +67,13 @@ export function useHistory(projectId: string | undefined) {
   return state && state.projectId === projectId ? state.entries : [];
 }
 
-const NO_STATUS: AgentStatus = { auth: "unknown", hasApiKey: false, models: [] };
+const NO_STATUS: AgentStatus = {
+  auth: "unknown",
+  hasApiKey: false,
+  accounts: { chatgpt: false, openai: false, gemini: false },
+  chatgpt: { signingIn: false },
+  models: [],
+};
 
 export function useAgentStatus() {
   const [status, setStatus] = useState<AgentStatus>(NO_STATUS);

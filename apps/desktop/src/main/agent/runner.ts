@@ -19,6 +19,8 @@ export interface AgentRunner {
   setEffort(effort: Effort): Promise<void>;
   /** Clears the agent's memory of the conversation; what is shown stays. */
   startOver(): void;
+  /** Clears its memory without a word in the conversation: another agent took over (Q274). */
+  forget(): void;
   /** The project's folder moved or its settings changed while closed. */
   update(project: ProjectInfo): void;
   close(): void;

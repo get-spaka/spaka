@@ -1,20 +1,38 @@
-// The app's side of the agent: one session per open project, the
-// conversations as shown (kept in the app's data, ADR 0001), the sign-in and
+// The app's side of the agent: one session per open project, on Claude or in
+// Upstart's own harness after the project's model (ADR 0012), the
+// conversations as shown (kept in the app's data, ADR 0001), the sign-ins and
 // the models on offer.
 import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ModelInfo } from "@anthropic-ai/claude-agent-sdk";
 import { applyEvent, type ConversationEvent, type ConversationItem } from "../../shared/conversation";
-import type { AgentStatus, Effort, ModelChoice, ProjectInfo, SignInMethod } from "../../shared/ipc";
+import {
+  type AgentStatus,
+  accountOf,
+  type Effort,
+  type KeyAccount,
+  type ModelChoice,
+  type ProjectInfo,
+  type SignInMethod,
+} from "../../shared/ipc";
 import { en } from "../../shared/strings/en";
 import type { AgentAuth, AuthState } from "./auth";
-import { AgentSession, type SessionDeps } from "./session";
+import { handoverNote } from "./handover";
+import type { PiAccounts } from "./pi/accounts";
+import { PI_MODELS, piEfforts, piModel, piModelId } from "./pi/models";
+import { type PiDeps, PiSession } from "./pi/session";
+import type { AgentRunner } from "./runner";
+import { AgentSession, type SessionDeps, type SessionHandlers } from "./session";
 import type { AgentEvent } from "./stream";
 
 export type AgentOptions = {
   auth: AgentAuth;
   /** The session's dependencies; `env` is filled in from the sign-in. */
   session: Omit<SessionDeps, "env">;
+  /** Upstart's own harness: its accounts, and what its sessions need besides them. */
+  pi?: { accounts: PiAccounts; deps: Omit<PiDeps, "models" | "apiKey"> };
+  /** Where the models Claude offers are kept between launches. */
+  modelsFile?: string;
   dataFor: (projectId: string) => string;
   emitConversation: (projectId: string, event: ConversationEvent) => void;
   emitStatus: (status: AgentStatus) => void;
@@ -22,13 +40,20 @@ export type AgentOptions = {
 };
 
 export class Agent {
-  private readonly sessions = new Map<string, AgentSession>();
+  private readonly sessions = new Map<string, AgentRunner>();
+  /** What a new agent is told at its first message, after a switch between Claude and the harness (Q274). */
+  private readonly handovers = new Map<string, string>();
   private readonly logs = new Map<string, ConversationItem[]>();
   private current: ProjectInfo | undefined;
   private authState: AuthState | undefined;
-  private models: ModelChoice[] = [];
+  /** The models Claude offers, as the binary last listed them. */
+  private claudeModels: ModelChoice[] = [];
 
-  constructor(private readonly o: AgentOptions) {}
+  constructor(private readonly o: AgentOptions) {
+    try {
+      if (o.modelsFile) this.claudeModels = JSON.parse(readFileSync(o.modelsFile, "utf8"));
+    } catch {}
+  }
 
   /** The project shown; its agent starts now so that the first message does not wait. */
   open(project: ProjectInfo | undefined) {
@@ -42,7 +67,7 @@ export class Agent {
       const session = this.session(project);
       session.update(project);
       session.start();
-      if (!this.models.length) void this.loadModels(session);
+      if (!this.modelsLoaded && session instanceof AgentSession) void this.loadModels(session);
     }
   }
 
@@ -55,8 +80,10 @@ export class Agent {
     return items;
   }
 
-  send(project: ProjectInfo, text: string, forAgent?: string) {
-    this.session(project).send(text, forAgent);
+  send(project: ProjectInfo, text: string, forAgent = text) {
+    const handover = this.handovers.get(project.id);
+    this.session(project).send(text, handover ? `${handover}\n\n${forAgent}` : forAgent);
+    this.handovers.delete(project.id);
   }
 
   /** A line in the conversation from Upstart itself. */
@@ -93,8 +120,23 @@ export class Agent {
     this.session(project).startOver();
   }
 
+  /**
+   * A model of the same layer is switched to in the same conversation; one of
+   * the other layer starts with a fresh memory, told what was said so far (Q274).
+   */
   async setModel(project: ProjectInfo, model: string) {
-    await this.sessions.get(project.id)?.setModel(model);
+    const session = this.sessions.get(project.id);
+    const layer = (m: string) => (accountOf(m) === "claude" ? "claude" : "pi");
+    const before = session instanceof PiSession ? "pi" : session ? "claude" : undefined;
+    if (!session || before === layer(model)) return void (await session?.setModel(model));
+    if (session.busy) await session.stop();
+    session.close();
+    this.sessions.delete(project.id);
+    const next = this.session({ ...project, model });
+    next.forget();
+    const note = handoverNote(this.conversation(project.id));
+    if (note) this.handovers.set(project.id, note);
+    if (project.id === this.current?.id) next.start();
   }
 
   async setEffort(project: ProjectInfo, effort: Effort) {
@@ -103,6 +145,8 @@ export class Agent {
 
   status(): AgentStatus {
     const auth = this.o.auth;
+    const connected = this.o.pi?.accounts.connected() ?? [];
+    const chatgpt = this.o.pi?.accounts.chatgptState();
     return {
       auth: auth.signingIn
         ? "signing-in"
@@ -115,8 +159,31 @@ export class Agent {
       hasApiKey: auth.hasApiKey,
       signInUrl: auth.signInUrl,
       signInFailed: auth.signInFailed || undefined,
-      models: this.models,
+      accounts: {
+        chatgpt: connected.includes("chatgpt"),
+        openai: connected.includes("openai"),
+        gemini: connected.includes("gemini"),
+      },
+      chatgpt: { signingIn: !!chatgpt?.signingIn, ...(chatgpt?.failed ? { failed: chatgpt.failed } : {}) },
+      models: [...(this.authState?.loggedIn !== false ? this.claudeModels : []), ...piChoices(connected)],
     };
+  }
+
+  /** An OpenAI or Gemini key for Upstart's own harness; null removes it. */
+  setKey(account: KeyAccount, key: string | null) {
+    this.o.pi?.accounts.setKey(account, key);
+  }
+
+  signInChatGPT() {
+    void this.o.pi?.accounts.signInChatGPT();
+  }
+
+  cancelChatGPT() {
+    this.o.pi?.accounts.cancelChatGPT();
+  }
+
+  async signOutChatGPT() {
+    await this.o.pi?.accounts.signOutChatGPT();
   }
 
   /** Asks the binary whether it is signed in, then tells the interface. */
@@ -165,27 +232,32 @@ export class Agent {
       }
   }
 
-  private session(project: ProjectInfo): AgentSession {
+  private session(project: ProjectInfo): AgentRunner {
     let session = this.sessions.get(project.id);
     if (session) return session;
     const id = project.id;
-    session = new AgentSession(
-      project,
-      this.o.dataFor(id),
-      { ...this.o.session, env: () => this.o.auth.env() },
-      {
-        onConversation: (event) => this.record(id, event),
-        onAgentEvent: this.o.onAgentEvent && ((event) => this.o.onAgentEvent!(id, event)),
-        onSignInNeeded: () => void this.checkSignIn(),
-        onIdle: () => {
-          // An agent left working in a project that is no longer shown stops once its turn is over.
-          if (id !== this.current?.id) {
-            this.sessions.get(id)?.close();
-            this.sessions.delete(id);
-          }
-        },
+    const handlers: SessionHandlers = {
+      onConversation: (event) => this.record(id, event),
+      onAgentEvent: this.o.onAgentEvent && ((event) => this.o.onAgentEvent!(id, event)),
+      onSignInNeeded: () => void this.checkSignIn(),
+      onIdle: () => {
+        // An agent left working in a project that is no longer shown stops once its turn is over.
+        if (id !== this.current?.id) {
+          this.sessions.get(id)?.close();
+          this.sessions.delete(id);
+        }
       },
-    );
+    };
+    const pi = this.o.pi;
+    session =
+      accountOf(project.model) !== "claude" && pi
+        ? new PiSession(
+            project,
+            this.o.dataFor(id),
+            { ...pi.deps, models: pi.accounts.models, apiKey: (account) => pi.accounts.apiKey(account) },
+            handlers,
+          )
+        : new AgentSession(project, this.o.dataFor(id), { ...this.o.session, env: () => this.o.auth.env() }, handlers);
     this.sessions.set(id, session);
     return session;
   }
@@ -199,10 +271,17 @@ export class Agent {
     this.o.emitConversation(projectId, event);
   }
 
+  private modelsLoaded = false;
+
   private async loadModels(session: AgentSession) {
+    this.modelsLoaded = true;
     const infos = await session.supportedModels().catch(() => undefined);
-    if (!infos) return;
-    this.models = modelChoices(infos);
+    if (!infos) {
+      this.modelsLoaded = false;
+      return;
+    }
+    this.claudeModels = modelChoices(infos);
+    if (this.o.modelsFile) writeFileSync(this.o.modelsFile, JSON.stringify(this.claudeModels));
     this.o.emitStatus(this.status());
   }
 
@@ -218,9 +297,19 @@ export function modelChoices(infos: ModelInfo[]): ModelChoice[] {
     if (info.value === "default") continue;
     const id = info.resolvedModel ?? info.value;
     if (out.some((m) => m.id === id)) continue;
-    out.push({ id, name: info.displayName, efforts: info.supportedEffortLevels ?? [] });
+    out.push({ id, name: info.displayName, efforts: info.supportedEffortLevels ?? [], account: "claude" });
   }
   return out;
+}
+
+/** The models of Upstart's own harness for the accounts connected (Q270, Q275). */
+export function piChoices(connected: string[]): ModelChoice[] {
+  return PI_MODELS.filter((m) => connected.includes(m.account)).flatMap((m) => {
+    const model = piModel(m.account, m.id);
+    return model
+      ? [{ id: piModelId(m.account, m.id), name: m.name, efforts: piEfforts(model), account: m.account }]
+      : [];
+  });
 }
 
 /** A name for a project created from the maker's first message. */

@@ -45,6 +45,7 @@ import { Agent, projectNameFrom } from "./agent/agent";
 import { AgentAuth } from "./agent/auth";
 import { agentBinary, cleanEnv, nodeLauncher } from "./agent/confinement";
 import { instructionsFor } from "./agent/instructions";
+import { PiAccounts } from "./agent/pi/accounts";
 import { claudeExtras, UPSTART_SERVER } from "./agent/preview-tool";
 import { Recorder, replayed, replayQuery } from "./agent/replay";
 import type { AgentKit } from "./agent/runner";
@@ -349,6 +350,20 @@ async function main() {
     };
   };
   let agent: Agent;
+  // Upstart's own harness (ADR 0012): ChatGPT through Sign in with ChatGPT, the maker's OpenAI and Gemini keys.
+  const piAccounts = new PiAccounts({
+    dir: join(userData, "accounts"),
+    vault,
+    identity: {
+      userAgent: { custom: `Upstart/${app.getVersion()}` },
+      attribution: { name: "Upstart", url: "https://upstart.gg" },
+    },
+    onChange: () => agent && ipc.emit("agent:status", agent.status()),
+    openBrowser: (url) => {
+      if (url.startsWith("https://") && !env.background) void shell.openExternal(url);
+    },
+  });
+  void piAccounts.load().then(() => agent && ipc.emit("agent:status", agent.status()));
   const auth = new AgentAuth({
     binary,
     env: agentEnv,
@@ -369,6 +384,21 @@ async function main() {
       query: (env.agentReplay ? replayQuery(env.agentReplay, env.agentReplaySpeed) : query) as never,
       recorder: env.agentRecord ? new Recorder(env.agentRecord) : undefined,
     },
+    pi: {
+      accounts: piAccounts,
+      deps: {
+        kit: kitFor,
+        instructions: (family, listed) => instructionsFor(settings.get().replyStyle, family, listed),
+        env: agentEnv,
+        readable: launcher.readable,
+        skills,
+        identity: {
+          userAgent: { custom: `Upstart/${app.getVersion()}` },
+          attribution: { name: "Upstart", url: "https://upstart.gg" },
+        },
+      },
+    },
+    modelsFile: join(userData, "claude-models.json"),
     dataFor: (id) => projects.dataFor(id),
     emitConversation: (projectId, event) => {
       ipc.emit("conversation:event", { projectId, event });
@@ -1346,6 +1376,19 @@ async function main() {
     agent.setApiKey(key);
     return agent.status();
   });
+  ipc.handle("agent:set-key", (account, key) => {
+    if (account !== "openai" && account !== "gemini") throw new Error("Unknown account.");
+    agent.setKey(account, key);
+    return agent.status();
+  });
+  ipc.handle("agent:chatgpt-sign-in", () => {
+    if (!env.background) agent.signInChatGPT();
+  });
+  ipc.handle("agent:chatgpt-cancel", () => agent.cancelChatGPT());
+  ipc.handle("agent:chatgpt-sign-out", async () => {
+    await agent.signOutChatGPT();
+    return agent.status();
+  });
   ipc.handle("agent:set-model", async (model) => {
     if (!current) throw new Error("No project is open.");
     const project = changed(projects.update(current.id, { model }));
@@ -1368,6 +1411,7 @@ async function main() {
         projects,
         preview,
         agent,
+        piAccounts,
         peek,
         settings,
         pageItems,

@@ -202,6 +202,11 @@ export class AgentSession implements AgentRunner {
     this.start();
   }
 
+  forget() {
+    this.close();
+    rmSync(this.sessionFile(), { force: true });
+  }
+
   /** The project's folder moved or its settings changed while closed. */
   update(project: ProjectInfo) {
     this.project = project;

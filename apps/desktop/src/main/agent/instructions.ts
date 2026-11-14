@@ -38,9 +38,65 @@ export const REPLY_STYLE_NOTES: Record<ReplyStyle, string> = {
     "When you have finished, explain to the maker how they could do it themselves: which file holds what, what you changed in it and why, in plain words they can learn from. Keep it to what this turn did.",
 };
 
-/** The instructions an agent session starts with: Upstart's, and how to write to the maker. */
-export function instructionsFor(style: ReplyStyle): string {
-  return `${UPSTART_INSTRUCTIONS}\n\n# Writing to the maker\n\n${REPLY_STYLE_NOTES[style]} This is only about your messages: the website is written the same way whatever the style.`;
+/** Which agent the instructions are for (ADR 0012): Claude, or a model of Upstart's own harness. */
+export type InstructionsFamily = "claude" | "openai" | "gemini";
+
+/** A skill as the harness's instructions list it: its name, what it covers, and its file. */
+export type SkillListing = { name: string; description: string; file: string };
+
+/**
+ * The instructions an agent session starts with: Upstart's, and how to write
+ * to the maker. A model of Upstart's own harness gets them with its tools'
+ * ways: no MultiEdit and no web search of the binary's; Gemini writes a long
+ * file in parts (Q273); skills are files it reads.
+ */
+export function instructionsFor(
+  style: ReplyStyle,
+  family: InstructionsFamily = "claude",
+  skills: SkillListing[] = [],
+): string {
+  const base = family === "claude" ? UPSTART_INSTRUCTIONS : harnessInstructions(family, skills);
+  return `${base}\n\n# Writing to the maker\n\n${REPLY_STYLE_NOTES[style]} This is only about your messages: the website is written the same way whatever the style.`;
+}
+
+/** Each change from Claude's instructions, the sentence it replaces first. */
+const HARNESS_CHANGES: Record<Exclude<InstructionsFamily, "claude">, [string, string][]> = {
+  openai: [
+    [
+      "Use Edit for later changes, one Edit per change; never MultiEdit.",
+      "Use Edit for later changes, one Edit per change.",
+    ],
+  ],
+  gemini: [
+    [
+      "- Write each new file with a single Write call, top to bottom in reading order. Use Edit for later changes, one Edit per change; never MultiEdit.",
+      "- Write each new file top to bottom in reading order: a short one with a single Write call, a long one in parts (see Writing long files). Use Edit for later changes, one Edit per change.",
+    ],
+  ],
+};
+
+const WEB_CLAUDE =
+  "- The web: WebSearch and WebFetch read it, to look at a page the maker points you to (their current site, their social page, a menu online), to check a fact you are unsure of, or to study what well-made sites do now.";
+const WEB_HARNESS =
+  "- The web: WebFetch reads a page, to look at one the maker points you to (their current site, their social page, a menu online) or to check a fact you are unsure of.";
+
+/** How many lines a part of a long file holds, for Gemini (spike 3: the page starts showing at about 7 s). */
+export const PART_LINES = 25;
+
+const LONG_FILES = `# Writing long files
+
+Write a file of more than ${PART_LINES} lines in several calls, in reading order: Write with its first ${PART_LINES} lines or so, then Append with each following ${PART_LINES} lines or so, until the file is complete. Make all these calls in the same response, one after another, without waiting for their results. Cut between two elements, never inside a tag or a Liquid tag. A short file, and every change to a file, stays one call.`;
+
+function harnessInstructions(family: Exclude<InstructionsFamily, "claude">, skills: SkillListing[]): string {
+  let text = UPSTART_INSTRUCTIONS;
+  for (const [from, to] of [...HARNESS_CHANGES[family], [WEB_CLAUDE, WEB_HARNESS] as [string, string]]) {
+    if (!text.includes(from)) throw new Error(`The instructions no longer say: ${from}`);
+    text = text.replace(from, to).replace("Search only when it helps the site", "Fetch only when it helps the site");
+  }
+  const listed = skills.length
+    ? `# Skills\n\nA skill is how to do one kind of work in Upstart, in a file. When the instructions or your work call for a skill, read its file with Read first, then the files it points to when you need them.\n\n${skills.map((s) => `- ${s.name}: ${s.description} (${s.file})`).join("\n")}`
+    : "";
+  return [text, family === "gemini" ? LONG_FILES : "", listed].filter(Boolean).join("\n\n");
 }
 
 export const UPSTART_INSTRUCTIONS = `You are the agent of Upstart, a desktop app in which a maker builds a website by talking to you. Your working directory is the project: a folder of plain files that Upstart serves and shows in a live preview next to the conversation.

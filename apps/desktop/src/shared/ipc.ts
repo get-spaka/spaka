@@ -207,8 +207,26 @@ export type GridCell = {
   clipTop?: number;
 };
 
-/** A model the maker can pick, with the effort levels it accepts. */
-export type ModelChoice = { id: string; name: string; efforts: Effort[] };
+/**
+ * The accounts an agent runs on (Q269, Q275): Claude through the official
+ * binary, and in Upstart's own harness ChatGPT Plus or Pro, an OpenAI key, a
+ * Gemini key.
+ */
+export const AGENT_ACCOUNTS = ["claude", "chatgpt", "openai", "gemini"] as const;
+export type AgentAccount = (typeof AGENT_ACCOUNTS)[number];
+/** The accounts of Upstart's own harness that the maker gives a key for. */
+export type KeyAccount = "openai" | "gemini";
+
+/** The account of a project's model: "gemini/gemini-4-hydrogen" is the Gemini key's; an id without one, Claude's. */
+export function accountOf(model: string): AgentAccount {
+  const prefix = model.includes("/") ? model.slice(0, model.indexOf("/")) : "";
+  return (AGENT_ACCOUNTS as readonly string[]).includes(prefix) && prefix !== "claude"
+    ? (prefix as AgentAccount)
+    : "claude";
+}
+
+/** A model the maker can pick, with the effort levels it accepts and the account it runs on. */
+export type ModelChoice = { id: string; name: string; efforts: Effort[]; account: AgentAccount };
 
 export type SignInMethod = "claudeai" | "console";
 
@@ -221,8 +239,29 @@ export type AgentStatus = {
   /** While signing in: the page to open if the browser did not open by itself. */
   signInUrl?: string;
   signInFailed?: boolean;
+  /** The accounts of Upstart's own harness that are connected. */
+  accounts: { chatgpt: boolean; openai: boolean; gemini: boolean };
+  /** Sign in with ChatGPT under way, or how it failed. */
+  chatgpt: { signingIn: boolean; failed?: string };
+  /** The models of the connected accounts. */
   models: ModelChoice[];
 };
+
+/** Whether a model's account is connected now; Claude's while its state is unknown counts as connected. */
+export function accountReady(status: AgentStatus, model: string): boolean {
+  const account = accountOf(model);
+  return account === "claude" ? status.auth === "signed-in" || status.auth === "unknown" : status.accounts[account];
+}
+
+/** Whether any account is connected, or may be: the first launch's panel shows when none is (Q275). */
+export function anyAccount(status: AgentStatus): boolean {
+  return status.auth === "signed-in" || status.auth === "unknown" || Object.values(status.accounts).some(Boolean);
+}
+
+/** The model a new website gets: the one asked for if its account is connected, or the first connected account's default. */
+export function usableModel(status: AgentStatus, model: string): string {
+  return accountReady(status, model) ? model : (status.models[0]?.id ?? model);
+}
 
 /** One version of the project in its history, most recent last. */
 export type HistoryEntry = {
@@ -535,6 +574,12 @@ export type Invokes = {
   "agent:set-api-key": (key: string | null) => AgentStatus;
   "agent:set-model": (model: string) => ProjectInfo;
   "agent:set-effort": (effort: Effort) => ProjectInfo;
+  /** Keeps an OpenAI or Gemini key for Upstart's own harness, encrypted by the system; null removes it. */
+  "agent:set-key": (account: KeyAccount, key: string | null) => AgentStatus;
+  /** Sign in with ChatGPT: opens the maker's browser; the status says when it is done. */
+  "agent:chatgpt-sign-in": () => void;
+  "agent:chatgpt-cancel": () => void;
+  "agent:chatgpt-sign-out": () => AgentStatus;
   /** Asks the maker for the folder to export into. Null when they cancel. */
   "export:choose-folder": () => string | null;
   /** Where the open project was last exported on this machine. */
@@ -736,6 +781,10 @@ export const channels = {
     "agent:set-api-key",
     "agent:set-model",
     "agent:set-effort",
+    "agent:set-key",
+    "agent:chatgpt-sign-in",
+    "agent:chatgpt-cancel",
+    "agent:chatgpt-sign-out",
     "export:choose-folder",
     "export:last",
     "export:choices",

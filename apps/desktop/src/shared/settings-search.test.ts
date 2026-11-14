@@ -9,7 +9,8 @@ test("nothing typed finds no filter at all", () => {
 
 test("a setting is found by the start of its words, in English or French, accents aside", () => {
   expect(ids("mod")).toEqual(["agent/model"]);
-  expect(ids("cle")).toEqual(["agent/api-key"]);
+  expect(ids("cle")).toEqual(["agent/api-key", "agent/openai-key", "agent/gemini-key"]);
+  expect(ids("gemini")).toEqual(["agent/gemini-key", "agent/model"]);
   expect(ids("statist")).toEqual(["privacy/statistics"]);
   expect(ids("finder")).toEqual(["general/folder"]);
   expect(ids("font")).toEqual(["general/text-size"]);
@@ -24,9 +25,13 @@ test("a category's name finds all its settings; every word typed must match", ()
     "agent/reply-style",
     "agent/account",
     "agent/api-key",
+    "agent/chatgpt",
+    "agent/openai-key",
+    "agent/gemini-key",
     "agent/model",
     "agent/effort",
   ]);
+  expect(ids("accounts")).toEqual(ids("agent")?.filter((id) => id.startsWith("agent/")));
   expect(ids("agent opus")).toEqual(["agent/model"]);
   expect(ids("zzz")).toEqual([]);
 });

@@ -9,18 +9,17 @@ import { ArrowLeft, Check, Eye, PanelLeft, Upload, X } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   type AgentStatus,
-  type Effort,
+  accountReady,
   TEMPLATE_CATEGORIES,
   type TemplateCategory,
   type TemplateImport,
   type TemplateSummary,
   type TemplateViewState,
 } from "../../shared/ipc";
-import { useAppSettings } from "../hooks/useMain";
 import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
-import { MessageBox } from "./Conversation";
+import { MessageBox, modelName, useNewSettings } from "./Conversation";
 import { SignInPanel } from "./SignInPanel";
 import { Button } from "./ui/button";
 
@@ -52,10 +51,7 @@ export function StartPanel({
   }, []);
 
   const [draft, setDraft] = useState("");
-  const defaults = useAppSettings();
-  const [settings, setSettings] = useState<{ model: string; effort: Effort }>();
-  const newSettings = settings ?? { model: defaults.newModel, effort: defaults.newEffort };
-  const signedOut = status.auth === "signed-out" || status.auth === "signing-in";
+  const [newSettings, setSettings] = useNewSettings(status);
   const [sending, setSending] = useState(false);
   // Why the website could not start from the chosen template (Q247): it could not be downloaded.
   const [sendProblem, setSendProblem] = useState<string>();
@@ -181,7 +177,9 @@ export function StartPanel({
         </div>
       )}
 
-      {signedOut && <SignInPanel status={status} />}
+      {!accountReady(status, newSettings.model) && (
+        <SignInPanel status={status} modelName={modelName(status, newSettings.model)} />
+      )}
       {sendProblem && (
         <div
           data-testid="start-problem"

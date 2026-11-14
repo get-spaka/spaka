@@ -1,6 +1,6 @@
 // The model and effort rows: for new websites in the settings window, for one
 // website in its own settings (Q117, Q118).
-import type { Effort, ModelChoice } from "../../shared/ipc";
+import { accountOf, type Effort, type ModelChoice } from "../../shared/ipc";
 import { t } from "../lib/strings";
 import { Row, Segmented, selectClass } from "./ui";
 
@@ -10,6 +10,22 @@ const EFFORTS: Effort[] = ["low", "medium", "high"];
 export function effortsOf(models: ModelChoice[], model: string): Effort[] {
   const choice = models.find((m) => m.id === model);
   return choice?.efforts.length ? choice.efforts : EFFORTS;
+}
+
+/** The connected accounts' models, grouped by account (Q275). */
+export function ModelOptions({ models }: { models: ModelChoice[] }) {
+  const accounts = [...new Set(models.map((m) => m.account))];
+  return accounts.map((account) => (
+    <optgroup key={account} label={t.accounts.names[account]}>
+      {models
+        .filter((m) => m.account === account)
+        .map((m) => (
+          <option key={m.id} value={m.id}>
+            {m.name}
+          </option>
+        ))}
+    </optgroup>
+  ));
 }
 
 export function ModelRows({
@@ -44,12 +60,8 @@ export function ModelRows({
             });
           }}
         >
-          {!models.some((m) => m.id === model) && <option value={model}>{model}</option>}
-          {models.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.name}
-            </option>
-          ))}
+          {!models.some((m) => m.id === model) && <option value={model}>{t.accounts.names[accountOf(model)]}</option>}
+          <ModelOptions models={models} />
         </select>
       </Row>
       <Row id="effort" label={t.settings.agent.effort}>

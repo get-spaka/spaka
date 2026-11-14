@@ -1,53 +1,96 @@
 import { KeyRound, Loader2 } from "lucide-react";
 import { useState } from "react";
-import type { AgentStatus } from "../../shared/ipc";
+import { type AgentStatus, anyAccount } from "../../shared/ipc";
 import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { Button } from "./ui/button";
 
+type KeyFor = "claude" | "openai" | "gemini";
+
+/** Which account a pasted key is for, from how it starts; undefined when it does not say. */
+export function keyAccount(key: string): KeyFor | undefined {
+  const k = key.trim();
+  if (k.startsWith("sk-ant-")) return "claude";
+  if (k.startsWith("AIza")) return "gemini";
+  if (k.startsWith("sk-")) return "openai";
+  return undefined;
+}
+
 /**
- * Shown while the agent is not signed in (ADR 0002): the official binary's own
- * sign-in, which opens the browser, or an API key. Upstart never shows a
- * Claude login form of its own.
+ * Shown while the model in use has no connected account (ADR 0002, Q275): at
+ * first launch it offers Claude, ChatGPT or an API key. Claude's sign-in is
+ * the official binary's own, ChatGPT's opens the browser; Upstart never shows
+ * a login form of its own.
  */
-export function SignInPanel({ status }: { status: AgentStatus }) {
+export function SignInPanel({ status, modelName }: { status: AgentStatus; modelName?: string }) {
   const [keyOpen, setKeyOpen] = useState(false);
   const [key, setKey] = useState("");
+  // The maker's choice, or what the key's start says.
+  const [chosen, setChosen] = useState<KeyFor>();
+  const keyFor = chosen ?? keyAccount(key) ?? "claude";
+  const waiting = status.auth === "signing-in" || status.chatgpt.signingIn;
+
+  const save = () => {
+    if (!key.trim()) return;
+    const done = () => {
+      setKey("");
+      setChosen(undefined);
+      setKeyOpen(false);
+    };
+    if (keyFor === "claude") void upstart.invoke("agent:set-api-key", key).then(done);
+    else void upstart.invoke("agent:set-key", keyFor, key).then(done);
+  };
 
   return (
     <div data-testid="sign-in" className="mx-3 space-y-3 rounded-xl border bg-muted/40 p-4 text-sm">
       <div className="space-y-1">
         <h2 className="font-semibold">{t.signIn.title}</h2>
-        <p className="text-muted-foreground">{t.signIn.text}</p>
+        <p className="text-muted-foreground">
+          {anyAccount(status) && modelName ? t.signIn.otherModel(modelName) : t.signIn.text}
+        </p>
       </div>
-      {status.auth === "signing-in" ? (
+      {waiting ? (
         <div className="space-y-2">
           <p className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="size-3.5 animate-spin" />
             {t.signIn.waiting}
           </p>
           <div className="flex gap-2">
-            {status.signInUrl && (
+            {status.auth === "signing-in" && status.signInUrl && (
               <Button size="sm" variant="outline" onClick={() => void upstart.invoke("agent:open-sign-in-page")}>
                 {t.signIn.openLink}
               </Button>
             )}
-            <Button size="sm" variant="ghost" onClick={() => void upstart.invoke("agent:cancel-sign-in")}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() =>
+                void upstart.invoke(status.chatgpt.signingIn ? "agent:chatgpt-cancel" : "agent:cancel-sign-in")
+              }
+            >
               {t.signIn.cancel}
             </Button>
           </div>
         </div>
       ) : (
         <div className="space-y-2">
-          {status.signInFailed && <p className="text-destructive">{t.signIn.failed}</p>}
+          {(status.signInFailed || status.chatgpt.failed) && <p className="text-destructive">{t.signIn.failed}</p>}
           <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={() => void upstart.invoke("agent:sign-in", "claudeai")}>
               {t.signIn.subscription}
             </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              data-testid="sign-in-chatgpt"
+              onClick={() => void upstart.invoke("agent:chatgpt-sign-in")}
+            >
+              {t.signIn.chatgpt}
+            </Button>
             <Button size="sm" variant="outline" onClick={() => void upstart.invoke("agent:sign-in", "console")}>
               {t.signIn.console}
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setKeyOpen((open) => !open)}>
+            <Button size="sm" variant="ghost" data-testid="sign-in-key" onClick={() => setKeyOpen((open) => !open)}>
               <KeyRound />
               {t.signIn.apiKey}
             </Button>
@@ -57,18 +100,31 @@ export function SignInPanel({ status }: { status: AgentStatus }) {
               className="flex gap-2"
               onSubmit={(event) => {
                 event.preventDefault();
-                if (!key.trim()) return;
-                void upstart.invoke("agent:set-api-key", key).then(() => setKey(""));
+                save();
               }}
             >
+              <select
+                aria-label={t.signIn.keyFor}
+                data-testid="sign-in-key-account"
+                value={keyFor}
+                onChange={(event) => setChosen(event.target.value as KeyFor)}
+                className="h-8 rounded-md border bg-background px-1.5 text-xs outline-none focus:ring-[3px] focus:ring-ring/30"
+              >
+                {(["claude", "openai", "gemini"] as const).map((account) => (
+                  <option key={account} value={account}>
+                    {t.accounts.names[account]}
+                  </option>
+                ))}
+              </select>
               <input
                 type="password"
                 autoComplete="off"
                 spellCheck={false}
                 value={key}
+                data-testid="sign-in-key-input"
                 onChange={(event) => setKey(event.target.value)}
-                placeholder={t.signIn.apiKeyPlaceholder}
-                className="h-8 flex-1 rounded-md border bg-background px-2 font-mono text-xs outline-none focus:ring-[3px] focus:ring-ring/30"
+                placeholder={t.signIn.keyPlaceholders[keyFor]}
+                className="h-8 min-w-0 flex-1 rounded-md border bg-background px-2 font-mono text-xs outline-none focus:ring-[3px] focus:ring-ring/30"
               />
               <Button size="sm" type="submit" disabled={!key.trim()}>
                 {t.signIn.save}

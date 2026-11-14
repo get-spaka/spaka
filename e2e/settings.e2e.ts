@@ -61,7 +61,7 @@ describe("the settings panel", () => {
     // No window of its own (Q123).
     expect(launched.app.windows().filter((p) => p.url().includes("#settings"))).toHaveLength(0);
     expect(await main((u) => u.preview.view.getVisible())).toBe(false);
-    expect(await sidebar()).toEqual(["General", "Agent", "Skills", "Connectors", "Privacy", "About Upstart"]);
+    expect(await sidebar()).toEqual(["General", "Accounts", "Skills", "Connectors", "Privacy", "About Upstart"]);
     expect(await w.getByTestId("settings-title").textContent()).toBe("General");
     expect(await w.getByTestId("projects-dir").textContent()).toBe(launched.projectsDir);
     const box = await w.getByTestId("settings").boundingBox();
@@ -84,7 +84,7 @@ describe("the settings panel", () => {
     expect(await w.getByTestId("settings-title").textContent()).toBe("Privacy");
     expect(await w.locator('[data-setting="statistics"]').getAttribute("data-found")).toBe("");
     await search.fill("clé");
-    await until(async () => (await w.getByTestId("settings-title").textContent()) === "Agent");
+    await until(async () => (await w.getByTestId("settings-title").textContent()) === "Accounts");
     expect(await w.locator('[data-setting="api-key"]').getAttribute("data-found")).toBe("");
     expect(await w.locator('[data-setting="model"]').getAttribute("data-found")).toBeNull();
     await search.fill("font");

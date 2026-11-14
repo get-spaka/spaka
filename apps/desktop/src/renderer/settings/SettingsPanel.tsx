@@ -1,12 +1,25 @@
 // The settings (Q116–Q119), after macOS System Settings, in a panel over
 // Upstart's window (Q123): a sidebar with a close button, a search field, the
-// Claude account and a coloured icon per category; on the right, the
+// connected accounts (Q275) and a colored icon per category; on the right, the
 // category's page in grouped rows. Only what applies to every website is here;
 // a website's own settings open from the website (Q118). Escape, ⌘, or a click
 // outside closes it.
-import { BookOpen, Bot, Info, type LucideIcon, Plug, Search, Shield, SlidersHorizontal, X } from "lucide-react";
+import {
+  BookOpen,
+  Info,
+  Loader2,
+  type LucideIcon,
+  Plug,
+  Search,
+  Shield,
+  SlidersHorizontal,
+  UserRound,
+  X,
+} from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  type AgentStatus,
+  type KeyAccount,
   OUTPUT_STYLES,
   type OutputStyle,
   REPLY_STYLES,
@@ -15,6 +28,7 @@ import {
   type SettingsPage,
   TEXT_SIZES,
   type TextSize,
+  usableModel,
 } from "../../shared/ipc";
 import { searchSettings } from "../../shared/settings-search";
 import { useAgentStatus, useAppInfo, useAppSettings, useConnectors, useProjects, useSkills } from "../hooks/useMain";
@@ -27,7 +41,7 @@ import { Group, Highlighted, inputClass, Push, Row, Segmented, Switch } from "./
 
 const ICONS: Record<SettingsPage, { icon: LucideIcon; color: string }> = {
   general: { icon: SlidersHorizontal, color: "bg-[#8e8e93]" },
-  agent: { icon: Bot, color: "bg-[#d97757]" },
+  agent: { icon: UserRound, color: "bg-[#d97757]" },
   skills: { icon: BookOpen, color: "bg-[#8b5cf6]" },
   connectors: { icon: Plug, color: "bg-[#2f7cf6]" },
   privacy: { icon: Shield, color: "bg-[#1f9d55]" },
@@ -121,12 +135,12 @@ export function SettingsPanel({
           >
             <span
               aria-hidden="true"
-              className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#d97757] text-sm font-semibold text-white"
+              className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#d97757] text-white"
             >
-              C
+              <UserRound className="size-4" strokeWidth={2.25} />
             </span>
             <span className="flex min-w-0 flex-col leading-tight">
-              <span className="font-semibold">{t.settings.account.name}</span>
+              <span className="font-semibold">{t.settings.account.title}</span>
               <span className="truncate text-[11px] text-neutral-600">{accountLine(status)}</span>
             </span>
           </button>
@@ -189,11 +203,14 @@ export function SettingsPanel({
   );
 }
 
-function accountLine(status: ReturnType<typeof useAgentStatus>): string {
+/** The connected accounts, under the sidebar's account button. */
+function accountLine(status: AgentStatus): string {
   if (status.auth === "unknown") return t.settings.account.checking;
-  if (status.auth === "signing-in") return t.settings.account.signingIn;
-  if (status.auth === "signed-out") return t.settings.account.signedOut;
-  return t.settings.account.method(status.method);
+  const names = [
+    ...(status.auth === "signed-in" ? [t.accounts.names.claude] : []),
+    ...(["chatgpt", "openai", "gemini"] as const).filter((a) => status.accounts[a]).map((a) => t.accounts.names[a]),
+  ];
+  return names.length ? t.settings.account.connected(names) : t.settings.account.none;
 }
 
 /** A category's picture and a sentence, at the top of its page. */
@@ -269,88 +286,93 @@ function GeneralPage() {
 function AgentPage() {
   const status = useAgentStatus();
   const settings = useAppSettings();
-  const [keyOpen, setKeyOpen] = useState(false);
-  const [key, setKey] = useState("");
+  const a = t.settings.agent;
   const signedIn = status.auth === "signed-in";
   const how = t.settings.account.method(status.method);
   return (
     <>
-      <Intro page="agent" text={t.settings.agent.intro} />
-      <Group title={t.settings.agent.account}>
+      <Intro page="agent" text={a.intro} />
+      <Group title={a.claude}>
         <Row
           id="account"
-          label={
-            signedIn
-              ? t.settings.agent.signedInAs(how)
-              : status.auth === "signed-out"
-                ? t.settings.agent.signedOut
-                : accountLine(status)
-          }
+          label={signedIn ? a.signedInAs(how) : status.auth === "signed-out" ? a.signedOut : accountLine(status)}
           detail={
             signedIn
-              ? t.settings.agent.passwordNote
+              ? a.passwordNote
               : status.auth === "signed-out"
-                ? t.settings.agent.signedOutHelp
-                : undefined
+                ? a.signedOutHelp
+                : status.auth === "signing-in"
+                  ? a.waiting
+                  : undefined
           }
-        />
-        <Row
-          id="api-key"
-          label={t.settings.agent.apiKey}
-          detail={status.hasApiKey ? t.settings.agent.apiKeyKept : t.settings.agent.apiKeyNone}
         >
-          {status.hasApiKey ? (
-            <Push testid="api-key-remove" onClick={() => void upstart.invoke("agent:set-api-key", null)}>
-              {t.settings.agent.removeKey}
+          {status.auth === "signed-out" && (
+            <Push testid="claude-sign-in" onClick={() => void upstart.invoke("agent:sign-in", "claudeai")}>
+              {a.signIn}
             </Push>
-          ) : (
-            !keyOpen && (
-              <Push testid="api-key-use" onClick={() => setKeyOpen(true)}>
-                {t.settings.agent.useKey}
-              </Push>
-            )
+          )}
+          {status.auth === "signing-in" && (
+            <Push onClick={() => void upstart.invoke("agent:cancel-sign-in")}>{a.cancel}</Push>
           )}
         </Row>
-        {keyOpen && !status.hasApiKey && (
-          <form
-            className="flex items-center gap-2 px-3 py-2"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (!key.trim()) return;
-              void upstart.invoke("agent:set-api-key", key).then(() => {
-                setKey("");
-                setKeyOpen(false);
-              });
-            }}
-          >
-            <input
-              type="password"
-              value={key}
-              onChange={(event) => setKey(event.target.value)}
-              placeholder={t.settings.agent.keyPlaceholder}
-              aria-label={t.settings.agent.apiKey}
-              className={cn(inputClass, "flex-1")}
-              data-testid="api-key-input"
-            />
-            <Push
-              onClick={() => {
-                setKey("");
-                setKeyOpen(false);
-              }}
-            >
-              {t.settings.agent.cancel}
+        <KeyRow
+          id="api-key"
+          label={a.apiKey}
+          kept={status.hasApiKey}
+          keptText={a.apiKeyKept}
+          noneText={a.apiKeyNone}
+          onSave={(key) => upstart.invoke("agent:set-api-key", key)}
+        />
+      </Group>
+      <Group title={a.chatgpt}>
+        <Row
+          id="chatgpt"
+          label={a.chatgpt}
+          detail={
+            status.accounts.chatgpt
+              ? a.chatgptOn
+              : status.chatgpt.signingIn
+                ? a.waiting
+                : status.chatgpt.failed
+                  ? a.chatgptFailed
+                  : a.chatgptOff
+          }
+        >
+          {status.accounts.chatgpt ? (
+            <Push testid="chatgpt-sign-out" onClick={() => void upstart.invoke("agent:chatgpt-sign-out")}>
+              {a.signOut}
             </Push>
-            <Push type="submit" primary disabled={!key.trim()}>
-              {t.settings.agent.saveKey}
+          ) : status.chatgpt.signingIn ? (
+            <span className="flex items-center gap-2">
+              <Loader2 className="size-3.5 animate-spin text-neutral-500" />
+              <Push onClick={() => void upstart.invoke("agent:chatgpt-cancel")}>{a.cancel}</Push>
+            </span>
+          ) : (
+            <Push testid="chatgpt-sign-in" onClick={() => void upstart.invoke("agent:chatgpt-sign-in")}>
+              {a.signIn}
             </Push>
-          </form>
-        )}
+          )}
+        </Row>
+      </Group>
+      <Group title={a.keys}>
+        {(["openai", "gemini"] as const).map((account) => (
+          <KeyRow
+            key={account}
+            id={`${account}-key`}
+            label={a[`${account}Key`]}
+            kept={status.accounts[account]}
+            keptText={a[`${account}Kept`]}
+            noneText={a[`${account}None`]}
+            onSave={(key) => upstart.invoke("agent:set-key", account as KeyAccount, key)}
+          />
+        ))}
       </Group>
       <Group title={t.settings.agent.forNew} caption={t.settings.agent.forNewHelp} testid="settings-new-websites">
         <ModelRows
           idPrefix="new"
           models={status.models}
-          model={settings.newModel}
+          // What a new website gets: the settings' model, or a connected account's (Q275).
+          model={usableModel(status, settings.newModel)}
           effort={settings.newEffort}
           onChange={(next) =>
             void upstart.invoke("settings:set", {
@@ -375,6 +397,73 @@ function AgentPage() {
           />
         </Row>
       </Group>
+    </>
+  );
+}
+
+/** An API key kept for an account: its state, and a field to paste one or a button to remove it. */
+function KeyRow({
+  id,
+  label,
+  kept,
+  keptText,
+  noneText,
+  onSave,
+}: {
+  id: string;
+  label: string;
+  kept: boolean;
+  keptText: string;
+  noneText: string;
+  onSave: (key: string | null) => Promise<unknown>;
+}) {
+  const a = t.settings.agent;
+  const [open, setOpen] = useState(false);
+  const [key, setKey] = useState("");
+  const close = () => {
+    setKey("");
+    setOpen(false);
+  };
+  return (
+    <>
+      <Row id={id} label={label} detail={kept ? keptText : noneText}>
+        {kept ? (
+          <Push testid={`${id}-remove`} onClick={() => void onSave(null)}>
+            {a.removeKey}
+          </Push>
+        ) : (
+          !open && (
+            <Push testid={`${id}-use`} onClick={() => setOpen(true)}>
+              {a.useKey}
+            </Push>
+          )
+        )}
+      </Row>
+      {open && !kept && (
+        <form
+          className="flex items-center gap-2 px-3 py-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (key.trim()) void onSave(key).then(close);
+          }}
+        >
+          <input
+            type="password"
+            autoComplete="off"
+            spellCheck={false}
+            value={key}
+            onChange={(event) => setKey(event.target.value)}
+            placeholder={a.keyPlaceholder}
+            aria-label={label}
+            className={cn(inputClass, "flex-1")}
+            data-testid={`${id}-input`}
+          />
+          <Push onClick={close}>{a.cancel}</Push>
+          <Push type="submit" primary disabled={!key.trim()}>
+            {a.saveKey}
+          </Push>
+        </form>
+      )}
     </>
   );
 }

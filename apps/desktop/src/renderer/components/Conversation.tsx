@@ -9,11 +9,21 @@ import {
   useState,
 } from "react";
 import { type Activity, type AgentPart, type ConversationItem, isWorking } from "../../shared/conversation";
-import type { AgentStatus, Effort, OutputStyle, PreviewState, ProjectInfo } from "../../shared/ipc";
+import {
+  type AgentStatus,
+  accountOf,
+  accountReady,
+  type Effort,
+  type OutputStyle,
+  type PreviewState,
+  type ProjectInfo,
+  usableModel,
+} from "../../shared/ipc";
 import { useAppSettings } from "../hooks/useMain";
 import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
+import { ModelOptions } from "../settings/model";
 import { AgentText } from "./AgentText";
 import { BlocksTab } from "./BlocksTab";
 import { ContentTab } from "./ContentTab";
@@ -41,12 +51,9 @@ export function Conversation({
   const [tab, setTab] = useState<"conversation" | "blocks" | "theme" | "content">("conversation");
   const shownTab = project ? tab : "conversation";
   // Before the first message there is no project yet: the choice waits for it.
-  // It starts from the settings' model and effort for new websites (Q117).
-  const defaults = useAppSettings();
-  const [chosen, setNewSettings] = useState<{ model: string; effort: Effort }>();
-  const newSettings = chosen ?? { model: defaults.newModel, effort: defaults.newEffort };
+  const [newSettings, setNewSettings] = useNewSettings(status);
   const working = isWorking(items);
-  const signedOut = status.auth === "signed-out" || status.auth === "signing-in";
+  const model = project?.model ?? newSettings.model;
   const input = useRef<HTMLTextAreaElement>(null);
   // "Ask the agent about it" (Q136): the page's address starts the message, the field takes the keyboard.
   const [prefilled, setPrefilled] = useState(0);
@@ -161,7 +168,7 @@ export function Conversation({
             <Messages items={items} />
           )}
 
-          {signedOut && <SignInPanel status={status} />}
+          {!accountReady(status, model) && <SignInPanel status={status} modelName={modelName(status, model)} />}
 
           <MessageBox
             project={project}
@@ -179,6 +186,22 @@ export function Conversation({
       )}
     </section>
   );
+}
+
+/**
+ * The model and effort for a new website: chosen before its first message, or
+ * the settings' (Q117), on an account that is connected (Q275).
+ */
+export function useNewSettings(status: AgentStatus) {
+  const defaults = useAppSettings();
+  const [chosen, setChosen] = useState<{ model: string; effort: Effort }>();
+  const asked = chosen ?? { model: defaults.newModel, effort: defaults.newEffort };
+  return [{ ...asked, model: usableModel(status, asked.model) }, setChosen] as const;
+}
+
+/** A model as the maker knows it, or its account's name when its account is not connected. */
+export function modelName(status: AgentStatus, model: string): string {
+  return status.models.find((m) => m.id === model)?.name ?? t.accounts.names[accountOf(model)];
 }
 
 /**
@@ -213,7 +236,7 @@ export function MessageBox({
   /** Shown above the field, inside its frame: the template chosen (Q249). */
   children?: ReactNode;
 }) {
-  const signedOut = status.auth === "signed-out" || status.auth === "signing-in";
+  const blocked = !accountReady(status, project?.model ?? newSettings.model);
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
@@ -259,7 +282,7 @@ export function MessageBox({
                 type="submit"
                 size="icon-sm"
                 data-testid="send"
-                disabled={!draft.trim() || signedOut}
+                disabled={!draft.trim() || blocked}
                 title={t.conversation.send}
               >
                 <ArrowUp />
@@ -439,6 +462,8 @@ function ActivityLine({ activity, detailed }: { activity: Activity; detailed?: b
   );
 }
 
+const CONNECT = "connect-another-account";
+
 /** The model and effort selectors (decisions: kept per project, changed at any moment). */
 function ModelControls({
   project,
@@ -477,14 +502,14 @@ function ModelControls({
         className={select}
         disabled={!models.length}
         value={model}
-        onChange={(event) => change({ model: event.target.value })}
+        onChange={(event) => {
+          if (event.target.value === CONNECT) return void upstart.invoke("settings:open", "agent");
+          change({ model: event.target.value });
+        }}
       >
-        {!choice && <option value={model}>{model}</option>}
-        {models.map((m) => (
-          <option key={m.id} value={m.id}>
-            {m.name}
-          </option>
-        ))}
+        {!choice && <option value={model}>{modelName(status, model)}</option>}
+        <ModelOptions models={models} />
+        <option value={CONNECT}>{t.accounts.connectAnother}</option>
       </select>
       <select
         aria-label={t.conversation.effort}

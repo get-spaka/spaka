@@ -7,7 +7,7 @@ import { isAbsolute, relative } from "node:path";
 import type { ConversationEvent } from "../../shared/conversation";
 import { en } from "../../shared/strings/en";
 import type { AgentEvent } from "./stream";
-import { LOOK_TOOL } from "./upstart-tools";
+import { FIND_BLOCKS_TOOL, FIND_IMAGES_TOOL, LOOK_TOOL, USE_BLOCK_TOOL, USE_IMAGE_TOOL } from "./upstart-tools";
 
 type Known = { name: string; label: string; detail?: string };
 
@@ -88,6 +88,14 @@ export function activityLabel(name: string, input: Record<string, unknown>, proj
     }
     case LOOK_TOOL:
       return en.activity.look;
+    case FIND_BLOCKS_TOOL:
+      return en.activity.findBlocks;
+    case USE_BLOCK_TOOL:
+      return en.activity.placeBlocks(typeof input.page === "string" ? shortPath(input.page, projectDir) : undefined);
+    case FIND_IMAGES_TOOL:
+      return en.activity.findImages;
+    case USE_IMAGE_TOOL:
+      return en.activity.addImage(typeof input.name === "string" ? input.name : undefined);
     case "Skill":
       // "project:menu-format" is shown as "menu-format".
       return en.activity.skill(typeof input.skill === "string" ? input.skill.replace(/^[\w-]+:/, "") : undefined);
@@ -115,7 +123,14 @@ export function activityDetail(name: string, input: Record<string, unknown>): st
     case "Read":
     case "Skill":
     case LOOK_TOOL:
+    case USE_BLOCK_TOOL:
+    case USE_IMAGE_TOOL:
       return undefined;
+    case FIND_BLOCKS_TOOL: {
+      const sections = Array.isArray(input.sections) ? input.sections : [];
+      const asked = sections.flatMap((s) => (typeof s?.query === "string" ? [s.query] : []));
+      return asked.length ? clip(asked.join("; "), 400) : undefined;
+    }
     default: {
       // A connector's tool: what it was asked.
       const shown = Object.keys(input).length ? JSON.stringify(input) : undefined;

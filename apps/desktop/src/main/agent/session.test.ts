@@ -259,6 +259,11 @@ test("activity lines", () => {
   expect(activityLabel("Bash", { command: "ls -la\necho" }, "/p")).toBe("Running ls -la");
   expect(activityLabel("Skill", { skill: "project:menu-format" }, "/p")).toBe("Following the skill menu-format");
   expect(activityLabel("Grep", {}, "/p")).toBe("Searching the project");
+  expect(activityLabel("mcp__upstart__find_blocks", { sections: [] }, "/p")).toBe("Looking for blocks in the gallery");
+  expect(activityLabel("mcp__upstart__use_block", { page: "pages/index.liquid" }, "/p")).toBe(
+    "Placing blocks on pages/index.liquid",
+  );
+  expect(activityLabel("mcp__upstart__use_image", { name: "bouquet" }, "/p")).toBe("Adding the image bouquet");
 });
 
 test("the detailed output style's details: what was run or searched", () => {
@@ -267,6 +272,11 @@ test("the detailed output style's details: what was run or searched", () => {
   expect(activityDetail("Glob", { pattern: "pages/**" })).toBe("pages/**");
   expect(activityDetail("Write", { file_path: "/p/a.liquid", content: "x" })).toBeUndefined();
   expect(activityDetail("mcp__notes__search", { query: "menu" })).toBe('{"query":"menu"}');
+  expect(
+    activityDetail("mcp__upstart__find_blocks", {
+      sections: [{ query: "a hero" }, { kind: "faq", query: "questions" }],
+    }),
+  ).toBe("a hero; questions");
   expect(activityDetail("Bash", { command: "x".repeat(500) })?.length).toBe(400);
 });
 
@@ -316,8 +326,8 @@ test("models, project names, sign-in output", () => {
       { value: "sonnet", resolvedModel: "claude-sonnet-5-5", displayName: "Sonnet", description: "" },
     ]),
   ).toEqual([
-    { id: "claude-opus-5-5", name: "Opus", efforts: ["low", "max"] },
-    { id: "claude-sonnet-5-5", name: "Sonnet", efforts: [] },
+    { id: "claude-opus-5-5", name: "Opus", efforts: ["low", "max"], account: "claude" },
+    { id: "claude-sonnet-5-5", name: "Sonnet", efforts: [], account: "claude" },
   ]);
   expect(projectNameFrom("a bakery in Lyon. With a menu page")).toBe("A bakery in Lyon");
   expect(projectNameFrom("   ")).toBe("Untitled website");
