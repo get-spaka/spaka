@@ -13,7 +13,7 @@ import type { AssembledSkills } from "../skills/skills";
 import { Activities } from "./activity";
 import { confinement } from "./confinement";
 import { UPSTART_INSTRUCTIONS } from "./instructions";
-import { ASK_TOOL, claudeAnswer, NOT_ANSWERED, readQuestions, Waits } from "./questions";
+import { ASK_TOOL, BAD_FORM, claudeAnswer, NOT_ANSWERED, readQuestions, Waits } from "./questions";
 import type { AgentRunner, PlanDecision } from "./runner";
 import { type AgentEvent, StreamReader } from "./stream";
 
@@ -202,11 +202,7 @@ export class AgentSession implements AgentRunner {
   private async permission(name: string, input: Record<string, unknown>, signal: AbortSignal) {
     if (name !== ASK_TOOL || !this.working) return { behavior: "deny" as const, message: DENY_MESSAGE };
     const questions = readQuestions(input);
-    if (!questions)
-      return {
-        behavior: "deny" as const,
-        message: "These questions do not have AskUserQuestion's form: 1 to 4 questions, each with 2 to 4 choices.",
-      };
+    if (!questions) return { behavior: "deny" as const, message: BAD_FORM };
     const id = newId();
     this.handlers.onConversation({ type: "question", card: { id, questions, state: "waiting" } });
     const answer = await this.waits.wait(id, signal);

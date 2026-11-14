@@ -369,3 +369,121 @@ test("a conversation recorded once plays back: the replies streamed again, their
   expect(piReplayed[0]?.last).toBe("Un site pour un fleuriste.");
   played.s.close();
 });
+
+const asked = {
+  questions: [
+    {
+      question: "Quelle ambiance pour la boutique ?",
+      header: "Ambiance",
+      options: [
+        { label: "Douce (Recommended)", description: "Crème et vert sauge" },
+        { label: "Vive", description: "Rose et orange" },
+      ],
+    },
+  ],
+};
+const askReply = (input: unknown = asked) =>
+  fauxAssistantMessage([fauxToolCall("AskUserQuestion", input)], { stopReason: "toolUse" });
+/** A reply that keeps what the model was given, then ends the turn. */
+const seen: { messages: { role: string; content?: unknown; toolName?: string; isError?: boolean }[] }[] = [];
+const keepContext = (text: string) => (context: { messages: unknown[] }) => {
+  seen.push({ messages: context.messages as never });
+  return fauxAssistantMessage([fauxText(text)]);
+};
+const toolResults = (i: number) =>
+  seen[i]!.messages.filter((m) => m.role === "toolResult").map((m) => JSON.stringify(m.content));
+
+const questionCard = (items: ConversationItem[]) => {
+  const last = items.at(-1);
+  const part = last?.kind === "agent" ? last.parts.find((p) => p.kind === "question") : undefined;
+  return part?.kind === "question" ? part.card : undefined;
+};
+const until = async (ok: () => boolean) => {
+  for (let i = 0; i < 200 && !ok(); i++) await new Promise((r) => setTimeout(r, 5));
+};
+
+test("a question waits for the maker; the answer and what was changed meanwhile reach the agent in Claude's words", async () => {
+  seen.length = 0;
+  const { f, models } = faux();
+  f.setResponses([askReply(), keepContext("Douce, c'est noté.")]);
+  const { s, turn, items, events } = session(models);
+  const ended = turn("Une fleuriste à Nantes");
+  await until(() => questionCard(items())?.state === "waiting");
+  expect(questionCard(items())).toMatchObject({ state: "waiting", questions: [{ header: "Ambiance" }] });
+  expect(s.busy).toBe(true);
+  s.answer(
+    questionCard(items())!.id,
+    { kind: "choices", answers: { "Quelle ambiance pour la boutique ?": "Douce (Recommended)" } },
+    "The maker changed the title by hand.",
+  );
+  await ended;
+  expect(questionCard(items())).toMatchObject({ state: "answered" });
+  expect(toolResults(0)[0]).toContain(
+    'Your questions have been answered: \\"Quelle ambiance pour la boutique ?\\"=\\"Douce (Recommended)\\"',
+  );
+  expect(toolResults(0)[0]).toContain("The maker changed the title by hand.");
+  // A card, not an activity line (Q284).
+  expect(events.some((e) => e.type === "activity")).toBe(false);
+});
+
+test("the maker's own words and Skip, in Claude's words", async () => {
+  seen.length = 0;
+  const { f, models } = faux();
+  f.setResponses([askReply(), keepContext("D'accord."), askReply(), keepContext("Je choisis.")]);
+  const { s, turn, items } = session(models);
+  let ended = turn("Une fleuriste");
+  await until(() => questionCard(items())?.state === "waiting");
+  s.answer(questionCard(items())!.id, { kind: "words", text: "Plutôt champêtre" });
+  await ended;
+  expect(toolResults(0)[0]).toContain("The user responded: Plutôt champêtre");
+  ended = turn("Encore");
+  await until(() => questionCard(items())?.state === "waiting");
+  s.answer(questionCard(items())!.id, { kind: "skipped" });
+  await ended;
+  expect(questionCard(items())).toMatchObject({ state: "skipped" });
+  expect(toolResults(1).at(-1)).toContain("The user did not answer the questions.");
+});
+
+test("stopping while a question waits leaves it unanswered, and the agent is told", async () => {
+  const { f, models } = faux();
+  f.setResponses([askReply()]);
+  const { s, turn, items } = session(models);
+  const ended = turn("Une fleuriste");
+  await until(() => questionCard(items())?.state === "waiting");
+  await s.stop();
+  await ended;
+  expect(items().at(-1)).toMatchObject({ status: "stopped" });
+  expect(questionCard(items())).toMatchObject({ state: "unanswered" });
+  await until(() => readFileSync(join(dataDir, "pi-session.json"), "utf8").includes("did not answer"));
+  expect(readFileSync(join(dataDir, "pi-session.json"), "utf8")).toContain(
+    "The maker did not answer: the turn was stopped.",
+  );
+});
+
+test("a question left when Upstart closes is read, at the next launch, as not answered", async () => {
+  seen.length = 0;
+  const { f, models } = faux();
+  f.setResponses([askReply()]);
+  const first = session(models);
+  void first.turn("Une fleuriste");
+  await until(() => questionCard(first.items())?.state === "waiting");
+  first.s.close();
+  expect(questionCard(first.items())).toMatchObject({ state: "unanswered" });
+
+  f.setResponses([keepContext("Reprenons.")]);
+  const second = session(models);
+  await second.turn("Bonjour");
+  const results = seen[0]!.messages.filter((m) => m.role === "toolResult");
+  expect(results).toHaveLength(1);
+  expect(JSON.stringify(results[0]!.content)).toContain("Upstart was closed while the question waited");
+});
+
+test("questions without the tool's form are refused by the tool's schema, and no card shows", async () => {
+  seen.length = 0;
+  const { f, models } = faux();
+  f.setResponses([askReply({ questions: [{ question: "Ambiance ?", options: [] }] }), keepContext("Bien.")]);
+  const { turn, items } = session(models);
+  await turn("Une fleuriste");
+  expect(questionCard(items())).toBeUndefined();
+  expect(toolResults(0)[0]).toContain("questions.0.options: expected at least 2 items");
+});

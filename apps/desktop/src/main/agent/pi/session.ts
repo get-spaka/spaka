@@ -8,7 +8,7 @@ import { existsSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSy
 import { join } from "node:path";
 import { type AgentMessage, Agent as Loop, type AgentEvent as LoopEvent } from "@earendil-works/pi-agent-core";
 import type { Api, AssistantMessage, ClientIdentity, Model, Models, ToolCall } from "@earendil-works/pi-ai";
-import type { ConversationEvent, QuestionAnswer } from "../../../shared/conversation";
+import type { AgentQuestion, ConversationEvent, QuestionAnswer } from "../../../shared/conversation";
 import type { AgentMode, Effort, ProjectInfo } from "../../../shared/ipc";
 import { en } from "../../../shared/strings/en";
 import type { McpConfig } from "../../connectors/connectors";
@@ -16,6 +16,7 @@ import { type AssembledSkills, readSkill } from "../../skills/skills";
 import { Activities } from "../activity";
 import type { InstructionsFamily, SkillListing } from "../instructions";
 import { parsePartialInput } from "../partial-input";
+import { ASK_TOOL, CLOSED_UNANSWERED, Waits } from "../questions";
 import type { AgentKit, AgentRunner, PlanDecision } from "../runner";
 import type { SessionDeps, SessionHandlers } from "../session";
 import type { AgentEvent } from "../stream";
@@ -24,7 +25,7 @@ import { PiConnectors, type VaultSignIns } from "./connectors";
 import { familyOf, type PiAccount, parseModelId, piModel, thinkingFor } from "./models";
 import type { PiRecorder } from "./replay";
 import { shellAvailable } from "./shell";
-import { canonicalTool, type HarnessTool, piFileTools, piUpstartTools } from "./tools";
+import { type Answered, canonicalTool, type HarnessTool, piAskTool, piFileTools, piUpstartTools } from "./tools";
 import { canSearch, providerSearch, searchResult } from "./web-search";
 
 export type PiDeps = {
@@ -87,6 +88,12 @@ export class PiSession implements AgentRunner {
   private turnStart = 0;
   /** What this turn's web searches cost, made as requests of their own (web-search.ts). */
   private searchCost = 0;
+  /** The cards of questions the turn waits on (Q283). */
+  private readonly waits = new Waits<QuestionAnswer>();
+  /** The questions' calls that wait, by the card each shows: answered as not answered if Upstart closes. */
+  private readonly openQuestions = new Map<string, string>();
+  /** What the maker changed by hand while a question waited, told with its answer (Q294). */
+  private answerNote: string | undefined;
   readonly problems: string[] = [];
 
   constructor(
@@ -145,6 +152,7 @@ export class PiSession implements AgentRunner {
         search: canSearch(model) ? (query, signal) => this.search(query, signal) : undefined,
       }),
       ...piUpstartTools(upstart),
+      piAskTool((callId, questions, signal) => this.ask(callId, questions, signal)),
     ];
     this.baseTools = tools;
     this.startConnectors();
@@ -199,7 +207,28 @@ export class PiSession implements AgentRunner {
   async stop() {
     if (!this.working || !this.loop) return;
     this.stopping = true;
+    this.waits.cancelAll();
     this.loop.abort();
+  }
+
+  /** Shows the agent's questions and waits for the maker's answer, or for the turn to stop (Q283). */
+  private async ask(callId: string, questions: AgentQuestion[], signal?: AbortSignal): Promise<Answered | undefined> {
+    if (!this.working) return undefined;
+    const id = newId();
+    this.openQuestions.set(callId, id);
+    this.conversation({ type: "question", card: { id, questions, state: "waiting" } });
+    const answer = await this.waits.wait(id, signal);
+    this.openQuestions.delete(callId);
+    if (!answer) return undefined;
+    this.conversation({
+      type: "question-settled",
+      id,
+      state: answer.kind === "skipped" ? "skipped" : "answered",
+      answer,
+    });
+    const note = this.answerNote;
+    this.answerNote = undefined;
+    return { answer, ...(note ? { note } : {}) };
   }
 
   async setModel(model: string) {
@@ -226,10 +255,13 @@ export class PiSession implements AgentRunner {
     if (this.loop) this.loop.state.thinkingLevel = thinkingFor(this.model(), effort);
   }
 
-  // Questions and plans (Q283, Q286): the agent asks nothing yet and has no
-  // plan mode, so nothing waits for these (agent-questions plan, slices 2 and 4).
-  answer(_cardId: string, _answer: QuestionAnswer) {}
+  answer(cardId: string, answer: QuestionAnswer, note?: string) {
+    if (!this.waits.has(cardId)) return;
+    this.answerNote = note;
+    this.waits.settle(cardId, answer);
+  }
 
+  // Plan mode (Q286): built in the agent-questions plan's slice 4.
   settlePlan(_cardId: string, _decision: PlanDecision) {}
 
   async setMode(_mode: AgentMode) {}
@@ -253,6 +285,10 @@ export class PiSession implements AgentRunner {
   close() {
     const loop = this.loop;
     this.loop = undefined;
+    // What the turn did so far is kept, a question left waiting answered as such.
+    if (this.working && loop) this.save([...loop.state.messages, ...this.closedQuestions()]);
+    this.waits.cancelAll();
+    this.openQuestions.clear();
     if (this.working) this.endTurn("stopped");
     this.unsubscribe?.();
     this.unsubscribe = undefined;
@@ -297,6 +333,18 @@ export class PiSession implements AgentRunner {
     });
     this.connectors = { set, fingerprint: deps.fingerprint(this.project) };
     void set.connect();
+  }
+
+  /** The results of the questions' calls that still wait, for the agent to read at its next message. */
+  private closedQuestions(): AgentMessage[] {
+    return [...this.openQuestions.keys()].map((toolCallId) => ({
+      role: "toolResult" as const,
+      toolCallId,
+      toolName: ASK_TOOL,
+      content: [{ type: "text" as const, text: CLOSED_UNANSWERED }],
+      isError: true,
+      timestamp: Date.now(),
+    }));
   }
 
   private allTools(): HarnessTool[] {

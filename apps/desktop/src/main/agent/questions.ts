@@ -95,3 +95,22 @@ export function answerResult(questions: AgentQuestion[], answer: QuestionAnswer)
 
 /** Said to the agent when its question's wait ended without an answer. */
 export const NOT_ANSWERED = "The maker did not answer: the turn was stopped.";
+
+/** Said to the agent, at its next message, of a question left when Upstart closed. */
+export const CLOSED_UNANSWERED = "The maker did not answer: Upstart was closed while the question waited.";
+
+/** Said to the agent when its questions do not have the tool's form. */
+export const BAD_FORM =
+  "These questions do not have AskUserQuestion's form: 1 to 4 questions, each with 2 to 4 choices.";
+
+/**
+ * AskUserQuestion's description for the models of Upstart's own harness, in
+ * the terms of Claude's own tool, so that every model asks alike (ADR 0012).
+ */
+export const ASK_DESCRIPTION = [
+  "Asks the maker 1 to 4 questions and waits for the answer: the turn goes on once they answered.",
+  "Each question has a short header (a word or two), 2 to 4 choices, each with a label and a description of what it means, and multiSelect when several choices can go together.",
+  "Put the choice you recommend first, its label ending with (Recommended).",
+  "A choice's preview, optional, is shown with it: block:<id> for a block of the gallery, or the path of an image in the project.",
+  "The maker may also answer in their own words, or skip the questions: then decide by yourself and say what you chose.",
+].join(" ");

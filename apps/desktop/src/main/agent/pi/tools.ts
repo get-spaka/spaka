@@ -17,6 +17,8 @@ import {
 import { dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
 import type { AgentTool, AgentToolResult } from "@earendil-works/pi-agent-core";
 import { z } from "zod";
+import type { AgentQuestion, QuestionAnswer } from "../../../shared/conversation";
+import { ASK_DESCRIPTION, ASK_TOOL, AskInput, answerResult, BAD_FORM, NOT_ANSWERED, readQuestions } from "../questions";
 import { type UpstartToolDef, upstartToolName } from "../upstart-tools";
 import type { PiFamily } from "./models";
 import { runShell, type ShellPlace } from "./shell";
@@ -321,6 +323,33 @@ export function piUpstartTools(defs: UpstartToolDef[]): HarnessTool[] {
       return { content: await def.run(z.object(def.shape).parse(params)), details: undefined };
     },
   }));
+}
+
+/** What the maker answered a question, and what they changed by hand while it waited (Q294). */
+export type Answered = { answer: QuestionAnswer; note?: string };
+
+/**
+ * The agent's questions to the maker (Q283), in the form of Claude's
+ * AskUserQuestion and answered in its words. `ask` shows them and resolves
+ * with the answer, or undefined when the turn stopped first.
+ */
+export function piAskTool(
+  ask: (callId: string, questions: AgentQuestion[], signal?: AbortSignal) => Promise<Answered | undefined>,
+): HarnessTool {
+  return {
+    name: ASK_TOOL,
+    label: ASK_TOOL,
+    description: ASK_DESCRIPTION,
+    parameters: z.toJSONSchema(AskInput, { io: "input" }) as object,
+    executionMode: "sequential",
+    async execute(id: string, params: unknown, signal?: AbortSignal) {
+      const questions = readQuestions(params);
+      if (!questions) throw new Error(BAD_FORM);
+      const got = await ask(id, questions, signal);
+      if (!got) throw new Error(NOT_ANSWERED);
+      return answer(answerResult(questions, got.answer) + (got.note ? `\n\n${got.note}` : ""));
+    },
+  };
 }
 
 /** The names the app knows a harness tool by: Upstart's own under the SDK's names. */
