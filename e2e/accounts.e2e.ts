@@ -81,7 +81,8 @@ describe("the accounts", () => {
   test("the settings' Accounts page shows the four accounts; removing the key brings the panel back", async () => {
     await invoke("settings:open", "agent");
     await until(async () => (await w.getByTestId("settings-title").textContent()) === "Accounts");
-    expect(await w.getByTestId("settings-account").textContent()).toContain("Gemini");
+    // The panel asks for the accounts as it opens.
+    await until(async () => (await w.getByTestId("settings-account").textContent())?.includes("Gemini"));
     for (const id of ["account", "api-key", "chatgpt", "openai-key", "gemini-key"])
       expect(await w.locator(`[data-setting="${id}"]`).count()).toBe(1);
     expect(await w.locator('[data-setting="gemini-key"]').textContent()).toContain("kept");

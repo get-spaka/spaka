@@ -81,6 +81,26 @@ test("Gemini's Append adds the next part of a long file", async () => {
   expect(readFileSync(join(root, "pages/index.liquid"), "utf8")).toBe("<header></header>\n<footer></footer>\n");
 });
 
+test("WebSearch is the provider's search, when the model's provider has one", async () => {
+  const asked: string[] = [];
+  const list = piFileTools({
+    root,
+    readable: [],
+    family: "openai",
+    search: async (query) => {
+      asked.push(query);
+      return "Ouvert de 8 h 30 à 18 h.\n\nSources:\n- nantes.fr: https://nantes.fr/jardin";
+    },
+  });
+  expect(list.map((t) => t.name)).toEqual(["Read", "Write", "Edit", "Glob", "Grep", "WebSearch", "WebFetch"]);
+  const search = list.find((t) => t.name === "WebSearch")!;
+  expect(search.executionMode).toBe("parallel");
+  const result = await search.execute("id", { query: " horaires du Jardin des Plantes de Nantes " });
+  expect(asked).toEqual(["horaires du Jardin des Plantes de Nantes"]);
+  expect(result.content).toEqual([{ type: "text", text: expect.stringContaining("Sources:\n- nantes.fr") }]);
+  await expect(search.execute("id", { query: " " })).rejects.toThrow(/what to search for/);
+});
+
 test("reads run together; a reply that changes the project runs in order", () => {
   const modes = Object.fromEntries(
     piFileTools({ root, readable: [], family: "gemini" }).map((t) => [t.name, t.executionMode]),
@@ -133,7 +153,7 @@ test("the harness's instructions: Claude's rules with its own tools, long files 
     { name: "datasources", description: "The format.", file: "/s/SKILL.md" },
   ]);
   expect(openai).not.toContain("MultiEdit");
-  expect(openai).not.toContain("WebSearch");
+  expect(openai).toContain("WebSearch and WebFetch read it");
   expect(openai).not.toContain("Writing long files");
   expect(openai).toContain("- datasources: The format. (/s/SKILL.md)");
   const gemini = instructionsFor("short", "gemini");

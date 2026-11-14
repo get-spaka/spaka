@@ -46,6 +46,8 @@ import { AgentAuth } from "./agent/auth";
 import { agentBinary, cleanEnv, nodeLauncher } from "./agent/confinement";
 import { instructionsFor } from "./agent/instructions";
 import { PiAccounts } from "./agent/pi/accounts";
+import { VaultSignIns } from "./agent/pi/connectors";
+import { PiRecorder, piReplay } from "./agent/pi/replay";
 import { claudeExtras, UPSTART_SERVER } from "./agent/preview-tool";
 import { Recorder, replayed, replayQuery } from "./agent/replay";
 import type { AgentKit } from "./agent/runner";
@@ -350,6 +352,7 @@ async function main() {
     };
   };
   let agent: Agent;
+  let connectorStateTimer: NodeJS.Timeout | undefined;
   // Upstart's own harness (ADR 0012): ChatGPT through Sign in with ChatGPT, the maker's OpenAI and Gemini keys.
   const piAccounts = new PiAccounts({
     dir: join(userData, "accounts"),
@@ -386,12 +389,21 @@ async function main() {
     },
     pi: {
       accounts: piAccounts,
+      replay: env.piReplay ? piReplay(env.piReplay, 100 * env.agentReplaySpeed) : undefined,
       deps: {
         kit: kitFor,
         instructions: (family, listed) => instructionsFor(settings.get().replyStyle, family, listed),
         env: agentEnv,
         readable: launcher.readable,
         skills,
+        // The maker's connectors, which Upstart connects itself for these models (Q277).
+        connectorServers: connectors,
+        signIns: new VaultSignIns(join(userData, "connector-sign-ins.bin"), vault),
+        recorder: env.piRecord ? new PiRecorder(env.piRecord) : undefined,
+        onConnectorsChange: () => {
+          clearTimeout(connectorStateTimer);
+          connectorStateTimer = setTimeout(async () => ipc.emit("connectors:changed", await connectorList()), 100);
+        },
         identity: {
           userAgent: { custom: `Upstart/${app.getVersion()}` },
           attribution: { name: "Upstart", url: "https://upstart.gg" },

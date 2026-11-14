@@ -259,6 +259,9 @@ test("activity lines", () => {
   expect(activityLabel("Bash", { command: "ls -la\necho" }, "/p")).toBe("Running ls -la");
   expect(activityLabel("Skill", { skill: "project:menu-format" }, "/p")).toBe("Following the skill menu-format");
   expect(activityLabel("Grep", {}, "/p")).toBe("Searching the project");
+  expect(activityLabel("WebSearch", { query: "horaires" }, "/p")).toBe("Searching the web");
+  expect(activityLabel("WebFetch", { url: "https://www.nantes.fr/jardin" }, "/p")).toBe("Reading a page of nantes.fr");
+  expect(activityDetail("WebSearch", { query: "horaires du jardin" })).toBe("horaires du jardin");
   expect(activityLabel("mcp__upstart__find_blocks", { sections: [] }, "/p")).toBe("Looking for blocks in the gallery");
   expect(activityLabel("mcp__upstart__use_block", { page: "pages/index.liquid" }, "/p")).toBe(
     "Placing blocks on pages/index.liquid",

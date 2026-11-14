@@ -86,6 +86,10 @@ export function activityLabel(name: string, input: Record<string, unknown>, proj
             : "";
       return en.activity.run(what.length > 60 ? `${what.slice(0, 59)}…` : what || undefined);
     }
+    case "WebSearch":
+      return en.activity.searchWeb;
+    case "WebFetch":
+      return en.activity.readPage(typeof input.url === "string" ? siteOf(input.url) : undefined);
     case LOOK_TOOL:
       return en.activity.look;
     case FIND_BLOCKS_TOOL:
@@ -117,6 +121,10 @@ export function activityDetail(name: string, input: Record<string, unknown>): st
     }
     case "Glob":
       return text(input.pattern);
+    case "WebSearch":
+      return text(input.query) && clip(text(input.query)!, 400);
+    case "WebFetch":
+      return text(input.url) && clip(text(input.url)!, 400);
     case "Write":
     case "Append":
     case "Edit":
@@ -145,6 +153,15 @@ export function clip(text: string, max: number) {
 
 function complete(fields: Record<string, string>, done: Record<string, boolean>) {
   return Object.fromEntries(Object.entries(fields).filter(([name]) => done[name]));
+}
+
+/** "www.nantes.fr" for a page's address. */
+function siteOf(url: string): string | undefined {
+  try {
+    return new URL(url).host.replace(/^www\./, "") || undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function shortPath(file: string, projectDir: string): string {

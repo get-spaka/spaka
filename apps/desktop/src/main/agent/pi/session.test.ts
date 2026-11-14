@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -16,6 +16,9 @@ import { FileTap } from "../../live/tap";
 import type { AgentEvent } from "../stream";
 import type { TurnChecks } from "../turn-checks";
 import type { UpstartTools } from "../upstart-tools";
+import { VaultSignIns } from "./connectors";
+import { STDIO_SERVER } from "./mcp-test-server";
+import { PiRecorder, piReplay, piReplayed } from "./replay";
 import { type PiDeps, PiSession } from "./session";
 
 let dir: string;
@@ -293,4 +296,76 @@ test("a switch between Claude and the harness: what was said so far, for the new
   );
   expect(note).not.toContain("Reading theme.css");
   expect(note).toContain("The maker: Ajoute une page menu\n(That turn stopped.)");
+});
+
+test("the maker's connectors: Upstart connects them, the agent calls their tools, the interface sees their state", async () => {
+  const { f, models } = faux();
+  writeFileSync(join(dir, "notes.mjs"), STDIO_SERVER);
+  const servers = { notes: { type: "stdio" as const, command: process.execPath, args: [join(dir, "notes.mjs")] } };
+  let offered: string[] = [];
+  f.setResponses([
+    (context) => {
+      // The tools are declared by the transcript's system messages, those added later included.
+      offered = context.messages.flatMap((m) => (m.role === "system" ? (m.toolsAdded ?? []).map((t) => t.name) : []));
+      return fauxAssistantMessage([fauxToolCall("mcp__notes__add_note", { text: "Roses" })], { stopReason: "toolUse" });
+    },
+    fauxAssistantMessage([fauxText("C'est noté.")]),
+  ]);
+  const results: AgentEvent[] = [];
+  const { s, turn, items } = session(
+    models,
+    {
+      connectorServers: { servers: () => servers, fingerprint: () => "1" },
+      signIns: new VaultSignIns(join(dir, "sign-ins.bin"), {
+        encrypt: (t) => Buffer.from(t),
+        decrypt: (d) => d.toString(),
+      }),
+    },
+    (e) => e.kind === "tool-result" && results.push(e),
+  );
+  await turn("Note les roses.");
+  expect(offered).toContain("mcp__notes__add_note");
+  expect(results).toMatchObject([{ name: "mcp__notes__add_note", isError: false, text: "noted: Roses" }]);
+  expect(await s.connectorStatus()).toEqual([{ name: "notes", status: "connected" }]);
+  expect(items().at(-1)).toMatchObject({ kind: "agent", status: "done" });
+  s.close();
+});
+
+test("a conversation recorded once plays back: the replies streamed again, their tools run for real", async () => {
+  const { f, models } = faux();
+  const content = `<h1>Fleur de Loire</h1>\n${"<p>Bouquets</p>\n".repeat(10)}`;
+  f.setResponses([
+    fauxAssistantMessage(
+      [fauxText("Je construis."), fauxToolCall("Write", { file_path: "pages/index.liquid", content })],
+      {
+        stopReason: "toolUse",
+      },
+    ),
+    fauxAssistantMessage([fauxText("Voilà.")]),
+  ]);
+  const file = join(dir, "recorded.jsonl");
+  const recording = session(models, { recorder: new PiRecorder(file) });
+  await recording.turn("Un site pour un fleuriste.");
+  recording.s.close();
+  expect(readFileSync(file, "utf8").trim().split("\n")).toHaveLength(2);
+
+  // Another project, the replies played back: the page is written again by the Write tool.
+  rmSync(project.path, { recursive: true, force: true });
+  mkdirSync(project.path, { recursive: true });
+  rmSync(join(dataDir, "pi-session.json"), { force: true });
+  piReplayed.length = 0;
+  const tapped: string[] = [];
+  const replay = piReplay(file, 0);
+  const played = session(
+    replay.models,
+    { search: replay.search },
+    (e) => e.kind === "tool-input-end" && tapped.push(e.name),
+  );
+  await played.turn("Un site pour un fleuriste.");
+  expect(readFileSync(join(project.path, "pages/index.liquid"), "utf8")).toBe(content);
+  expect(tapped).toEqual(["Write"]);
+  expect(played.items().at(-1)).toMatchObject({ kind: "agent", status: "done" });
+  expect(piReplayed.map((r) => r.model)).toEqual(["gpt-6.1-terra", "gpt-6.1-terra"]);
+  expect(piReplayed[0]?.last).toBe("Un site pour un fleuriste.");
+  played.s.close();
 });

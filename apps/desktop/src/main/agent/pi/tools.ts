@@ -29,6 +29,8 @@ export type PiToolsOptions = {
   family: PiFamily;
   /** The sandboxed shell's place and environment; no shell without it (Q278). */
   shell?: { place: ShellPlace; env: () => Record<string, string> };
+  /** The provider's web search (web-search.ts); no WebSearch without it (Q276). */
+  search?: (query: string, signal?: AbortSignal) => Promise<string>;
 };
 
 // biome-ignore lint/suspicious/noExplicitAny: the loop checks each call's input against the tool's schema before it runs
@@ -82,7 +84,7 @@ const IMAGES: Record<string, string> = {
 const SKIPPED = new Set([".git", "node_modules", ".upstart"]);
 
 /** The file tools, the shell and the page fetch. */
-export function piFileTools({ root, readable, family, shell }: PiToolsOptions): HarnessTool[] {
+export function piFileTools({ root, readable, family, shell, search }: PiToolsOptions): HarnessTool[] {
   const project = [root];
   const readRoots = [root, ...readable];
   const tools: HarnessTool[] = [
@@ -235,6 +237,21 @@ export function piFileTools({ root, readable, family, shell }: PiToolsOptions): 
         return answer(lines.length ? lines.join("\n") : "No match.");
       },
     },
+    ...(search
+      ? [
+          {
+            name: "WebSearch",
+            label: "WebSearch",
+            description:
+              "Searches the web and answers with what it found and its sources: to check a fact you are unsure of (an address, opening hours, a price), or to study what well-made sites do now. WebFetch then reads a page it found.",
+            parameters: fileSchema({ query: str("What to search for, in a few words or a question") }, ["query"]),
+            async execute(_id: string, { query }: { query: string }, signal?: AbortSignal) {
+              if (typeof query !== "string" || !query.trim()) throw new Error("Say what to search for.");
+              return answer(await search(query.trim(), signal));
+            },
+          } satisfies HarnessTool,
+        ]
+      : []),
     {
       name: "WebFetch",
       label: "WebFetch",

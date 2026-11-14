@@ -75,11 +75,6 @@ const HARNESS_CHANGES: Record<Exclude<InstructionsFamily, "claude">, [string, st
   ],
 };
 
-const WEB_CLAUDE =
-  "- The web: WebSearch and WebFetch read it, to look at a page the maker points you to (their current site, their social page, a menu online), to check a fact you are unsure of, or to study what well-made sites do now.";
-const WEB_HARNESS =
-  "- The web: WebFetch reads a page, to look at one the maker points you to (their current site, their social page, a menu online) or to check a fact you are unsure of.";
-
 /** How many lines a part of a long file holds, for Gemini (spike 3: the page starts showing at about 7 s). */
 export const PART_LINES = 25;
 
@@ -89,9 +84,9 @@ Write a file of more than ${PART_LINES} lines in several calls, in reading order
 
 function harnessInstructions(family: Exclude<InstructionsFamily, "claude">, skills: SkillListing[]): string {
   let text = UPSTART_INSTRUCTIONS;
-  for (const [from, to] of [...HARNESS_CHANGES[family], [WEB_CLAUDE, WEB_HARNESS] as [string, string]]) {
+  for (const [from, to] of HARNESS_CHANGES[family]) {
     if (!text.includes(from)) throw new Error(`The instructions no longer say: ${from}`);
-    text = text.replace(from, to).replace("Search only when it helps the site", "Fetch only when it helps the site");
+    text = text.replace(from, to);
   }
   const listed = skills.length
     ? `# Skills\n\nA skill is how to do one kind of work in Upstart, in a file. When the instructions or your work call for a skill, read its file with Read first, then the files it points to when you need them.\n\n${skills.map((s) => `- ${s.name}: ${s.description} (${s.file})`).join("\n")}`

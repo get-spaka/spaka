@@ -33,6 +33,10 @@ export type Environment = {
   imagesFixture: string | undefined;
   /** Where to record the agent's stream, to play it back in later checks. */
   agentRecord: string | undefined;
+  /** Recorded replies of a model of Upstart's own harness, played back instead of asking it (pi/replay.ts). */
+  piReplay: string | undefined;
+  /** Where to record the replies of the harness's models. */
+  piRecord: string | undefined;
   /**
    * Where Upstart's templates are released (Q250): the app then reads their
    * catalogue and downloads them, as a packaged app does from the public
@@ -55,6 +59,8 @@ export function readEnvironment(env: NodeJS.ProcessEnv = process.env): Environme
     agentReplaySpeed: Number(env.UPSTART_AGENT_REPLAY_SPEED) || 4,
     imagesFixture: env.UPSTART_IMAGES_FIXTURE || undefined,
     agentRecord: env.UPSTART_AGENT_RECORD || undefined,
+    piReplay: env.UPSTART_PI_REPLAY || undefined,
+    piRecord: env.UPSTART_PI_RECORD || undefined,
     templatesUrl: env.UPSTART_TEMPLATES_URL || undefined,
     templatesSnapshot: env.UPSTART_TEMPLATES_SNAPSHOT || undefined,
   };

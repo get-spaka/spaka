@@ -20,6 +20,7 @@ import type { AgentAuth, AuthState } from "./auth";
 import { handoverNote } from "./handover";
 import type { PiAccounts } from "./pi/accounts";
 import { PI_MODELS, piEfforts, piModel, piModelId } from "./pi/models";
+import type { PiReplay } from "./pi/replay";
 import { type PiDeps, PiSession } from "./pi/session";
 import type { AgentRunner } from "./runner";
 import { AgentSession, type SessionDeps, type SessionHandlers } from "./session";
@@ -30,7 +31,12 @@ export type AgentOptions = {
   /** The session's dependencies; `env` is filled in from the sign-in. */
   session: Omit<SessionDeps, "env">;
   /** Upstart's own harness: its accounts, and what its sessions need besides them. */
-  pi?: { accounts: PiAccounts; deps: Omit<PiDeps, "models" | "apiKey"> };
+  pi?: {
+    accounts: PiAccounts;
+    deps: Omit<PiDeps, "models" | "apiKey">;
+    /** Recorded replies played back in place of the providers (pi/replay.ts). */
+    replay?: PiReplay;
+  };
   /** Where the models Claude offers are kept between launches. */
   modelsFile?: string;
   dataFor: (projectId: string) => string;
@@ -254,7 +260,12 @@ export class Agent {
         ? new PiSession(
             project,
             this.o.dataFor(id),
-            { ...pi.deps, models: pi.accounts.models, apiKey: (account) => pi.accounts.apiKey(account) },
+            {
+              ...pi.deps,
+              models: pi.replay?.models ?? pi.accounts.models,
+              ...(pi.replay ? { search: pi.replay.search } : {}),
+              apiKey: (account) => pi.accounts.apiKey(account),
+            },
             handlers,
           )
         : new AgentSession(project, this.o.dataFor(id), { ...this.o.session, env: () => this.o.auth.env() }, handlers);

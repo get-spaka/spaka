@@ -2,7 +2,8 @@
 // little of the maker's Gemini key, so they run only when asked:
 // UPSTART_REAL_PI=1, with GEMINI_API_KEY in spikes/harnesses/homes/keys.env
 // (ignored by git). The key goes from that file to the app's main process,
-// never printed.
+// never printed. With UPSTART_PI_RECORD=<file>, the model's replies are
+// recorded, for agent-pi-replay.e2e.ts to play back.
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
@@ -57,7 +58,8 @@ describe.skipIf(!real)("Upstart's own harness, with Gemini", () => {
   const problems = () => main((u) => [...u.agent.sessions.values()].flatMap((s: { problems: string[] }) => s.problems));
 
   beforeAll(async () => {
-    launched = await launchApp({ env: { UPSTART_AGENT_REPLAY: "" } });
+    const record = process.env.UPSTART_PI_RECORD;
+    launched = await launchApp({ env: { UPSTART_AGENT_REPLAY: "", ...(record ? { UPSTART_PI_RECORD: record } : {}) } });
     await launched.window.getByTestId("message-input").waitFor();
     const gemini = key("GEMINI_API_KEY");
     if (!gemini) throw new Error(`No GEMINI_API_KEY in ${keysFile}`);
@@ -133,4 +135,25 @@ describe.skipIf(!real)("Upstart's own harness, with Gemini", () => {
     const project = await invoke("projects:current");
     expect(readFileSync(join(project.path, "pages/index.liquid"), "utf8")).toMatch(/<title>[^<]*Fleur de Loire/);
   }, 260_000);
+
+  test("the agent searches the web with Google Search, then writes what it found", async () => {
+    const before = await launched.window.getByTestId("agent-message").count();
+    const from = ((await main(() => (globalThis as { piLog?: Logged[] }).piLog ?? [])) as Logged[]).length;
+    await invoke(
+      "conversation:send",
+      "Le fleuriste est en face du Jardin des Plantes de Nantes : cherche sur le web les horaires d'ouverture du jardin en hiver, et ajoute-les dans le pied de page, sous « Le jardin d'en face ».",
+    );
+    await turnEnded(before, 300_000);
+    const { items } = await invoke("conversation:get");
+    expect(items.at(-1)).toMatchObject({ kind: "agent", status: "done" });
+    const log = ((await main(() => (globalThis as { piLog?: Logged[] }).piLog ?? [])) as Logged[]).slice(from);
+    const searches = log.filter((e) => e.kind === "tool-result" && e.name === "WebSearch");
+    say(`[pi] searches: ${searches.length}; problems: ${JSON.stringify(await problems())}`);
+    expect(searches.length).toBeGreaterThan(0);
+    const project = await invoke("projects:current");
+    const footer = ["parts/footer.liquid", "pages/index.liquid"]
+      .map((f) => (existsSync(join(project.path, f)) ? readFileSync(join(project.path, f), "utf8") : ""))
+      .join("\n");
+    expect(footer).toMatch(/jardin d.en face/i);
+  }, 320_000);
 });

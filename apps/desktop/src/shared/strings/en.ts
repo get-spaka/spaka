@@ -127,6 +127,8 @@ export const en = {
     addImage: (name?: string) => (name ? `Adding the image ${name}` : "Adding an image…"),
     skill: (name?: string) => (name ? `Following the skill ${name}` : "Following a skill…"),
     run: (what?: string) => (what ? `Running ${what}` : "Running a command…"),
+    searchWeb: "Searching the web",
+    readPage: (site?: string) => (site ? `Reading a page of ${site}` : "Reading a web page…"),
     other: (tool: string) => `Using ${tool}`,
   },
   errors: {
@@ -660,6 +662,12 @@ export const en = {
     signInNotReady: "The agent is still starting; try again in a moment.",
     signInUnknown: "This connector is not on for this website.",
     signInUnsupported: "This version of the agent cannot sign in to a connector.",
+    sseUnsupported:
+      "This connector uses the older SSE transport, which this website's model cannot reach yet. Use its Streamable HTTP address, or a Claude model.",
+    disconnected: "The connector closed its connection. Upstart reconnects it at your next message.",
+    keyRefused: "The connector refused its key. Check the values of its secrets.",
+    signedInPage: "You are signed in. You can close this page and go back to Upstart.",
+    signInFailedPage: (why: string) => `The sign-in did not complete: ${why}. Go back to Upstart to try again.`,
     approvalWarning:
       "This website asks to run a program on your computer, with your access and outside the agent's sandbox. Turn it on only if you trust this command:",
     state: {

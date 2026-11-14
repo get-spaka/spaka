@@ -11,6 +11,7 @@ import type { Api, AssistantMessage, ClientIdentity, Model, Models, ToolCall } f
 import type { ConversationEvent } from "../../../shared/conversation";
 import type { Effort, ProjectInfo } from "../../../shared/ipc";
 import { en } from "../../../shared/strings/en";
+import type { McpConfig } from "../../connectors/connectors";
 import { type AssembledSkills, readSkill } from "../../skills/skills";
 import { Activities } from "../activity";
 import type { InstructionsFamily, SkillListing } from "../instructions";
@@ -19,9 +20,12 @@ import type { AgentKit, AgentRunner } from "../runner";
 import type { SessionDeps, SessionHandlers } from "../session";
 import type { AgentEvent } from "../stream";
 import { upstartTools } from "../upstart-tools";
+import { PiConnectors, type VaultSignIns } from "./connectors";
 import { familyOf, type PiAccount, parseModelId, piModel, thinkingFor } from "./models";
+import type { PiRecorder } from "./replay";
 import { shellAvailable } from "./shell";
-import { canonicalTool, piFileTools, piUpstartTools } from "./tools";
+import { canonicalTool, type HarnessTool, piFileTools, piUpstartTools } from "./tools";
+import { canSearch, providerSearch, searchResult } from "./web-search";
 
 export type PiDeps = {
   /** pi-ai's collection, its providers registered and the ChatGPT sign-in kept (accounts.ts). */
@@ -40,6 +44,19 @@ export type PiDeps = {
   identity?: ClientIdentity;
   /** Whether the agent gets a shell: only where Upstart's sandbox holds (Q278). */
   shell?: boolean;
+  /** The maker's connectors that are on for a project (ADR 0010, Q277), with their secrets. */
+  connectorServers?: {
+    servers(project: { id: string; path: string }): Record<string, McpConfig>;
+    fingerprint(project: { id: string; path: string }): string;
+  };
+  /** Where remote connectors' sign-ins are kept, encrypted. */
+  signIns?: VaultSignIns;
+  /** A connector's state changed: the interface asks again. */
+  onConnectorsChange?: () => void;
+  /** Keeps each reply of the model, to play it back in checks (replay.ts). */
+  recorder?: PiRecorder;
+  /** The web search in place of the provider's: a played-back one, in checks. */
+  search?: (query: string) => Promise<string>;
 };
 
 /** What a project's harness keeps between launches. */
@@ -59,9 +76,15 @@ export class PiSession implements AgentRunner {
   private readonly calls = new Map<number, { id: string; name: string; json: string }>();
   private upstartNames = new Set<string>();
   private skills: { fingerprint: string; dir: string } | undefined;
+  /** The maker's connectors, connected by Upstart itself, and their fingerprint at the start. */
+  private connectors: { set: PiConnectors; fingerprint: string } | undefined;
+  /** The tools the agent starts with, before its connectors'. */
+  private baseTools: HarnessTool[] = [];
   /** The model changed to one of another family while the agent worked: it gets its tools at the next message. */
   private rebuild = false;
   private turnStart = 0;
+  /** What this turn's web searches cost, made as requests of their own (web-search.ts). */
+  private searchCost = 0;
   readonly problems: string[] = [];
 
   constructor(
@@ -117,9 +140,12 @@ export class PiSession implements AgentRunner {
                 env: this.deps.env,
               }
             : undefined,
+        search: canSearch(model) ? (query, signal) => this.search(query, signal) : undefined,
       }),
       ...piUpstartTools(upstart),
     ];
+    this.baseTools = tools;
+    this.startConnectors();
     const loop = new Loop({
       initialState: {
         systemPrompt: this.deps.instructions(family, skills?.listing ?? []),
@@ -155,7 +181,7 @@ export class PiSession implements AgentRunner {
   send(text: string, forAgent = text) {
     if (this.working) throw new Error("The agent is already working.");
     // Skills changed, or a model of the other family: the agent starts again with them, its memory kept.
-    if (this.loop && (this.rebuild || this.skillsChanged())) this.close();
+    if (this.loop && (this.rebuild || this.skillsChanged() || this.connectorsChanged())) this.close();
     this.start();
     this.working = true;
     this.stopping = false;
@@ -163,6 +189,7 @@ export class PiSession implements AgentRunner {
     this.calls.clear();
     this.activities.clear();
     this.turnStart = Date.now();
+    this.searchCost = 0;
     this.handlers.onConversation({ type: "turn-start", id: newId(), text, at: Date.now() });
     void this.run(this.loop!, forAgent);
   }
@@ -220,10 +247,12 @@ export class PiSession implements AgentRunner {
     this.unsubscribe?.();
     this.unsubscribe = undefined;
     loop?.abort();
+    void this.connectors?.set.close();
+    this.connectors = undefined;
   }
 
   refreshExtensions(): boolean {
-    if (!this.loop || !this.skillsChanged()) return false;
+    if (!this.loop || !(this.skillsChanged() || this.connectorsChanged())) return false;
     if (!this.working) {
       this.close();
       this.start();
@@ -231,18 +260,53 @@ export class PiSession implements AgentRunner {
     return true;
   }
 
-  // The maker's connectors reach the harness through Upstart's own client, later (Q277).
+  /** The maker's connectors as Upstart's client sees them now (Q277). */
   async connectorStatus() {
-    return [];
+    return this.connectors?.set.status() ?? [];
   }
 
-  async signInConnector(): Promise<string | undefined> {
-    throw new Error(en.connectors.signInUnsupported);
+  /** Starts signing in to a remote connector: the page to open in the browser, if one is needed. */
+  async signInConnector(name: string): Promise<string | undefined> {
+    if (!this.connectors) throw new Error(en.connectors.signInNotReady);
+    return this.connectors.set.signIn(name);
+  }
+
+  private startConnectors() {
+    const deps = this.deps.connectorServers;
+    if (!deps || !this.deps.signIns) return;
+    const set = new PiConnectors({
+      servers: deps.servers(this.project),
+      signIns: this.deps.signIns,
+      cwd: this.project.path,
+      env: this.deps.env,
+      onChange: () => {
+        // A connector signed in or reconnected between messages: its tools are there for the next one.
+        if (this.connectors?.set === set && this.loop && !this.working) this.loop.state.tools = this.allTools();
+        this.deps.onConnectorsChange?.();
+      },
+    });
+    this.connectors = { set, fingerprint: deps.fingerprint(this.project) };
+    void set.connect();
+  }
+
+  private allTools(): HarnessTool[] {
+    return [...this.baseTools, ...(this.connectors?.set.tools() ?? [])];
+  }
+
+  private connectorsChanged() {
+    const deps = this.deps.connectorServers;
+    return !!deps && !!this.connectors && deps.fingerprint(this.project) !== this.connectors.fingerprint;
   }
 
   private async run(loop: Loop, text: string) {
     let failure: unknown;
     try {
+      // The connectors that answer in time are the agent's for this message.
+      if (this.connectors) {
+        this.connectors.set.reconnect();
+        await this.connectors.set.ready();
+        if (this.loop === loop) loop.state.tools = this.allTools();
+      }
       await loop.prompt(text);
     } catch (e) {
       failure = e;
@@ -258,7 +322,7 @@ export class PiSession implements AgentRunner {
       isError: reason !== "stop" || failure !== undefined,
       text: error ?? "",
       durationMs: Date.now() - this.turnStart,
-      costUsd: turnCost(loop.state.messages, this.turnStart),
+      costUsd: turnCost(loop.state.messages, this.turnStart) + this.searchCost || undefined,
     });
     if (!this.working) return;
     if (this.stopping || reason === "aborted") return this.endTurn("stopped");
@@ -269,6 +333,23 @@ export class PiSession implements AgentRunner {
       return this.endTurn("failed", en.errors.accountNeeded);
     }
     return this.endTurn("failed", en.errors.agentStopped);
+  }
+
+  /** The provider's own search, with the project's current model and account (Q276). */
+  private async search(query: string, signal?: AbortSignal) {
+    if (this.deps.search) return this.deps.search(query);
+    const found = await providerSearch({
+      models: this.deps.models,
+      model: this.model(),
+      apiKey: await this.deps.apiKey(this.account),
+      identity: this.deps.identity,
+      query,
+      signal,
+    });
+    this.searchCost += found.cost;
+    const text = searchResult(found);
+    this.deps.recorder?.search(query, text);
+    return text;
   }
 
   private onLoopEvent(e: LoopEvent) {
@@ -307,7 +388,10 @@ export class PiSession implements AgentRunner {
       }
       return;
     }
-    if (e.type === "message_end" && e.message.role === "assistant") this.calls.clear();
+    if (e.type === "message_end" && e.message.role === "assistant") {
+      this.calls.clear();
+      this.deps.recorder?.reply(e.message as AssistantMessage);
+    }
     if (e.type === "tool_execution_end") {
       const content = (e.result?.content ?? []) as { type: string; text?: string }[];
       const text = content.map((c) => (c.type === "text" ? (c.text ?? "") : "")).join("");
@@ -400,11 +484,11 @@ const SIGN_IN =
   /\b401\b|\b403\b|unauthori[sz]ed|invalid.?api.?key|api key|no credentials|not configured|invalid_grant|reconnect/i;
 
 /** The turn's cost, from the replies written since it started. */
-function turnCost(messages: AgentMessage[], since: number): number | undefined {
+function turnCost(messages: AgentMessage[], since: number): number {
   let total = 0;
   for (const m of messages)
     if (m.role === "assistant" && m.timestamp >= since) total += (m as AssistantMessage).usage?.cost?.total ?? 0;
-  return total || undefined;
+  return total;
 }
 
 let counter = 0;
