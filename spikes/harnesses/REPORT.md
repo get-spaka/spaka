@@ -695,6 +695,37 @@ Matt's question after the report: rather than shipping Antigravity or Codex, cou
 
 Its design follows, from Q269, in `docs/v2.0-decisions.md`.
 
+## Gemini through tools alone (fourth round)
+
+Matt's answer to Q271: files go through tools, never in the reply's text, and Gemini needs a fix that keeps the live preview through tools. Tried on 2026-11-14 with Gemini 4 Hydrogen, one model turn of the launch request each, the tools not run.
+
+**Streaming a call's arguments: Vertex AI only.**
+- **The Gemini API's `streamGenerateContent`** refuses the option on the AI Studio key: "streamFunctionCallArguments parameter is only supported in Gemini Enterprise Agent Platform mode, not in Gemini Developer API mode" (`src/vertex.ts --gemini-api`).
+- **Vertex AI** (`streamFunctionCallArguments`, `partialArgs`) refused the AI Studio key: the key is limited to the Gemini API (`API_KEY_SERVICE_BLOCKED`). Not measured: it needs a key or credentials for Vertex AI in a Google Cloud project.
+- **The Interactions API**, on the AI Studio key, declares `arguments_delta` steps, but sends each call's arguments in one delta: the home page's 17,455 characters arrived at once at 28.1 s (`src/interactions.ts`).
+- **Gemini's OpenAI-compatible endpoint** does the same: one delta per call, the home page at 24.3 s (`src/openai-compat.ts`).
+
+**But each call arrives as soon as it is complete,** one after another (the theme at 4 to 7 s, the home page at 24 to 28 s, then the small files). So a long file written in several calls reaches the app part by part.
+
+**A file written in several calls** (`src/chunked.ts`): two tools, `write_file` and `append_file`, and an instruction to write a long file in parts of about N lines, all in the same response, cut between two elements.
+
+| Thinking, parts asked | Runs | Home page starts showing | Home page complete | Calls for the home page | Longest still between two parts |
+|---|---|---|---|---|---|
+| Claude, Agent SDK (spike 1), for comparison | 5 | 5.9 s (5.6–6.3) | 23.6 s (21.8–27.0) | 1 | 1.7 s |
+| One call, through a tool (Pi, Google API, thinking medium) | 3 | 34.9 s | 34.9 s | 1 | — |
+| low, 40 lines | 3 | 10.4 s (9.9–11.3) | 22.7 s (20.4–23.9) | 3 to 6 | 5.6 s (3.8–5.9) |
+| low, 25 lines | 3 | 6.7 s (6.0–7.8) | 21.9 s (20.5–24.8) | 5 to 6 | 4.7 s (4.3–4.9) |
+| medium, 25 lines | 3 | 12.2 s (10.8–12.7) | 34.1 s (31.1–36.6) | 7 to 8 | 4.9 s (4.0–5.8) |
+
+
+**Reading it:**
+- **Asked for parts of 25 lines, Hydrogen wrote parts of 28 to 54;** asked for 40, it sometimes wrote three large parts. The parts' size is the model's, the instruction only steers it.
+- **Every assembled page is well-formed:** each cut fell between two elements, no tag or Liquid tag left open.
+- **The preview moves in steps, not character by character:** the longest still between two parts is 2 to 6 s, against 1.7 s for Claude.
+- **At low thinking, Hydrogen keeps Claude's pace through tools alone:** the home page starts at 6.7 s and is complete at 21.9 s, against 5.9 s and 23.6 s.
+- **At medium thinking, Upstart's default (Q272),** it starts at 12.2 s and is complete at 34.1 s: it thinks longer before the first part and writes a longer page (18,000 to 22,000 characters against 13,000 to 15,000).
+- **Vertex AI would stream a call's arguments as OpenAI does,** but it is not measured: it needs a key for Vertex AI (its express mode gives one to a Google account), which a maker would make apart from the AI Studio key. `src/vertex.ts` reads it from `VERTEX_API_KEY`.
+
 ## How to run it again
 
 ```bash
@@ -717,4 +748,7 @@ node src/run.ts gemini --text-files --model gemini-4-hydrogen --label hydrogen-a
 # unpack it into .agy/bin (not in git)
 node src/run.ts antigravity --text-files --model gemini-4-hydrogen-low --label hydrogen-low-acp-text
 node src/shoot.ts && node src/table.ts
+# Gemini through tools: one model turn, nothing run
+node src/chunked.ts --lines 25 --thinking low --label hydrogen-low-25-1
+node src/interactions.ts && node src/openai-compat.ts && node src/vertex.ts --gemini-api
 ```
