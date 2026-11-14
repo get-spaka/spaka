@@ -131,6 +131,9 @@ function siteText(path: string): string {
     .join("\n");
 }
 
+/** A real turn takes minutes; an adaptation, up to half an hour. */
+const LONG = 40 * 60_000;
+
 const CLAUDE_CASES = ["card", "plan", "ember"].filter((c) => !only || c === only);
 const PI_CASES = ["card", "plan", "ember"].filter((c) => !only || c === only);
 
@@ -198,141 +201,146 @@ async function emberCase(m: ReturnType<typeof maker>, timeout: number) {
   return { turn, checks, first, cards: await m.cards() };
 }
 
-describe.skipIf(!realClaude || !CLAUDE_CASES.length)("questions and plans with Claude, packaged", () => {
-  let launched: LaunchedApp;
-  let server: Server | undefined;
-  const m = maker(() => launched);
-  const dataDir = join(import.meta.dirname, "../.cache/agent-questions-data");
-  const record = join(runsDir, "real-agent-questions.jsonl");
-  const report: Record<string, unknown> = {};
-  /** A new website: the start screen again. */
-  const fresh = async () => {
-    if (await m.w().getByTestId("start").count()) return;
-    await m.invoke("projects:close");
-    await m.w().getByTestId("start").waitFor();
-  };
+describe.skipIf(!realClaude || !CLAUDE_CASES.length)(
+  "questions and plans with Claude, packaged",
+  { timeout: LONG },
+  () => {
+    let launched: LaunchedApp;
+    let server: Server | undefined;
+    const m = maker(() => launched);
+    const dataDir = join(import.meta.dirname, "../.cache/agent-questions-data");
+    const record = join(runsDir, "real-agent-questions.jsonl");
+    const report: Record<string, unknown> = {};
+    /** A new website: the start screen again. */
+    const fresh = async () => {
+      if (await m.w().getByTestId("start").count()) return;
+      await m.invoke("projects:close");
+      await m.w().getByTestId("start").waitFor();
+    };
 
-  beforeAll(async () => {
-    mkdirSync(runsDir, { recursive: true });
-    rmSync(record, { force: true });
-    rmSync(dataDir, { recursive: true, force: true });
-    // A release of the templates' repository as it is here, served as GitHub serves the published ones.
-    const out = mkdtempSync(join(tmpdir(), "upstart-release-"));
-    const built = spawnSync("node", ["apps/desktop/scripts/template.mjs", "release", out, "v5-local"], {
-      cwd: join(import.meta.dirname, ".."),
-      stdio: ["ignore", "pipe", "inherit"],
+    beforeAll(async () => {
+      mkdirSync(runsDir, { recursive: true });
+      rmSync(record, { force: true });
+      rmSync(dataDir, { recursive: true, force: true });
+      // A release of the templates' repository as it is here, served as GitHub serves the published ones.
+      const out = mkdtempSync(join(tmpdir(), "upstart-release-"));
+      const built = spawnSync("node", ["apps/desktop/scripts/template.mjs", "release", out, "v5-local"], {
+        cwd: join(import.meta.dirname, ".."),
+        stdio: ["ignore", "pipe", "inherit"],
+      });
+      expect(built.status).toBe(0);
+      server = createServer((req, res) => {
+        const file = /^\/releases\/(?:latest\/download|download\/v5-local)\/([\w.-]+)$/.exec(req.url ?? "")?.[1];
+        if (!file || !existsSync(join(out, file))) return void res.writeHead(404).end();
+        res.writeHead(200).end(readFileSync(join(out, file)));
+      });
+      await new Promise<void>((resolve) => server!.listen(0, "127.0.0.1", resolve));
+      const { port } = server.address() as AddressInfo;
+      launched = await launchApp({
+        packaged: true,
+        env: {
+          UPSTART_AGENT_REPLAY: "",
+          UPSTART_AGENT_CONFIG_DIR: configDir,
+          UPSTART_AGENT_RECORD: record,
+          UPSTART_DATA_DIR: dataDir,
+          UPSTART_TEMPLATES_URL: `http://127.0.0.1:${port}/releases`,
+          UPSTART_TEMPLATES_SNAPSHOT: mkdtempSync(join(tmpdir(), "upstart-snapshot-")),
+        },
+      });
+      await launched.window.getByTestId("start").waitFor();
+    }, 120_000);
+    afterAll(async () => {
+      writeFileSync(join(runsDir, "real-agent-questions.json"), JSON.stringify(report, null, 2));
+      await launched?.close();
+      server?.close();
     });
-    expect(built.status).toBe(0);
-    server = createServer((req, res) => {
-      const file = /^\/releases\/(?:latest\/download|download\/v5-local)\/([\w.-]+)$/.exec(req.url ?? "")?.[1];
-      if (!file || !existsSync(join(out, file))) return void res.writeHead(404).end();
-      res.writeHead(200).end(readFileSync(join(out, file)));
-    });
-    await new Promise<void>((resolve) => server!.listen(0, "127.0.0.1", resolve));
-    const { port } = server.address() as AddressInfo;
-    launched = await launchApp({
-      packaged: true,
-      env: {
-        UPSTART_AGENT_REPLAY: "",
-        UPSTART_AGENT_CONFIG_DIR: configDir,
-        UPSTART_AGENT_RECORD: record,
-        UPSTART_DATA_DIR: dataDir,
-        UPSTART_TEMPLATES_URL: `http://127.0.0.1:${port}/releases`,
-        UPSTART_TEMPLATES_SNAPSHOT: mkdtempSync(join(tmpdir(), "upstart-snapshot-")),
+
+    test.runIf(CLAUDE_CASES.includes("card"))(
+      "card: a short message builds at once, then one card on what was guessed; the answer lands in the site",
+      async () => {
+        await fresh();
+        await m.send("A website for Le Pétrin, a bakery in Lyon.");
+        let asked = false;
+        const turn = await m.drive({
+          question: async () => {
+            asked = true;
+            await launched.capture("real-card-asked");
+            // The maker's own words, with facts the site must then show.
+            await m.send(
+              "Our real hours: Tuesday to Sunday, 6:30 to 19:45, closed on Mondays. Our address is 12 rue Mercière.",
+            );
+          },
+        });
+        const project = await m.invoke<{ path: string }>("projects:current");
+        const text = siteText(project.path);
+        const cards = await m.cards();
+        report.card = { turnMs: turn.ms, status: turn.last.status, cards, pages: walk(join(project.path, "pages")) };
+        say(`[card] ${turn.ms / 1000} s, ${cards.length} card(s): ${JSON.stringify(cards.map((c) => c.card))}`);
+        expect(turn.last.status).toBe("done");
+        expect(asked).toBe(true);
+        expect(cards.filter((c) => c.kind === "question")).toHaveLength(1);
+        // The card came once the site was built: the home page was there before it.
+        expect(existsSync(join(project.path, "pages/index.liquid"))).toBe(true);
+        expect(text).toMatch(/19[:.h]45|7:45/);
+        expect(text).toMatch(/Merci[eè]re/);
       },
-    });
-    await launched.window.getByTestId("start").waitFor();
-  }, 120_000);
-  afterAll(async () => {
-    writeFileSync(join(runsDir, "real-agent-questions.json"), JSON.stringify(report, null, 2));
-    await launched?.close();
-    server?.close();
-  });
+    );
 
-  test.runIf(CLAUDE_CASES.includes("card"))(
-    "card: a short message builds at once, then one card on what was guessed; the answer lands in the site",
-    async () => {
-      await fresh();
-      await m.send("A website for Le Pétrin, a bakery in Lyon.");
-      let asked = false;
-      const turn = await m.drive({
-        question: async () => {
-          asked = true;
-          await launched.capture("real-card-asked");
-          // The maker's own words, with facts the site must then show.
-          await m.send(
-            "Our real hours: Tuesday to Sunday, 6:30 to 19:45, closed on Mondays. Our address is 12 rue Mercière.",
-          );
-        },
-      });
-      const project = await m.invoke<{ path: string }>("projects:current");
-      const text = siteText(project.path);
-      const cards = await m.cards();
-      report.card = { turnMs: turn.ms, status: turn.last.status, cards, pages: walk(join(project.path, "pages")) };
-      say(`[card] ${turn.ms / 1000} s, ${cards.length} card(s): ${JSON.stringify(cards.map((c) => c.card))}`);
-      expect(turn.last.status).toBe("done");
-      expect(asked).toBe(true);
-      expect(cards.filter((c) => c.kind === "question")).toHaveLength(1);
-      // The card came once the site was built: the home page was there before it.
-      expect(existsSync(join(project.path, "pages/index.liquid"))).toBe(true);
-      expect(text).toMatch(/19[:.h]45|7:45/);
-      expect(text).toMatch(/Merci[eè]re/);
-    },
-  );
+    test.runIf(CLAUDE_CASES.includes("plan"))(
+      "plan: questions, a plan before anything is written, a change, Build, then the build",
+      async () => {
+        await fresh();
+        await m.w().getByTestId("mode-select").selectOption("plan");
+        await m.send(
+          "A website for Atelier Nord, a furniture workshop in Lille: our pieces, custom orders, visits to the workshop on Saturdays, and a journal.",
+        );
+        let path = "";
+        const writtenBeforePlan: string[] = [];
+        const turn = await m.drive({
+          plan: async (index) => {
+            path ||= (await m.invoke<{ path: string }>("projects:current")).path;
+            if (index === 0) {
+              writtenBeforePlan.push(...walk(path).map((f) => relative(path, f)));
+              await m.send("Add a page of questions and answers about custom orders.");
+            } else await m.w().getByTestId("plan-build").click();
+          },
+        });
+        const project = await m.invoke<{ path: string; mode?: string }>("projects:current");
+        const cards = await m.cards();
+        const plans = cards.filter((c) => c.kind === "plan");
+        const pages = walk(join(project.path, "pages")).map((f) => relative(project.path, f));
+        report.plan = { turnMs: turn.ms, status: turn.last.status, cards, writtenBeforePlan, pages };
+        say(`[plan] ${turn.ms / 1000} s, ${plans.length} plan(s), pages ${pages.join(", ")}`);
+        say(`[plan] the last plan: ${String(plans.at(-1)?.card.text).slice(0, 600)}`);
+        expect(turn.last.status).toBe("done");
+        expect(writtenBeforePlan).toEqual([]);
+        expect(plans.map((p) => p.card.state)).toEqual(["replaced", "approved"]);
+        expect(String(plans[1]?.card.text)).toMatch(/question|FAQ/i);
+        expect(project.mode ?? "build").toBe("build");
+        expect(pages.length).toBeGreaterThanOrEqual(3);
+        expect(siteText(project.path)).toMatch(/custom order/i);
+      },
+    );
 
-  test.runIf(CLAUDE_CASES.includes("plan"))(
-    "plan: questions, a plan before anything is written, a change, Build, then the build",
-    async () => {
-      await fresh();
-      await m.w().getByTestId("mode-select").selectOption("plan");
-      await m.send(
-        "A website for Atelier Nord, a furniture workshop in Lille: our pieces, custom orders, visits to the workshop on Saturdays, and a journal.",
-      );
-      let path = "";
-      const writtenBeforePlan: string[] = [];
-      const turn = await m.drive({
-        plan: async (index) => {
-          path ||= (await m.invoke<{ path: string }>("projects:current")).path;
-          if (index === 0) {
-            writtenBeforePlan.push(...walk(path).map((f) => relative(path, f)));
-            await m.send("Add a page of questions and answers about custom orders.");
-          } else await m.w().getByTestId("plan-build").click();
-        },
-      });
-      const project = await m.invoke<{ path: string; mode?: string }>("projects:current");
-      const cards = await m.cards();
-      const plans = cards.filter((c) => c.kind === "plan");
-      const pages = walk(join(project.path, "pages")).map((f) => relative(project.path, f));
-      report.plan = { turnMs: turn.ms, status: turn.last.status, cards, writtenBeforePlan, pages };
-      say(`[plan] ${turn.ms / 1000} s, ${plans.length} plan(s), pages ${pages.join(", ")}`);
-      say(`[plan] the last plan: ${String(plans.at(-1)?.card.text).slice(0, 600)}`);
-      expect(turn.last.status).toBe("done");
-      expect(writtenBeforePlan).toEqual([]);
-      expect(plans.map((p) => p.card.state)).toEqual(["replaced", "approved"]);
-      expect(String(plans[1]?.card.text)).toMatch(/question|FAQ/i);
-      expect(project.mode ?? "build").toBe("build");
-      expect(pages.length).toBeGreaterThanOrEqual(3);
-      expect(siteText(project.path)).toMatch(/custom order/i);
-    },
-  );
-
-  test.runIf(CLAUDE_CASES.includes("ember"))(
-    "ember: the choices its message leaves open asked before building, then followed",
-    async () => {
-      await fresh();
-      await m.w().locator('[data-testid="template-card"][data-template="ember"] button[aria-pressed]').click();
-      await m.send(EMBER_MESSAGE);
-      const { turn, checks, first, cards } = await emberCase(m, 1_800_000);
-      report.ember = { turnMs: turn.ms, status: turn.last.status, checks, first, cards };
-      say(`[ember] ${turn.ms / 1000} s, first card ${JSON.stringify(first.questions)}: ${JSON.stringify(checks)}`);
-      expect(turn.last.status).toBe("done");
-      expect(checks).toEqual(Object.fromEntries(Object.keys(checks).map((k) => [k, true])));
-    },
-  );
-});
+    test.runIf(CLAUDE_CASES.includes("ember"))(
+      "ember: the choices its message leaves open asked before building, then followed",
+      async () => {
+        await fresh();
+        await m.w().locator('[data-testid="template-card"][data-template="ember"] button[aria-pressed]').click();
+        await m.send(EMBER_MESSAGE);
+        const { turn, checks, first, cards } = await emberCase(m, 1_800_000);
+        report.ember = { turnMs: turn.ms, status: turn.last.status, checks, first, cards };
+        say(`[ember] ${turn.ms / 1000} s, first card ${JSON.stringify(first.questions)}: ${JSON.stringify(checks)}`);
+        expect(turn.last.status).toBe("done");
+        expect(checks).toEqual(Object.fromEntries(Object.keys(checks).map((k) => [k, true])));
+      },
+    );
+  },
+);
 
 describe.skipIf(!realPi || !PI_CASES.length)(
   "questions and plans with Upstart's own harness, Gemini 4 Hydrogen",
+  { timeout: LONG },
   () => {
     let launched: LaunchedApp;
     const m = maker(() => launched);
