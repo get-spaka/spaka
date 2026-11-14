@@ -43,19 +43,12 @@ import {
 import { en as t } from "../shared/strings/en";
 import { Agent, projectNameFrom } from "./agent/agent";
 import { AgentAuth } from "./agent/auth";
-import { agentBinary, cleanEnv, grantedInSandbox, nodeLauncher } from "./agent/confinement";
-import { dataProblemsAfter } from "./agent/data-check";
+import { agentBinary, cleanEnv, nodeLauncher } from "./agent/confinement";
 import { instructionsFor } from "./agent/instructions";
-import {
-  FIND_BLOCKS_TOOL,
-  FIND_IMAGES_TOOL,
-  LOOK_TOOL,
-  UPSTART_SERVER,
-  USE_BLOCK_TOOL,
-  USE_IMAGE_TOOL,
-  upstartServer,
-} from "./agent/preview-tool";
+import { claudeExtras, UPSTART_SERVER } from "./agent/preview-tool";
 import { Recorder, replayed, replayQuery } from "./agent/replay";
+import type { AgentKit } from "./agent/runner";
+import { TurnChecks } from "./agent/turn-checks";
 import { AppSettingsStore, zoomFor } from "./app-settings";
 import { Connectors, type Vault } from "./connectors/connectors";
 import { Comments, commentsMessage } from "./editing/comments";
@@ -63,14 +56,7 @@ import { NAVIGATION, pageKey } from "./editing/data-drop";
 import { Editor } from "./editing/editor";
 import { EditRefused } from "./editing/edits";
 import { AgentNotes } from "./editing/notes";
-import {
-  loremLeft,
-  loremLeftNote,
-  nameRecords,
-  samplesLeftNote,
-  unchangedSamples,
-  useBlocks,
-} from "./editing/use-blocks";
+import { useBlocks } from "./editing/use-blocks";
 import { readEnvironment } from "./environment";
 import { exportProject, publishChoices } from "./export";
 import { described, Gallery, ProjectBlocks } from "./gallery/catalogue";
@@ -95,13 +81,7 @@ import {
   SiteUnavailable,
 } from "./publish/management";
 import { Skills } from "./skills/skills";
-import {
-  adaptMessage,
-  copyTemplate,
-  forgetTemplateTexts,
-  templateLeftNote,
-  templateTextsLeft,
-} from "./templates/adapt";
+import { adaptMessage, copyTemplate } from "./templates/adapt";
 import { TEMPLATES_RELEASES, TemplateLibrary } from "./templates/library";
 import { TemplateViewer } from "./templates/viewer";
 import { Fonts } from "./theme/fonts";
@@ -348,6 +328,26 @@ async function main() {
   const tokens = new ManagementTokens(userData, vault);
   // Free images for the agent and the maker (Q150); a folder of made-up ones for the checks.
   const images: ImageFinder = env.imagesFixture ? new FixtureImages(env.imagesFixture) : new ImageSearch();
+  // What Upstart gives a project's agent, whichever layer runs it (ADR 0012): its tools and its checks.
+  const kitFor = (project: { path: string }): AgentKit => {
+    const checks = new TurnChecks(project.path);
+    return {
+      checks,
+      tools: {
+        look: (route) => preview.look(route),
+        findBlocks: findBlocksIn(project.path),
+        findImages: async (query, count) => imagesAnswer(query, await images.search(query, count)),
+        useImage: (id, name, alt) => useFoundImage(images, project.path, id, name, alt),
+        useBlocks: (input) => {
+          const { text, samples, files } = useBlocks(project.path, input, (id) =>
+            new ProjectBlocks(gallery, () => project.path).get(id),
+          );
+          checks.placed(samples, files);
+          return text;
+        },
+      },
+    };
+  };
   let agent: Agent;
   const auth = new AgentAuth({
     binary,
@@ -362,95 +362,7 @@ async function main() {
       binary,
       readable: launcher.readable,
       instructions: () => instructionsFor(settings.get().replyStyle),
-      extraOptions: (project) => {
-        // The sample records use_block wrote in this turn, named to the agent once if it leaves them (Q217).
-        const placedSamples = new Set<string>();
-        // The parts and record pages it wrote, their lorem ipsum named to the agent once if left (Q223).
-        const placedFiles = new Set<string>();
-        // Whether it was told of the template's texts left in this turn (Q246).
-        let templateTold = false;
-        return {
-          mcpServers: {
-            [UPSTART_SERVER]: upstartServer({
-              look: (route) => preview.look(route),
-              findBlocks: findBlocksIn(project.path),
-              findImages: async (query, count) => imagesAnswer(query, await images.search(query, count)),
-              useImage: (id, name, alt) => useFoundImage(images, project.path, id, name, alt),
-              useBlocks: (input) => {
-                const { text, samples, files } = useBlocks(project.path, input, (id) =>
-                  new ProjectBlocks(gallery, () => project.path).get(id),
-                );
-                for (const path of samples) placedSamples.add(path);
-                for (const path of files) placedFiles.add(path);
-                return text;
-              },
-            }),
-          },
-          allowedTools: [LOOK_TOOL, FIND_BLOCKS_TOOL, FIND_IMAGES_TOOL, USE_IMAGE_TOOL, USE_BLOCK_TOOL],
-          // A record that does not read is said to the agent at once, with the tool's answer (Q170).
-          hooks: {
-            // What the agent tool would ask for, granted when the sandbox confines it (Q220, Q221).
-            PermissionRequest: [
-              {
-                hooks: [
-                  async (input: { tool_name?: string; tool_input?: unknown }) =>
-                    grantedInSandbox(input.tool_name ?? "", input.tool_input)
-                      ? {
-                          hookSpecificOutput: {
-                            hookEventName: "PermissionRequest" as const,
-                            decision: { behavior: "allow" as const },
-                          },
-                        }
-                      : { continue: true },
-                ],
-              },
-            ],
-            PostToolUse: [
-              {
-                matcher: "Write|Edit|Bash",
-                hooks: [
-                  async (input: { tool_name?: string; tool_input?: unknown }) => {
-                    const note = dataProblemsAfter(project.path, input.tool_name ?? "", input.tool_input);
-                    return note
-                      ? { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: note } }
-                      : { continue: true };
-                  },
-                ],
-              },
-            ],
-            Stop: [
-              {
-                hooks: [
-                  async (input: { stop_hook_active?: boolean }) => {
-                    // The samples it rewrote, named after their titles (Q218).
-                    nameRecords(project.path);
-                    const left = input.stop_hook_active
-                      ? []
-                      : unchangedSamples(project.path).filter((path) => placedSamples.has(path));
-                    const lorem = input.stop_hook_active ? [] : loremLeft(project.path, placedFiles);
-                    placedSamples.clear();
-                    placedFiles.clear();
-                    // The template's texts, named once; those it keeps after that are kept on purpose (Q246).
-                    const fromTemplate = templateTextsLeft(project.path);
-                    const tellTemplate = !input.stop_hook_active && fromTemplate.length > 0;
-                    if (!tellTemplate)
-                      forgetTemplateTexts(project.path, templateTold ? fromTemplate.flatMap((l) => l.texts) : []);
-                    templateTold = tellTemplate;
-                    const notes = [
-                      ...(left.length ? [samplesLeftNote(left)] : []),
-                      ...(lorem.length ? [loremLeftNote(lorem)] : []),
-                      ...(tellTemplate ? [templateLeftNote(fromTemplate)] : []),
-                    ];
-                    return notes.length
-                      ? { decision: "block" as const, reason: notes.join("\n\n") }
-                      : { continue: true };
-                  },
-                ],
-              },
-            ],
-          },
-        };
-      },
+      extraOptions: (project) => claudeExtras(kitFor(project)),
       connectors: [UPSTART_SERVER],
       skills,
       connectorServers: connectors,

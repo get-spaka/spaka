@@ -108,3 +108,38 @@ test("editPreview", () => {
     editPreview("a{}", "theme.css", { old_string: "a{}", new_string: "b{" }, { old_string: true, new_string: false }),
   ).toBeUndefined();
 });
+
+test("a long file written in parts: each Append adds to what is shown, and the disk takes over once all are written", () => {
+  const { t, shown, log } = target();
+  const tap = new FileTap(t);
+  const parts = ["<header>Fleur</header>\n", "<section>Bouquets</section>\n", "<footer>Nantes</footer>\n"];
+  // Gemini sends each call whole, one after the other, before any is run.
+  tap.handle({ kind: "tool-start", id: "w", name: "Write" });
+  tap.handle({
+    kind: "tool-input-end",
+    id: "w",
+    name: "Write",
+    input: { file_path: "pages/index.liquid", content: parts[0] },
+  });
+  expect(shown.get("pages/index.liquid")).toBe(parts[0]);
+  for (const [i, part] of parts.slice(1).entries()) {
+    for (const e of streamed(`a${i}`, "Append", { file_path: "/p/pages/index.liquid", content: part }, 9))
+      tap.handle(e);
+  }
+  expect(shown.get("pages/index.liquid")).toBe(parts.join(""));
+  // The Write is run first: the Appends still pending keep the whole page shown.
+  tap.handle({ kind: "tool-result", id: "w", name: "Write", isError: false, text: "" });
+  expect(shown.get("pages/index.liquid")).toBe(parts.join(""));
+  tap.handle({ kind: "tool-result", id: "a0", name: "Append", isError: false, text: "" });
+  expect(shown.has("pages/index.liquid")).toBe(true);
+  tap.handle({ kind: "tool-result", id: "a1", name: "Append", isError: false, text: "" });
+  expect(shown.has("pages/index.liquid")).toBe(false);
+  expect(log.at(-1)).toBe("final");
+});
+
+test("an Append to a file already on the disk adds to it", () => {
+  const { t, shown } = target({ "styles/site.css": ".a{}\n" });
+  const tap = new FileTap(t);
+  for (const e of streamed("a", "Append", { file_path: "styles/site.css", content: ".b{}\n" }, 4)) tap.handle(e);
+  expect(shown.get("styles/site.css")).toBe(".a{}\n.b{}\n");
+});

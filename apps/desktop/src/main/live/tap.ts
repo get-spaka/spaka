@@ -1,7 +1,10 @@
 // Follows what the agent is writing, before it reaches the disk (ADR 0009):
-// the unfinished content of each Write or Edit goes into the overlay in front
-// of the project's files, and the preview renders it. Once the tool has
-// written the file, the overlay lets the disk show through again.
+// the unfinished content of each Write, Edit or Append goes into the overlay
+// in front of the project's files, and the preview renders it. Once the tool
+// has written the file, and no other call on it is pending, the overlay lets
+// the disk show through again. An Append (Gemini's long files, in parts,
+// ADR 0012) adds to what is shown of its file: the part of a Write before it
+// in the same reply, not yet on the disk, or the disk.
 import { realpathSync } from "node:fs";
 import { isAbsolute, relative } from "node:path";
 import { repairTemplate } from "@upstart/runtime";
@@ -21,6 +24,9 @@ export type TapTarget = {
 };
 
 type Call = { name: string; rel?: string; base?: string; shown?: boolean };
+
+/** The calls that write a file, by their canonical names. */
+const WRITES = ["Write", "Edit", "Append"];
 
 export class FileTap {
   private readonly calls = new Map<string, Call>();
@@ -42,13 +48,20 @@ export class FileTap {
       case "tool-input":
       case "tool-input-end": {
         const call = this.calls.get(e.id);
-        if (!call || (call.name !== "Write" && call.name !== "Edit")) return;
+        if (!call || !WRITES.includes(call.name)) return;
         const fields = e.kind === "tool-input" ? e.fields : strings(e.input);
         const done = e.kind === "tool-input" ? e.done : allDone(fields);
         if (!call.rel && done.file_path) call.rel = this.rel(fields.file_path);
         if (!call.rel) return;
-        if (call.name === "Edit") call.base ??= this.target.read(call.rel) ?? "";
-        const content = call.name === "Write" ? fields.content : editPreview(call.base!, call.rel, fields, done);
+        if (call.name !== "Write") call.base ??= this.target.read(call.rel) ?? "";
+        const content =
+          call.name === "Write"
+            ? fields.content
+            : call.name === "Append"
+              ? fields.content === undefined
+                ? undefined
+                : call.base! + fields.content
+              : editPreview(call.base!, call.rel, fields, done);
         if (content === undefined) return;
         // Shown first, so that a new page exists when the preview moves to it.
         this.target.set(call.rel, content);
@@ -64,8 +77,8 @@ export class FileTap {
         const call = this.calls.get(e.id);
         this.calls.delete(e.id);
         if (!call) return;
-        // Written (or refused): the disk has the last word.
-        if (call.rel && call.shown) this.target.set(call.rel, undefined);
+        // Written (or refused): the disk has the last word, once no other call on the file is pending.
+        if (call.rel && call.shown && !this.pendingOn(call.rel)) this.target.set(call.rel, undefined);
         // A shell command may have changed any file.
         if (call.shown || call.name === "Bash") this.target.changed(true);
         return;
@@ -78,6 +91,11 @@ export class FileTap {
         return;
       }
     }
+  }
+
+  private pendingOn(rel: string) {
+    for (const call of this.calls.values()) if (call.rel === rel && call.shown) return true;
+    return false;
   }
 
   private rel(file: string | undefined): string | undefined {

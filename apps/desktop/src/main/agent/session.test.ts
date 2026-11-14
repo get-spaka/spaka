@@ -4,18 +4,11 @@ import { join } from "node:path";
 import { afterEach, beforeEach, expect, test } from "vitest";
 import { applyEvent, type ConversationEvent, type ConversationItem } from "../../shared/conversation";
 import { Skills } from "../skills/skills";
+import { activityDetail, activityLabel } from "./activity";
 import { modelChoices, projectNameFrom } from "./agent";
 import { findSignInUrl, parseAuthStatus } from "./auth";
 import { instructionsFor, UPSTART_INSTRUCTIONS } from "./instructions";
-import {
-  AgentSession,
-  activityDetail,
-  activityLabel,
-  DENY_MESSAGE,
-  isolationProblem,
-  type SessionDeps,
-  TOOLS,
-} from "./session";
+import { AgentSession, DENY_MESSAGE, isolationProblem, type SessionDeps, TOOLS } from "./session";
 
 // A stand-in for the SDK's query(): each message the session sends gets the
 // next scripted turn; the test sees the options the session passed.

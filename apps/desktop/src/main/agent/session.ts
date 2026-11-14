@@ -4,15 +4,16 @@
 // what the conversation shows, and passes the raw events on to whoever follows
 // the files being written (the live preview).
 import { readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
-import { isAbsolute, join, relative } from "node:path";
+import { join } from "node:path";
 import type { Query, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
 import type { ConversationEvent } from "../../shared/conversation";
 import type { Effort, ProjectInfo } from "../../shared/ipc";
 import { en } from "../../shared/strings/en";
 import type { AssembledSkills } from "../skills/skills";
+import { Activities } from "./activity";
 import { confinement } from "./confinement";
 import { UPSTART_INSTRUCTIONS } from "./instructions";
-import { LOOK_TOOL } from "./preview-tool";
+import type { AgentRunner } from "./runner";
 import { type AgentEvent, StreamReader } from "./stream";
 
 /** The agent's tools. No MultiEdit: the live preview cannot follow it (ADR 0009). */
@@ -73,7 +74,7 @@ type ConnectorSignIn = {
   mcpAuthenticate(serverName: string): Promise<{ authUrl?: string; requiresUserAction?: boolean } | undefined>;
 };
 
-export class AgentSession {
+export class AgentSession implements AgentRunner {
   private q: Query | undefined;
   private inbox: Inbox<SDKUserMessage> | undefined;
   private working = false;
@@ -82,7 +83,7 @@ export class AgentSession {
   private pending: string | undefined;
   private started = false;
   private turnFailed: string | undefined;
-  private readonly activities = new Map<string, { name: string; label: string; detail?: string }>();
+  private readonly activities: Activities;
   private stderr = "";
   /** The skills the running agent was given, and their fingerprint at the time. */
   private skills: { assembled: AssembledSkills; fingerprint: string } | undefined;
@@ -97,7 +98,12 @@ export class AgentSession {
     private readonly dataDir: string,
     private readonly deps: SessionDeps,
     private readonly handlers: SessionHandlers,
-  ) {}
+  ) {
+    this.activities = new Activities(
+      () => this.project.path,
+      (event) => this.handlers.onConversation(event),
+    );
+  }
 
   get projectId() {
     return this.project.id;
@@ -330,16 +336,12 @@ export class AgentSession {
         if (this.working && e.text) this.handlers.onConversation({ type: "thinking", text: e.text });
         return;
       case "tool-start":
-        return this.activity(e.id, e.name, {}, "running");
       case "tool-input":
-        // Only complete fields: a path is shown once, not letter by letter.
-        return this.activity(e.id, e.name, complete(e.fields, e.done), "running");
       case "tool-input-end":
-        return this.activity(e.id, e.name, e.input, "running");
       case "tool-result":
-        return this.activity(e.id, e.name, undefined, e.isError ? "failed" : "done", e.isError ? e.text : undefined);
       case "permission-denied":
-        return this.activity(e.id, e.name, undefined, "refused", e.message);
+        if (this.working) this.activities.handle(e);
+        return;
       case "auth":
         this.turnFailed = en.errors.signInNeeded;
         this.handlers.onSignInNeeded?.();
@@ -358,29 +360,6 @@ export class AgentSession {
         return this.endTurn("failed", en.errors.agentStopped);
       }
     }
-  }
-
-  private activity(
-    id: string,
-    name: string,
-    input: Record<string, unknown> | undefined,
-    state: "running" | "done" | "failed" | "refused",
-    error?: string,
-  ) {
-    if (!this.working) return;
-    const known = this.activities.get(id);
-    const label = input
-      ? activityLabel(name, input, this.project.path)
-      : (known?.label ?? activityLabel(name, {}, this.project.path));
-    const detail = input ? activityDetail(name, input) : known?.detail;
-    // A tool's input streams in many small pieces: send only what changes the line.
-    if (known && known.label === label && known.detail === detail && state === "running") return;
-    this.activities.set(id, { name, label, detail });
-    const why = error?.trim() ? clip(error.trim(), 300) : undefined;
-    this.handlers.onConversation({
-      type: "activity",
-      activity: { id, label, state, ...(detail ? { detail } : {}), ...(why ? { error: why } : {}) },
-    });
   }
 
   private endTurn(status: "done" | "stopped" | "failed", error?: string) {
@@ -407,91 +386,6 @@ export class AgentSession {
   private saveSessionId(sessionId: string) {
     if (this.sessionId() === sessionId) return;
     writeFileSync(this.sessionFile(), JSON.stringify({ sessionId }));
-  }
-}
-
-/** The short line shown for a tool call. */
-export function activityLabel(name: string, input: Record<string, unknown>, projectDir: string): string {
-  const path = typeof input.file_path === "string" ? shortPath(input.file_path, projectDir) : undefined;
-  switch (name) {
-    case "Write":
-      return en.activity.write(path);
-    case "Edit":
-      return en.activity.edit(path);
-    case "Read":
-      return en.activity.read(path);
-    case "Glob":
-    case "Grep":
-      return en.activity.search;
-    case "Bash": {
-      const what =
-        typeof input.description === "string" && input.description
-          ? input.description
-          : typeof input.command === "string"
-            ? input.command.split("\n")[0]!
-            : "";
-      return en.activity.run(what.length > 60 ? `${what.slice(0, 59)}…` : what || undefined);
-    }
-    case LOOK_TOOL:
-      return en.activity.look;
-    case "Skill":
-      // "project:menu-format" is shown as "menu-format".
-      return en.activity.skill(typeof input.skill === "string" ? input.skill.replace(/^[\w-]+:/, "") : undefined);
-    default:
-      return en.activity.other(name);
-  }
-}
-
-/** What the detailed output style shows under a step (Q127): what was run or searched. */
-export function activityDetail(name: string, input: Record<string, unknown>): string | undefined {
-  const text = (value: unknown) => (typeof value === "string" && value.trim() ? value.trim() : undefined);
-  switch (name) {
-    case "Bash":
-      return text(input.command) && clip(text(input.command)!, 400);
-    case "Grep": {
-      const pattern = text(input.pattern);
-      const where = text(input.glob) ?? text(input.path);
-      return pattern && (where ? `${pattern} in ${where}` : pattern);
-    }
-    case "Glob":
-      return text(input.pattern);
-    case "Write":
-    case "Edit":
-    case "Read":
-    case "Skill":
-    case LOOK_TOOL:
-      return undefined;
-    default: {
-      // A connector's tool: what it was asked.
-      const shown = Object.keys(input).length ? JSON.stringify(input) : undefined;
-      return shown && clip(shown, 200);
-    }
-  }
-}
-
-function clip(text: string, max: number) {
-  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
-}
-
-function complete(fields: Record<string, string>, done: Record<string, boolean>) {
-  return Object.fromEntries(Object.entries(fields).filter(([name]) => done[name]));
-}
-
-function shortPath(file: string, projectDir: string): string {
-  if (!isAbsolute(file)) return file;
-  // The agent sees the folder's real path (/private/var/… for /var/…).
-  for (const root of [projectDir, realPath(projectDir)]) {
-    const rel = relative(root, file);
-    if (rel && !rel.startsWith("..") && !isAbsolute(rel)) return rel.split("\\").join("/");
-  }
-  return file;
-}
-
-function realPath(path: string) {
-  try {
-    return realpathSync(path);
-  } catch {
-    return path;
   }
 }
 

@@ -1,0 +1,151 @@
+// The agent's steps as the conversation shows them: one line per tool call,
+// whichever agent made it (ADR 0012), its tools known by their canonical names
+// (Read, Write, Edit, Append, Bash, Glob, Grep, Upstart's own, a connector's).
+
+import { realpathSync } from "node:fs";
+import { isAbsolute, relative } from "node:path";
+import type { ConversationEvent } from "../../shared/conversation";
+import { en } from "../../shared/strings/en";
+import type { AgentEvent } from "./stream";
+import { LOOK_TOOL } from "./upstart-tools";
+
+type Known = { name: string; label: string; detail?: string };
+
+/** Turns the agent's tool events into the conversation's activity lines. */
+export class Activities {
+  private readonly known = new Map<string, Known>();
+
+  constructor(
+    private readonly projectDir: () => string,
+    private readonly emit: (event: ConversationEvent) => void,
+  ) {}
+
+  clear() {
+    this.known.clear();
+  }
+
+  handle(e: AgentEvent) {
+    switch (e.kind) {
+      case "tool-start":
+        return this.activity(e.id, e.name, {}, "running");
+      case "tool-input":
+        // Only complete fields: a path is shown once, not letter by letter.
+        return this.activity(e.id, e.name, complete(e.fields, e.done), "running");
+      case "tool-input-end":
+        return this.activity(e.id, e.name, e.input, "running");
+      case "tool-result":
+        return this.activity(e.id, e.name, undefined, e.isError ? "failed" : "done", e.isError ? e.text : undefined);
+      case "permission-denied":
+        return this.activity(e.id, e.name, undefined, "refused", e.message);
+    }
+  }
+
+  private activity(
+    id: string,
+    name: string,
+    input: Record<string, unknown> | undefined,
+    state: "running" | "done" | "failed" | "refused",
+    error?: string,
+  ) {
+    const known = this.known.get(id);
+    const label = input
+      ? activityLabel(name, input, this.projectDir())
+      : (known?.label ?? activityLabel(name, {}, this.projectDir()));
+    const detail = input ? activityDetail(name, input) : known?.detail;
+    // A tool's input streams in many small pieces: send only what changes the line.
+    if (known && known.label === label && known.detail === detail && state === "running") return;
+    this.known.set(id, { name, label, detail });
+    const why = error?.trim() ? clip(error.trim(), 300) : undefined;
+    this.emit({
+      type: "activity",
+      activity: { id, label, state, ...(detail ? { detail } : {}), ...(why ? { error: why } : {}) },
+    });
+  }
+}
+
+/** The short line shown for a tool call. */
+export function activityLabel(name: string, input: Record<string, unknown>, projectDir: string): string {
+  const path = typeof input.file_path === "string" ? shortPath(input.file_path, projectDir) : undefined;
+  switch (name) {
+    case "Write":
+    case "Append":
+      return en.activity.write(path);
+    case "Edit":
+      return en.activity.edit(path);
+    case "Read":
+      return en.activity.read(path);
+    case "Glob":
+    case "Grep":
+      return en.activity.search;
+    case "Bash": {
+      const what =
+        typeof input.description === "string" && input.description
+          ? input.description
+          : typeof input.command === "string"
+            ? input.command.split("\n")[0]!
+            : "";
+      return en.activity.run(what.length > 60 ? `${what.slice(0, 59)}…` : what || undefined);
+    }
+    case LOOK_TOOL:
+      return en.activity.look;
+    case "Skill":
+      // "project:menu-format" is shown as "menu-format".
+      return en.activity.skill(typeof input.skill === "string" ? input.skill.replace(/^[\w-]+:/, "") : undefined);
+    default:
+      return en.activity.other(name);
+  }
+}
+
+/** What the detailed output style shows under a step (Q127): what was run or searched. */
+export function activityDetail(name: string, input: Record<string, unknown>): string | undefined {
+  const text = (value: unknown) => (typeof value === "string" && value.trim() ? value.trim() : undefined);
+  switch (name) {
+    case "Bash":
+      return text(input.command) && clip(text(input.command)!, 400);
+    case "Grep": {
+      const pattern = text(input.pattern);
+      const where = text(input.glob) ?? text(input.path);
+      return pattern && (where ? `${pattern} in ${where}` : pattern);
+    }
+    case "Glob":
+      return text(input.pattern);
+    case "Write":
+    case "Append":
+    case "Edit":
+    case "Read":
+    case "Skill":
+    case LOOK_TOOL:
+      return undefined;
+    default: {
+      // A connector's tool: what it was asked.
+      const shown = Object.keys(input).length ? JSON.stringify(input) : undefined;
+      return shown && clip(shown, 200);
+    }
+  }
+}
+
+export function clip(text: string, max: number) {
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}
+
+function complete(fields: Record<string, string>, done: Record<string, boolean>) {
+  return Object.fromEntries(Object.entries(fields).filter(([name]) => done[name]));
+}
+
+function shortPath(file: string, projectDir: string): string {
+  if (!isAbsolute(file)) return file;
+  // The agent sees the folder's real path (/private/var/… for /var/…).
+  for (const root of [projectDir, realPath(projectDir)]) {
+    const rel = relative(root, file);
+    if (rel && !rel.startsWith("..") && !isAbsolute(rel)) return rel.split("\\").join("/");
+  }
+  return file;
+}
+
+function realPath(path: string) {
+  try {
+    return realpathSync(path);
+  } catch {
+    return path;
+  }
+}
