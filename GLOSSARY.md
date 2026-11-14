@@ -142,12 +142,16 @@ The catalogue of blocks that ships with Upstart.
 _Avoid_: Library, marketplace
 
 **Template**:
-A complete, ready-made project that a maker can start a new project from, with its own design, its own blocks and notes on its design for the agent. Made by Upstart or by an outside author.
+A complete, ready-made project that a maker can start a new project from, with its own design, its own blocks, a guide for the agent that adapts it and notes on its design. Made by Upstart or by an outside author.
 _Avoid_: Starter, theme; also avoid "template" for the source of a page
 
-**Template question**:
-A question a template asks about what varies in its design, answered on the start screen before the first message, each set to its recommended answer until the maker changes it.
-_Avoid_: Template option, template setting
+**Template guide**:
+What a template tells the agent that adapts it: what the template is and suits, how it is made, how to adapt it, and the choices that vary, which the agent asks before building when the maker's message leaves them open. Read once, when a website starts from the template.
+_Avoid_: Template questions, readme
+
+**Design notes**:
+What a template leaves with the website it starts, for the agent's later turns: its type, colors, effects and how its lists work.
+_Avoid_: Style guide, template guide
 
 ### Running and shipping
 
