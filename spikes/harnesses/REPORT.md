@@ -6,22 +6,27 @@
 - Codex 0.169.0 (OpenAI), through `codex app-server`
 - Pi 1.5.2 (`@earendil-works/pi-coding-agent`), in RPC mode
 - opencode 2.3.0, through `opencode run --format json`
-
-**Studied from their sources and docs only:** Gemini CLI 0.68.0 and Antigravity CLI 1.5.9 (Matt's choice).
+- Gemini CLI 0.68.0, over ACP (`gemini --acp`), on the Gemini API key
+- Antigravity CLI 1.5.9 (Google's release binary, signed by Google LLC), over ACP (`antigravity acp`), on the Gemini API key
 
 **Accounts:**
-- **The ChatGPT account signed in to Codex.** Codex reports it as a **free** plan (`planType: "free"`), so its models were GPT-6 Luna, GPT-5.6 Terra and GPT-5.6 Luna.
+- **The ChatGPT account signed in to Codex.** At first a **free** plan (`planType: "free"`), so Codex's models were GPT-6 Luna, GPT-5.6 Terra and GPT-5.6 Luna.
   - All the Codex runs used 2% of its 30-day allowance.
   - GPT-6.1 Sol was reached through OpenRouter instead.
+- **ChatGPT Plus**, which Matt took on the same day. Pi signed in to it through Sign in with ChatGPT (`pi auth login openai`, in the browser by Matt), for GPT-6.1 Sol and Terra on OpenAI's own API.
 - **A Gemini API key from AI Studio.** It is on a paid billing account: Gemini 4 Argon has no free tier and answered.
 - **An OpenRouter key**, for GPT-6.1 Sol and Gemini 4 Hydrogen.
 
+The keys sit in `homes/keys.env` and the sign-ins in each harness's folder under `homes/`, which git ignores; the root `.gitignore` also ignores any `keys.env` and the spikes' `auth.json`. No key or token is in the repository or its history.
+
 The research for each harness, with its sources, is in `research/` (codex, pi, opencode, gemini, antigravity, and pi-extensions for Pi's packages).
 
-**A second round, the same day,** answered Matt's question after the first report: would Upstart do better with a harness of its own, built on Pi, with every subscription plugged in? It tried:
-- Gemini writing its files in the reply's text instead of through a tool;
+**A second round, the same day,** answered Matt's questions after the first report. Would Upstart do better with a harness of its own, built on Pi, with every subscription plugged in? And how far do Google's own agents go on an AI Studio key, over ACP? It tried:
+- Gemini writing its files in the reply's text instead of through a tool, in Pi and over ACP;
 - Pi's thinking level set low, for Hydrogen and for Sol;
 - Argon twice more;
+- ChatGPT Plus through Sign in with ChatGPT;
+- Gemini CLI and Antigravity over ACP;
 - Pi Durable, Earendil's library for building an agent app on Pi, and Pi's extensions, from their packages and docs.
 
 ## The method
@@ -29,8 +34,13 @@ The research for each harness, with its sources, is in `research/` (codex, pi, o
 **The request.** Spike 1's launch page for Lumen, with spike 1's instructions. The only change to the instructions is that "Write" became "your file-writing tool".
 
 **Each harness ran apart from Matt's own setup:**
-- its own configuration folder under `homes/` (`CODEX_HOME`, `PI_CODING_AGENT_DIR`, opencode's `XDG_*` folders);
+- its own configuration folder under `homes/` (`CODEX_HOME`, `PI_CODING_AGENT_DIR`, opencode's `XDG_*` folders, `GEMINI_CLI_HOME`, and `HOME` for Antigravity, which has no folder variable);
 - a fresh project in a temporary folder outside any repository.
+
+**Over ACP, the spike was the client** (`src/acp.ts`), as Upstart would be. It:
+- wrote the files when the agent asked it to (`fs/write_text_file`);
+- answered permission requests itself;
+- read the reply's text as it came.
 
 **Measured for each run, against the time the request was sent:**
 - every piece of a file's content in the harness's stream;
@@ -44,29 +54,38 @@ The research for each harness, with its sources, is in `research/` (codex, pi, o
 
 ## The answer
 
-**No ready-made harness can stand in for Claude in Upstart today. A harness of Upstart's own, built on Pi's libraries, could carry other models with the live preview.**
+**No harness stands in for Claude as it is driven today.** But one change on Upstart's side gives every model the live preview: the model writes each file in its reply's text, which every provider and every agent protocol streams. With that, Gemini 4 Hydrogen matches Claude's pace, both in a harness of Upstart's own on Pi and in Google's own Antigravity over ACP.
 
 **The live preview, Upstart's defining moment:**
 
 | Harness | Live preview | Why |
 |---|---|---|
 | Pi, with an OpenAI model | Yes | Pi streams a tool call's arguments as they arrive. OpenAI's API sends them a few characters at a time. |
-| Upstart's own harness on Pi, files written in the reply's text | Yes, with any model | Every provider streams a reply's text as it is generated, Gemini included. See [Files in the reply's text](#files-in-the-replys-text-a-live-preview-for-any-model). |
-| Codex | No | Its GPT-6 models write files from code run by an `exec` tool ("code mode"), and Codex does not pass that tool's input on to an app. |
-| opencode 2 | No | It publishes a tool's input only once the call is complete (a fix is open, not merged). |
-| Any ready-made harness with Gemini | No | The Gemini API sends a tool call whole (`partialArgs` is on Vertex only). Gemini CLI and Antigravity also send tool calls whole. |
+| Any harness, files written in the reply's text | **Yes, with any model** | Every provider streams a reply's text as it is generated, Gemini included, and so does ACP (`agent_message_chunk`). Tried in Pi, Gemini CLI and Antigravity. See [Files in the reply's text](#files-in-the-replys-text-a-live-preview-for-any-model). |
+| Codex, writing through its tools | No | Its GPT-6 models write files from code run by an `exec` tool ("code mode"), and Codex does not pass that tool's input on to an app. |
+| opencode 2, writing through its tools | No | It publishes a tool's input only once the call is complete (a fix is open, not merged). |
+| Gemini CLI and Antigravity, writing through their tools | No | Over ACP, a `write_file` call reaches the client whole, once the model has finished it. The Gemini API sends a tool call whole anyway (`partialArgs` is on Vertex only). |
 
-**One combination matches Claude: Gemini 4 Hydrogen writing its files in the reply's text, with Pi's thinking set low.**
-- Its page starts showing at 4.2 s and is complete at 22.5 s; Claude's at 5.9 s and 23.6 s.
-- Once it starts, it never stands still longer than half a second.
-- It costs $0.05 a page, against $0.085 for Claude at API prices.
+**Two combinations match Claude, both Gemini 4 Hydrogen writing its files in the reply's text, with its thinking low:**
 
-**GPT-6.1 Sol, through OpenRouter, is twice as slow as Claude to a complete page:** 56 s with Pi's thinking at medium, 52.7 s at low, against 23.6 s. Its page starts showing as early (6 s) and never stands still longer (2.6 s at most). OpenAI's own API is not measured yet.
+| | Starts showing | Complete | Cost a page |
+|---|---|---|---|
+| Claude, Agent SDK (spike 1) | 5.9 s | 23.6 s | $0.085 |
+| Antigravity over ACP, Hydrogen low | 5.9 s | **20.1 s** | $0.065 |
+| Pi, Hydrogen low | **4.2 s** | 22.5 s | **$0.051** |
 
-**Into a harness of Upstart's own, only one subscription can be plugged: ChatGPT's, and only if OpenAI accepts Upstart.**
+Once they start, neither stands still longer than about half a second.
+
+**OpenAI's models are about twice as slow as Claude, whichever route:**
+- GPT-6.1 Sol: complete at 53 to 56 s through OpenRouter, and 92 s on ChatGPT Plus through Sign in with ChatGPT;
+- GPT-6.1 Terra on ChatGPT Plus: 55 s.
+
+Their pages start showing early (6 to 12 s), and the longest pause is 2 to 6 s.
+
+**Subscriptions: only ChatGPT's can be plugged in besides Claude's, and only if OpenAI accepts Upstart.**
 - **Claude:** only through the official binary, so through the Agent SDK, as today. Pi's Claude sign-in impersonates Claude Code, which Anthropic's terms forbid (Pi itself warns that it draws paid extra usage).
-- **ChatGPT Plus or Pro:** "Sign in with ChatGPT", OpenAI's program for apps, which Pi implements. It is open to open-source and local apps; paid apps go on a waitlist.
-- **Google AI:** no route for apps. Google moved personal accounts and Google AI subscriptions off Gemini CLI to Antigravity, whose terms forbid wrapping it in an app.
+- **ChatGPT Plus or Pro:** "Sign in with ChatGPT", OpenAI's program for apps, which Pi implements. **It works:** Matt signed in with his new Plus plan, and Sol and Terra answered on OpenAI's own API. The program is open to open-source and local apps; paid apps go on a waitlist.
+- **Google AI (Pro, Ultra):** no route for apps. Google moved personal accounts and Google AI subscriptions off Gemini CLI to Antigravity, whose terms forbid an app to drive it on a Google sign-in. **On an AI Studio key, both Google agents may be driven by an app, and both were, over ACP.** See [Gemini: the AI Studio key and ACP](#gemini-the-ai-studio-key-and-acp).
 
 So **besides Claude's subscription and, perhaps, ChatGPT's, a second agent means the maker's own API key.** See [Upstart's own harness on Pi](#upstarts-own-harness-on-pi).
 
@@ -91,14 +110,23 @@ When a harness sends a file only once it is complete, the two are the same momen
 | opencode, GPT-6.1 Sol (OpenRouter) | 3 | 70.7 s (53.9–78.7) | 70.7 s (53.9–78.7) | 81.5 s (63.0–90.8) | 63.3 s (49.6–71.1) | 6652 | $0.107 | 3/3 |
 | Pi, GPT-6.1 Sol (OpenRouter) | 3 | 6.3 s (5.7–6.4) | 56.0 s (53.0–62.0) | 66.9 s (63.1–72.7) | 2.2 s (2.0–2.6) | 5329 | $0.078 | 3/3 |
 | Pi, GPT-6.1 Sol (OpenRouter), thinking low | 3 | 6.4 s (5.5–8.2) | 52.7 s (47.7–53.0) | 62.5 s (61.0–64.5) | 2.1 s (1.8–4.4) | 4147 | $0.063 | 3/3 |
+| Pi, GPT-6.1 Sol (OpenAI API, ChatGPT Plus through Sign in with ChatGPT) | 3 | 11.5 s (11.2–13.7) | 92.0 s (90.3–117.4) | 114.2 s (112.0–135.7) | 3.9 s (3.4–5.8) | 4745 | $0.074 | 3/3 |
+| Pi, GPT-6.1 Terra (OpenAI API, ChatGPT Plus) | 3 | 9.9 s (9.6–10.4) | 55.4 s (55.2–58.4) | 68.7 s (68.4–72.3) | 2.9 s (2.8–3.4) | 3080 | $0.021 | 3/3 |
 | Pi, Gemini 4 Argon (Google API) | 3 | 132.8 s (116.4–134.7) | 132.8 s (116.4–134.7) | 191.2 s (172.1–249.8) | 122.0 s (106.7–124.0) | 11851 | $0.176 | 3/3 |
 | Pi, Gemini 4 Argon (Google API), files in the text | 3 | 15.2 s (10.6–17.1) | 102.8 s (89.0–107.8) | 127.6 s (124.7–143.5) | 10.9 s (6.0–13.4) | 10880 | $0.116 | 3/3 |
 | Pi, Gemini 4 Hydrogen (OpenRouter) | 1 | 51.9 s | 51.9 s | 54.2 s | 37.2 s | 8646 | $0.084 | 1/1 |
 | Pi, Gemini 4 Hydrogen (Google API) | 3 | 34.9 s (32.3–35.6) | 34.9 s (32.3–35.6) | 49.0 s (38.3–53.9) | 26.8 s (23.4–27.3) | 8895 | $0.101 | 3/3 |
 | Pi, Gemini 4 Hydrogen (Google API), files in the text | 3 | 11.7 s (9.3–13.1) | 30.9 s (29.1–38.4) | 33.3 s (32.6–41.8) | 10.6 s (8.1–11.9) | 8447 | $0.069 | 3/3 |
 | **Pi, Gemini 4 Hydrogen (Google API), files in the text, thinking low** | 3 | **4.2 s (3.7–5.0)** | **22.5 s (21.1–23.3)** | **25.5 s (23.9–26.2)** | 2.9 s (2.3–3.9) | 6024 | **$0.051** | 3/3 |
+| Gemini CLI over ACP, Gemini 4 Hydrogen (Google API) | 3 | 53.6 s (50.4–54.0) | 53.6 s (50.4–54.0) | 67.8 s (65.2–76.0) | 35.1 s (31.3–38.0) | 8283 | $0.122 | 3/3 |
+| Gemini CLI over ACP, Gemini 4 Hydrogen (Google API), files in the text | 3 | 18.1 s (13.6–21.0) | 41.7 s (34.6–45.1) | 45.0 s (37.5–49.0) | 16.5 s (12.3–19.9) | 7127 | $0.072 | 3/3 |
+| Antigravity over ACP, Gemini 4 Hydrogen medium (Google API) | 3 | 32.4 s (31.4–34.4) | 32.4 s (31.4–34.4) | 35.7 s (34.5–46.9) | 31.4 s (27.1–32.4) | 8749 | $0.097 | 3/3 |
+| Antigravity over ACP, Gemini 4 Hydrogen medium (Google API), files in the text | 3 | 11.3 s (9.5–12.1) | 34.4 s (33.2–36.6) | 38.2 s (35.9–41.9) | 10.0 s (8.1–10.4) | 8664 | $0.082 | 3/3 |
+| **Antigravity over ACP, Gemini 4 Hydrogen low (Google API), files in the text** | 3 | **5.9 s (3.8–6.2)** | **20.1 s (18.5–24.6)** | **22.8 s (20.6–27.1)** | 4.8 s (2.5–4.9) | 6419 | **$0.065** | 3/3 |
+| Antigravity over ACP, Gemini 4 Argon low (Google API), files in the text | 2 | 20.3 s (9.6–30.9) | 109.9 s (91.8–127.9) | 129.6 s (113.2–146.1) | 16.7 s (6.5–27.0) | 11262 | $0.136 | 2/2 |
+| Antigravity over ACP, Gemini 4 Carbon low (Google API), files in the text | 2 | 10.0 s (9.9–10.2) | 86.3 s (80.4–92.3) | 99.4 s (98.5–100.3) | 6.7 s (6.6–6.9) | 9231 | $0.115 | 2/2 |
 
-"Thinking low" is Pi's `--thinking low`; the other Pi runs used Pi's default, medium. "Files in the text" is described [below](#files-in-the-replys-text-a-live-preview-for-any-model). Its "longest still" is the wait before the reply's first character: after it, nothing stands still for more than 0.7 s with Hydrogen.
+"Thinking low" is Pi's `--thinking low`; the other Pi runs used Pi's default, medium. Antigravity takes the effort in the model's name (`gemini-4-hydrogen-low`); Gemini CLI's thinking level was left as it was. "Files in the text" is described [below](#files-in-the-replys-text-a-live-preview-for-any-model). Its "longest still" is the wait before the reply's first character: after it, nothing stands still for more than 0.7 s with Hydrogen.
 
 **Reading it:**
 - **Claude's cost is the API price of its tokens.** Spike 1 ran on Matt's Claude subscription.
@@ -109,11 +137,14 @@ When a harness sends a file only once it is complete, the two are the same momen
   - about 80 tokens a second;
   - Claude about 200;
   - Hydrogen about 300.
-  OpenAI's own API might be faster. Not tried yet: no OpenAI key was at hand.
+  OpenAI's own API was no faster on ChatGPT Plus: Sol's page is complete at 92 s through Sign in with ChatGPT, against 56 s through OpenRouter. A paid key was not tried.
 - **Gemini 4 Hydrogen** came out on 2026-11-12, two days after Pi 1.5.2, so Pi did not know it. `homes/pi/models.json` declares it in Pi's own Google provider, priced as on OpenRouter ($1.50 / $7.50 per million tokens).
   - Through a tool, Hydrogen on Google's API is complete at 35 s, but nothing moves for 27 s before it.
   - Writing its files in the reply's text, with its thinking low, it matches Claude.
-  - Argon, Google's larger model, took 117 to 135 s through a tool, and 89 to 108 s in the text.
+  - Argon, Google's larger model, took 117 to 135 s through a tool, and 89 to 108 s in the text; through Antigravity at effort low, 92 to 128 s.
+  - Carbon, Google's top model, through Antigravity at effort low: complete at 80 to 92 s, for $0.12 a page. Its pages are the most crafted of the Gemini models (`runs/…-carbon-low-acp-text-2/final-home.png`).
+- **Gemini CLI through its tool is the dearest Hydrogen route** ($0.12): it sends the whole context again at each of its 9 to 13 model turns.
+- **Pi prices the ChatGPT Plus runs as on the API;** on the plan they come out of its allowance instead.
 - **Runs left out** (`runs/superseded/`), each for a fault of the spike's own driving:
   - the first opencode run, which worked in the spike's own folder rather than the project: opencode takes its folder from `PWD`, not from the process's folder;
   - a first Codex run, before it was told to use `apply_patch`; it wrote every file with `cat > file <<EOF`;
@@ -150,9 +181,13 @@ When a harness sends a file only once it is complete, the two are the same momen
 - A fix is open ([PR #58416](https://github.com/anomalyco/opencode/pull/58416)), not merged.
 - The first file reaches the disk early (the theme, at 4 to 8 s), then nothing until the home page, after 50 to 80 s.
 
-### Gemini CLI and Antigravity (studied only)
+### Gemini CLI and Antigravity, over ACP
 
-**Neither carries a file's content while it is written.** Each sends a tool call with its complete arguments, on every route: stream-json, ACP, and Antigravity's Python SDK.
+**Writing through their tools, neither carries a file's content while it is written.**
+- Over ACP, a `write_file` call reaches the client whole, once the model has finished it: Gemini CLI's home page at 50 to 54 s, Antigravity's at 31 to 34 s.
+- Their docs say the same of their other routes: stream-json and Antigravity's Python SDK.
+
+**Writing their files in the reply's text, both give the live preview,** since ACP streams the reply's text. See [Gemini: the AI Studio key and ACP](#gemini-the-ai-studio-key-and-acp).
 
 ## Files in the reply's text: a live preview for any model
 
@@ -168,12 +203,15 @@ When a harness sends a file only once it is complete, the two are the same momen
 - it sends each block to the preview while it grows;
 - it writes the file when the block closes.
 
-`node src/run.ts pi --text-files` does this on Pi's RPC stream:
-- Pi's `write` tool is withdrawn (`--tools read,edit,bash`);
-- the instructions ask for blocks (`TEXT_FILES` in `src/pi.ts`);
-- `readBlocks()` reads them from the text deltas.
+`--text-files` does this in the spike (`src/text-files.ts`):
+- the instructions ask for blocks;
+- `blockReader()` reads them from the reply's text as it grows;
+- the harness's write tool is withdrawn:
+  - Pi: `--tools read,edit,bash`;
+  - Gemini CLI: `tools.exclude: ["write_file"]`;
+  - Antigravity, which has no such setting: its permission request for a write would be refused. It never asked: in this mode neither Google agent called a tool at all.
 
-**What happened, in 12 runs of Hydrogen and Argon:**
+**What happened in Pi, in 12 runs of Hydrogen and Argon:**
 - **Every run kept to the format:** no Markdown fence, no tool used at all, every page complete and its form working.
 - **Hydrogen's page starts showing at 11.7 s,** instead of arriving whole at 35 s, and is complete sooner (30.9 s against 34.9 s).
 - **The one pause left is the wait before the first character:** Gemini's thinking, 6 to 13 s. Once the reply starts, nothing stands still for more than 0.7 s with Hydrogen, 1.4 s with Argon.
@@ -184,11 +222,156 @@ When a harness sends a file only once it is complete, the two are the same momen
   - the pages are as complete as with medium thinking (`runs/sheet-hydrogen-text.png`).
 - **Argon writes more, and more slowly:** complete at 103 s, done at 128 s.
 
+**Over ACP, with Google's own agents (9 runs of Hydrogen, 4 of Argon and Carbon):**
+- **Every run kept to the format,** and every page is complete with its form working.
+- **Antigravity, effort low:** the page starts at 5.9 s and is complete at 20.1 s, the fastest of the spike.
+- **Antigravity, effort medium:** 11.3 s and 34.4 s.
+- **Gemini CLI**, whose thinking level the spike did not set: 18.1 s and 41.7 s.
+- **Argon and Carbon, effort low, through Antigravity:** complete at 110 s and 86 s.
+- **Once the reply starts, the text comes in small, even pieces** (213 to 297 pieces for the home page), as in Pi.
+
 **What it costs:**
 - **Upstart's instructions must teach the format,** and Upstart must take the blocks out of the reply it shows the maker.
 - **A small change to an existing file still goes through the edit tool,** which Gemini sends whole. Such a change is short, so it lands quickly anyway.
 - **It is Upstart's own convention, not a provider's feature.** Each model must be checked to keep to it, and a model may drift on long sessions; only one request was tried.
 - **Claude keeps its write tool:** the Agent SDK streams it already.
+
+## Gemini: the AI Studio key and ACP
+
+### The AI Studio key
+
+**What it is.** A Gemini Developer API key, made in AI Studio for a Google Cloud project.
+- With a billing account linked to the project, it is on the paid tier.
+- Without one, it is on the free tier.
+- The spike's key is paid.
+
+**What it reaches: every Gemini model on the API, Gemini 4 included.** `antigravity models` on the key lists:
+- Gemini 4 Carbon, Hydrogen and Argon, each at several effort levels (low to high, xhigh for Hydrogen);
+- Gemini 3.8, 3.7 and 3.6 Flash;
+- Gemini 3.1 Pro.
+
+Carbon, kept to Ultra on a Google AI subscription, is open to any paid key. Gemini CLI 0.68 does not list Gemini 4, but it took `--model gemini-4-hydrogen` and the model answered.
+
+**What it costs, and who pays:**
+- **Billed by Google Cloud, apart from any Google AI subscription.** The subscription raises limits only in AI Studio's web interface. Google Developer Program credits apply to the API.
+- **Prices:** see [Google (Gemini)](#google-gemini). One launch page with Hydrogen cost $0.05 to $0.15, depending on the harness and the way it writes (table above).
+- **Terms:**
+  - in the EEA, Switzerland and the UK, an app's users must be on paid services, so a French maker needs a paid key;
+  - free-tier prompts may be read by Google's reviewers;
+  - the API is meant "for professional or business purposes, not for consumer use", by people 18 or older.
+
+**Who may drive Google's agents with it: any app.** Google's own answer for a third-party agent is an AI Studio or Vertex key:
+- Gemini CLI's FAQ;
+- Antigravity's FAQ, which forbids only consumer plans;
+- the Google collaborator's answers on GitHub.
+
+**For a maker, it is a heavier start than a sign-in:** a Google Cloud billing account, a key, then the key pasted into Upstart.
+
+### ACP, the Agent Client Protocol
+
+**What it is.** An open protocol, started by Zed for editors: JSON-RPC 2.0 over the agent's standard input and output. The client (an editor, or Upstart) starts the agent, opens sessions and sends prompts. The agent streams updates back:
+- the reply's text (`agent_message_chunk`) and thinking (`agent_thought_chunk`);
+- tool calls and their progress (`tool_call`, `tool_call_update`, with the diff of an edit);
+- usage.
+
+It asks the client for permission (`session/request_permission`). If the client offers, it reads and writes files through it (`fs/read_text_file`, `fs/write_text_file`).
+
+**Who speaks it:**
+
+| Agent | How | Tried here |
+|---|---|---|
+| Gemini CLI | `gemini --acp` | Yes |
+| Antigravity CLI | `antigravity acp` | Yes |
+| opencode | `opencode acp` | No (the command exists) |
+| Codex | Zed's adapter, `@zed-industries/codex-acp` (Apache-2.0) | No |
+| Claude | `@agentclientprotocol/claude-agent-acp` (Apache-2.0), on the Agent SDK | No |
+| Pi | `pi-acp` (MIT, community) | No |
+
+**What it would give Upstart:**
+- one client for several agents;
+- sessions, cancel, and permissions answered by Upstart;
+- Upstart's MCP servers passed when a session opens (Upstart's tools);
+- the files written through Upstart when the agent agrees. Gemini CLI asked the client to write every file; Antigravity wrote them itself.
+
+**What it lacks for the live preview: a tool call's input while it is generated.** The protocol has no field for it, and both Google agents send a call only once it is complete. So over ACP the live preview needs files in the reply's text, which ACP does stream.
+
+### Gemini CLI 0.68 over ACP
+
+**How it ran:**
+- `GEMINI_CLI_HOME` set to its own folder, with its own system settings files and file storage instead of the keychain;
+- `settings.json` on `gemini-api-key`;
+- the instructions in the project's `GEMINI.md`;
+- `--approval-mode auto_edit`, under the spike's sandbox profile.
+
+**Through its `write_file` tool:**
+- each file arrives whole; the home page at 53.6 s (50.4 to 54.0);
+- it takes 9 to 13 model turns, sending the whole context again each time: 120,000 to 190,000 input tokens a page, so $0.12 to $0.15, the dearest Hydrogen route.
+
+**Files in the text:**
+- the page starts at 18.1 s and is complete at 41.7 s;
+- $0.07, since one turn writes everything;
+- the spike did not set Hydrogen's thinking level, which Gemini CLI takes from its settings rather than a flag.
+
+**A bug in 0.68:**
+- Answered "file not found" as the protocol says, a new file's write fails. Gemini CLI turns the error object into "[object Object]", so it never recognizes a missing file.
+- The client must answer an empty file instead. The first run, before that workaround, lost 11 s making the files with the shell (`runs/superseded/`).
+
+**Standing:**
+- Google keeps it for organizations and paid keys, "not optimized for Gemini 4+".
+- Apache-2.0, a 99 MB bundle that Upstart may ship.
+
+### Antigravity CLI 1.5.9 over ACP
+
+**How it ran:**
+- the release binary from Google's GitHub (84 MB to download, 223 MB unpacked, signed "Developer ID Application: Google LLC");
+- `HOME` set to its own folder, since it has no folder variable;
+- `settings.json` with `"modelProvider": "gemini"`, and `GEMINI_API_KEY`;
+- `antigravity acp --disable-telemetry`, under the spike's sandbox profile;
+- the model chosen per session (`session/set_model`), with the effort in its name (`gemini-4-hydrogen-low`).
+
+**Its ACP server offers more than Gemini CLI's:**
+- sessions that load, resume, list and close;
+- images in prompts;
+- an addition to its system prompt (`_meta.antigravity.systemPrompt.append`), not used here.
+
+**Through its `write_file` tool:**
+- Hydrogen wrote all five files in one response: five complete calls at once, at 31 to 34 s;
+- Antigravity wrote them itself, asking permission for each;
+- about $0.10 a page.
+
+**Files in the text:**
+- effort low: the page starts at 5.9 s and is complete at 20.1 s, for $0.065;
+- effort medium: 11.3 s and 34.4 s;
+- Argon, effort low: 20.3 s and 109.9 s (2 runs), $0.14;
+- Carbon, effort low: 10.0 s and 86.3 s (2 runs), $0.12; its pages are the most crafted of the Gemini models.
+
+**Kept apart, on the key:**
+- no Keychain item was made;
+- everything went into its `HOME`: settings, conversations, its "brain", logs, 7.3 MB after 13 runs.
+
+**Updating:**
+- At each start it launches an update process in the background ("Already on the latest version" here).
+- Under the spike's sandbox it could not replace its own binary. Upstart would have to make sure of that, since no documented switch turns it off.
+
+**Its terms and licence:**
+- **On a key, an app may drive it;** on a Google sign-in, it may not.
+- **It has no licence:** Upstart may not ship it. The maker would install it, or Upstart would fetch it from Google at first use; whether that counts as redistribution is not settled.
+- **Releases come almost daily,** with open bugs on hangs at exit and orphaned processes.
+
+### Which harness for Gemini
+
+| | Pi (Upstart's own harness) | Antigravity over ACP | Gemini CLI over ACP |
+|---|---|---|---|
+| Live preview | Files in the text | Files in the text | Files in the text |
+| Hydrogen, fastest to a complete page | 22.5 s (thinking low) | **20.1 s** (effort low) | 41.7 s |
+| Cost a page, that way | **$0.05** | $0.065 | $0.07 |
+| Other providers | **All** (OpenAI, Anthropic key, OpenRouter…) | Gemini only on a key | Gemini only |
+| Licence; can Upstart ship it | **MIT; yes** | None; no | Apache-2.0; yes |
+| Kept apart from the maker's own | Its folder variable | `HOME` only | Its folder variable, plus settings paths |
+| Upstart's tools, instructions, checks | In-process tools and hooks | MCP at session start, `GEMINI.md`, prompt addition, hooks | MCP at session start, `GEMINI.md`, hooks |
+| Standing | Fast-moving, open, new owner | Google's current agent, daily releases, closed | Kept for organizations, not tuned for Gemini 4 |
+
+**Antigravity is the fastest and Google's own,** but closed, unshippable, self-updating and Gemini-only. **Pi** reaches every provider with one harness Upstart can ship and confine. **Gemini CLI** brings nothing the other two do not.
 
 ## Signing in: what each account allows
 
@@ -203,6 +386,14 @@ When a harness sends a file only once it is complete, the two are the same momen
   - With Codex, the app runs the OAuth and holds the tokens. That is against Upstart's rule of never handling a maker's tokens.
   - Pi implements SIWC itself (with the host app's name) and keeps the tokens in its own folder, so Upstart would not hold them.
 - **Upstart's eligibility depends on facts not settled here.** Is Upstart open source? Is it paid? Not confirmed either way.
+
+**Tried with Matt's Plus plan, taken on 2026-11-14:**
+- **Signing in:** `pi auth login openai` printed OpenAI's sign-in address. Matt signed in in his browser, and Pi kept the tokens in its own folder (`homes/pi/auth.json`, readable by Matt alone). The client was registered under the name Pi; Upstart's would carry its own.
+- **Models:** Pi's catalog for OpenAI lists GPT-6.1 Sol and Terra, GPT-6 Astra, Sol and Luna, and older ones; Sol and Terra were tried, on OpenAI's own API.
+- **The live preview works,** as with an API key: a tool call's arguments arrive a few characters at a time.
+- **But it is slow.** Sol's home page is complete at 92 s, against 56 s through OpenRouter. Terra's is complete at 55 s.
+- **Whether OpenAI serves a plan's requests more slowly than a paid key's is not known.** No OpenAI key was at hand to compare.
+- **Pi prices each run as on the API** ($0.07 for Sol, $0.02 for Terra). On the plan, it comes out of the Plus allowance instead.
 
 **With an API key**, Codex and Pi are unrestricted. Prices per million tokens:
 
@@ -250,10 +441,10 @@ Google says it is "not optimized for Gemini 4+" and is kept "for enterprise Gemi
 **Antigravity CLI is where Google sends individuals.** It takes every plan, free included. Hydrogen is open to all plans, Argon to Pro and above, and Claude Sonnet and Opus 5.5 to Pro.
 - **Its terms forbid Upstart's use.** The FAQ says wrapping `agy` in a third-party app "is not supported under consumer plans". The Additional Terms (§6) make it a breach that can lead to suspension.
 - **A Google collaborator spelled it out** on GitHub (2026-11-12): starting the unmodified `agy -p` or `agy acp` from a third-party app breaches §6 on a personal sign-in. So does replacing its identity instructions, which Upstart's own instructions would do.
-- **Google sends apps to an API key or Vertex.** With those, Antigravity is one more closed harness for a paid key, where Pi does the same with an open licence.
+- **Google sends apps to an API key or Vertex.** On a key, the spike drove Antigravity over ACP: see [Antigravity CLI 1.5.9 over ACP](#antigravity-cli-159-over-acp).
 - **Other problems:**
-  - its sign-in sits in the macOS Keychain, with no way to keep it apart from the maker's own;
-  - no folder variable keeps its configuration apart;
+  - on a Google sign-in, its login sits in the macOS Keychain, with no way to keep it apart from the maker's own (on a key, none is made);
+  - no folder variable keeps its configuration apart: only `HOME`;
   - it is closed, with no right to redistribute;
   - it updates itself;
   - it has known hangs on exit.
@@ -275,6 +466,12 @@ Google says it is "not optimized for Gemini 4+" and is kept "for enterprise Gemi
 **Codex has its own sandbox** (Seatbelt on macOS, bubblewrap on Linux, a native one on Windows).
 - In `workspace-write` with approvals declined by the app, the runs wrote only in the project.
 - It can also limit reading (`readOnlyAccess`).
+
+**Gemini CLI and Antigravity have their own too**, from their docs; the spike used its own profile instead, as for Pi:
+- Gemini CLI: Seatbelt profiles on macOS (the default lets it write in the project only, and read everywhere), Docker or Podman, gVisor or LXC on Linux, a native one on Windows.
+- Antigravity: Seatbelt on macOS, namespaces on Linux, AppContainer on Windows 11 24H2 or later. Its `auto` mode has a second, smaller model review the commands that would leave the sandbox.
+
+Over ACP, Upstart also answers every permission request itself, and may write the files itself (`fs/write_text_file`), which Gemini CLI asks it to.
 
 **Pi and opencode have none.** The spike ran them under macOS's sandbox (`sandbox-exec`), with a profile that allows writing only in:
 - the project;
@@ -332,6 +529,10 @@ From each harness's sources and docs; not tried in the spike.
 | Pi and Sol (thinking medium or low) | 5 or 6 | Every run |
 | Pi and Hydrogen (through a tool, or in the text, thinking medium or low) | 6 to 9 | Every run |
 | Pi and Argon (through a tool, or in the text) | 6 to 17 | Every run |
+| Pi and Sol or Terra on ChatGPT Plus | 4 to 6 | Every run |
+| Gemini CLI and Hydrogen, over ACP (through a tool, or in the text) | 5 to 10 | Every run |
+| Antigravity and Hydrogen, over ACP (through a tool, or in the text, effort low or medium) | 6 to 8 | Every run |
+| Antigravity and Argon or Carbon, over ACP, in the text, effort low | 8 to 17 | Every run |
 
 **By eye:**
 - **GPT-6.1 Sol's pages are the most crafted**, whichever harness drives it: an editorial layout, and a drawn reading lamp over a book in SVG.
@@ -457,16 +658,18 @@ The spike drove the `pi` program over RPC (`src/pi.ts`); the libraries themselve
 
 ## Not tried, or not settled
 
-- **GPT-6.1 Sol through OpenAI's own API** (no OpenAI key at hand). It decides whether Pi's 53 to 56 s is OpenRouter's or the model's.
-- **Sign in with ChatGPT in Pi.** It needs a Plus or Pro plan; Matt's is free.
-- **A paid ChatGPT plan (Plus or Pro) in Codex.** It would give Sol in Codex, but would not change the preview, which code mode decides.
+- **A paid OpenAI API key.** On ChatGPT Plus through Sign in with ChatGPT, Sol was slower than through OpenRouter (92 s against 56 s). A key would tell whether OpenAI serves a plan's requests more slowly.
+- **Codex on the Plus plan.** It would give Sol in Codex, but would not change the preview, which code mode decides.
 - **Pi's libraries driven directly** (`pi-ai` with `pi-agent-core`, or Pi Durable) rather than the `pi` program over RPC.
 - **Files in the reply's text over a whole session:** edits, several pages, other requests. Only spike 1's launch request was tried, and only with Gemini models.
 - **Pi with an Anthropic API key**, which would show Pi's own overhead against the Agent SDK with the same model.
-- **Antigravity with a Gemini API key**, the only use its terms allow an app. Its stream was studied, not run.
-- **Upstart's tools, skills and hooks inside Pi or Codex.**
+- **The other agents over ACP:** opencode (`opencode acp`), Codex (`codex-acp`), Claude (`claude-agent-acp`) and Pi (`pi-acp`). ACP carries no tool call's input while it is generated, so each would need files in the text too.
+- **Hydrogen's thinking level in Gemini CLI**, which it takes from its settings, not a flag.
+- **What Antigravity offers an app beyond the run:** its addition to the system prompt, MCP servers passed at session start, its own sandbox and modes.
+- **Upstart's tools, skills and hooks inside Pi, Codex or Google's agents.**
 - **Windows and Linux.**
-- **Whether Upstart qualifies for "Sign in with ChatGPT".** It depends on whether Upstart is open source or paid; ask OpenAI.
+- **Whether Upstart qualifies for Sign in with ChatGPT.** It depends on whether Upstart is open source or paid; ask OpenAI.
+- **Whether Upstart may fetch Antigravity from Google at first use**, since it may not ship it.
 
 ## Recommendation
 
@@ -475,14 +678,18 @@ The spike drove the `pi` program over RPC (`src/pi.ts`); the libraries themselve
    - Files written in the reply's text, so every model has the live preview.
    - Upstart's own execution environment, reaching the project alone.
    - First, Gemini 4 Hydrogen on the maker's Gemini key, thinking low: Claude's pace, at about 60% of its API price.
-   - Then OpenAI: on the maker's key, and on ChatGPT Plus or Pro through Sign in with ChatGPT once OpenAI confirms Upstart may use it. Measure Sol through OpenAI's API first.
-3. **When to build it (2.0 or after) is Matt's call (Q268).** It is a second agent layer to build and keep:
+   - Then OpenAI: on the maker's key, and on ChatGPT Plus or Pro through Sign in with ChatGPT once OpenAI confirms Upstart may use it. It works today in Pi, but slowly (Sol 92 s, Terra 55 s).
+3. **Antigravity over ACP is the fastest route for Gemini, and the one to keep in mind,** not the one to build on:
+   - it is Google's own and tuned for Gemini 4, and its ACP server is the richest;
+   - but it is closed and may not be shipped, updates itself, reaches only Gemini on a key, and is forbidden on a Google sign-in, which is how most people would want to use it.
+   If Google gave it a licence and a way to stop its updates, it would become a candidate for Gemini alone.
+4. **When to build the second harness (2.0 or after) is Matt's call (Q268).** It is a second agent layer to build and keep:
    - the adapter;
    - the instructions and checks per model family;
    - the execution environment;
    - the keys;
    - the file format, checked over whole sessions.
-4. **Come back to Codex** if a later version passes on what code mode writes, and if OpenAI opens ChatGPT sign-in to an app like Upstart. Antigravity stays out on its terms.
+5. **Come back to Codex** if a later version passes on what code mode writes, and if OpenAI opens ChatGPT sign-in to an app like Upstart.
 
 ## How to run it again
 
@@ -497,5 +704,13 @@ node src/run.ts pi --model openai/gpt-6.1-sol --label sol-openai   # needs OPENA
 node src/run.ts codex --label luna
 node src/run.ts codex --provider openrouter --model openai/gpt-6.1-sol --label sol-openrouter
 node src/run.ts opencode --model openrouter/openai/gpt-6.1-sol --label sol
+# ChatGPT Plus or Pro through Sign in with ChatGPT: the maker signs in in the browser
+PI_CODING_AGENT_DIR=$PWD/homes/pi ./node_modules/.bin/pi auth login openai
+node src/run.ts pi --model openai/gpt-6.1-sol --label sol-chatgpt
+# Gemini CLI and Antigravity over ACP, on GEMINI_API_KEY
+node src/run.ts gemini --text-files --model gemini-4-hydrogen --label hydrogen-acp-text
+# Antigravity: download agy_cli_mac_arm64.tar.gz from google-antigravity/antigravity-cli's releases into .agy/dl,
+# unpack it into .agy/bin (not in git)
+node src/run.ts antigravity --text-files --model gemini-4-hydrogen-low --label hydrogen-low-acp-text
 node src/shoot.ts && node src/table.ts
 ```

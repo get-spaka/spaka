@@ -58,6 +58,10 @@ const NAMES: Record<string, string> = {
   "pi google/gemini-4-hydrogen": "Pi, Gemini 4 Hydrogen (OpenRouter)",
   "pi gemini-4-hydrogen": "Pi, Gemini 4 Hydrogen (Google API)",
   "pi gpt-6.1-sol": "Pi, GPT-6.1 Sol (OpenAI API)",
+  "pi gpt-6.1-sol chatgpt": "Pi, GPT-6.1 Sol (OpenAI API, ChatGPT Plus through Sign in with ChatGPT)",
+  "pi gpt-6.1-terra chatgpt": "Pi, GPT-6.1 Terra (OpenAI API, ChatGPT Plus)",
+  "pi gpt-6.1-sol low chatgpt": "Pi, GPT-6.1 Sol (OpenAI API, ChatGPT Plus), thinking low",
+  "pi gpt-6.1-sol text chatgpt": "Pi, GPT-6.1 Sol (OpenAI API, ChatGPT Plus), files in the text",
   "pi gpt-6.1-sol text": "Pi, GPT-6.1 Sol (OpenAI API), files in the text",
   "pi gemini-4-hydrogen text": "Pi, Gemini 4 Hydrogen (Google API), files in the text",
   "pi gemini-4-argon text": "Pi, Gemini 4 Argon (Google API), files in the text",
@@ -65,6 +69,13 @@ const NAMES: Record<string, string> = {
   "pi gemini-4-hydrogen text low": "Pi, Gemini 4 Hydrogen (Google API), files in the text, thinking low",
   "opencode openrouter/openai/gpt-6.1-sol": "opencode, GPT-6.1 Sol (OpenRouter)",
   "codex gpt-6-luna": "Codex, GPT-6 Luna (ChatGPT sign-in)",
+  "gemini gemini-4-hydrogen gemini-api-key": "Gemini CLI over ACP, Gemini 4 Hydrogen (Google API)",
+  "gemini gemini-4-hydrogen text gemini-api-key": "Gemini CLI over ACP, Gemini 4 Hydrogen (Google API), files in the text",
+  "antigravity gemini-4-hydrogen-medium gemini-api-key": "Antigravity over ACP, Gemini 4 Hydrogen medium (Google API)",
+  "antigravity gemini-4-hydrogen-medium text gemini-api-key": "Antigravity over ACP, Gemini 4 Hydrogen medium (Google API), files in the text",
+  "antigravity gemini-4-hydrogen-low text gemini-api-key": "Antigravity over ACP, Gemini 4 Hydrogen low (Google API), files in the text",
+  "antigravity gemini-4-argon-low text gemini-api-key": "Antigravity over ACP, Gemini 4 Argon low (Google API), files in the text",
+  "antigravity gemini-4-carbon-low text gemini-api-key": "Antigravity over ACP, Gemini 4 Carbon low (Google API), files in the text",
   "codex openai/gpt-6.1-sol": "Codex, GPT-6.1 Sol (OpenRouter)",
 };
 for (const id of readdirSync(join(ROOT, "runs")).sort()) {
@@ -72,7 +83,7 @@ for (const id of readdirSync(join(ROOT, "runs")).sort()) {
   if (!existsSync(join(dir, "run.json"))) continue;
   const run = JSON.parse(readFileSync(join(dir, "run.json"), "utf8"));
   if (run.summary.request !== request) continue;
-  const key = `${run.summary.harness} ${run.summary.model}${run.summary.textFiles ? " text" : ""}${run.summary.thinking ? ` ${run.summary.thinking}` : ""}`;
+  const key = `${run.summary.harness} ${run.summary.model}${run.summary.textFiles ? " text" : ""}${run.summary.thinking ? ` ${run.summary.thinking}` : ""}${run.summary.account ? ` ${run.summary.account}` : ""}`;
   const g = row(NAMES[key] ?? key);
   const s = summarize(run.summary.total, run.contents, run.disk);
   g.starts.push(s.homeFirstStreamed ?? s.homeComplete);
