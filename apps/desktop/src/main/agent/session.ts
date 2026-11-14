@@ -13,12 +13,16 @@ import type { AssembledSkills } from "../skills/skills";
 import { Activities } from "./activity";
 import { confinement } from "./confinement";
 import { UPSTART_INSTRUCTIONS } from "./instructions";
+import { ASK_TOOL, claudeAnswer, NOT_ANSWERED, readQuestions, Waits } from "./questions";
 import type { AgentRunner, PlanDecision } from "./runner";
 import { type AgentEvent, StreamReader } from "./stream";
 
-/** The agent's tools. No MultiEdit: the live preview cannot follow it (ADR 0009). */
-/** The agent's tools; the web's two for every project (Q257): trends for a template, a maker's own pages, a fact. */
-export const TOOLS = ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebSearch", "WebFetch"];
+/**
+ * The agent's tools. No MultiEdit: the live preview cannot follow it (ADR 0009).
+ * The web's two for every project (Q257): trends for a template, a maker's own pages, a fact.
+ * AskUserQuestion for its questions to the maker, whose answer its turn waits for (Q283).
+ */
+export const TOOLS = ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebSearch", "WebFetch", ASK_TOOL];
 
 export const DENY_MESSAGE =
   "Upstart does not ask the maker for permissions. This action is refused: find another way or say what you could not do.";
@@ -91,6 +95,10 @@ export class AgentSession implements AgentRunner {
   private connectors: { names: string[]; fingerprint: string } | undefined;
   /** The connectors' state as the agent's kit last reported it. */
   private serverStatus: { name: string; status: string; error?: string }[] = [];
+  /** The cards of questions the turn waits on (Q283). */
+  private readonly waits = new Waits<QuestionAnswer>();
+  /** What the maker changed by hand while a question waited, told with its answer (Q294). */
+  private answerNote: string | undefined;
   readonly problems: string[] = [];
 
   constructor(
@@ -140,13 +148,20 @@ export class AgentSession implements AgentRunner {
         ...(skills?.plugins.length ? { plugins: skills.plugins } : {}),
         includePartialMessages: true,
         ...(resume ? { resume } : {}),
+        // A question's choices may show a block or an image of the site (Q291): `block:<id>` or its path.
+        toolConfig: { askUserQuestion: { previewFormat: "markdown" } },
         ...extra,
         mcpServers: { ...servers, ...extra.mcpServers },
+        hooks: withAnswerNote(extra.hooks, () => {
+          const note = this.answerNote;
+          this.answerNote = undefined;
+          return note;
+        }),
         stderr: (data: string) => {
           this.stderr = (this.stderr + data).slice(-4000);
         },
-        // ADR 0007: the app never asks the maker. If the agent asks anyway, refuse.
-        canUseTool: async () => ({ behavior: "deny", message: DENY_MESSAGE }),
+        canUseTool: (name: string, input: Record<string, unknown>, options: { signal: AbortSignal }) =>
+          this.permission(name, input, options.signal),
       },
     });
     this.q = q;
@@ -175,7 +190,34 @@ export class AgentSession implements AgentRunner {
   async stop() {
     if (!this.working || !this.q) return;
     this.stopping = true;
+    this.waits.cancelAll();
     await this.q.interrupt().catch(() => {});
+  }
+
+  /**
+   * What the agent asks for. Its questions are shown and wait for the maker
+   * (Q283); anything else is refused, the app never asking the maker for
+   * permissions (ADR 0007).
+   */
+  private async permission(name: string, input: Record<string, unknown>, signal: AbortSignal) {
+    if (name !== ASK_TOOL || !this.working) return { behavior: "deny" as const, message: DENY_MESSAGE };
+    const questions = readQuestions(input);
+    if (!questions)
+      return {
+        behavior: "deny" as const,
+        message: "These questions do not have AskUserQuestion's form: 1 to 4 questions, each with 2 to 4 choices.",
+      };
+    const id = newId();
+    this.handlers.onConversation({ type: "question", card: { id, questions, state: "waiting" } });
+    const answer = await this.waits.wait(id, signal);
+    if (!answer) return { behavior: "deny" as const, message: NOT_ANSWERED };
+    this.handlers.onConversation({
+      type: "question-settled",
+      id,
+      state: answer.kind === "skipped" ? "skipped" : "answered",
+      answer,
+    });
+    return { behavior: "allow" as const, updatedInput: claudeAnswer(questions, answer) };
   }
 
   async setModel(model: string) {
@@ -188,10 +230,13 @@ export class AgentSession implements AgentRunner {
     await this.q?.applyFlagSettings({ effortLevel: effort }).catch(() => this.restart());
   }
 
-  // Questions and plans (Q283, Q286): the agent asks nothing yet and has no
-  // plan mode, so nothing waits for these (agent-questions plan, slices 1 and 4).
-  answer(_cardId: string, _answer: QuestionAnswer) {}
+  answer(cardId: string, answer: QuestionAnswer, note?: string) {
+    if (!this.waits.has(cardId)) return;
+    this.answerNote = note;
+    this.waits.settle(cardId, answer);
+  }
 
+  // Plan mode (Q286): built in the agent-questions plan's slice 4.
   settlePlan(_cardId: string, _decision: PlanDecision) {}
 
   async setMode(_mode: AgentMode) {}
@@ -221,6 +266,7 @@ export class AgentSession implements AgentRunner {
   }
 
   close() {
+    this.waits.cancelAll();
     const q = this.q;
     this.q = undefined;
     this.inbox?.close();
@@ -423,6 +469,33 @@ export function isolationProblem(
   const extraPlugins = init.plugins.filter((p) => p.path !== "builtin" && !ours.has(p.path));
   if (extraPlugins.length) return `unexpected plugins: ${extraPlugins.map((p) => p.name).join(", ")}`;
   return undefined;
+}
+
+type HookList = { matcher?: string; hooks: ((input: never) => Promise<unknown>)[] }[];
+
+/**
+ * The project's hooks, plus one telling the agent, with a question's answer,
+ * what the maker changed by hand while it waited (Q294).
+ */
+function withAnswerNote(hooks: Record<string, unknown> | undefined, take: () => string | undefined) {
+  const after = (hooks?.PostToolUse as HookList | undefined) ?? [];
+  return {
+    ...hooks,
+    PostToolUse: [
+      ...after,
+      {
+        matcher: ASK_TOOL,
+        hooks: [
+          async () => {
+            const note = take();
+            return note
+              ? { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: note } }
+              : { continue: true };
+          },
+        ],
+      },
+    ],
+  };
 }
 
 function userMessage(text: string): SDKUserMessage {

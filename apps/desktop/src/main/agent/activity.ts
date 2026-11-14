@@ -6,6 +6,7 @@ import { realpathSync } from "node:fs";
 import { isAbsolute, relative } from "node:path";
 import type { ConversationEvent } from "../../shared/conversation";
 import { en } from "../../shared/strings/en";
+import { CARD_TOOLS } from "./questions";
 import type { AgentEvent } from "./stream";
 import { FIND_BLOCKS_TOOL, FIND_IMAGES_TOOL, LOOK_TOOL, USE_BLOCK_TOOL, USE_IMAGE_TOOL } from "./upstart-tools";
 
@@ -25,6 +26,8 @@ export class Activities {
   }
 
   handle(e: AgentEvent) {
+    // Questions and plans are cards of their own, not steps (Q284, Q290).
+    if ("name" in e && typeof e.name === "string" && CARD_TOOLS.has(e.name)) return;
     switch (e.kind) {
       case "tool-start":
         return this.activity(e.id, e.name, {}, "running");

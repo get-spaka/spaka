@@ -23,8 +23,9 @@ test("the agent writes only in the project and the temporary folder, and never a
   expect(options.settingSources).toEqual([]);
   expect(options.settings.permissions).toMatchObject({
     blockWritesOutsideWorkingDirectories: true,
-    denyInsteadOfPrompting: true,
   });
+  // It would take AskUserQuestion away: canUseTool refuses instead.
+  expect(options.settings.permissions).not.toHaveProperty("denyInsteadOfPrompting");
   expect(options.settings.sandbox).toMatchObject({
     enabled: true,
     failIfUnavailable: true,

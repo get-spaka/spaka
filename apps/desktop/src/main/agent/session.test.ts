@@ -1,13 +1,14 @@
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { applyEvent, type ConversationEvent, type ConversationItem } from "../../shared/conversation";
 import { Skills } from "../skills/skills";
 import { activityDetail, activityLabel } from "./activity";
 import { modelChoices, projectNameFrom } from "./agent";
 import { findSignInUrl, parseAuthStatus } from "./auth";
 import { instructionsFor, UPSTART_INSTRUCTIONS } from "./instructions";
+import { ASK_TOOL, NOT_ANSWERED } from "./questions";
 import { AgentSession, DENY_MESSAGE, isolationProblem, type SessionDeps, TOOLS } from "./session";
 
 // A stand-in for the SDK's query(): each message the session sends gets the
@@ -15,9 +16,9 @@ import { AgentSession, DENY_MESSAGE, isolationProblem, type SessionDeps, TOOLS }
 type Turn = Record<string, unknown>[] | "throw" | "hang";
 
 function fakeQuery(turns: Turn[]) {
-  const runs: { options: Record<string, unknown>; calls: unknown[] }[] = [];
+  const runs: { options: Record<string, unknown>; calls: unknown[]; abort?: () => void }[] = [];
   const query = (params: { prompt: AsyncIterable<unknown>; options: Record<string, unknown> }) => {
-    const run = { options: params.options, calls: [] as unknown[] };
+    const run: (typeof runs)[number] = { options: params.options, calls: [] as unknown[] };
     runs.push(run);
     let interrupted: (() => void) | undefined;
     async function* messages() {
@@ -31,13 +32,24 @@ function fakeQuery(turns: Turn[]) {
           yield { type: "result", subtype: "error_during_execution", is_error: true, result: "" };
           continue;
         }
-        for (const m of turn) yield m;
+        for (const m of turn) {
+          // The binary asking the app, as for AskUserQuestion: the stream waits for the answer.
+          if (m.type === "ask") {
+            const controller = new AbortController();
+            run.abort = () => controller.abort();
+            const can = params.options.canUseTool as (n: string, i: unknown, o: unknown) => Promise<unknown>;
+            run.calls.push({ permission: await can(String(m.name), m.input, { signal: controller.signal }) });
+            continue;
+          }
+          yield m;
+        }
       }
     }
     return Object.assign(messages(), {
       interrupt: async () => {
         run.calls.push("interrupt");
         interrupted?.();
+        run.abort?.();
       },
       setModel: async (model: string) => void run.calls.push({ model }),
       applyFlagSettings: async (settings: unknown) => void run.calls.push(settings),
@@ -131,7 +143,11 @@ test("a turn: the maker's message, the agent's words and one line per file it wr
     systemPrompt: { type: "custom", snapshot: false },
   });
   expect(options.resume).toBeUndefined();
-  expect(await (options.canUseTool as () => Promise<unknown>)()).toEqual({ behavior: "deny", message: DENY_MESSAGE });
+  const can = options.canUseTool as (name: string, input: unknown, o: { signal: AbortSignal }) => Promise<unknown>;
+  expect(await can("Bash", {}, { signal: new AbortController().signal })).toEqual({
+    behavior: "deny",
+    message: DENY_MESSAGE,
+  });
 
   const [maker, agent] = items();
   expect(maker).toMatchObject({ kind: "maker", text: "A bakery in Lyon" });
@@ -440,4 +456,121 @@ test("the maker's connectors that are on reach the agent, and a change starts it
   await ended;
   expect(fake.runs).toHaveLength(2);
   expect(Object.keys(fake.runs[1]!.options.mcpServers as object)).toEqual(["upstart"]);
+});
+
+const asked = {
+  questions: [
+    {
+      question: "Which mood for the bakery?",
+      header: "Mood",
+      options: [
+        { label: "Warm (Recommended)", description: "Cream and brown" },
+        { label: "Fresh", description: "White and mint" },
+      ],
+      multiSelect: false,
+    },
+  ],
+};
+/** A turn whose agent asks the maker, then ends. */
+const askTurn = (input: unknown = asked) => [
+  init(),
+  stream({ type: "message_start" }),
+  stream({ type: "content_block_start", index: 0, content_block: { type: "tool_use", id: "q1", name: ASK_TOOL } }),
+  stream({ type: "content_block_delta", index: 0, delta: { type: "input_json_delta", partial_json: "{}" } }),
+  stream({ type: "content_block_stop", index: 0 }),
+  { type: "ask", name: ASK_TOOL, input },
+  { type: "result", subtype: "success", is_error: false, result: "Done.", duration_ms: 10 },
+];
+
+const questionCard = (items: ConversationItem[]) => {
+  const last = items.at(-1);
+  const part = last?.kind === "agent" ? last.parts.find((p) => p.kind === "question") : undefined;
+  return part?.kind === "question" ? part.card : undefined;
+};
+
+test("a question waits for the maker, then the agent gets the answer and what was changed meanwhile", async () => {
+  const { s, fake, items, turnEnd } = session([askTurn()]);
+  s.start();
+  const ended = turnEnd();
+  s.send("A bakery");
+  await vi.waitFor(() => expect(questionCard(items())?.state).toBe("waiting"));
+  // No activity line: the question is a card of its own (Q284).
+  expect(items().at(-1)).toMatchObject({ parts: [{ kind: "question" }] });
+  expect(s.busy).toBe(true);
+
+  const card = questionCard(items())!;
+  s.answer("not-a-card", { kind: "skipped" });
+  s.answer(card.id, { kind: "choices", answers: { "Which mood for the bakery?": "Warm (Recommended)" } }, "Edited: x");
+  await ended;
+  expect(fake.runs[0]!.calls).toContainEqual({
+    permission: {
+      behavior: "allow",
+      updatedInput: { ...asked, answers: { "Which mood for the bakery?": "Warm (Recommended)" } },
+    },
+  });
+  expect(questionCard(items())).toMatchObject({ state: "answered", answer: { kind: "choices" } });
+
+  // The hand edits made while it waited reach the agent with the answer, once (Q294).
+  // biome-ignore lint/suspicious/noExplicitAny: hooks as the kit receives them
+  const after = (fake.runs[0]!.options.hooks as any).PostToolUse as { matcher?: string; hooks: (() => unknown)[] }[];
+  const hook = after.find((h) => h.matcher === ASK_TOOL)!.hooks[0]!;
+  expect(await hook()).toEqual({
+    hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: "Edited: x" },
+  });
+  expect(await hook()).toEqual({ continue: true });
+});
+
+test("the maker's own words and Skip reach the agent as such", async () => {
+  const { s, fake, items, turnEnd } = session([askTurn(), askTurn()]);
+  s.start();
+  let ended = turnEnd();
+  s.send("A bakery");
+  await vi.waitFor(() => expect(questionCard(items())?.state).toBe("waiting"));
+  s.answer(questionCard(items())!.id, { kind: "words", text: "Something like a farmhouse" });
+  await ended;
+  expect(fake.runs[0]!.calls).toContainEqual({
+    permission: { behavior: "allow", updatedInput: { ...asked, answers: {}, response: "Something like a farmhouse" } },
+  });
+
+  ended = turnEnd();
+  s.send("Again");
+  await vi.waitFor(() => expect(questionCard(items())?.state).toBe("waiting"));
+  s.answer(questionCard(items())!.id, { kind: "skipped" });
+  await ended;
+  expect(questionCard(items())).toMatchObject({ state: "skipped" });
+  expect(fake.runs[0]!.calls).toContainEqual({
+    permission: {
+      behavior: "allow",
+      updatedInput: {
+        ...asked,
+        answers: {},
+        annotations: { "Which mood for the bakery?": { unanswered: "skipped" } },
+      },
+    },
+  });
+});
+
+test("stopping the turn while a question waits leaves it unanswered", async () => {
+  const { s, fake, items, turnEnd } = session([askTurn()]);
+  s.start();
+  const ended = turnEnd();
+  s.send("A bakery");
+  await vi.waitFor(() => expect(questionCard(items())?.state).toBe("waiting"));
+  await s.stop();
+  await ended;
+  expect(fake.runs[0]!.calls).toContainEqual({ permission: { behavior: "deny", message: NOT_ANSWERED } });
+  expect(items().at(-1)).toMatchObject({ status: "stopped" });
+  expect(questionCard(items())).toMatchObject({ state: "unanswered" });
+});
+
+test("questions without AskUserQuestion's form are refused, as is any other ask", async () => {
+  const { s, fake, items, turnEnd } = session([askTurn({ questions: [{ question: "Mood?", options: [] }] })]);
+  s.start();
+  const ended = turnEnd();
+  s.send("A bakery");
+  await ended;
+  expect(fake.runs[0]!.calls).toContainEqual({
+    permission: { behavior: "deny", message: expect.stringMatching(/AskUserQuestion's form/) },
+  });
+  expect(questionCard(items())).toBeUndefined();
 });

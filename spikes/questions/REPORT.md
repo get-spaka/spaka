@@ -21,6 +21,13 @@
 - Build: `await q.setPermissionMode("acceptEdits")` inside `canUseTool`, then `allow`. The agent reads "User has approved your plan. You can now start coding…" with the plan, and builds in the same turn: index.html written with the four pages.
 - The plan-mode instructions given by `planModeInstructions` were followed: pages and sections, style, what is invented, short.
 
+## Under the app's confinement
+
+Checked while building slice 1 (`apps/desktop/src/main/agent/session.real.test.ts`, run with `UPSTART_REAL_CLAUDE=1`), the real `AgentSession` with the app's options:
+
+- `permissions.denyInsteadOfPrompting: true` takes AskUserQuestion out of the agent's tools: the `init` message lists the others only, and the agent says it has no such tool. Every other option of the confinement leaves it. The app no longer sets it: what the binary would ask for reaches `canUseTool`, which refuses all but the agent's questions.
+- Without it, a question waits and its answer reaches the agent as in the probe; a Write outside the project is still refused by `blockWritesOutsideWorkingDirectories` at once, without reaching `canUseTool`, and the turn ends normally with the agent's account.
+
 ## The app closed while a question waits
 
 - Closing the query while `canUseTool` waits aborts its signal. Resumed, the session holds the question as rejected: the agent says "the question was rejected and never answered". Nothing else is needed for Claude; the card shows "Not answered".

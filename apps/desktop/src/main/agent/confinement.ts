@@ -1,7 +1,8 @@
 // What the agent may do and see (ADR 0007, ADR 0010): it starts with nothing
 // of the maker's own Claude installation, writes only in the project and the
 // system's temporary folder, has a shell inside the operating system's
-// sandbox, which confines it on its own (Q221), and is never allowed to ask the maker.
+// sandbox, which confines it on its own (Q221), and never asks the maker for permissions:
+// it only asks its questions (Q283).
 import { chmodSync, mkdirSync, realpathSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
@@ -57,10 +58,14 @@ export function confinement({ projectDir, readable, skillsDir, platform = proces
       syncClaudeAiPlugins: false,
       // The binary's memory is keyed by the enclosing git repository.
       autoMemoryEnabled: false,
+      // A question waits for the maker as long as it takes (Q283).
+      dialogExpiry: "never" as const,
       permissions: {
         blockWritesOutsideWorkingDirectories: true,
         blockReadsOutsideWorkingDirectories: true,
-        denyInsteadOfPrompting: true,
+        // No denyInsteadOfPrompting: it takes AskUserQuestion away from the
+        // agent (agent-questions plan, slice 1). What it would ask for reaches
+        // canUseTool, which refuses all but the agent's questions (ADR 0007).
         // Reading the web, granted rather than asked for (Q257): the maker is never asked (ADR 0007).
         allow: ["WebSearch", "WebFetch"],
         deny: skills.map((dir) => `Edit(/${dir}/**)`),

@@ -8,6 +8,7 @@
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute } from "node:path";
 import type { ModelInfo, Query, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
+import { CARD_TOOLS } from "./questions";
 
 type Line = { t: number; m: Record<string, unknown> & { type: string } };
 
@@ -69,6 +70,11 @@ export function replayQuery(file: string, speed = 1) {
     let interrupted = false;
     let closed = false;
     let wake: (() => void) | undefined;
+    /** Ends the wait for a question's answer, as the binary does on an interruption. */
+    let stopAsking: (() => void) | undefined;
+    const ask = params.options.canUseTool as
+      | ((name: string, input: Record<string, unknown>, options: { signal: AbortSignal }) => Promise<unknown>)
+      | undefined;
 
     async function* messages() {
       for await (const input of params.prompt) {
@@ -85,9 +91,9 @@ export function replayQuery(file: string, speed = 1) {
           };
           continue;
         }
-        const start = Date.now();
+        let start = Date.now();
         const from = recordedCwd(turns);
-        for (const line of turn) {
+        for (const [i, line] of turn.entries()) {
           const wait = line.t / speed - (Date.now() - start);
           if (wait > 0)
             await new Promise<void>((resolve) => {
@@ -106,6 +112,17 @@ export function replayQuery(file: string, speed = 1) {
           const m = from ? (JSON.parse(JSON.stringify(line.m).split(from).join(cwd)) as Line["m"]) : line.m;
           applyWrites(m);
           yield m;
+          // A question or a plan asks the app, as the binary does, and the
+          // recording goes on once it is answered (Q283, Q286); the maker's
+          // time to answer in the recording is not waited again.
+          const asked = cardCall(m);
+          if (asked && ask) {
+            const controller = new AbortController();
+            stopAsking = () => controller.abort();
+            await ask(asked.name, asked.input, { signal: controller.signal });
+            stopAsking = undefined;
+            start = Date.now() - (turn[i + 1]?.t ?? line.t) / speed;
+          }
         }
       }
     }
@@ -115,20 +132,32 @@ export function replayQuery(file: string, speed = 1) {
       interrupt: async () => {
         interrupted = true;
         wake?.();
+        stopAsking?.();
         calls.push({ interrupt: true });
         return undefined;
       },
       setModel: async (model?: string) => void calls.push({ model }),
       applyFlagSettings: async (settings: Record<string, unknown>) => void calls.push(settings),
+      setPermissionMode: async (mode: string) => void calls.push({ permissionMode: mode }),
       supportedModels: async () => MODELS,
       accountInfo: async () => ({ tokenSource: "replay" }),
       close: () => {
         closed = true;
         wake?.();
+        stopAsking?.();
       },
       calls,
     });
   };
+}
+
+/** A recorded question or plan of the agent's, which asks the app before the recording goes on. */
+function cardCall(m: Line["m"]): { name: string; input: Record<string, unknown> } | undefined {
+  if (m.type !== "assistant") return undefined;
+  const content = (m.message as { content?: unknown })?.content;
+  if (!Array.isArray(content)) return undefined;
+  const block = content.find((b) => b?.type === "tool_use" && CARD_TOOLS.has(b.name));
+  return block ? { name: block.name, input: block.input as Record<string, unknown> } : undefined;
 }
 
 function readTurns(file: string): Line[][] {

@@ -19,10 +19,13 @@ export interface AgentRunner {
   /** `forAgent` is what the agent receives, when it differs from what the maker typed. */
   send(text: string, forAgent?: string): void;
   stop(): Promise<void>;
-  /** Answers the card of questions the turn waits on (Q283); a card it does not wait on is left alone. */
-  answer(cardId: string, answer: QuestionAnswer): void;
+  /**
+   * Answers the card of questions the turn waits on (Q283); a card it does not
+   * wait on is left alone. `note` says what the maker changed by hand meanwhile (Q294).
+   */
+  answer(cardId: string, answer: QuestionAnswer, note?: string): void;
   /** Settles the plan the turn waits on (Q286): Build, or the maker's changes, after which the agent hands in another. */
-  settlePlan(cardId: string, decision: PlanDecision): void;
+  settlePlan(cardId: string, decision: PlanDecision, note?: string): void;
   setModel(model: string): Promise<void>;
   setEffort(effort: Effort): Promise<void>;
   /** Build or plan, from the next message (Q286, Q296). */

@@ -5,7 +5,13 @@
 import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ModelInfo } from "@anthropic-ai/claude-agent-sdk";
-import { applyEvent, type ConversationEvent, type ConversationItem } from "../../shared/conversation";
+import {
+  applyEvent,
+  type ConversationEvent,
+  type ConversationItem,
+  type QuestionAnswer,
+  waitingFor,
+} from "../../shared/conversation";
 import {
   type AgentStatus,
   accountOf,
@@ -22,7 +28,7 @@ import type { PiAccounts } from "./pi/accounts";
 import { PI_MODELS, piEfforts, piModel, piModelId } from "./pi/models";
 import type { PiReplay } from "./pi/replay";
 import { type PiDeps, PiSession } from "./pi/session";
-import type { AgentRunner } from "./runner";
+import type { AgentRunner, PlanDecision } from "./runner";
 import { AgentSession, type SessionDeps, type SessionHandlers } from "./session";
 import type { AgentEvent } from "./stream";
 
@@ -116,6 +122,21 @@ export class Agent {
 
   isWorking(projectId: string) {
     return !!this.sessions.get(projectId)?.busy;
+  }
+
+  /** What a project's agent waits for: a card of questions or a plan (Q283, Q286). */
+  waitingFor(projectId: string) {
+    return this.isWorking(projectId) ? waitingFor(this.conversation(projectId)) : undefined;
+  }
+
+  /** The maker's answer to a card of questions; `note` says what they changed by hand meanwhile (Q294). */
+  answer(projectId: string, cardId: string, answer: QuestionAnswer, note?: string) {
+    this.sessions.get(projectId)?.answer(cardId, answer, note);
+  }
+
+  /** Build, or the maker's changes to the plan the agent waits on (Q290). */
+  settlePlan(projectId: string, cardId: string, decision: PlanDecision, note?: string) {
+    this.sessions.get(projectId)?.settlePlan(cardId, decision, note);
   }
 
   async stop(projectId: string) {
