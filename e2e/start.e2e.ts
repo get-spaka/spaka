@@ -179,13 +179,17 @@ describe("the start screen", () => {
     expect(received.at(-1)).toContain('template "Reel"');
     expect(received.at(-1)).toContain("reel-design skill");
     expect(received.at(-1)?.endsWith("A ceramics studio in Lisbon.")).toBe(true);
-    // Its guide with the first message, and the choices of its Before building to ask first (Q299).
+    // Its guide with the first message, kept beside the website while it is adapted (Q299, Q302)…
     const guide = readFileSync(join(import.meta.dirname, "../apps/desktop/templates/reel/TEMPLATE.md"), "utf8").trim();
     expect(received.at(-1)).toContain(`<template-guide>\n${guide}\n</template-guide>`);
-    expect(received.at(-1)).toContain("### How do clients get in touch?");
+    expect(existsSync(join(project.path, ".upstart/adaptation/TEMPLATE.md"))).toBe(true);
+    // …and the card of pages first, listing the template's page types, home first (Q302, Q306).
     expect(received.at(-1)).toMatch(
-      /before you change any file: read the maker's message against the guide's "Before building"/,
+      /1\. First, before you change any file: show the maker the card of pages with choose_pages/,
     );
+    const listed = [...(received.at(-1) ?? "").matchAll(/^ {2}- (\/[a-z-]*) \(/gm)].map((m) => m[1]);
+    expect(listed[0]).toBe("/");
+    expect(listed).toEqual(expect.arrayContaining(["/work", "/studio", "/contact"]));
     await expect(main<boolean>("globalThis.upstart.templateViewer.view.getVisible()")).resolves.toBe(false);
     await launched.capture("start-sent");
   });
@@ -243,5 +247,31 @@ describe("the start screen", () => {
     expect(part).toContain("{{ member.obsession }}");
     expect(part).toMatch(/\b(?:lorem|ipsum|amet|adipiscing)\b/i);
     expect(existsSync(join(project.path, "data/team/_datasource.yaml"))).toBe(true);
+  });
+
+  test("the adaptation's list shows the home page to look at; a click picks the next page, Continue sends it (Q303, Q313)", async () => {
+    const w = launched.window;
+    await w.getByTestId("tab-conversation").click();
+    const bar = w.getByTestId("adaptation-bar");
+    await bar.waitFor();
+    // The replayed turn showed no card: its end keeps every page type, the home page adapted.
+    const status = (route: string) =>
+      w.locator(`[data-testid="adaptation-step"][data-route="${route}"]`).getAttribute("data-status");
+    await expect(status("/")).resolves.toBe("ready");
+    await expect(status("/studio")).resolves.toBe("todo");
+    const steps = await w
+      .getByTestId("adaptation-step")
+      .evaluateAll((els) => els.map((el) => el.getAttribute("data-route")));
+    expect(steps[0]).toBe("/");
+    await launched.capture("start-adaptation-bar");
+    // A click on a page to do makes it the next one.
+    await w.locator('[data-testid="adaptation-step"][data-route="/studio"] button').first().click();
+    await until(async () => (await w.getByTestId("adaptation-continue").textContent()) === "Continue: Studio");
+    await w.getByTestId("adaptation-continue").click();
+    await until(async () => (await status("/studio")) === "doing" || (await status("/studio")) === "ready", 30_000);
+    await expect(status("/")).resolves.toBe("done");
+    const received = await main<string[]>("globalThis.upstart.replayed");
+    expect(received.at(-1)).toMatch(/Next page of the adaptation: Studio \(\/studio\)\. Adapted already: /);
+    await expect(w.getByTestId("maker-message").last().textContent()).resolves.toBe("Continue: Studio");
   });
 });

@@ -103,12 +103,17 @@ A calm studio site, for a ceramicist or a small workshop.
 
 - \`/\`: the hero, then the studio's work.
 
-## Before building
+## Pages
 
-### Do you sell your pieces?
+### Home (\`/\`)
 
-- **Yes, online** (as built): the shop page stays.
-- **No**: the shop page goes.
+The hero, then the studio's work.
+
+### About (\`/about\`)
+
+The studio's story.
+
+When removed: the header's link to it goes.
 `,
   };
 }
@@ -221,12 +226,33 @@ describe("its checks", () => {
     );
   });
 
-  test("its guide (Q299, Q300): there, with what to ask before building", () => {
+  test("its guide (Q299, Q304, Q306): there, with a section per page type, the home page first", () => {
     expect(warningsOf({ "TEMPLATE.md": null })).toMatch(/TEMPLATE\.md is missing/);
     expect(warningsOf({ "TEMPLATE.md": "# Atelier\n\nA calm studio site.\n" })).toMatch(
-      /TEMPLATE\.md has no "## Before building" section/,
+      /TEMPLATE\.md has no "## Pages" section/,
     );
-    expect(warningsOf({ "TEMPLATE.md": "# Atelier\n\n## Before building\n\nNothing to ask.\n" })).toBe("");
+    const pages = (...sections: string[]) => `# Atelier\n\n## Pages\n\n${sections.join("\n\n")}\n`;
+    expect(
+      warningsOf({ "TEMPLATE.md": pages("### Home (`/`)\n\nThe hero.", "### About (`/about`)\n\nThe story.") }),
+    ).toBe("");
+    expect(warningsOf({ "TEMPLATE.md": pages("### Home (`/`)\n\nThe hero.") })).toMatch(
+      /TEMPLATE\.md has no section for \/about under "## Pages" \(pages\/about\.liquid\)/,
+    );
+    expect(
+      warningsOf({ "TEMPLATE.md": pages("### About (`/about`)\n\nThe story.", "### Home (`/`)\n\nThe hero.") }),
+    ).toMatch(/the home page's section \(`\/`\) comes first/);
+    expect(
+      warningsOf({
+        "TEMPLATE.md": pages(
+          "### Home (`/`)\n\nThe hero.",
+          "### About (`/about`)\n\nThe story.",
+          "### Shop (`/shop`)\n\nGone.",
+        ),
+      }),
+    ).toMatch(/"Shop" \(\/shop\) is no page type of the template/);
+    expect(
+      warningsOf({ "TEMPLATE.md": pages("### Home (`/`)\n\nThe hero.", "### About (`/about`)\n\nx", "### The shop") }),
+    ).toMatch(/"### The shop" under "## Pages" does not name its page type/);
     // An older template.json with questions is read without them.
     const old = { ...MANIFEST, questions: [{ question: "How?", options: [{ label: "A" }, { label: "B" }] }] };
     expect(errorsOf({ "template.json": JSON.stringify(old) })).toBe("");

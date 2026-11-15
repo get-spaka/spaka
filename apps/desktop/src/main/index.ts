@@ -25,6 +25,7 @@ import {
 } from "@upstart/runtime";
 import { diskSource } from "@upstart/runtime/node";
 import { app, BrowserWindow, dialog, Menu, Notification, safeStorage, shell } from "electron";
+import { isPlan } from "../shared/conversation";
 import {
   type ConnectorInfo,
   type ContentDatasource,
@@ -49,6 +50,7 @@ import { PiAccounts } from "./agent/pi/accounts";
 import { VaultSignIns } from "./agent/pi/connectors";
 import { PiRecorder, piReplay } from "./agent/pi/replay";
 import { claudeExtras, UPSTART_SERVER } from "./agent/preview-tool";
+import { NOT_ANSWERED } from "./agent/questions";
 import { Recorder, replayed, replayQuery } from "./agent/replay";
 import type { AgentKit } from "./agent/runner";
 import { TurnChecks } from "./agent/turn-checks";
@@ -84,8 +86,19 @@ import {
   SiteUnavailable,
 } from "./publish/management";
 import { Skills } from "./skills/skills";
-import { adaptMessage, copyTemplate } from "./templates/adapt";
+import { adaptMessage, copyTemplate, removalMessage, removalsOf, reviewNote, stepMessage } from "./templates/adapt";
+import {
+  adaptationGuide,
+  adaptationView,
+  continueAdaptation,
+  finishAdaptation,
+  pickNext,
+  readAdaptation,
+  removeStep,
+  turnEnded,
+} from "./templates/adaptation";
 import { TEMPLATES_RELEASES, TemplateLibrary } from "./templates/library";
+import { pagesAnswered, readPagesCard } from "./templates/pages-card";
 import { TemplateViewer } from "./templates/viewer";
 import { Fonts } from "./theme/fonts";
 import { readTheme, type ThemeValues, themeColors, writeTheme } from "./theme/theme-file";
@@ -93,9 +106,9 @@ import { readTheme, type ThemeValues, themeColors, writeTheme } from "./theme/th
 const here = fileURLToPath(new URL(".", import.meta.url));
 const env = readEnvironment();
 /** The conversation's events after which editing by hand may pause or come back (Q91, Q294). */
-const PAUSING = new Set(["turn-start", "turn-end", "question", "question-settled", "plan", "plan-settled"]);
+const PAUSING = new Set(["turn-start", "turn-end", "question", "pages", "question-settled", "plan", "plan-settled"]);
 /** Those after which the websites waiting for the maker may have changed (Q292). */
-const WAITING = new Set(["turn-end", "question", "question-settled", "plan", "plan-settled"]);
+const WAITING = new Set(["turn-end", "question", "pages", "question-settled", "plan", "plan-settled"]);
 
 if (env.dataDir) app.setPath("userData", env.dataDir);
 
@@ -325,6 +338,8 @@ async function main() {
       // Back to the project folder after each shell command: a cd the agent
       // leaves behind would send its next relative paths astray (Q220).
       CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR: "1",
+      // The card of pages waits for the maker as long as they take (Q302): a day.
+      MCP_TOOL_TIMEOUT: String(24 * 3600 * 1000),
     };
   };
   // Skills (ADR 0010): shipped with the app, the maker's for every project, the project's own.
@@ -349,7 +364,7 @@ async function main() {
   // Free images for the agent and the maker (Q150); a folder of made-up ones for the checks.
   const images: ImageFinder = env.imagesFixture ? new FixtureImages(env.imagesFixture) : new ImageSearch();
   // What Upstart gives a project's agent, whichever layer runs it (ADR 0012): its tools and its checks.
-  const kitFor = (project: { path: string }): AgentKit => {
+  const kitFor = (project: { id: string; path: string }): AgentKit => {
     const checks = new TurnChecks(project.path);
     return {
       checks,
@@ -365,8 +380,23 @@ async function main() {
           checks.placed(samples, files);
           return text;
         },
+        // The card of pages of a template's adaptation (Q302), whichever agent shows it.
+        choosePages: async (input, signal) => {
+          const read = readPagesCard(project.path, input);
+          if ("problem" in read) return read.problem;
+          const got = await agent.askPages(project.id, read.pages, signal);
+          if (!got) return NOT_ANSWERED;
+          const text = pagesAnswered(project.path, read.pages, got.answer);
+          emitAdaptation(project.id);
+          return got.note ? `${text}\n\n${got.note}` : text;
+        },
       },
     };
+  };
+  /** The open website's adaptation, for the list under the conversation (Q303). */
+  const emitAdaptation = (projectId: string, finished = false) => {
+    if (current?.id !== projectId) return;
+    ipc.emit("adaptation:changed", { projectId, state: adaptationView(readAdaptation(current.path)), finished });
   };
   let agent: Agent;
   let connectorStateTimer: NodeJS.Timeout | undefined;
@@ -435,7 +465,8 @@ async function main() {
       // comes back while it waits for the maker's answer (Q294).
       if (projectId === current?.id && PAUSING.has(event.type)) preview.setPaused(agentBusy(projectId));
       if (WAITING.has(event.type)) ipc.emit("agent:waiting", agent.waiting());
-      if (event.type === "question" || event.type === "plan") notifyWaiting(projectId, event.type);
+      if (event.type === "question" || event.type === "pages" || event.type === "plan")
+        notifyWaiting(projectId, event.type === "plan" ? "plan" : "question");
       // An approved plan puts the selector back on Build (Q290, Q296).
       if (event.type === "plan-settled" && event.state === "approved") {
         const project = projects.update(projectId, { mode: "build" });
@@ -444,9 +475,18 @@ async function main() {
       // The agent writes nothing while it waits for the maker either.
       if (
         projectId === current?.id &&
-        (event.type === "turn-end" || event.type === "question" || event.type === "plan")
+        (event.type === "turn-end" || event.type === "question" || event.type === "pages" || event.type === "plan")
       )
         preview.doneWriting();
+      // A page type adapted waits for the maker to look at it; after the last one, the adaptation is over (Q303, Q307).
+      if (event.type === "turn-end") {
+        const path = projectId === current?.id ? current.path : projects.list().find((p) => p.id === projectId)?.path;
+        if (path && readAdaptation(path)) {
+          const { finished } = turnEnded(path, event.status === "done");
+          if (finished) agent.notice(projectId, t.adaptation.finished);
+          emitAdaptation(projectId, finished);
+        }
+      }
       // A version of the project after each turn of the agent (decisions: history).
       if (event.type === "turn-end" && history?.projectId === projectId) {
         history.store.snapshot("turn", history.lastMessage ?? "");
@@ -646,6 +686,7 @@ async function main() {
     emitHistory();
     ipc.emit("project:opened", project);
     ipc.emit("projects:changed", projects.list());
+    emitAdaptation(project.id);
     return project;
   };
   const changed = (project: ProjectInfo) => {
@@ -852,7 +893,7 @@ async function main() {
     if (current && waiting) {
       editor.leaveRecord();
       const note = notesFor(current.id).take();
-      if ("questions" in waiting) agent.answer(current.id, waiting.id, { kind: "words", text: message }, note);
+      if (!isPlan(waiting)) agent.answer(current.id, waiting.id, { kind: "words", text: message }, note);
       // The maker's changes to the plan (Q290).
       else agent.settlePlan(current.id, waiting.id, { changes: message }, note);
       return;
@@ -874,8 +915,9 @@ async function main() {
       const created = projects.create(projectNameFrom(message));
       const model = typeof settings?.model === "string" ? settings.model : created.model;
       const effort = isEffort(settings?.effort) ? settings.effort : created.effort;
-      // Created in plan mode, the agent plans before it builds (Q286).
-      const mode = settings?.mode === "plan" ? ("plan" as const) : undefined;
+      // Created in plan mode, the agent plans before it builds (Q286); never from a template,
+      // whose card of pages and adaptation stand for the plan (Q312).
+      const mode = settings?.mode === "plan" && !dir ? ("plan" as const) : undefined;
       const copied = dir ? copyTemplate(dir, created.path) : undefined;
       const manifest = copied?.manifest;
       const template = manifest && { id: manifest.id, version: manifest.version };
@@ -883,11 +925,19 @@ async function main() {
         projects.update(created.id, { model, effort, ...(template ? { template } : {}), ...(mode ? { mode } : {}) }),
       );
       if (copied) {
-        sendMessage(project, message, adaptMessage(copied.manifest, message, copied.guide));
+        emitAdaptation(project.id);
+        const steps = readAdaptation(project.path)?.steps ?? [];
+        sendMessage(project, message, adaptMessage(copied.manifest, message, copied.guide, steps));
         return;
       }
     }
-    sendMessage(project, message, message);
+    // During an adaptation, the agent hears which page the maker is looking at (Q303).
+    const adaptation = readAdaptation(project.path);
+    sendMessage(
+      project,
+      message,
+      adaptation ? `${reviewNote(adaptation, removalsOf(project.path, adaptation))}\n\n${message}` : message,
+    );
   });
   /** A message to the agent: `shown` in the conversation, `forAgent` what the agent receives. */
   function sendMessage(project: ProjectInfo, shown: string, forAgent: string) {
@@ -914,6 +964,68 @@ async function main() {
     agent.settlePlan(current.id, cardId, { approved: true }, notesFor(current.id).take());
   });
   ipc.handle("conversation:start-over", () => current && agent.startOver(current));
+  // The adaptation's list and its Continue button (Q303, Q307, Q313).
+  ipc.handle("adaptation:get", () => (current ? adaptationView(readAdaptation(current.path)) : null));
+  ipc.handle("adaptation:continue", () => {
+    const project = current;
+    if (!project) return;
+    if (agent.isWorking(project.id)) return t.adaptation.busy;
+    const root = project.path;
+    const state = readAdaptation(root);
+    if (!state) return;
+    editor.leaveRecord();
+    if (!state.chosen) {
+      sendMessage(
+        project,
+        t.adaptation.choosePages,
+        "Show the maker the card of pages with choose_pages, as the first message said, then go on with the home page.",
+      );
+      return;
+    }
+    const interrupted = state.steps.some((s) => s.status === "doing");
+    const step = continueAdaptation(root);
+    const now = readAdaptation(root);
+    const removals = now ? removalsOf(root, now) : [];
+    if (!step || !now) {
+      if (!removals.length) {
+        finishAdaptation(root);
+        agent.notice(project.id, t.adaptation.finished);
+        emitAdaptation(project.id, true);
+        return;
+      }
+      emitAdaptation(project.id);
+      sendMessage(project, t.adaptation.removeShown, removalMessage(removals, adaptationGuide(root)));
+      return;
+    }
+    emitAdaptation(project.id);
+    sendMessage(
+      project,
+      t.adaptation.continueTo(step.name),
+      stepMessage(now, step, adaptationGuide(root), { again: interrupted, removals }),
+    );
+  });
+  ipc.handle("adaptation:pick", (route) => {
+    if (!current || agent.isWorking(current.id)) return current ? adaptationView(readAdaptation(current.path)) : null;
+    const state = adaptationView(pickNext(current.path, route));
+    emitAdaptation(current.id);
+    return state;
+  });
+  ipc.handle("adaptation:remove", (route) => {
+    if (!current || agent.isWorking(current.id)) return current ? adaptationView(readAdaptation(current.path)) : null;
+    const state = adaptationView(removeStep(current.path, route));
+    emitAdaptation(current.id);
+    return state;
+  });
+  ipc.handle("adaptation:picture", async (route) => {
+    if (!current) return null;
+    // A page type with a page per record shows its first record's page.
+    const routes = preview.runtime?.routes() ?? [];
+    const shown =
+      routes.find((r) => r.route === route && !r.generated)?.route ??
+      routes.find((r) => r.record && r.route.startsWith(`${route}/`))?.route;
+    if (!shown) return null;
+    return thumbnails.page(shown).catch(() => null);
+  });
   // The static export (decisions): into a folder the maker picks, remembered per project on this machine.
   const lastExportFile = () => current && join(projects.dataFor(current.id), "export.json");
   // How the website was last published on this machine: the way chosen, and each way's folder.

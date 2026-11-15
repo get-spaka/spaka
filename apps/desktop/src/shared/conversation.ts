@@ -26,13 +26,25 @@ export type AgentQuestion = { question: string; header: string; options: Questio
 export type QuestionAnswer =
   | { kind: "choices"; answers: Record<string, string | string[]> }
   | { kind: "words"; text: string }
-  | { kind: "skipped" };
+  | { kind: "skipped" }
+  /** The card of pages (Q302): the routes of the page types kept, new pages included. */
+  | { kind: "pages"; kept: string[] };
 
 /** Waiting for the maker; answered or skipped; or left when the turn ended (Stop, the app closed). */
 export type QuestionState = "waiting" | "answered" | "skipped" | "unanswered";
 
 /** One to four questions the agent asks at once, its turn waiting for the answer (Q283). */
 export type QuestionCard = { id: string; questions: AgentQuestion[]; state: QuestionState; answer?: QuestionAnswer };
+
+/**
+ * One page type in the card of pages of a template's adaptation (Q302, Q310):
+ * named and described for the maker's business, checked as the agent
+ * suggests; `new` for a page the template lacks.
+ */
+export type PageChoice = { route: string; name: string; line: string; checked: boolean; new?: boolean };
+
+/** The card of pages the first turn of an adaptation waits on (Q302). */
+export type PagesCard = { id: string; pages: PageChoice[]; state: QuestionState; answer?: QuestionAnswer };
 
 /** Handed in, approved with Build, replaced by a new one after the maker asked for changes, or left when the turn ended. */
 export type PlanState = "proposed" | "approved" | "replaced" | "unanswered";
@@ -46,6 +58,7 @@ export type AgentPart =
   /** The agent's thinking, when the model gives it; shown in the detailed style only. */
   | { kind: "thinking"; text: string }
   | { kind: "question"; card: QuestionCard }
+  | { kind: "pages"; card: PagesCard }
   | { kind: "plan"; card: PlanCard };
 
 export type TurnStatus = "working" | "done" | "stopped" | "failed";
@@ -72,6 +85,8 @@ export type ConversationEvent =
   | { type: "notice"; id: string; text: string; at: number }
   /** The agent asks; its turn waits for the answer. */
   | { type: "question"; card: QuestionCard }
+  /** The card of pages of a template's adaptation (Q302); settled as a question is. */
+  | { type: "pages"; card: PagesCard }
   | { type: "question-settled"; id: string; state: Exclude<QuestionState, "waiting">; answer?: QuestionAnswer }
   /** The agent hands in a plan; its turn waits for Build or the maker's changes. */
   | { type: "plan"; card: PlanCard }
@@ -102,15 +117,24 @@ export function applyEvent(items: ConversationItem[], event: ConversationEvent):
     else parts.push({ kind: "activity", activity: event.activity });
     return [...items.slice(0, -1), { ...last, parts }];
   }
-  if (event.type === "question" || event.type === "plan") {
-    parts.push(event.type === "question" ? { kind: "question", card: event.card } : { kind: "plan", card: event.card });
+  if (event.type === "question" || event.type === "plan" || event.type === "pages") {
+    parts.push(
+      event.type === "question"
+        ? { kind: "question", card: event.card }
+        : event.type === "pages"
+          ? { kind: "pages", card: event.card }
+          : { kind: "plan", card: event.card },
+    );
     return [...items.slice(0, -1), { ...last, parts }];
   }
   if (event.type === "question-settled") {
-    const at = parts.findIndex((p) => p.kind === "question" && p.card.id === event.id);
+    const at = parts.findIndex((p) => (p.kind === "question" || p.kind === "pages") && p.card.id === event.id);
     const part = parts[at];
-    if (part?.kind !== "question") return items;
-    parts[at] = { kind: "question", card: { ...part.card, state: event.state, answer: event.answer } };
+    if (part?.kind === "question")
+      parts[at] = { kind: "question", card: { ...part.card, state: event.state, answer: event.answer } };
+    else if (part?.kind === "pages")
+      parts[at] = { kind: "pages", card: { ...part.card, state: event.state, answer: event.answer } };
+    else return items;
     return [...items.slice(0, -1), { ...last, parts }];
   }
   if (event.type === "plan-settled") {
@@ -126,6 +150,7 @@ export function applyEvent(items: ConversationItem[], event: ConversationEvent):
     if (p.kind === "activity" && p.activity.state === "running")
       return { ...p, activity: { ...p.activity, state: event.status !== "done" ? "failed" : "done" } };
     if (p.kind === "question" && p.card.state === "waiting") return { ...p, card: { ...p.card, state: "unanswered" } };
+    if (p.kind === "pages" && p.card.state === "waiting") return { ...p, card: { ...p.card, state: "unanswered" } };
     if (p.kind === "plan" && p.card.state === "proposed") return { ...p, card: { ...p.card, state: "unanswered" } };
     return p;
   });
@@ -138,12 +163,12 @@ export function isWorking(items: ConversationItem[]): boolean {
   return last?.kind === "agent" && last.status === "working";
 }
 
-/** What the agent's turn waits for: a card of questions, or a plan to approve (Q283, Q286). */
-export function waitingFor(items: ConversationItem[]): QuestionCard | PlanCard | undefined {
+/** What the agent's turn waits for: a card of questions or of pages, or a plan to approve (Q283, Q286, Q302). */
+export function waitingFor(items: ConversationItem[]): QuestionCard | PagesCard | PlanCard | undefined {
   const last = items.at(-1);
   if (last?.kind !== "agent" || last.status !== "working") return undefined;
   for (const part of last.parts) {
-    if (part.kind === "question" && part.card.state === "waiting") return part.card;
+    if ((part.kind === "question" || part.kind === "pages") && part.card.state === "waiting") return part.card;
     if (part.kind === "plan" && part.card.state === "proposed") return part.card;
   }
   return undefined;
@@ -154,12 +179,18 @@ export function isWaiting(items: ConversationItem[]): boolean {
   return waitingFor(items) !== undefined;
 }
 
+/** Whether a card the turn waits on is a plan, which the message box changes rather than answers (Q290). */
+export function isPlan(card: QuestionCard | PagesCard | PlanCard | undefined): card is PlanCard {
+  return !!card && "text" in card;
+}
+
 /** A settled card in a few words, for summaries: "Which color? → Blue". */
 export function answerText(card: QuestionCard): string {
   const { answer } = card;
   if (card.state === "skipped" || answer?.kind === "skipped") return "skipped";
   if (card.state === "unanswered" || card.state === "waiting" || !answer) return "not answered";
   if (answer.kind === "words") return answer.text;
+  if (answer.kind === "pages") return answer.kept.join(", ");
   return card.questions
     .map((q) => {
       const a = answer.answers[q.question];

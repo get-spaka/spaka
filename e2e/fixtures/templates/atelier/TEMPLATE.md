@@ -4,16 +4,25 @@ A calm studio site for the checks, for a ceramicist, a weaver or a small worksho
 
 ## How it is made
 
-- `/`: the large type hero, then the studio's work.
-- `/about`: the studio's story.
+- The header and the footer are on every page.
 
 ## When adapting
 
 - The name is in the header, the hero and every `<title>`.
 
-## Before building
+## Pages
 
-### Is there an about page?
+### Home (`/`)
 
-- **Yes** (as built): the about page stays.
-- **No**: delete `pages/about.liquid` and its navigation link.
+The large type hero, then the studio's work.
+
+#### How do clients get in touch?
+
+- **The contact form** (as built): the form at the end of the page.
+- **Email only**: the form goes; the email, set large, takes its place.
+
+### About (`/about`)
+
+The studio's story.
+
+When removed: delete `pages/about.liquid` and its link in the header.

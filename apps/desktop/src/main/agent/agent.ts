@@ -9,6 +9,7 @@ import {
   applyEvent,
   type ConversationEvent,
   type ConversationItem,
+  type PageChoice,
   type QuestionAnswer,
   waitingFor,
 } from "../../shared/conversation";
@@ -29,6 +30,7 @@ import type { PiAccounts } from "./pi/accounts";
 import { PI_MODELS, piEfforts, piModel, piModelId } from "./pi/models";
 import type { PiReplay } from "./pi/replay";
 import { type PiDeps, PiSession } from "./pi/session";
+import { Waits } from "./questions";
 import type { AgentRunner, PlanDecision } from "./runner";
 import { AgentSession, type SessionDeps, type SessionHandlers } from "./session";
 import type { AgentEvent } from "./stream";
@@ -61,6 +63,9 @@ export class Agent {
   private authState: AuthState | undefined;
   /** The models Claude offers, as the binary last listed them. */
   private claudeModels: ModelChoice[] = [];
+  /** The cards of pages a turn waits on, whichever agent shows them (Q302), and each project's. */
+  private readonly pagesWaits = new Waits<{ answer: QuestionAnswer; note?: string }>();
+  private readonly pagesCards = new Map<string, Set<string>>();
 
   constructor(private readonly o: AgentOptions) {
     try {
@@ -135,8 +140,40 @@ export class Agent {
     return [...this.sessions.keys()].filter((id) => this.waitingFor(id));
   }
 
-  /** The maker's answer to a card of questions; `note` says what they changed by hand meanwhile (Q294). */
+  /**
+   * Shows the card of pages of a template's adaptation in the turn under way
+   * and waits for the maker's answer, or for the turn to end (Q302).
+   */
+  async askPages(
+    projectId: string,
+    pages: PageChoice[],
+    signal?: AbortSignal,
+  ): Promise<{ answer: QuestionAnswer; note?: string } | undefined> {
+    const id = `${Date.now().toString(36)}-p${Math.random().toString(36).slice(2, 6)}`;
+    const cards = this.pagesCards.get(projectId) ?? new Set<string>();
+    cards.add(id);
+    this.pagesCards.set(projectId, cards);
+    this.record(projectId, { type: "pages", card: { id, pages, state: "waiting" } });
+    const got = await this.pagesWaits.wait(id, signal);
+    cards.delete(id);
+    if (got)
+      this.record(projectId, {
+        type: "question-settled",
+        id,
+        state: got.answer.kind === "skipped" ? "skipped" : "answered",
+        answer: got.answer,
+      });
+    return got;
+  }
+
+  /** The cards of pages of a project no longer wait: its turn ended or stopped. */
+  private endPages(projectId: string) {
+    for (const id of this.pagesCards.get(projectId) ?? []) this.pagesWaits.settle(id, undefined);
+  }
+
+  /** The maker's answer to a card of questions or of pages; `note` says what they changed by hand meanwhile (Q294). */
   answer(projectId: string, cardId: string, answer: QuestionAnswer, note?: string) {
+    if (this.pagesWaits.settle(cardId, { answer, ...(note ? { note } : {}) })) return;
     this.sessions.get(projectId)?.answer(cardId, answer, note);
   }
 
@@ -146,6 +183,7 @@ export class Agent {
   }
 
   async stop(projectId: string) {
+    this.endPages(projectId);
     await this.sessions.get(projectId)?.stop();
   }
 
@@ -321,6 +359,7 @@ export class Agent {
   }
 
   private record(projectId: string, event: ConversationEvent) {
+    if (event.type === "turn-end") this.endPages(projectId);
     const items = applyEvent(this.conversation(projectId), event);
     this.logs.set(projectId, items);
     // Kept at the start and the end of each turn, not on every word.

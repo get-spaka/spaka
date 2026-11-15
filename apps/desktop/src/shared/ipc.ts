@@ -36,6 +36,20 @@ export type ProjectInfo = ProjectSummary & {
   mode?: AgentMode;
 };
 
+/**
+ * A page type in the list of a template's adaptation (Q303, Q305): to do, being
+ * adapted, adapted and waiting for the maker to look at it, done, or taken off
+ * the website. `new`: a page the template lacked, built from the gallery (Q310).
+ */
+export type AdaptationStepStatus = "todo" | "doing" | "ready" | "done" | "removed";
+export type AdaptationStep = { route: string; name: string; status: AdaptationStepStatus; new?: boolean };
+/**
+ * A website being adapted from its template, page type by page type (Q302-Q313):
+ * `chosen` once the maker kept its pages, `next` the page type the maker picked
+ * to come next (Q313).
+ */
+export type AdaptationState = { chosen: boolean; steps: AdaptationStep[]; next?: string };
+
 /** Where a skill comes from (ADR 0010): shipped with Upstart, the maker's for all projects, or the project's. */
 export type SkillOrigin = "upstart" | "app" | "project";
 export type SkillInfo = { origin: SkillOrigin; name: string; description: string; path: string };
@@ -581,6 +595,16 @@ export type Invokes = {
   "conversation:answer": (cardId: string, answer: QuestionAnswer) => void;
   /** Build: the maker approves the plan the agent waits on (Q290); changes are typed in the message box. */
   "conversation:approve-plan": (cardId: string) => void;
+  /** The open website's adaptation from its template (Q302-Q313); null when there is none. */
+  "adaptation:get": () => AdaptationState | null;
+  /** Continue: the next page type of the adaptation, sent to the agent (Q303); why not, in words the maker reads. */
+  "adaptation:continue": () => string | undefined;
+  /** A page type still to do, picked to come next (Q313). */
+  "adaptation:pick": (route: string) => AdaptationState | null;
+  /** A page type still to do, taken off the website (Q307). */
+  "adaptation:remove": (route: string) => AdaptationState | null;
+  /** A picture of the first screen of one of the open website's page types, for the card of pages (Q302). */
+  "adaptation:picture": (route: string) => string | null;
   /** The Build / Plan selector of the open website (Q286, Q296), for its next message. */
   "agent:set-mode": (mode: AgentMode) => ProjectInfo;
   /** The websites whose agent waits for the maker's answer (Q292). */
@@ -753,6 +777,8 @@ export type Events = {
   /** "Replace…" in the preview: the media picker opens, and answers with media:picked (Q159). */
   "media:pick-request": (request: { id: number }) => void;
   "conversation:event": (message: { projectId: string; event: ConversationEvent }) => void;
+  /** The open website's adaptation changed; `finished` once its last page type is done (Q307). */
+  "adaptation:changed": (message: { projectId: string; state: AdaptationState | null; finished?: boolean }) => void;
   /** The websites whose agent waits for the maker's answer changed (Q292). */
   "agent:waiting": (projectIds: string[]) => void;
   "agent:status": (status: AgentStatus) => void;
@@ -800,6 +826,11 @@ export const channels = {
     "conversation:start-over",
     "conversation:answer",
     "conversation:approve-plan",
+    "adaptation:get",
+    "adaptation:continue",
+    "adaptation:pick",
+    "adaptation:remove",
+    "adaptation:picture",
     "agent:set-mode",
     "agent:waiting",
     "agent:status",
@@ -892,6 +923,7 @@ export const channels = {
     "content:changed",
     "media:pick-request",
     "conversation:event",
+    "adaptation:changed",
     "agent:waiting",
     "agent:status",
     "history:changed",

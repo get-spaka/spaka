@@ -9,6 +9,7 @@ import { BLOCK_KINDS } from "../../shared/ipc";
 import { isCollected } from "../editing/data-drop";
 import type { Placing } from "../editing/place-blocks";
 import type { Block } from "../gallery/catalogue";
+import { PAGES_DESCRIPTION, PAGES_SHAPE, PAGES_TOOL_NAME } from "../templates/pages-card";
 
 export const UPSTART_SERVER = "upstart";
 /** The names the app knows these tools by, whichever agent calls them: the Agent SDK's. */
@@ -18,6 +19,7 @@ export const FIND_BLOCKS_TOOL = upstartToolName("find_blocks");
 export const FIND_IMAGES_TOOL = upstartToolName("find_images");
 export const USE_IMAGE_TOOL = upstartToolName("use_image");
 export const USE_BLOCK_TOOL = upstartToolName("use_block");
+export const PAGES_TOOL = upstartToolName(PAGES_TOOL_NAME);
 
 export type Look = (
   route?: string,
@@ -30,12 +32,15 @@ export type FindImages = (query: string, count: number) => Promise<string>;
 export type UseImage = (id: string, name: string, alt: string) => Promise<string>;
 /** Puts gallery blocks into a page and answers with what was written, or says why not (Q213-Q216). */
 export type UseBlocks = (input: Placing) => string;
+/** Shows the card of pages of a template's adaptation, waits for the maker and answers with their choice (Q302). */
+export type ChoosePages = (input: unknown, signal?: AbortSignal) => Promise<string>;
 export type UpstartTools = {
   look: Look;
   findBlocks: FindBlocks;
   findImages: FindImages;
   useImage: UseImage;
   useBlocks: UseBlocks;
+  choosePages: ChoosePages;
 };
 
 /** What a tool answers: text, and images the model looks at. */
@@ -51,7 +56,7 @@ export type UpstartToolDef = {
   readOnly?: boolean;
   openWorld?: boolean;
   // biome-ignore lint/suspicious/noExplicitAny: each tool's input is checked against its shape before it runs
-  run(input: any): Promise<ToolContent[]>;
+  run(input: any, signal?: AbortSignal): Promise<ToolContent[]>;
 };
 
 /**
@@ -108,7 +113,14 @@ No block of the gallery fits: write this section yourself.`;
 const text = (t: string): ToolContent[] => [{ type: "text", text: t }];
 
 /** Upstart's tools for one project's agent. */
-export function upstartTools({ look, findBlocks, findImages, useImage, useBlocks }: UpstartTools): UpstartToolDef[] {
+export function upstartTools({
+  look,
+  findBlocks,
+  findImages,
+  useImage,
+  useBlocks,
+  choosePages,
+}: UpstartTools): UpstartToolDef[] {
   return [
     {
       name: "find_blocks",
@@ -182,6 +194,12 @@ export function upstartTools({ look, findBlocks, findImages, useImage, useBlocks
       },
       openWorld: true,
       run: async ({ id, name, alt }: { id: string; name: string; alt: string }) => text(await useImage(id, name, alt)),
+    },
+    {
+      name: PAGES_TOOL_NAME,
+      description: PAGES_DESCRIPTION,
+      shape: PAGES_SHAPE,
+      run: async (input: unknown, signal?: AbortSignal) => text(await choosePages(input, signal)),
     },
     {
       name: "look_at_preview",

@@ -47,6 +47,37 @@ export const en = {
     replaced: "Plan replaced",
     notAnswered: "Plan not answered",
   },
+  /** A website's adaptation from its template, page by page (Q302-Q313). */
+  adaptation: {
+    title: "Adapting your website",
+    continueTo: (name: string) => `Continue: ${name}`,
+    continueRemoving: "Continue: remove the pages taken off",
+    choosePages: "Continue: choose the pages",
+    removeShown: "Remove the pages taken off",
+    finished: "Your website is adapted: every page you kept is yours now. Ask for any change from here on.",
+    busy: "The agent is still working: wait for it to finish this page.",
+    hint: "Or write below what to change on this page first.",
+    pick: "Adapt this page next",
+    remove: "Take this page off the website",
+    status: {
+      todo: "To adapt",
+      doing: "Being adapted",
+      ready: "Look at it",
+      done: "Adapted",
+      removed: "Taken off",
+    },
+    isNew: "new",
+    toAdapt: "To adapt",
+  },
+  /** The card of pages of a template's adaptation (Q302). */
+  pages: {
+    title: "The pages of your website",
+    keep: "Keep these pages",
+    home: "Always kept",
+    isNew: "New",
+    kept: (n: number) => `${n} ${n === 1 ? "page" : "pages"} kept`,
+    noPicture: "Built from the gallery",
+  },
   /** The agent's questions to the maker (Q284, Q295). */
   question: {
     recommended: "Recommended",

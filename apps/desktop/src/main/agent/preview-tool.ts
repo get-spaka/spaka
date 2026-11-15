@@ -26,7 +26,9 @@ export function upstartServer(tools: UpstartTools) {
         def.name,
         def.description,
         def.shape,
-        async (input) => ({ content: await def.run(input) }),
+        async (input, extra) => ({
+          content: await def.run(input, (extra as { signal?: AbortSignal } | undefined)?.signal),
+        }),
         def.readOnly || def.openWorld
           ? {
               annotations: {

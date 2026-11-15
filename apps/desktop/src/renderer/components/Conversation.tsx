@@ -12,6 +12,7 @@ import {
   type Activity,
   type AgentPart,
   type ConversationItem,
+  isPlan,
   isWaiting,
   isWorking,
   waitingFor,
@@ -32,9 +33,11 @@ import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { ModelOptions } from "../settings/model";
+import { AdaptationBar, useAdaptation } from "./AdaptationBar";
 import { AgentText } from "./AgentText";
 import { BlocksTab } from "./BlocksTab";
 import { ContentTab } from "./ContentTab";
+import { PagesCard } from "./PagesCard";
 import { PlanCard } from "./PlanCard";
 import { QuestionCard } from "./QuestionCard";
 import { SignInPanel } from "./SignInPanel";
@@ -65,7 +68,9 @@ export function Conversation({
   const working = isWorking(items);
   // The agent waits for the maker's answer: editing comes back, and the message box answers (Q284, Q294).
   const waiting = isWaiting(items);
-  const planWaits = waiting && !("questions" in (waitingFor(items) ?? {}));
+  const planWaits = isPlan(waitingFor(items));
+  // A website being adapted from its template, page by page (Q303).
+  const adaptation = useAdaptation(project?.id);
   const editingPaused = working && !waiting;
   const model = project?.model ?? newSettings.model;
   const input = useRef<HTMLTextAreaElement>(null);
@@ -183,6 +188,8 @@ export function Conversation({
           )}
 
           {!accountReady(status, model) && <SignInPanel status={status} modelName={modelName(status, model)} />}
+
+          {adaptation && (adaptation.chosen || !working) && <AdaptationBar state={adaptation} working={working} />}
 
           <MessageBox
             project={project}
@@ -427,6 +434,7 @@ function AgentParts({ parts, working, style }: { parts: AgentPart[]; working: bo
 /** The agent's words, its thinking, or a card of its questions or of its plan. */
 function PartView({ part, streaming }: { part: Exclude<AgentPart, { kind: "activity" }>; streaming: boolean }) {
   if (part.kind === "question") return <QuestionCard card={part.card} />;
+  if (part.kind === "pages") return <PagesCard card={part.card} />;
   if (part.kind === "plan") return <PlanCard card={part.card} />;
   return <PartText part={part} streaming={streaming} />;
 }

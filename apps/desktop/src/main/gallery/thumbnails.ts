@@ -9,6 +9,8 @@ import { BrowserWindow } from "electron";
 const WIDTH = 1024;
 const SHOWN_WIDTH = 480;
 const MAX_HEIGHT = 1100;
+/** A page's first screen, for the card of pages (Q302). */
+const PAGE_HEIGHT = 720;
 
 export class Thumbnails {
   private win: BrowserWindow | undefined;
@@ -42,9 +44,31 @@ export class Thumbnails {
     return next;
   }
 
+  /** The first screen of one of the open project's pages, as a PNG data URL (the card of pages, Q302); never kept. */
+  page(route: string): Promise<string> {
+    const next = this.queue.then(async () => dataUrl(await this.drawPage(route)));
+    this.queue = next.catch(() => {});
+    return next;
+  }
+
   close() {
     this.win?.destroy();
     this.win = undefined;
+  }
+
+  private async drawPage(route: string): Promise<Buffer> {
+    const win = this.window();
+    win.setContentSize(WIDTH, PAGE_HEIGHT);
+    await win.webContents.loadURL(`${this.origin()}${route}`);
+    // Once Tailwind has styled it.
+    await win.webContents.executeJavaScript(BLOCK_HEIGHT);
+    const image = await this.painted(win, PAGE_HEIGHT);
+    const size = image.getSize();
+    const scale = size.width / WIDTH;
+    return image
+      .crop({ x: 0, y: 0, width: size.width, height: Math.min(size.height, Math.round(PAGE_HEIGHT * scale)) })
+      .resize({ width: SHOWN_WIDTH, quality: "best" })
+      .toPNG();
   }
 
   private async draw(id: string): Promise<Buffer> {
@@ -54,8 +78,18 @@ export class Thumbnails {
     const height = (await win.webContents.executeJavaScript(BLOCK_HEIGHT)) as number;
     const h = Math.max(40, Math.min(MAX_HEIGHT, Math.ceil(height)));
     win.setContentSize(WIDTH, h);
+    const image = await this.painted(win, h);
+    // The window may not shrink to a short block: only the block is kept, at the frame's scale.
+    const size = image.getSize();
+    const scale = size.width / WIDTH;
+    const block = image.crop({ x: 0, y: 0, width: size.width, height: Math.min(size.height, Math.round(h * scale)) });
+    return block.resize({ width: SHOWN_WIDTH, quality: "best" }).toPNG();
+  }
+
+  /** A frame of the hidden window `h` high, once painted at its size. */
+  private painted(win: BrowserWindow, h: number): Promise<Electron.NativeImage> {
     // An offscreen window gives its frames as they are painted (capturePage does not work on it).
-    const image = await new Promise<Electron.NativeImage>((resolve, reject) => {
+    return new Promise<Electron.NativeImage>((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error("The block was not drawn in time.")), 5000);
       let frames = 0;
       const paint = (_event: unknown, _dirty: Electron.Rectangle, frame: Electron.NativeImage) => {
@@ -71,11 +105,6 @@ export class Thumbnails {
       win.webContents.on("paint", paint);
       win.webContents.invalidate();
     });
-    // The window may not shrink to a short block: only the block is kept, at the frame's scale.
-    const size = image.getSize();
-    const scale = size.width / WIDTH;
-    const block = image.crop({ x: 0, y: 0, width: size.width, height: Math.min(size.height, Math.round(h * scale)) });
-    return block.resize({ width: SHOWN_WIDTH, quality: "best" }).toPNG();
   }
 
   private window(): BrowserWindow {

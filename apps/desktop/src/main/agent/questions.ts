@@ -7,6 +7,7 @@ import {
   FIND_BLOCKS_TOOL,
   FIND_IMAGES_TOOL,
   LOOK_TOOL,
+  PAGES_TOOL,
   UPSTART_SERVER,
   USE_BLOCK_TOOL,
   USE_IMAGE_TOOL,
@@ -16,8 +17,8 @@ import {
 export const ASK_TOOL = "AskUserQuestion";
 /** The tool the agent hands its plan in with, in plan mode (Q286). */
 export const PLAN_TOOL = "ExitPlanMode";
-/** Tools the conversation shows as cards rather than activity lines. */
-export const CARD_TOOLS = new Set([ASK_TOOL, PLAN_TOOL]);
+/** Tools the conversation shows as cards rather than activity lines; the card of pages too (Q302). */
+export const CARD_TOOLS = new Set([ASK_TOOL, PLAN_TOOL, PAGES_TOOL]);
 
 const Option = z.object({
   label: z.string().min(1),
@@ -92,6 +93,7 @@ export function claudeAnswer(questions: AgentQuestion[], answer: QuestionAnswer)
 export function answerResult(questions: AgentQuestion[], answer: QuestionAnswer): string {
   if (answer.kind === "words") return `The user responded: ${answer.text}`;
   if (answer.kind === "skipped") return "The user did not answer the questions.";
+  if (answer.kind === "pages") return `The maker kept these pages: ${answer.kept.join(", ")}.`;
   const pairs = questions
     .filter((q) => answer.answers[q.question] !== undefined)
     .map((q) => {

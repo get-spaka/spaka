@@ -329,8 +329,8 @@ export function piUpstartTools(defs: UpstartToolDef[]): HarnessTool[] {
     description: def.description,
     parameters: z.toJSONSchema(z.object(def.shape), { io: "input" }) as object,
     executionMode: def.readOnly ? "parallel" : "sequential",
-    async execute(_id: string, params: unknown) {
-      return { content: await def.run(z.object(def.shape).parse(params)), details: undefined };
+    async execute(_id: string, params: unknown, signal?: AbortSignal) {
+      return { content: await def.run(z.object(def.shape).parse(params), signal), details: undefined };
     },
   }));
 }

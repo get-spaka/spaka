@@ -113,6 +113,7 @@ test("reads run together; a reply that changes the project runs in order", () =>
       findImages: async () => "",
       useImage: async () => "",
       useBlocks: () => "",
+      choosePages: async () => "",
     }),
   );
   expect(Object.fromEntries(upstart.map((t) => [t.name, t.executionMode]))).toMatchObject({
@@ -129,6 +130,7 @@ test("Upstart's tools keep their short names for the model, and the SDK's names 
     findImages: async (q) => `images of ${q}`,
     useImage: async () => "",
     useBlocks: () => "",
+    choosePages: async () => "",
   });
   const harness = piUpstartTools(defs);
   expect(harness.map((t) => t.name)).toEqual([
@@ -136,6 +138,7 @@ test("Upstart's tools keep their short names for the model, and the SDK's names 
     "use_block",
     "find_images",
     "use_image",
+    "choose_pages",
     "look_at_preview",
   ]);
   const images = harness.find((t) => t.name === "find_images")!;

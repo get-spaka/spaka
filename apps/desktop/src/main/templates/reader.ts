@@ -30,10 +30,8 @@ export type Template = {
 export const PICTURES = "pictures";
 export const BLOCKS = "blocks";
 export const DESIGN_SKILL = (id: string) => `.upstart/skills/${id}-design`;
-/** Its guide, for the agent that adapts it (Q299): read once, never copied into the website. */
+/** Its guide, for the agent that adapts it (Q299): kept for the adaptation only, never among the website's files (Q307). */
 export const GUIDE = "TEMPLATE.md";
-/** Where the guide says what to ask before building (Q300). */
-export const BEFORE_BUILDING = "## Before building";
 
 /** What a template holds at its root; anything else is not copied into a project. */
 export const TEMPLATE_ENTRIES = new Set([

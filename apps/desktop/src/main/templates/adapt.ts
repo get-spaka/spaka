@@ -8,8 +8,10 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { splitRecord } from "@upstart/runtime";
+import { type Adaptation, removalsLeft, startAdaptation } from "./adaptation";
 import { MANIFEST, Manifest } from "./manifest";
-import { BEFORE_BUILDING, DESIGN_SKILL, GUIDE, projectFiles, readTemplateFolder, type TemplateFiles } from "./reader";
+import { type GuidePage, type GuideSections, guideSections, HOME, pageTypes } from "./pages";
+import { DESIGN_SKILL, GUIDE, projectFiles, readTemplateFolder, type TemplateFiles } from "./reader";
 
 export const TEMPLATE_TEXTS = ".upstart/template-texts.json";
 
@@ -21,21 +23,25 @@ const TEXT_FILE = /^(?:pages|parts|fragments)\/.+\.(?:liquid|html?)$|^data\/[^/]
 /**
  * Copies the site of the template in `dir` into the project `root` (its pages,
  * parts, data, media, fonts, scripts, styles, blocks and design notes; not its
- * manifest, guide or pictures) and keeps its texts for the check. Its manifest,
- * and its guide for the first message (Q299).
+ * manifest, guide or pictures) and keeps its texts for the check. The
+ * adaptation starts, page type by page type, its guide kept for the agent
+ * (Q302, Q307). Its manifest, and its guide for the first message.
  */
 export function copyTemplate(dir: string, root: string): { manifest: Manifest; guide: string | undefined } {
   const files = readTemplateFolder(dir);
   const raw = JSON.parse(files.get(MANIFEST)!.toString("utf8"));
   const parsed = Manifest.safeParse(raw);
   const manifest = parsed.success ? parsed.data : (raw as Manifest);
-  for (const [path, bytes] of projectFiles(files)) {
+  const copied = projectFiles(files);
+  for (const [path, bytes] of copied) {
     const file = join(root, path);
     mkdirSync(dirname(file), { recursive: true });
     writeFileSync(file, bytes);
   }
   writeStored(root, { template: manifest.id, texts: templateTexts(files) });
-  return { manifest, guide: files.get(GUIDE)?.toString("utf8").trim() || undefined };
+  const guide = files.get(GUIDE)?.toString("utf8").trim() || undefined;
+  startAdaptation(root, manifest.id, guide, pageTypes(copied.keys()));
+  return { manifest, guide };
 }
 
 /** The template's sentences, from the files of its site where texts are. */
@@ -46,45 +52,126 @@ export function templateTexts(files: TemplateFiles): string[] {
   return [...texts].sort();
 }
 
+/** How the agent ends each page type's turn (Q308). */
+const END_OF_PAGE =
+  "Then stop, ending with one or two sentences in the maker's language on what you invented on this page that matters (prices, hours, a phone number, an address), and nothing else: no card, no summary of the pages to come. Upstart then shows the maker the list of pages and the button to go on.";
+
+/** How the agent asks a page type's choices of the guide, before it changes its files (Q298, Q304). */
+const CHOICES =
+  "ask the maker in one card with AskUserQuestion, all of them together: in the maker's language, each option with what it means for the site, the guide's first option recommended. A choice the maker's messages settle, follow it without asking; when they settle them all, or when there are none, ask nothing. A skipped card means the recommended choices.";
+
+/** How the agent writes what it adapts, page type by page type (Q246). */
+const REWRITE = [
+  "- Rewrite every text of what you adapt for this business, in the language of the maker's message: the pages' titles and descriptions, the parts, the fragments, the records of the datasources they show, the alternative texts. Keep no sentence of the template's own there: its business is invented.",
+  "- Replace the template's images there with images for this site (find_images, then use_image), and delete the media files no page or record uses any more.",
+  "- Keep the design: theme.css, the layout, the type, the effects, the scripts and styles. Change them only where the maker asks.",
+].join("\n");
+
 /**
- * What the agent receives with the maker's first message: the template, its
- * guide, what adapting it means, and the message itself (Q246, Q297-Q301).
+ * What the agent receives with the maker's first message (Q246, Q302-Q313):
+ * the template, its guide, and the first turn of its adaptation: the card of
+ * pages, the home page's choices left open, then the home page and what every
+ * page shares, the page types not kept removed.
  */
 export function adaptMessage(
   manifest: Pick<Manifest, "id" | "name" | "description">,
   message: string,
-  guide?: string,
+  guide: string | undefined,
+  steps: { route: string; name: string; line?: string }[],
 ): string {
-  const asks = !!guide && guide.includes(BEFORE_BUILDING);
+  const sections = guide ? guideSections(guide) : undefined;
+  const home = sections?.pages.find((p) => p.route === HOME);
   const guided = guide
-    ? `\n\nThe template's guide, written by its author for the agent that adapts it (it is not in the project):\n\n<template-guide>\n${guide}\n</template-guide>`
+    ? `\n\nThe template's guide, written by its author for the agent that adapts it (it is not in the website):\n\n<template-guide>\n${guide}\n</template-guide>`
     : "";
-  const first = asks
-    ? `\n- First, before you change any file: read the maker's message against the guide's "Before building". Each choice there that the message does not settle, ask the maker in one card with AskUserQuestion, all of them together: in the maker's language, each option with what it means for the site, the guide's first option recommended. A choice the message settles, follow it without asking; when it settles them all, ask nothing and build at once. A skipped card means the recommended choices. Then adapt the template with the answers, as its guide says.`
-    : "";
+  const listed = steps.map((s) => `  - ${s.route} (${s.name})${s.line ? `: ${s.line}` : ""}`).join("\n");
   return `This website starts from Upstart's template "${manifest.name}" (${manifest.description}), already copied into the project: its pages, parts, data, media, fonts, scripts, styles and blocks. The project is not empty, so read before you write: ${guide ? "the template's guide below, " : ""}its design notes (the ${DESIGN_SKILL(manifest.id).split("/").pop()} skill), then the pages and parts you change.${guided}
 
-Adapt it to the maker's business, described below:${first}
-- Rewrite every text for this business, in the language of the maker's message: the pages' titles and descriptions, every part, every fragment, every record of every datasource (data/navigation/ included), the alternative texts. Keep no sentence of the template's own: its business is invented.
-- Replace the template's images with images for this site (find_images, then use_image) and delete the media files no page or record uses any more.
-- Add the pages the description calls for and remove those it does not need, each in data/navigation/; a datasource the site does not need goes with its pages and parts.
-- Keep the design: theme.css, the layout, the type, the effects, the scripts and styles. Change them only where the maker asks.
-- Then look at each page with look_at_preview, giving it each page's route: new texts are longer or shorter than the template's, in another language above all. Fix what they broke (a menu label running into a button, a heading wider than the screen) in the markup, keeping the design.
-- Last, once the pages are adapted and looked at, ask the maker one card on what you guessed that matters, as for any new website (see Questions to the maker)${asks ? "; the choices of the guide's Before building are settled already" : ""}.
-At the end Upstart checks that no text of the template is left.
+It is adapted to the maker's business one page type at a time, the home page first: the maker looks at each before the next comes, a turn of its own. In this first turn:
+1. First, before you change any file: show the maker the card of pages with choose_pages. List every page type of the template below, each named and described in one line for this business, in the maker's language; checked when the maker's message calls for it or does not rule it out, unchecked when the business has no use for it; the home page always kept. Add, as new pages, those the message asks for that the template lacks.
+${listed}
+2. Then, ${home ? "of the choices in the guide's section for the home page (they hold for the home page and the whole website), those the maker's message leaves open: " : "if the maker's message leaves open a choice for the home page or the whole website that is costly to guess, "}${CHOICES} Ask nothing yet of the other pages: their choices come with their turn.
+3. Adapt the home page and what every page shares: the header, the footer, the navigation (data/navigation/: the pages kept, new ones included, named in the maker's language), the website's name. Remove the page types the maker did not keep${sections?.pages.length ? ', as their sections\' "When removed" say' : ""}, with their navigation records and what only they use, and point what led to them elsewhere. Leave the other pages as they are: they keep the template's contents until their turn, and so do the records the home page only teases (the dishes of the menu, the next events): they are adapted with their own page.
+${REWRITE}
+- Look at the home page with look_at_preview: new texts are longer or shorter than the template's, in another language above all. Fix what they broke in the markup, keeping the design.
+4. ${END_OF_PAGE}
+At the end of each turn Upstart checks that no text of the template is left in what was adapted.
 
 The maker's message:
 
 ${message}`;
 }
 
-/** The template's sentences still in the site's files, by file (Q246); none once adapted. */
-export function templateTextsLeft(root: string): { file: string; texts: string[] }[] {
+/**
+ * What Continue sends the agent (Q303): the next page type of the adaptation,
+ * its section of the guide, and what the maker took off the website since.
+ */
+export function stepMessage(
+  state: Adaptation,
+  step: { route: string; name: string; new?: boolean },
+  sections: GuideSections | undefined,
+  { again = false, removals = [] as { name: string; route: string; files: string[] }[] } = {},
+): string {
+  const section: GuidePage | undefined = sections?.pages.find((p) => p.route === step.route);
+  const done = state.steps.filter((s) => s.status === "done" || s.status === "ready").map((s) => s.name);
+  const after = state.steps.filter((s) => s.status === "todo" && s.route !== step.route).map((s) => s.name);
+  const page = step.route.slice(1);
+  const build = step.new
+    ? `2. Build this new page: find_blocks, then use_block into pages/${page}.liquid, its blocks for what the maker's messages ask of it, preferring the blocks of this site's own design; then write its texts and records for this business. It is in the navigation, or add it.`
+    : `2. Adapt this page type only: its pages (pages/${page}.liquid, pages/${page}/…), and what only they show (their parts, the records of their datasources, their images), as you adapted the home page. Change a page already adapted only where this one needs it (a link to it).`;
+  const removed = removals.length
+    ? `\n- Also remove these page types, which the maker took off the website: ${removals.map((r) => `${r.name} (${r.files.join(", ")})`).join("; ")}${sections?.pages.length ? ', as their sections\' "When removed" say' : ""}, with their navigation records and what only they use, pointing what led to them elsewhere.`
+    : "";
+  return `${again ? "Taking up again the page the last turn left unfinished. " : ""}Next page of the adaptation: ${step.name} (${step.route})${step.new ? ", a new page" : ""}.${done.length ? ` Adapted already: ${done.join(", ")}.` : ""}${after.length ? ` Still to do after it: ${after.join(", ")}.` : " It is the last."}
+${section ? `\nIts section of the template's guide:\n\n<template-guide-section>\n${section.text}\n</template-guide-section>\n` : ""}
+1. First, before you change its files: of ${section ? "this section's choices" : "the choices for this page that are costly to guess"}, those the maker's messages leave open: ${CHOICES}
+${build}
+${REWRITE}${removed}
+3. Look at each of its pages with look_at_preview (one record's page is enough), and fix what the new texts broke.
+4. ${END_OF_PAGE}`;
+}
+
+/** What Continue sends when only page types taken off the website are left to remove (Q307). */
+export function removalMessage(
+  removals: { name: string; files: string[] }[],
+  sections: GuideSections | undefined,
+): string {
+  return `The maker took these page types off the website: ${removals.map((r) => `${r.name} (${r.files.join(", ")})`).join("; ")}. Remove them${sections?.pages.length ? ' as their sections of the template\'s guide say ("When removed")' : ""}, with their navigation records and what only they use, pointing what led to them elsewhere. Then stop with one sentence on what you removed.`;
+}
+
+/**
+ * What the agent reads before a message the maker writes during the
+ * adaptation (Q303): the page they are looking at, and the pages to come,
+ * which it leaves alone.
+ */
+export function reviewNote(state: Adaptation, removals: { name: string; files: string[] }[] = []): string {
+  const looked = state.steps.find((s) => s.status === "ready" || s.status === "doing");
+  const after = state.steps.filter((s) => s.status === "todo").map((s) => `${s.name} (${s.route})`);
+  if (!state.chosen)
+    return "[Upstart: this website is being adapted from its template, one page at a time, and the maker has not chosen its pages yet. Do what the message asks; then show them the card of pages with choose_pages, as the first message said, before adapting the home page.]";
+  return `[Upstart: this website is being adapted from its template, one page at a time.${looked ? ` The maker is looking at ${looked.name} (${looked.route}).` : ""} Do what they ask now, as for any website${after.length ? `, and leave the pages still to do as they are (${after.join(", ")}): they come one at a time when the maker goes on` : ""}.${removals.length ? ` Also remove the pages the maker took off the website: ${removals.map((r) => `${r.name} (${r.files.join(", ")})`).join("; ")}, as the template's guide says.` : ""} End with what you changed, no card.]`;
+}
+
+/** The page types taken off the website whose pages are still there, for the messages. */
+export function removalsOf(root: string, state: Adaptation) {
+  return removalsLeft(root, state).map(({ step, files }) => ({ name: step.name, route: step.route, files }));
+}
+
+/**
+ * The template's sentences still in the site's files, by file (Q246); none
+ * once adapted. `scope`: the files looked at, during an adaptation those of
+ * the page types adapted and what they share (Q305).
+ */
+export function templateTextsLeft(
+  root: string,
+  scope?: (file: string) => boolean,
+): { file: string; texts: string[] }[] {
   const stored = readStored(root);
   if (!stored?.texts.length) return [];
   const template = new Set(stored.texts.map(key));
   const left: { file: string; texts: string[] }[] = [];
   for (const file of siteFiles(root)) {
+    if (scope && !scope(file)) continue;
     const texts = sentencesOf(file, readFileSync(join(root, file), "utf8")).filter((s) => template.has(key(s)));
     if (texts.length) left.push({ file, texts });
   }
@@ -102,6 +189,11 @@ export function forgetTemplateTexts(root: string, kept: string[]) {
   const texts = stored.texts.filter((s) => !gone.has(key(s)));
   if (!texts.length || !templateTextsLeft(root).length) rmSync(join(root, TEMPLATE_TEXTS), { force: true });
   else writeStored(root, { ...stored, texts });
+}
+
+/** What the agent is told when its turn would end with page types taken off the website still there (Q307). */
+export function removalsLeftNote(removals: { name: string; files: string[] }[]): string {
+  return `The maker took these pages off the website, and they are still there: ${removals.map((r) => `${r.name} (${r.files.join(", ")})`).join("; ")}. Remove them as the template's guide says, with their navigation records and what only they use, before you finish.`;
 }
 
 /** What the agent is told when its turn would end with the template's texts left. */

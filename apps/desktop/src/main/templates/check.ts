@@ -7,9 +7,9 @@ import { infoFile, needsCredit, Runtime, TEST_RECORDS_DIR } from "@upstart/runti
 import { droppedFiles, FIXED_COLOUR } from "../gallery/rules";
 import { parseSkill } from "../skills/skills";
 import { OPEN_LICENCES } from "./manifest";
+import { guideSections, HOME, PAGES_SECTION, pageTypes, strayPageHeadings } from "./pages";
 import { shotPages } from "./pictures";
 import {
-  BEFORE_BUILDING,
   BLOCKS,
   DESIGN_SKILL,
   GUIDE,
@@ -212,15 +212,37 @@ export function checkTemplate(files: TemplateFiles, { finished = false } = {}): 
     else if (skill.name !== `${manifest.id}-design`) errors.push(`${notes}: its name is ${manifest.id}-design.`);
   }
 
-  // ---- its guide (Q299, Q300) -------------------------------------------------
+  // ---- its guide (Q299, Q304, Q306) -----------------------------------------
   if (!files.has(GUIDE))
     warnings.push(
-      `${GUIDE} is missing: the guide the agent reads to adapt it (what it is, how it is made, how to adapt it, ${BEFORE_BUILDING}).`,
+      `${GUIDE} is missing: the guide the agent reads to adapt it (what it is, how it is made, how to adapt it, and under "${PAGES_SECTION}" a section per page type).`,
     );
-  else if (!new RegExp(`^${BEFORE_BUILDING}\\s*$`, "m").test(text(GUIDE)))
+  else if (!new RegExp(`^${PAGES_SECTION}\\s*$`, "m").test(text(GUIDE)))
     warnings.push(
-      `${GUIDE} has no "${BEFORE_BUILDING}" section: the choices that vary, each option with what it changes, the first the template as built (or "Nothing to ask.").`,
+      `${GUIDE} has no "${PAGES_SECTION}" section: a "### Name (\`/route\`)" section per page type, the home page first, each saying what the page shows, its choices and what to change when it is removed.`,
     );
+  else {
+    const sections = guideSections(text(GUIDE));
+    const types = pageTypes(paths);
+    for (const type of types)
+      if (!sections.pages.some((p) => p.route === type.route))
+        warnings.push(
+          `${GUIDE} has no section for ${type.route} under "${PAGES_SECTION}" (${type.files.join(", ")}): add "### Name (\`${type.route}\`)".`,
+        );
+    for (const page of sections.pages)
+      if (!types.some((t) => t.route === page.route))
+        warnings.push(
+          `${GUIDE}: "${page.name}" (${page.route}) is no page type of the template: its pages are pages/${page.route.slice(1)}… .`,
+        );
+    for (const heading of strayPageHeadings(text(GUIDE)))
+      warnings.push(
+        `${GUIDE}: "${heading.trim()}" under "${PAGES_SECTION}" does not name its page type: "### Name (\`/route\`)".`,
+      );
+    if (sections.pages.length && sections.pages[0]!.route !== HOME)
+      warnings.push(
+        `${GUIDE}: the home page's section (\`/\`) comes first under "${PAGES_SECTION}": it is adapted first.`,
+      );
+  }
 
   // ---- its blocks (Q235) ------------------------------------------------------
   const blockFolders = new Set(

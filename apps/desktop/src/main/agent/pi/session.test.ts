@@ -49,6 +49,7 @@ const noTools: UpstartTools = {
   findImages: async () => "",
   useImage: async () => "",
   useBlocks: () => "",
+  choosePages: async () => "",
 };
 
 function checks(over: Partial<Pick<TurnChecks, "afterTool" | "beforeStop">> = {}) {
