@@ -10,16 +10,7 @@
 // and sends no form: any request other than a GET is refused (Q322).
 import { BrowserWindow, session } from "electron";
 import type { FromPreview, ToPreview } from "../../shared/ipc";
-
-/** The screens the agent names (Q315): a laptop, and the tablet and phone of Q110. */
-export const SCREENS = {
-  desktop: { width: 1440, height: 900, scale: 1, mobile: false },
-  // At scale 1: a picture Claude reads without shrinking it (spikes/looks/REPORT.md).
-  tablet: { width: 820, height: 1180, scale: 1, mobile: true },
-  phone: { width: 393, height: 852, scale: 2, mobile: true },
-} as const;
-export type ScreenName = keyof typeof SCREENS;
-export const SCREEN_NAMES = Object.keys(SCREENS) as ScreenName[];
+import { SCREENS, type ScreenName, type StepView } from "./look-steps";
 
 /** The view's own session: what it refuses never touches the maker's preview. */
 const PARTITION = "agent-look";
@@ -51,12 +42,18 @@ export class AgentView {
   private sent = true;
   private theme: { css: string; styles?: string } | undefined;
   private loadedScripts: string | undefined;
+  /** A page on its way, from a look or a link followed, until the preview's script says it loaded. */
+  private loading: Promise<void> | undefined;
   private onLoaded: (() => void) | undefined;
+  /** The last link to another website the page tried to follow; it was not. */
+  private refusedLink: string | undefined;
+  /** The page a link followed led to, since the last step. */
+  private wentTo: string | undefined;
   private idle: NodeJS.Timeout | undefined;
   /** The page's errors since it was loaded, the view's own, apart from the maker's preview. */
   readonly errors: ViewError[] = [];
-  /** Requests the page tried that were refused since it was loaded: a form sent, a beacon. */
-  readonly refused: { method: string; url: string }[] = [];
+  /** Requests the page tried that were refused: a form sent, a beacon. */
+  private readonly refused: { method: string; url: string }[] = [];
 
   constructor(private readonly o: AgentViewOptions) {}
 
@@ -88,6 +85,8 @@ export class AgentView {
     }
     if (fresh || this.stale || !this.loaded || route !== this.route) await this.load(win, route);
     else if (this.html !== undefined && !this.sent) this.flush();
+    this.wentTo = undefined;
+    this.refusedLink = undefined;
     await this.settle();
   }
 
@@ -102,6 +101,11 @@ export class AgentView {
   // biome-ignore lint/suspicious/noExplicitAny: what the page answers
   run(code: string): Promise<any> {
     return this.window().webContents.executeJavaScript(code, true);
+  }
+
+  /** The requests refused since the last call: a form sent, a beacon. */
+  takeRefused(): { method: string; url: string }[] {
+    return this.refused.splice(0);
   }
 
   /** The DevTools protocol on the page, for the agent's steps. */
@@ -166,15 +170,46 @@ export class AgentView {
     this.stale = false;
     this.html = undefined;
     this.sent = true;
-    this.errors.length = 0;
-    this.refused.length = 0;
-    const loaded = new Promise<void>((resolve) => {
-      this.onLoaded = resolve;
-    });
+    const loaded = this.startLoading();
     await win.webContents.loadURL(new URL(route, this.o.origin()).toString()).catch(() => {});
     await Promise.race([loaded, wait(LOAD_MS)]);
-    // The site's modules started (visitor mode), Tailwind styled the page, the fonts are in.
+    await this.started();
+  }
+
+  private startLoading(): Promise<void> {
+    this.loading ??= new Promise<void>((resolve) => {
+      this.onLoaded = () => {
+        this.loading = undefined;
+        this.onLoaded = undefined;
+        resolve();
+      };
+    });
+    return this.loading;
+  }
+
+  /** The site's modules started (visitor mode), Tailwind styled the page, the fonts are in. */
+  private async started() {
     await this.run(STARTED).catch(() => {});
+  }
+
+  /** What the steps need of the view (look-steps.ts). */
+  steps(): StepView {
+    return {
+      run: (code) => this.run(code),
+      send: (method, params) => this.send(method, params),
+      settle: () => this.settle(),
+      screen: () => this.screen,
+      afterAction: async () => {
+        // A link followed starts its navigation within a moment of the click.
+        await wait(150);
+        if (this.loading) await Promise.race([this.loading, wait(LOAD_MS)]);
+        const { refusedLink, wentTo } = this;
+        this.refusedLink = undefined;
+        this.wentTo = undefined;
+        if (wentTo) await this.started();
+        return wentTo ? { went: wentTo } : { refusedLink };
+      },
+    };
   }
 
   private flush() {
@@ -237,20 +272,32 @@ export class AgentView {
     // A link within the website is followed (Q323); nothing else opens.
     contents.setWindowOpenHandler(() => ({ action: "deny" }));
     contents.on("will-navigate", (details) => {
-      if (!details.url.startsWith(`${this.o.origin()}/`)) details.preventDefault();
+      if (details.url.startsWith(`${this.o.origin()}/`)) return;
+      details.preventDefault();
+      this.refusedLink = details.url;
     });
     contents.on("did-navigate", (_event, url) => {
-      if (url.startsWith(this.o.origin())) this.route = new URL(url).pathname;
+      if (!url.startsWith(this.o.origin())) return;
+      this.route = new URL(url).pathname;
+      this.wentTo = this.route;
     });
     contents.on("did-navigate-in-page", (_event, url) => {
       if (url.startsWith(this.o.origin())) this.route = new URL(url).pathname;
     });
     // A new document may come with a new renderer, which starts without the screen's size.
     contents.on("did-start-navigation", (details) => {
-      if (details.isMainFrame && !details.isSameDocument) {
-        this.loaded = false;
-        void this.emulate();
-      }
+      // A link to another website starts here too, before will-navigate refuses it.
+      if (!details.isMainFrame || details.isSameDocument || !details.url.startsWith(`${this.o.origin()}/`)) return;
+      this.loaded = false;
+      this.html = undefined;
+      this.sent = true;
+      this.errors.length = 0;
+      void this.startLoading();
+      void this.emulate();
+    });
+    // A form sent by the page itself (not by htmx) is a navigation the session refused: the page comes back.
+    contents.on("did-fail-load", (_event, code, _description, _url, isMainFrame) => {
+      if (isMainFrame && code === -20 && this.route !== null) void this.load(win, this.route);
     });
     contents.on("dom-ready", () => void this.emulate());
     contents.on("console-message", (details) => {

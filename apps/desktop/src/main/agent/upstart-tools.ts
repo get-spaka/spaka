@@ -9,6 +9,7 @@ import { BLOCK_KINDS } from "../../shared/ipc";
 import { isCollected } from "../editing/data-drop";
 import type { Placing } from "../editing/place-blocks";
 import type { Block } from "../gallery/catalogue";
+import { type LookOptions, lookText, type Seen } from "../preview/look-steps";
 import { PAGES_DESCRIPTION, PAGES_SHAPE, PAGES_TOOL_NAME } from "../templates/pages-card";
 
 export const UPSTART_SERVER = "upstart";
@@ -21,9 +22,7 @@ export const USE_IMAGE_TOOL = upstartToolName("use_image");
 export const USE_BLOCK_TOOL = upstartToolName("use_block");
 export const PAGES_TOOL = upstartToolName(PAGES_TOOL_NAME);
 
-export type Look = (
-  route?: string,
-) => Promise<{ route: string | null; png?: Buffer; errors: string[]; notes: string[] }>;
+export type Look = (route?: string, options?: LookOptions) => Promise<Seen>;
 export type FindBlocks = (query: string, kind: string | undefined, limit: number) => Block[];
 export type Wanted = { kind?: string; query: string };
 /** Answers find_images, in text (Q167). */
@@ -214,14 +213,9 @@ export function upstartTools({
       readOnly: true,
       run: async ({ route }: { route?: string }) => {
         const seen = await look(route);
-        const lines = [
-          seen.route === null ? "No page is shown." : `Page shown: ${seen.route}`,
-          seen.errors.length ? `Errors in the page:\n${seen.errors.join("\n")}` : "No errors in the page.",
-          seen.notes.length ? `Rendering notes:\n${seen.notes.join("\n")}` : "",
-        ].filter(Boolean);
         return [
           ...(seen.png ? [{ type: "image" as const, data: seen.png.toString("base64"), mimeType: "image/png" }] : []),
-          { type: "text" as const, text: lines.join("\n\n") },
+          { type: "text" as const, text: lookText(seen) },
         ];
       },
     },

@@ -23,8 +23,17 @@ import type {
   Rect,
   ToPreview,
 } from "../../shared/ipc";
-import { AgentView, type ScreenName } from "./agent-view";
+import { AgentView } from "./agent-view";
 import { PageGrid, pictureKey, type ThumbnailAction, type ThumbnailScreen } from "./grid";
+import {
+  type LookOptions,
+  type LookStep,
+  POSITION,
+  type Position,
+  runSteps,
+  type Seen,
+  type StepDone,
+} from "./look-steps";
 import { PreviewServer, VENDOR_BASE } from "./server";
 import { isTestRecord, TestRecordStore, testRecordsSource } from "./test-records";
 
@@ -32,15 +41,6 @@ const here = fileURLToPath(new URL(".", import.meta.url));
 
 /** The shortest time between two renderings pushed to the page (ADR 0009). */
 const INTERVAL_MS = 60;
-
-/** What the agent sees when it looks at a page (Q314–Q318). */
-export type Seen = {
-  route: string | null;
-  screen?: ScreenName;
-  png?: Buffer;
-  errors: string[];
-  notes: string[];
-};
 
 type OpenSite = {
   project: ProjectInfo;
@@ -477,38 +477,46 @@ export class Preview {
    * reported and what the runtime had to repair or skip. The maker's preview
    * does not move. Looks asked at once run one after another.
    */
-  look(to?: string, options: { screen?: ScreenName; fresh?: boolean } = {}): Promise<Seen> {
+  look(to?: string, options: LookOptions = {}): Promise<Seen> {
     const next = this.looking.then(() => this.lookNow(to, options));
     this.looking = next.catch(() => {});
     return next;
   }
   private looking: Promise<unknown> = Promise.resolve();
 
-  private async lookNow(
-    to: string | undefined,
-    { screen, fresh }: { screen?: ScreenName; fresh?: boolean },
-  ): Promise<Seen> {
+  private async lookNow(to: string | undefined, { screen, fresh, steps = [], at }: LookOptions): Promise<Seen> {
     const site = this.site;
-    const shown = this.agentView.current;
+    const view = this.agentView;
+    const shown = view.current;
     if (!site || site.runtime.routes().length === 0) return { route: null, errors: [], notes: [] };
     const route = to ?? shown ?? this.route ?? site.runtime.routes()[0]!.route;
     if (!site.runtime.resolve(route)) return { route: shown, errors: [], notes: [`No page has the address ${route}.`] };
-    const on = screen ?? (to === undefined && shown !== null ? this.agentView.currentScreen : "desktop");
+    const on = screen ?? (to === undefined && shown !== null ? view.currentScreen : "desktop");
+    // `at` is where the look ends: a last scroll to that part.
+    const all: LookStep[] = at ? [...steps, { action: "scroll", target: at }] : steps;
+    let done: StepDone[] = [];
+    let position: Position | undefined;
     // A look that does not come back is not waited for: the page is described without its picture.
     const png = await Promise.race([
-      this.agentView
-        .show(route, on, fresh)
-        .then(() => this.agentView.capture())
-        .catch(() => undefined),
-      new Promise<undefined>((resolve) => setTimeout(resolve, 20_000)),
+      (async () => {
+        view.takeRefused();
+        await view.show(route, on, fresh);
+        done = await runSteps(view.steps(), all);
+        position = (await view.run(POSITION).catch(() => undefined)) as Position | undefined;
+        return await view.capture();
+      })().catch(() => undefined),
+      new Promise<undefined>((resolve) => setTimeout(resolve, 45_000)),
     ]);
-    const at = this.agentView.current ?? route;
-    const result = site.runtime.resolve(at) ? site.runtime.renderRoute(at) : undefined;
+    const reached = view.current ?? route;
+    const result = site.runtime.resolve(reached) ? site.runtime.renderRoute(reached) : undefined;
     return {
-      route: at,
+      route: reached,
       screen: on,
       png,
-      errors: this.agentView.errors.map((e) => (e.source ? `${e.message} (${e.source})` : e.message)),
+      position,
+      steps: done,
+      refused: view.takeRefused(),
+      errors: view.errors.map((e) => (e.source ? `${e.message} (${e.source})` : e.message)),
       notes: [
         ...new Set([
           ...(result

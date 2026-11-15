@@ -110,6 +110,9 @@ function render(html: string, final: boolean) {
     morphStyle: "innerHTML",
     ignoreActiveValue: true,
     callbacks: {
+      // In the agent's view, what a visitor opened or typed stays through a new rendering (Q324).
+      beforeAttributeUpdated: (name: string, node: Element, type: "update" | "remove") =>
+        !(agent && keptByVisitor(name, node, type)),
       // Half a script is never run; scripts run once the files are complete.
       beforeNodeAdded: (node: Node) => !(node instanceof HTMLScriptElement && !final),
       afterNodeAdded: (node: Node) => {
@@ -136,6 +139,15 @@ function render(html: string, final: boolean) {
   }
   editor?.rendered();
   send({ type: "rendered", ms: performance.now() - started });
+}
+
+/** A disclosure the visitor opened, or a field they typed into: the rendering leaves it as it is. */
+function keptByVisitor(name: string, node: Element, type: "update" | "remove"): boolean {
+  if (name === "open" && type === "remove")
+    return node instanceof HTMLDetailsElement || node instanceof HTMLDialogElement;
+  if (name === "value" && (node instanceof HTMLInputElement || node instanceof HTMLTextAreaElement))
+    return node.value !== node.defaultValue;
+  return false;
 }
 
 /**
