@@ -89,9 +89,17 @@ pnpm template:shoot apps/desktop/templates/<id>
 
 The shoot runs the app in the background and writes `pictures/` and a review sheet, `e2e/.runs/template-sheets/<id>.png`. It then renders each page again in the preview, twice, as after an edit, at desktop and phone width: its scripts are stopped and started again on the same elements, and nothing that was shown may stay hidden, nor any error be raised (`e2e/.runs/templates-again-<id>.json` lists what went wrong). The site-scripts skill says how a script survives it: animations that say where they start from (`opacity: [0, 1]`), and a stop that keeps what start needs again. Look at the sheet and at each picture, page by page, at both widths, and fix what is wrong: a section still hidden or half-risen, text over an image that cannot be read, something wider than the phone, an empty space where an image failed, a section that looks like any template rather than this one. Shoot again after each fix (`--no-build` when only the template changed).
 
+Then measure what the agent's looks measure (Q318), on every page at the three screens, screen after screen: the page wider than the screen, text cut off, elements still hidden once the page has settled, images that did not load, links to an address no page has. The app must be built (the shoot builds it):
+
+```bash
+UPSTART_LOOKS_TEMPLATES=<id> npx vitest run --config e2e/vitest.config.ts e2e/looks-templates.e2e.ts
+```
+
+Each problem left is a fault of the template, to fix, or a false alarm of the measure, to tell the author about (`e2e/.runs/looks-templates-<id>.json` lists them).
+
 Then `pnpm template:check apps/desktop/templates/<id> --finished` and `npx vitest run apps/desktop/src/main/templates`.
 
-**Done when** both pass, you have looked at every picture of the latest shoot and found nothing to fix, and the sheet has been sent to the author.
+**Done when** the looks measure no problem, both commands pass, you have looked at every picture of the latest shoot and found nothing to fix, and the sheet has been sent to the author.
 
 ## 6. Release it, once the author says so
 
