@@ -1,4 +1,5 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { type LaunchedApp, launchApp } from "./app.ts";
@@ -22,6 +23,21 @@ const HEADER = `<header class="navbar bg-base-200">
 </header>
 `;
 
+const PROBLEMS = page(
+  "Problems — Wick",
+  `<main class="p-6">
+  <div style="width: 900px" class="bg-base-200">A banner far too wide for a phone</div>
+  <h2 class="overflow-hidden h-6 w-40">A heading far too long to fit in its small box, cut at the bottom</h2>
+  <p style="opacity: 0">Still hidden once the page settled</p>
+  <img src="/media/missing.jpg" alt="A missing picture" class="w-40 h-20">
+  <a href="/reservations">Book a table</a>
+  <a href="/visit">Visit us</a>
+  <div class="group"><p class="opacity-0 group-hover:opacity-100">Shown on hover only</p></div>
+  <span class="sr-only">For screen readers only</span>
+  <details><summary>More</summary><p>Inside a closed disclosure</p></details>
+</main>`,
+);
+
 const HOME = page(
   "Wick",
   `<main>
@@ -37,6 +53,60 @@ const HOME = page(
   </section>
 </main>`,
 );
+
+/** A made-up turn of the agent's: one look on a phone after clicking the menu, then a sentence. */
+function lookRecording(file: string) {
+  const LOOK = "mcp__upstart__look_at_preview";
+  const input = { route: "/", screen: "phone", steps: [{ action: "click", target: "parts/header.liquid:4" }] };
+  const event = (t: number, e: object) => ({ t, m: { type: "stream_event", parent_tool_use_id: null, event: e } });
+  const lines = [
+    event(100, { type: "message_start", message: {} }),
+    event(110, {
+      type: "content_block_start",
+      index: 0,
+      content_block: { type: "tool_use", id: "look1", name: LOOK, input: {} },
+    }),
+    event(120, {
+      type: "content_block_delta",
+      index: 0,
+      delta: { type: "input_json_delta", partial_json: JSON.stringify(input) },
+    }),
+    event(130, { type: "content_block_stop", index: 0 }),
+    {
+      t: 131,
+      m: {
+        type: "assistant",
+        parent_tool_use_id: null,
+        message: { role: "assistant", content: [{ type: "tool_use", id: "look1", name: LOOK, input }] },
+      },
+    },
+    // The recorded answer, which the look run for real replaces.
+    {
+      t: 150,
+      m: {
+        type: "user",
+        parent_tool_use_id: null,
+        message: { role: "user", content: [{ type: "tool_result", tool_use_id: "look1", content: "recorded" }] },
+      },
+    },
+    event(200, { type: "message_start", message: {} }),
+    event(210, { type: "content_block_start", index: 0, content_block: { type: "text", text: "" } }),
+    event(220, { type: "content_block_delta", index: 0, delta: { type: "text_delta", text: "The menu opens." } }),
+    event(230, { type: "content_block_stop", index: 0 }),
+    {
+      t: 300,
+      m: {
+        type: "result",
+        subtype: "success",
+        is_error: false,
+        result: "The menu opens.",
+        duration_ms: 300,
+        total_cost_usd: 0,
+      },
+    },
+  ];
+  writeFileSync(file, `${lines.map((l) => JSON.stringify(l)).join("\n")}\n`);
+}
 
 type Seen = {
   route: string | null;
@@ -85,7 +155,9 @@ describe("the agent's look at a page", () => {
   };
 
   beforeAll(async () => {
-    launched = await launchApp();
+    const recording = join(mkdtempSync(join(tmpdir(), "upstart-looks-")), "looks.jsonl");
+    lookRecording(recording);
+    launched = await launchApp({ env: { UPSTART_AGENT_REPLAY: recording } });
     await launched.window.getByTestId("message-input").waitFor();
     const project = await launched.window.evaluate(() =>
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
@@ -98,6 +170,7 @@ describe("the agent's look at a page", () => {
     writeFileSync(join(folder, "parts/header.liquid"), HEADER);
     writeFileSync(join(folder, "pages/index.liquid"), HOME);
     writeFileSync(join(folder, "pages/visit.liquid"), page("Visit — Wick", `<main><h1>Visit us</h1></main>`));
+    writeFileSync(join(folder, "pages/problems.liquid"), PROBLEMS);
     await until(() => inPreview("document.querySelector('h1')?.textContent === 'A bar by the sea'"));
     await inPreview("window.__notMoved = true");
   });
@@ -177,6 +250,33 @@ describe("the agent's look at a page", () => {
     ]);
   });
 
+  test("the problems on the screen looked at are measured, each with its file and line (Q318)", async () => {
+    const phone = (await launched.app.evaluate(async () => {
+      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+      const seen = await (globalThis as any).upstart.preview.look("/problems", { screen: "phone" });
+      return seen.problems;
+    })) as string[];
+    expect(phone).toEqual([
+      expect.stringMatching(
+        /^The page is wider than the screen \(\d+ px on a 393 px screen\), so it scrolls sideways: div "A banner far too wide for a phone" \(pages\/problems\.liquid:7\) runs from 24 to 924 px\.$/,
+      ),
+      expect.stringMatching(
+        /^Text cut off: h2 "A heading far too long to fit in its sm…" \(pages\/problems\.liquid:8\) needs \d+ px of height and has 24\.$/,
+      ),
+      'Still hidden on the screen once the page settled (opacity 0 or visibility: hidden): p "Still hidden once the page settled" (pages/problems.liquid:9).',
+      'Images that did not load: img "A missing picture" (pages/problems.liquid:10) from /media/missing.jpg.',
+      'Links to an address no page has: /reservations (a "Book a table" (pages/problems.liquid:11)).',
+    ]);
+    // On desktop the banner fits.
+    const desktop = (await launched.app.evaluate(async () => {
+      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+      const seen = await (globalThis as any).upstart.preview.look("/problems", { screen: "desktop" });
+      return seen.problems;
+    })) as string[];
+    expect(desktop.some((p) => p.startsWith("The page is wider"))).toBe(false);
+    expect(desktop).toHaveLength(4);
+  });
+
   test("on a phone, Tab moves the focus, which the answer names", async () => {
     const seen = await look("/", { screen: "phone", fresh: true, steps: [{ action: "press", key: "Tab" }] });
     expect(seen.screen).toBe("phone");
@@ -194,5 +294,31 @@ describe("the agent's look at a page", () => {
     await look("/");
     await expect(inView("document.getElementById('menu').open")).resolves.toBe(false);
     await expect(inPreview("location.pathname + ' ' + window.__notMoved")).resolves.toBe("/ true");
+  });
+
+  test("a turn's look, played back, runs for real; its line names the page, the screen and the click (Q320)", async () => {
+    await launched.window.evaluate(() =>
+      // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
+      (window as any).upstart.invoke("conversation:send", "Check the menu on a phone"),
+    );
+    const item = (await until(async () => {
+      const { items } = await launched.window.evaluate(() =>
+        // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
+        (window as any).upstart.invoke("conversation:get"),
+      );
+      const last = items.at(-1);
+      return last?.kind === "agent" && last.status !== "working" ? last : undefined;
+    }, 30_000)) as { status: string; parts: { kind: string; activity?: { label: string; state: string } }[] };
+    expect(item.status).toBe("done");
+    expect(item.parts.flatMap((p) => (p.activity ? [p.activity] : []))).toEqual([
+      expect.objectContaining({ label: "Looking at the home page on a phone after clicking “Menu”", state: "done" }),
+    ]);
+    const replayed = (await launched.app.evaluate(
+      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+      () => (globalThis as any).upstart.replayed as string[],
+    )) as string[];
+    expect(replayed.find((l) => l.startsWith("[mcp__upstart__look_at_preview] "))).toMatch(
+      /^\[mcp__upstart__look_at_preview\] Page: \/ \(“Wick”\), on a phone \(393×852\), screen 1 of \d+\.[\s\S]*1\. clicked summary "Menu" \(parts\/header\.liquid:4\)/,
+    );
   });
 });

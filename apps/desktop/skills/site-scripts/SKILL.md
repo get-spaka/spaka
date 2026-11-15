@@ -132,3 +132,11 @@ A keyframe's `from` alone is enough: the element ends as the stylesheet has it, 
 ## Checking
 
 The preview's visitor mode is where the page moves; the maker opens their site in it. An error in a module, or a library that does not load, is reported among the page's errors, which `look_at_preview` shows you: look once after writing a script.
+
+A look sees the page as a visitor does, once it has settled, and its `steps` act on it first, as a visitor would. To see what a script does, do what starts it:
+
+- an entrance or a scroll-driven effect: end the look on its part with `at` (the page is scrolled to it, as a visitor scrolls, so the animation plays);
+- a hover effect, a menu, an accordion, a dialog: a `hover` or `click` step on it;
+- a carousel or a menu worked with the keyboard: `press` steps ("Tab", "ArrowRight", "Escape").
+
+An element that a script was to reveal and that stays hidden once the page has settled is among the problems the look measures, with its file and line.

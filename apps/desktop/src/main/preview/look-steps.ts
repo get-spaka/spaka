@@ -301,7 +301,7 @@ export function mark(target: Exclude<Target, { kind: "move" }>): string {
 }
 
 /** In the page, a function: an element as the answer names it, `button "Book a table" (parts/header.liquid:14)`. */
-const NAME_OF = `const nameOf = (el) => {
+export const NAME_OF = `const nameOf = (el) => {
   const text = (el.getAttribute("aria-label") || el.getAttribute("placeholder") || el.getAttribute("alt") || el.innerText || el.textContent || "").replace(/\\s+/g, " ").trim();
   const src = (el.closest("[data-up-src]") || el).getAttribute("data-up-src");
   const at = src ? " (" + src.replace(/:\\d+$/, "") + ")" : "";
@@ -371,6 +371,8 @@ export type Seen = {
   steps?: StepDone[];
   /** What the page tried to send; nothing was sent (Q322). */
   refused?: { method: string; url: string }[];
+  /** The problems measured on the screen looked at (Q318). */
+  problems?: string[];
   errors: string[];
   notes: string[];
 };
@@ -402,6 +404,12 @@ export function lookText(seen: Omit<Seen, "png">): string {
   }
   for (const r of seen.refused ?? [])
     lines.push(`The page tried to send ${r.method} ${pathOf(r.url)} (a form, most likely); nothing was sent.`);
+  if (seen.problems)
+    lines.push(
+      seen.problems.length
+        ? `Problems measured on this screen:\n${seen.problems.map((p) => `- ${p}`).join("\n")}`
+        : "No problems measured on this screen.",
+    );
   lines.push(seen.errors.length ? `Errors in the page:\n${seen.errors.join("\n")}` : "No errors in the page.");
   if (seen.notes.length) lines.push(`Rendering notes:\n${seen.notes.join("\n")}`);
   return lines.join("\n\n");

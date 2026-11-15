@@ -3,8 +3,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { applyEvent, type ConversationEvent, type ConversationItem } from "../../shared/conversation";
+import { lookText } from "../preview/look-steps";
 import { Skills } from "../skills/skills";
-import { activityDetail, activityLabel } from "./activity";
+import { activityDetail, activityLabel, lookedLabel } from "./activity";
 import { modelChoices, projectNameFrom } from "./agent";
 import { findSignInUrl, parseAuthStatus } from "./auth";
 import { instructionsFor, UPSTART_INSTRUCTIONS } from "./instructions";
@@ -287,6 +288,55 @@ test("activity lines", () => {
     "Placing blocks on pages/index.liquid",
   );
   expect(activityLabel("mcp__upstart__use_image", { name: "bouquet" }, "/p")).toBe("Adding the image bouquet");
+});
+
+test("a look's line names the page, the screen and the last action (Q320)", () => {
+  const LOOK = "mcp__upstart__look_at_preview";
+  expect(activityLabel(LOOK, {}, "/p")).toBe("Looking at the page");
+  expect(activityLabel(LOOK, { route: "/menu", screen: "phone" }, "/p")).toBe("Looking at Menu on a phone");
+  expect(activityLabel(LOOK, { route: "/" }, "/p")).toBe("Looking at the home page on desktop");
+  expect(activityLabel(LOOK, { route: "/work/first-case", screen: "tablet" }, "/p")).toBe(
+    "Looking at First case on a tablet",
+  );
+  // Once answered: the page by its title, and what was done last.
+  const answer = (over: Partial<Parameters<typeof lookText>[0]>) =>
+    lookText({
+      route: "/menu",
+      screen: "phone",
+      position: { path: "/menu", title: "Menu — Ember", screen: 1, of: 4, parts: [] },
+      errors: [],
+      notes: [],
+      ...over,
+    });
+  expect(lookedLabel(answer({}))).toBe("Looking at Menu on a phone");
+  const step = (line: string, done = true) => ({ step: { action: "click" as const, target: "x" }, done, line });
+  expect(
+    lookedLabel(answer({ steps: [step("pressed Tab"), step('clicked summary "Menu" (parts/header.liquid:20)')] })),
+  ).toBe("Looking at Menu on a phone after clicking “Menu”");
+  expect(lookedLabel(answer({ steps: [step("hovered a (parts/header.liquid:9)")] }))).toBe(
+    "Looking at Menu on a phone after hovering over a link",
+  );
+  expect(
+    lookedLabel(answer({ steps: [step('typed "ana@example.com" into input "Your e-mail" (pages/index.liquid:12)')] })),
+  ).toBe("Looking at Menu on a phone after typing into “Your e-mail”");
+  expect(
+    lookedLabel(
+      answer({
+        steps: [
+          step('pressed Shift+Tab: the focus is on a "Wick" (parts/header.liquid:2)'),
+          step("scrolled to the bottom"),
+        ],
+      }),
+    ),
+  ).toBe("Looking at Menu on a phone after pressing Shift+Tab");
+  // A step that could not be done is not one done.
+  expect(lookedLabel(answer({ steps: [step("could not click #book: no element matches", false)] }))).toBe(
+    "Looking at Menu on a phone",
+  );
+  expect(lookedLabel(answer({ route: "/", screen: "desktop", position: undefined }))).toBe(
+    "Looking at the home page on desktop",
+  );
+  expect(lookedLabel("No page is shown.")).toBeUndefined();
 });
 
 test("the detailed output style's details: what was run or searched", () => {

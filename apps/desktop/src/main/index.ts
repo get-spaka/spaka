@@ -369,7 +369,7 @@ async function main() {
     return {
       checks,
       tools: {
-        look: (route) => preview.look(route),
+        look: (route, options) => preview.look(route, options),
         findBlocks: findBlocksIn(project.path),
         findImages: async (query, count) => imagesAnswer(query, await images.search(query, count)),
         useImage: (id, name, alt) => useFoundImage(images, project.path, id, name, alt),

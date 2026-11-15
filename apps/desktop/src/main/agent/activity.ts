@@ -37,7 +37,15 @@ export class Activities {
       case "tool-input-end":
         return this.activity(e.id, e.name, e.input, "running");
       case "tool-result":
-        return this.activity(e.id, e.name, undefined, e.isError ? "failed" : "done", e.isError ? e.text : undefined);
+        return this.activity(
+          e.id,
+          e.name,
+          undefined,
+          e.isError ? "failed" : "done",
+          e.isError ? e.text : undefined,
+          // A look's line names the page it ended on, by its title, and the element acted on (Q320).
+          e.name === LOOK_TOOL && !e.isError ? lookedLabel(e.text) : undefined,
+        );
       case "permission-denied":
         return this.activity(e.id, e.name, undefined, "refused", e.message);
     }
@@ -49,11 +57,14 @@ export class Activities {
     input: Record<string, unknown> | undefined,
     state: "running" | "done" | "failed" | "refused",
     error?: string,
+    answered?: string,
   ) {
     const known = this.known.get(id);
-    const label = input
-      ? activityLabel(name, input, this.projectDir())
-      : (known?.label ?? activityLabel(name, {}, this.projectDir()));
+    const label =
+      answered ??
+      (input
+        ? activityLabel(name, input, this.projectDir())
+        : (known?.label ?? activityLabel(name, {}, this.projectDir())));
     const detail = input ? activityDetail(name, input) : known?.detail;
     // A tool's input streams in many small pieces: send only what changes the line.
     if (known && known.label === label && known.detail === detail && state === "running") return;
@@ -97,7 +108,7 @@ export function activityLabel(name: string, input: Record<string, unknown>, proj
     case "WebFetch":
       return en.activity.readPage(typeof input.url === "string" ? siteOf(input.url) : undefined);
     case LOOK_TOOL:
-      return en.activity.look;
+      return lookLabel(input);
     case FIND_BLOCKS_TOOL:
       return en.activity.findBlocks;
     case USE_BLOCK_TOOL:
@@ -112,6 +123,49 @@ export function activityLabel(name: string, input: Record<string, unknown>, proj
     default:
       return en.activity.other(name);
   }
+}
+
+/** A look while it runs, from what the agent asked: the page by its address, and the screen. */
+function lookLabel(input: Record<string, unknown>): string {
+  const route = typeof input.route === "string" && input.route.startsWith("/") ? input.route : undefined;
+  const screen = typeof input.screen === "string" ? input.screen : route ? "desktop" : undefined;
+  return en.activity.look(pageOf(route), screen && en.activity.lookScreens[screen]);
+}
+
+/**
+ * A look once answered, from its text (lookText): the page by its title, the
+ * screen, and the last element clicked, hovered, typed into or the key pressed.
+ */
+export function lookedLabel(answer: string): string | undefined {
+  const page = /^Page: (\/[^\s,]*?)(?: \(“(.*?)”\))?(?:, (on desktop|on a tablet|on a phone))?(?: \(|,|\.$)/m.exec(
+    answer,
+  );
+  if (!page) return undefined;
+  const steps = /^Steps:\n((?:\d+\. .*\n?)+)/m.exec(answer)?.[1]?.split("\n") ?? [];
+  let after: string | undefined;
+  for (const line of steps.map((l) => l.replace(/^\d+\. /, ""))) {
+    const acted = /^(clicked|hovered|typed ".*?" into) (\w+)(?: ("(?:[^"\\]|\\.)*"))?/.exec(line);
+    const pressed = /^pressed (\S+)/.exec(line);
+    if (pressed) after = en.activity.lookAfter.press(pressed[1]!.replace(/:$/, ""));
+    else if (acted) {
+      const named = acted[3]
+        ? `“${JSON.parse(acted[3])}”`
+        : (en.activity.lookElements[acted[2]!] ?? en.activity.lookElement);
+      const verb = acted[1]!.startsWith("typed") ? "type" : acted[1] === "hovered" ? "hover" : "click";
+      after = en.activity.lookAfter[verb](named);
+    }
+  }
+  const title = page[2]?.split(/\s+[—|·–-]\s+/)[0]?.trim();
+  const screen = page[3];
+  return en.activity.look(page[1] === "/" ? en.activity.lookHome : title || pageOf(page[1]), screen, after);
+}
+
+/** "Menu" for /menu, "First case" for /work/first-case, the home page for /. */
+function pageOf(route: string | undefined): string {
+  if (!route) return en.activity.lookPage;
+  if (route === "/") return en.activity.lookHome;
+  const last = decodeURIComponent(route.split("/").filter(Boolean).at(-1) ?? route).replace(/[-_]+/g, " ");
+  return last.charAt(0).toUpperCase() + last.slice(1);
 }
 
 /** The file Claude writes its plan in: `<its configuration>/plans/<words>.md`. */

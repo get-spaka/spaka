@@ -81,7 +81,8 @@ export class AgentView {
     const win = this.window();
     if (screen !== this.screen) {
       this.screen = screen;
-      await this.emulate();
+      // A view with no page yet is laid out when its first document starts.
+      if (this.loaded) await this.emulate();
     }
     if (fresh || this.stale || !this.loaded || route !== this.route) await this.load(win, route);
     else if (this.html !== undefined && !this.sent) this.flush();
@@ -231,6 +232,8 @@ export class AgentView {
     const tools = contents.debugger;
     try {
       if (!tools.isAttached()) tools.attach("1.3");
+      // A page with no renderer yet never answers: the next document is emulated when it starts.
+      if (!contents.getURL()) return;
       await tools.sendCommand("Emulation.setDeviceMetricsOverride", {
         width: s.width,
         height: s.height,

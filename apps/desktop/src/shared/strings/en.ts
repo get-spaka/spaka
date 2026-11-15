@@ -186,7 +186,28 @@ export const en = {
     writePlan: "Writing the plan",
     read: (path?: string) => (path ? `Reading ${path}` : "Reading a file…"),
     search: "Searching the project",
-    look: "Looking at the preview",
+    /** "Looking at Menu on a phone after clicking “Menu”" (Q320). */
+    look: (page: string, screen?: string, after?: string) =>
+      `Looking at ${page}${screen ? ` ${screen}` : ""}${after ? ` after ${after}` : ""}`,
+    lookPage: "the page",
+    lookHome: "the home page",
+    lookScreens: { desktop: "on desktop", tablet: "on a tablet", phone: "on a phone" } as Record<string, string>,
+    lookAfter: {
+      click: (what: string) => `clicking ${what}`,
+      hover: (what: string) => `hovering over ${what}`,
+      type: (what: string) => `typing into ${what}`,
+      press: (key: string) => `pressing ${key}`,
+    },
+    /** An element without a text of its own, by its tag. */
+    lookElements: {
+      a: "a link",
+      button: "a button",
+      input: "a field",
+      textarea: "a field",
+      select: "a list",
+      img: "an image",
+    } as Record<string, string>,
+    lookElement: "an element",
     findBlocks: "Looking for blocks in the gallery",
     placeBlocks: (page?: string) => (page ? `Placing blocks on ${page}` : "Placing blocks…"),
     findImages: "Looking for images",

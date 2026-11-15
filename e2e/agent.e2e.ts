@@ -118,8 +118,8 @@ describe.skipIf(!real)("the real agent", () => {
       180_000,
     );
     expect(item.status).toBe("done");
-    const looked = item.parts.find(
-      (p: { kind: string; activity?: { label: string } }) => p.activity?.label === "Looking at the preview",
+    const looked = item.parts.find((p: { kind: string; activity?: { label: string } }) =>
+      p.activity?.label.startsWith("Looking at the home page"),
     );
     expect(looked?.activity.state).toBe("done");
     const words = (h1 ?? "")

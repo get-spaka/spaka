@@ -1,7 +1,8 @@
 // The agent's tools of Upstart's own, described once for both agent layers
-// (ADR 0012): a look at the preview, to check its work (decisions: a capture,
-// and the page's errors), a search in the gallery of blocks and their placing
-// into a page (Q97, Q98, Q213-Q216), and free images found and added to the
+// (ADR 0012): a look at a page, to check its work, in a view of its own on the
+// screen it names, after steps done as a visitor would (Q314–Q324), a search
+// in the gallery of blocks and their placing into a page (Q97, Q98,
+// Q213-Q216), and free images found and added to the
 // project's media (Q150, Q167). Claude gets them through the Agent SDK's
 // in-process server (preview-tool.ts), the Pi harness as its own tools.
 import { z } from "zod";
@@ -9,7 +10,7 @@ import { BLOCK_KINDS } from "../../shared/ipc";
 import { isCollected } from "../editing/data-drop";
 import type { Placing } from "../editing/place-blocks";
 import type { Block } from "../gallery/catalogue";
-import { type LookOptions, lookText, type Seen } from "../preview/look-steps";
+import { type LookOptions, lookText, MAX_STEPS, readSteps, type Seen, STEP_ACTIONS } from "../preview/look-steps";
 import { PAGES_DESCRIPTION, PAGES_SHAPE, PAGES_TOOL_NAME } from "../templates/pages-card";
 
 export const UPSTART_SERVER = "upstart";
@@ -111,6 +112,13 @@ No block of the gallery fits: write this section yourself.`;
 
 const text = (t: string): ToolContent[] => [{ type: "text", text: t }];
 
+/** look_at_preview, as the agent reads it (Q314–Q324); nothing says when to look on a phone (Q319). */
+const LOOK_DESCRIPTION = `Looks at a page of the website as a visitor sees it, in a browser of your own that the maker does not see, and answers with a picture of one screen and, in text: the page, which screen of it this is ("screen 2 of 5") and the files of what is on it; the steps done; the problems Upstart measured on that screen, each with its file and line (the page wider than the screen, text cut off, elements still hidden once the page settled, images that did not load, links to an address no page has); the page's errors, and what Upstart had to repair or skip to render it.
+
+Name the screen: desktop, tablet or phone. Before the picture, \`steps\` are done in order, as a visitor would: hover, click, scroll, press a key, type into a field. A link within the website is followed; a form is never sent. One look shows one screen: \`at\` ends it on a part further down, so a long page is seen part by part, down to its footer. What the steps changed (a menu opened, a field filled) stays from one look to the next until the end of your turn, through the files you write; \`fresh\` starts again from the page as it loads.
+
+Use it to check your work when something may be wrong, and on each page after rewriting a website's texts; it is not needed after every change.`;
+
 /** Upstart's tools for one project's agent. */
 export function upstartTools({
   look,
@@ -202,17 +210,58 @@ export function upstartTools({
     },
     {
       name: "look_at_preview",
-      description:
-        "Shows a page in Upstart's preview, as an image, with the errors the page reported and what Upstart had to repair or skip to render it: the page the maker currently sees, or the one at `route`, which the preview goes to first. Use it to check your work when something may be wrong, and on each page after rewriting a site's texts; it is not needed after every change.",
+      description: LOOK_DESCRIPTION,
       shape: {
         route: z
           .string()
           .optional()
-          .describe('A page\'s address, e.g. "/menu" or "/work/first-case": the preview shows it first'),
+          .describe(
+            'A page\'s address, e.g. "/menu" or "/work/first-case". Without it, the page your last look in this turn ended on, or else the one the maker sees.',
+          ),
+        screen: z
+          .enum(["desktop", "tablet", "phone"])
+          .optional()
+          .describe(
+            "desktop (1440×900, the default), tablet (820×1180) or phone (393×852). Without it and without a route, the screen of your last look in this turn.",
+          ),
+        steps: z
+          .array(
+            z.object({
+              action: z.enum(STEP_ACTIONS).describe("hover, click, scroll, press (a key) or type (into a field)"),
+              target: z
+                .string()
+                .optional()
+                .describe(
+                  'What the step acts on: a file of the website ("parts/header.liquid"), a line of it ("parts/header.liquid:14", the first element written on that line) or a CSS selector ("header nav button"). A scroll also takes "down" or "up" (a screen), "top" or "bottom". A key pressed goes to the element with the focus.',
+                ),
+              key: z
+                .string()
+                .optional()
+                .describe(
+                  'For press: "Tab", "Shift+Tab", "Escape", "Enter", "Space", "ArrowDown" and the other arrows, "Home", "End", "PageUp", "PageDown"',
+                ),
+              text: z.string().optional().describe("For type: the text typed into the field"),
+            }),
+          )
+          .max(MAX_STEPS)
+          .optional()
+          .describe("What to do on the page before the picture, in order, as a visitor would"),
+        at: z
+          .string()
+          .optional()
+          .describe(
+            'Where the look ends: a part further down or a CSS selector ("pages/index.liquid:40", "#faq", "footer"), scrolled to as a visitor scrolls, after the steps',
+          ),
+        fresh: z
+          .boolean()
+          .optional()
+          .describe("Start from the page as it loads, leaving what your earlier looks in this turn opened or filled"),
       },
       readOnly: true,
-      run: async ({ route }: { route?: string }) => {
-        const seen = await look(route);
+      run: async ({ route, screen, steps, at, fresh }: { route?: string } & LookOptions) => {
+        const read = readSteps(steps);
+        if ("problem" in read) return text(read.problem);
+        const seen = await look(route, { screen, steps: read.steps, at, fresh });
         return [
           ...(seen.png ? [{ type: "image" as const, data: seen.png.toString("base64"), mimeType: "image/png" }] : []),
           { type: "text" as const, text: lookText(seen) },

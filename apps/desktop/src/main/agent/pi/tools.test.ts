@@ -144,6 +144,21 @@ test("Upstart's tools keep their short names for the model, and the SDK's names 
   const images = harness.find((t) => t.name === "find_images")!;
   expect((images.parameters as { required: string[] }).required).toEqual(["query"]);
   expect((await images.execute("id", { query: "roses" })).content).toEqual([{ type: "text", text: "images of roses" }]);
+  // A look takes a screen and steps (Q315, Q317), each step read before the look.
+  const look = harness.find((t) => t.name === "look_at_preview")!;
+  const props = (look.parameters as { properties: Record<string, { enum?: string[]; items?: unknown }> }).properties;
+  expect(Object.keys(props)).toEqual(["route", "screen", "steps", "at", "fresh"]);
+  expect(props.screen!.enum).toEqual(["desktop", "tablet", "phone"]);
+  expect(props.steps!.items).toMatchObject({
+    properties: { action: { enum: ["hover", "click", "scroll", "press", "type"] } },
+    required: ["action"],
+  });
+  expect((await look.execute("id", { steps: [{ action: "press", key: "F13" }] })).content).toEqual([
+    { type: "text", text: 'Step 1: the key "F13" is not one Upstart can press.' },
+  ]);
+  expect((await look.execute("id", { route: "/" })).content).toEqual([
+    { type: "text", text: "Page: /.\n\nNo errors in the page." },
+  ]);
   const upstart = new Set(defs.map((d) => d.name));
   expect(canonicalTool("look_at_preview", upstart)).toBe("mcp__upstart__look_at_preview");
   expect(canonicalTool("Write", upstart)).toBe("Write");

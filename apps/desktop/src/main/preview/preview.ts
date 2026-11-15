@@ -25,12 +25,14 @@ import type {
 } from "../../shared/ipc";
 import { AgentView } from "./agent-view";
 import { PageGrid, pictureKey, type ThumbnailAction, type ThumbnailScreen } from "./grid";
+import { type Measured, measure, problemsOf } from "./look-measure";
 import {
   type LookOptions,
   type LookStep,
   POSITION,
   type Position,
   runSteps,
+  SCREENS,
   type Seen,
   type StepDone,
 } from "./look-steps";
@@ -496,6 +498,7 @@ export class Preview {
     const all: LookStep[] = at ? [...steps, { action: "scroll", target: at }] : steps;
     let done: StepDone[] = [];
     let position: Position | undefined;
+    let measured: Measured | undefined;
     // A look that does not come back is not waited for: the page is described without its picture.
     const png = await Promise.race([
       (async () => {
@@ -503,6 +506,7 @@ export class Preview {
         await view.show(route, on, fresh);
         done = await runSteps(view.steps(), all);
         position = (await view.run(POSITION).catch(() => undefined)) as Position | undefined;
+        measured = (await view.run(measure(SCREENS[on].width)).catch(() => undefined)) as Measured | undefined;
         return await view.capture();
       })().catch(() => undefined),
       new Promise<undefined>((resolve) => setTimeout(resolve, 45_000)),
@@ -516,6 +520,7 @@ export class Preview {
       position,
       steps: done,
       refused: view.takeRefused(),
+      problems: problemsOf(measured, (path) => !!site.runtime.resolve(path)),
       errors: view.errors.map((e) => (e.source ? `${e.message} (${e.source})` : e.message)),
       notes: [
         ...new Set([

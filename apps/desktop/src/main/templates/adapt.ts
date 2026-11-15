@@ -93,7 +93,7 @@ ${listed}
 2. Then, ${home ? "of the choices in the guide's section for the home page (they hold for the home page and the whole website), those the maker's message leaves open: " : "if the maker's message leaves open a choice for the home page or the whole website that is costly to guess, "}${CHOICES} Ask nothing yet of the other pages: their choices come with their turn.
 3. Adapt the home page and what every page shares: the header, the footer, the navigation (data/navigation/: the pages kept, new ones included, named in the maker's language), the website's name. Remove the page types the maker did not keep${sections?.pages.length ? ', as their sections\' "When removed" say' : ""}, with their navigation records and what only they use, and point what led to them elsewhere. Leave the other pages as they are: they keep the template's contents until their turn, and so do the records the home page only teases (the dishes of the menu, the next events): they are adapted with their own page.
 ${REWRITE}
-- Look at the home page with look_at_preview: new texts are longer or shorter than the template's, in another language above all. Fix what they broke in the markup, keeping the design.
+- Look at the home page with look_at_preview, down to its footer: one look shows one screen, so look again with \`at\` on the parts further down. New texts are longer or shorter than the template's, in another language above all: fix what they broke in the markup and the problems the looks measured, keeping the design.
 4. ${END_OF_PAGE}
 At the end of each turn Upstart checks that no text of the template is left in what was adapted.
 
@@ -128,7 +128,7 @@ ${sections?.general ? `\nThe template's guide, its general part:\n\n<template-gu
 1. First, before you change its files: of ${section ? "this section's choices" : "the choices for this page that are costly to guess"}, those the maker's messages leave open: ${CHOICES}
 ${build}
 ${REWRITE}${removed}
-3. Look at each of its pages with look_at_preview (one record's page is enough), and fix what the new texts broke.
+3. Look at each of its pages with look_at_preview, down to the footer (\`at\` on the parts further down; one record's page is enough), and fix what the new texts broke and the problems the looks measured.
 4. ${END_OF_PAGE}`;
 }
 

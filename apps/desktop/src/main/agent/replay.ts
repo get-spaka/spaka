@@ -9,7 +9,7 @@ import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { dirname, isAbsolute } from "node:path";
 import type { ModelInfo, Query, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
 import { CARD_TOOLS } from "./questions";
-import { PAGES_TOOL, UPSTART_SERVER } from "./upstart-tools";
+import { LOOK_TOOL, PAGES_TOOL, UPSTART_SERVER } from "./upstart-tools";
 
 type Line = { t: number; m: Record<string, unknown> & { type: string } };
 
@@ -68,6 +68,8 @@ export function replayQuery(file: string, speed = 1) {
   return (params: { prompt: AsyncIterable<SDKUserMessage>; options: Record<string, unknown> }): Query => {
     const cwd = String(params.options.cwd);
     const calls: Record<string, unknown>[] = [];
+    /** The answers of the looks run for real, by their tool call. */
+    const looked = new Map<string, string>();
     let interrupted = false;
     let closed = false;
     let wake: (() => void) | undefined;
@@ -115,7 +117,16 @@ export function replayQuery(file: string, speed = 1) {
           }
           const m = from ? (JSON.parse(JSON.stringify(line.m).split(from).join(cwd)) as Line["m"]) : line.m;
           applyWrites(m);
-          yield m;
+          // A look runs for real, and its answer replaces the recorded one: the page is this check's.
+          const look = toolCall(m, LOOK_TOOL);
+          if (look && runTool) {
+            const content = await runTool(look.name, look.input);
+            const text = content.flatMap((c) => (c.text !== undefined ? [c.text] : [])).join("\n");
+            looked.set(look.id, text);
+            replayed.push(`[${look.name}] ${text}`);
+            start = Date.now() - (turn[i + 1]?.t ?? line.t) / speed;
+          }
+          yield answered(m, looked);
           // A question or a plan asks the app, as the binary does, and the
           // recording goes on once it is answered (Q283, Q286); the maker's
           // time to answer in the recording is not waited again.
@@ -202,6 +213,36 @@ function cardCall(m: Line["m"]): { name: string; input: Record<string, unknown> 
   if (!Array.isArray(content)) return undefined;
   const block = content.find((b) => b?.type === "tool_use" && CARD_TOOLS.has(b.name));
   return block ? { name: block.name, input: block.input as Record<string, unknown> } : undefined;
+}
+
+/** A recorded call of the tool `name`. */
+function toolCall(
+  m: Line["m"],
+  name: string,
+): { id: string; name: string; input: Record<string, unknown> } | undefined {
+  if (m.type !== "assistant") return undefined;
+  const content = (m.message as { content?: unknown })?.content;
+  if (!Array.isArray(content)) return undefined;
+  const block = content.find((b) => b?.type === "tool_use" && b.name === name);
+  return block ? { id: String(block.id), name, input: block.input as Record<string, unknown> } : undefined;
+}
+
+/** A recorded tool result, with the answer of a tool run for real in its place. */
+function answered(m: Line["m"], answers: Map<string, string>): Line["m"] {
+  if (m.type !== "user" || !answers.size) return m;
+  const content = (m.message as { content?: unknown })?.content;
+  if (!Array.isArray(content)) return m;
+  return {
+    ...m,
+    message: {
+      ...(m.message as object),
+      content: content.map((b) =>
+        b?.type === "tool_result" && answers.has(b.tool_use_id)
+          ? { ...b, content: [{ type: "text", text: answers.get(b.tool_use_id) }] }
+          : b,
+      ),
+    },
+  };
 }
 
 function readTurns(file: string): Line[][] {
