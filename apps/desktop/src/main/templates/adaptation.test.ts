@@ -79,15 +79,16 @@ describe("an adaptation", () => {
     // The home page's turn ends: the maker looks at it.
     expect(turnEnded(root, true).finished).toBe(false);
     expect(statuses(root)["/"]).toBe("ready");
-    expect(upcomingStep(readAdaptation(root)!)?.route).toBe("/events");
+    // The guide's order: the menu before the events.
+    expect(upcomingStep(readAdaptation(root)!)?.route).toBe("/menu");
     // A click on a page to do makes it the next one (Q313).
-    pickNext(root, "/menu");
-    expect(readAdaptation(root)!.next).toBe("/menu");
-    expect(continueAdaptation(root)?.route).toBe("/menu");
-    expect(statuses(root)).toMatchObject({ "/": "done", "/menu": "doing", "/events": "todo" });
+    pickNext(root, "/events");
+    expect(readAdaptation(root)!.next).toBe("/events");
+    expect(continueAdaptation(root)?.route).toBe("/events");
+    expect(statuses(root)).toMatchObject({ "/": "done", "/events": "doing", "/menu": "todo" });
     expect(readAdaptation(root)!.next).toBeUndefined();
     turnEnded(root, true);
-    expect(continueAdaptation(root)?.route).toBe("/events");
+    expect(continueAdaptation(root)?.route).toBe("/menu");
     // The last page type's turn ends: the adaptation is over, its folder gone (Q307).
     const removed = readAdaptation(root)!.steps.filter((s) => s.status === "removed");
     for (const s of removed) rmSync(join(root, "pages", `${s.route.slice(1)}.liquid`), { force: true });
