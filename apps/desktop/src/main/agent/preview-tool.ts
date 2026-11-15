@@ -18,10 +18,11 @@ export {
 
 /** A new in-process server for one agent process. */
 export function upstartServer(tools: UpstartTools) {
-  return createSdkMcpServer({
+  const defs = upstartTools(tools);
+  const server = createSdkMcpServer({
     name: UPSTART_SERVER,
     version: "1.0.0",
-    tools: upstartTools(tools).map((def) =>
+    tools: defs.map((def) =>
       tool(
         def.name,
         def.description,
@@ -39,6 +40,11 @@ export function upstartServer(tools: UpstartTools) {
           : undefined,
       ),
     ),
+  });
+  // A recording played back runs the card of pages as the server would (replay.ts): it waits for the maker.
+  return Object.assign(server, {
+    runTool: async (name: string, input: unknown, signal?: AbortSignal) =>
+      (await defs.find((def) => upstartToolName(def.name) === name)?.run(input, signal)) ?? [],
   });
 }
 

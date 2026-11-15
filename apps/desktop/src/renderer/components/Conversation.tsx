@@ -302,7 +302,7 @@ export function MessageBox({
           rows={3}
           className="max-h-48 w-full resize-none bg-transparent px-1 py-1 text-sm outline-none placeholder:text-muted-foreground"
         />
-        <div className="flex items-center gap-1">
+        <div className="flex min-w-0 items-center gap-1">
           <ModelControls
             project={project}
             status={status}
@@ -311,7 +311,7 @@ export function MessageBox({
             working={working}
             noPlan={noPlan}
           />
-          <div className="ml-auto flex items-center gap-1">
+          <div className="ml-auto flex shrink-0 items-center gap-1">
             {working && (
               <Button
                 type="button"
@@ -561,7 +561,8 @@ function ModelControls({
       <select
         aria-label={t.conversation.model}
         data-testid="model-select"
-        className={select}
+        // As wide as its longest model: it shrinks before the send and stop buttons are pushed out of the box.
+        className={cn(select, "min-w-0 shrink truncate")}
         disabled={!models.length}
         value={model}
         onChange={(event) => {
@@ -576,7 +577,7 @@ function ModelControls({
       <select
         aria-label={t.conversation.effort}
         data-testid="effort-select"
-        className={select}
+        className={cn(select, "shrink-0")}
         value={effort}
         onChange={(event) => change({ effort: event.target.value as Effort })}
       >
@@ -591,7 +592,7 @@ function ModelControls({
           aria-label={t.conversation.mode}
           title={t.conversation.planHint}
           data-testid="mode-select"
-          className={cn(select, mode === "plan" && "text-foreground")}
+          className={cn(select, "shrink-0", mode === "plan" && "text-foreground")}
           disabled={working}
           value={mode}
           onChange={(event) => change({ mode: event.target.value as AgentMode })}

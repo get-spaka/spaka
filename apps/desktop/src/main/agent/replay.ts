@@ -9,6 +9,7 @@ import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { dirname, isAbsolute } from "node:path";
 import type { ModelInfo, Query, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
 import { CARD_TOOLS } from "./questions";
+import { PAGES_TOOL, UPSTART_SERVER } from "./upstart-tools";
 
 type Line = { t: number; m: Record<string, unknown> & { type: string } };
 
@@ -75,6 +76,9 @@ export function replayQuery(file: string, speed = 1) {
     const ask = params.options.canUseTool as
       | ((name: string, input: Record<string, unknown>, options: { signal: AbortSignal }) => Promise<unknown>)
       | undefined;
+    // The card of pages is one of Upstart's tools, which the binary runs without asking: run here.
+    const runTool = (params.options.mcpServers as Record<string, { runTool?: RunTool }> | undefined)?.[UPSTART_SERVER]
+      ?.runTool;
 
     async function* messages() {
       for await (const input of params.prompt) {
@@ -116,7 +120,14 @@ export function replayQuery(file: string, speed = 1) {
           // recording goes on once it is answered (Q283, Q286); the maker's
           // time to answer in the recording is not waited again.
           const asked = cardCall(m);
-          if (asked && ask) {
+          if (asked?.name === PAGES_TOOL && runTool) {
+            const controller = new AbortController();
+            stopAsking = () => controller.abort();
+            const content = await runTool(asked.name, asked.input, controller.signal);
+            stopAsking = undefined;
+            replayed.push(`[${asked.name}] ${content.map((c) => ("text" in c ? c.text : "")).join("\n")}`);
+            start = Date.now() - (turn[i + 1]?.t ?? line.t) / speed;
+          } else if (asked && ask) {
             const controller = new AbortController();
             stopAsking = () => controller.abort();
             const answer = await ask(asked.name, asked.input, { signal: controller.signal });
@@ -155,6 +166,8 @@ export function replayQuery(file: string, speed = 1) {
     });
   };
 }
+
+type RunTool = (name: string, input: unknown, signal?: AbortSignal) => Promise<{ type: string; text?: string }[]>;
 
 type Hook = (
   input: Record<string, unknown>,

@@ -9,11 +9,12 @@
 // - plan: a larger website in plan mode (Q286, Q290): its questions answered
 //   with the recommended choices, nothing written before the plan, a change
 //   asked, the new plan built with Build, the website back on Build;
-// - ember: Ember from a message that settles how guests book and not private
-//   dining (Q297-Q301): one card before any file changes, on private dining
-//   only, then the site as answered and the card on what was guessed; from a
-//   release built here of the templates' repository and served on 127.0.0.1,
-//   since the published one has no guides yet.
+// - ember: Ember adapted page by page (Q302-Q313) from a message that settles
+//   how guests book: the card of pages before any file changes, the home
+//   page's choices asked without booking, the home page alone done, then
+//   Continue to the visit page and its call button; from a release built here
+//   of the templates' repository and served on 127.0.0.1, since the published
+//   one has no guides by page type yet.
 //
 // Upstart's own harness, with Gemini 4 Hydrogen and the AI Studio key of
 // spikes/harnesses/homes/keys.env, in the development build
@@ -53,7 +54,7 @@ function key(name: string): string | undefined {
   return undefined;
 }
 
-type Card = { kind: "question" | "plan"; card: Record<string, unknown> };
+type Card = { kind: "question" | "plan" | "pages"; card: Record<string, unknown> };
 
 /** What drives a launched app's conversation like a maker, and reads it back. */
 function maker(get: () => LaunchedApp) {
@@ -70,6 +71,7 @@ function maker(get: () => LaunchedApp) {
   };
   const waitingQuestion = () => w().locator('[data-testid="question-card"][data-state="waiting"]');
   const proposedPlan = () => w().locator('[data-testid="plan-card"][data-state="proposed"]');
+  const waitingPages = () => w().locator('[data-testid="pages-card"][data-state="waiting"]');
   /** The cards of the conversation, as the main process keeps them. */
   const cards = async (): Promise<Card[]> => {
     const { items } = await invoke<{ items: { kind: string; parts?: { kind: string; card?: object }[] }[] }>(
@@ -78,7 +80,7 @@ function maker(get: () => LaunchedApp) {
     return items
       .filter((i) => i.kind === "agent")
       .flatMap((i) => i.parts ?? [])
-      .filter((p) => p.kind === "question" || p.kind === "plan")
+      .filter((p) => p.kind === "question" || p.kind === "plan" || p.kind === "pages")
       .map((p) => ({ kind: p.kind as Card["kind"], card: p.card as Record<string, unknown> }));
   };
   /** Clicks each question's recommended choice, then Answer when there is one. */
@@ -95,7 +97,7 @@ function maker(get: () => LaunchedApp) {
    * on to `on`, which answers it; a turn longer than `timeout` fails.
    */
   const drive = async (
-    on: { question?: () => Promise<void>; plan?: (index: number) => Promise<void> },
+    on: { question?: () => Promise<void>; plan?: (index: number) => Promise<void>; pages?: () => Promise<void> },
     timeout = 1_800_000,
   ) => {
     const started = Date.now();
@@ -109,6 +111,9 @@ function maker(get: () => LaunchedApp) {
         questions++;
         await (on.question ?? answerRecommended)();
         await waitingQuestion().waitFor({ state: "detached", timeout: 30_000 });
+      } else if (await waitingPages().count()) {
+        await (on.pages ?? (() => waitingPages().getByTestId("pages-keep").click()))();
+        await waitingPages().waitFor({ state: "detached", timeout: 30_000 });
       } else if (await proposedPlan().count()) {
         await get().capture(`real-plan-${plans}`);
         if (!on.plan) throw new Error("a plan the check did not expect");
@@ -120,7 +125,30 @@ function maker(get: () => LaunchedApp) {
       await new Promise((r) => setTimeout(r, 1000));
     }
   };
-  return { w, invoke, send, waitingQuestion, proposedPlan, cards, answerRecommended, drive };
+  /** Clicks Continue under the conversation and drives the turn it starts (Q303). */
+  const continueAdaptation = async (timeout?: number) => {
+    const turns = async () =>
+      (await invoke<{ items: { kind: string }[] }>("conversation:get")).items.filter((i) => i.kind === "agent").length;
+    const before = await turns();
+    await w().getByTestId("adaptation-continue").click();
+    for (const started = Date.now(); (await turns()) === before; ) {
+      if (Date.now() - started > 30_000) throw new Error("Continue started no turn");
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    return drive({}, timeout);
+  };
+  return {
+    w,
+    invoke,
+    send,
+    waitingQuestion,
+    proposedPlan,
+    waitingPages,
+    cards,
+    answerRecommended,
+    drive,
+    continueAdaptation,
+  };
 }
 
 /** The site's own files: its pages, parts, records and theme. */
@@ -142,63 +170,82 @@ const EMBER_MESSAGE =
   "A website for Bodega Triana, a tapas and sherry bar in Seville, open in the evenings, with flamenco nights on Thursdays. Guests book by phone only.";
 
 /**
- * Ember once its first message is sent: the card before building holds the
- * choices the message left open (private dining, not booking), answered
- * "Events only"; the site follows both; later cards take the recommended
- * choices.
+ * Ember once its first message is sent, adapted page by page (Q302-Q313):
+ * the card of pages before any file changes, kept as the agent checked it;
+ * the home page's choices, if any, asked before the home page changes and
+ * never about booking, which the message settles; the home page alone done,
+ * the pages after it still the template's; then Continue to the next page,
+ * the visit page, which gets the call button. Each turn ends without a card.
  */
 async function emberCase(m: ReturnType<typeof maker>, timeout: number) {
   await m.w().getByTestId("conversation").waitFor({ timeout: 300_000 });
-  let cardsSeen = 0;
-  const first: { questions: string[]; unchanged: boolean } = { questions: [], unchanged: false };
-  const turn = await m.drive(
+  const project = await m.invoke<{ path: string; template?: { id: string; version: string } }>("projects:current");
+  const read = (f: string) => (existsSync(join(project.path, f)) ? readFileSync(join(project.path, f), "utf8") : "");
+  const same = (f: string) => read(f) === readFileSync(join(EMBER, f), "utf8");
+  const pages: { routes: string[]; checked: Record<string, boolean>; unchanged: boolean } = {
+    routes: [],
+    checked: {},
+    unchanged: false,
+  };
+  const home: { questions: string[]; asked: number; unchangedWhenAsked: boolean } = {
+    questions: [],
+    asked: 0,
+    unchangedWhenAsked: true,
+  };
+  const home_ = await m.drive(
     {
+      pages: async () => {
+        pages.unchanged = same("pages/index.liquid") && same("parts/header.liquid") && same("parts/reserve.liquid");
+        const choices = m.waitingPages().getByTestId("pages-choice");
+        for (let i = 0; i < (await choices.count()); i++) {
+          const route = (await choices.nth(i).getAttribute("data-route")) ?? "";
+          pages.routes.push(route);
+          pages.checked[route] = (await choices.nth(i).getAttribute("aria-pressed")) === "true";
+        }
+        await m.waitingPages().getByTestId("pages-keep").click();
+      },
       question: async () => {
-        if (cardsSeen++ > 0) return m.answerRecommended();
-        const { path } = await m.invoke<{ path: string }>("projects:current");
-        const same = (f: string) => readFileSync(join(path, f), "utf8") === readFileSync(join(EMBER, f), "utf8");
-        first.unchanged = same("pages/index.liquid") && same("parts/reserve.liquid") && same("parts/header.liquid");
+        home.asked++;
+        home.unchangedWhenAsked &&= same("pages/index.liquid") && same("parts/hero.liquid");
         const card = (await m.cards()).filter((c) => c.kind === "question").at(-1)?.card as
           | { questions: { question: string }[] }
           | undefined;
-        first.questions = (card?.questions ?? []).map((q) => q.question);
-        const waiting = m.waitingQuestion();
-        const sets = waiting.locator("fieldset");
-        const count = await sets.count();
-        const one = count <= 1 ? waiting : undefined;
-        for (let i = 0; i < Math.max(count, 1); i++) {
-          const set = one ?? sets.nth(i);
-          const text = (await set.textContent()) ?? "";
-          const events = set.getByTestId("question-choice").filter({ hasText: /events only/i });
-          await (/private|dining/i.test(text) && (await events.count()) ? events : set.getByTestId("question-choice"))
-            .first()
-            .click();
-        }
-        const answer = waiting.getByTestId("question-answer");
-        if (await answer.count()) await answer.click();
+        home.questions.push(...(card?.questions ?? []).map((q) => q.question));
+        await m.answerRecommended();
       },
     },
     timeout,
   );
-  const project = await m.invoke<{ path: string; template?: { id: string; version: string } }>("projects:current");
-  const read = (f: string) => (existsSync(join(project.path, f)) ? readFileSync(join(project.path, f), "utf8") : "");
+  const state = () =>
+    JSON.parse(read(".upstart/adaptation/state.json") || "{}") as { steps?: { route: string; status: string }[] };
+  const statusOf = (route: string) => state().steps?.find((s) => s.route === route)?.status;
+  const afterHome = {
+    "from Ember 1.1.0": project.template?.version === "1.1.0",
+    "the card of pages before any file changed": pages.unchanged,
+    "every page type in it, the home page first": pages.routes[0] === "/" && pages.routes.length >= 7,
+    "the events kept": pages.checked["/events"] === true,
+    "no question on booking, which the message settled": !home.questions.some((q) => /book|reserv/i.test(q)),
+    "at most one card of questions, before the home page changed": home.asked <= 1 && home.unchangedWhenAsked,
+    "the home page about the bar": /triana/i.test(read("pages/index.liquid") + read("parts/hero.liquid")),
+    "the home page to look at": statusOf("/") === "ready",
+    "the menu page still the template's": statusOf("/menu") !== "todo" || same("parts/courses.liquid"),
+    "the story page still the template's": statusOf("/story") !== "todo" || same("parts/chapters.liquid"),
+  };
+  const cardsBefore = (await m.cards()).length;
+  const visit_ = await m.continueAdaptation(timeout);
   const markup = walk(project.path)
     .filter((f) => f.endsWith(".liquid"))
     .map((f) => readFileSync(f, "utf8"))
     .join("\n");
-  const checks = {
-    "from Ember 1.1.0": project.template?.version === "1.1.0",
-    "a card before any file changed": first.unchanged,
-    "it asks about private dining": first.questions.some((q) => /private|dining/i.test(q)),
-    "not about booking, which the message settled": !first.questions.some((q) => /book|reserv/i.test(q)),
-    "then the card on what was guessed": cardsSeen >= 2,
+  const visitCards = (await m.cards()).length - cardsBefore;
+  const afterVisit = {
+    "the visit page next": statusOf("/visit") === "ready" && statusOf("/") === "done",
+    "a call button on the visit page": /href="tel:/.test(read("parts/reserve.liquid") + read("pages/visit.liquid")),
     "no reservation form": !existsSync(join(project.path, "data/reservations")) && !/_data\/reservations/.test(markup),
-    "a call button": /href="tel:/.test(markup),
-    "no private dining page": !existsSync(join(project.path, "pages/private-dining.liquid")),
-    "events kept": existsSync(join(project.path, "data/events")),
-    "about the bar": /triana/i.test(read("pages/index.liquid") + read("parts/header.liquid")),
+    "no card in the visit page's turn": visitCards === 0,
+    "the menu page still the template's": statusOf("/menu") !== "todo" || same("parts/courses.liquid"),
   };
-  return { turn, checks, first, cards: await m.cards() };
+  return { home: home_, visit: visit_, checks: { ...afterHome, ...afterVisit }, pages, questions: home.questions };
 }
 
 describe.skipIf(!realClaude || !CLAUDE_CASES.length)(
@@ -323,15 +370,18 @@ describe.skipIf(!realClaude || !CLAUDE_CASES.length)(
     );
 
     test.runIf(CLAUDE_CASES.includes("ember"))(
-      "ember: the choices its message leaves open asked before building, then followed",
+      "ember: the card of pages, the home page alone, then Continue to the visit page",
       async () => {
         await fresh();
         await m.w().locator('[data-testid="template-card"][data-template="ember"] button[aria-pressed]').click();
         await m.send(EMBER_MESSAGE);
-        const { turn, checks, first, cards } = await emberCase(m, 1_800_000);
-        report.ember = { turnMs: turn.ms, status: turn.last.status, checks, first, cards };
-        say(`[ember] ${turn.ms / 1000} s, first card ${JSON.stringify(first.questions)}: ${JSON.stringify(checks)}`);
-        expect(turn.last.status).toBe("done");
+        const { home, visit, checks, pages, questions } = await emberCase(m, 1_800_000);
+        report.ember = { homeMs: home.ms, visitMs: visit.ms, checks, pages, questions, cards: await m.cards() };
+        say(
+          `[ember] home ${home.ms / 1000} s, visit ${visit.ms / 1000} s; pages ${JSON.stringify(pages.checked)}; questions ${JSON.stringify(questions)}: ${JSON.stringify(checks)}`,
+        );
+        expect(home.last.status).toBe("done");
+        expect(visit.last.status).toBe("done");
         expect(checks).toEqual(Object.fromEntries(Object.keys(checks).map((k) => [k, true])));
       },
     );
@@ -430,17 +480,20 @@ describe.skipIf(!realPi || !PI_CASES.length)(
     );
 
     test.runIf(PI_CASES.includes("ember"))(
-      "ember: the choices its message leaves open asked before building, then followed",
+      "ember: the card of pages, the home page alone, then Continue to the visit page",
       async () => {
         if (!(await m.w().getByTestId("start").count())) {
           await m.invoke("projects:close");
           await m.w().getByTestId("start").waitFor();
         }
         await m.invoke("conversation:send", EMBER_MESSAGE, { model: hydrogen, effort: "medium", template: "ember" });
-        const { turn, checks, first, cards } = await emberCase(m, 1_800_000);
-        report.ember = { turnMs: turn.ms, status: turn.last.status, checks, first, cards };
-        say(`[pi ember] ${turn.ms / 1000} s, first card ${JSON.stringify(first.questions)}: ${JSON.stringify(checks)}`);
-        expect(turn.last.status).toBe("done");
+        const { home, visit, checks, pages, questions } = await emberCase(m, 1_800_000);
+        report.ember = { homeMs: home.ms, visitMs: visit.ms, checks, pages, questions, cards: await m.cards() };
+        say(
+          `[pi ember] home ${home.ms / 1000} s, visit ${visit.ms / 1000} s; pages ${JSON.stringify(pages.checked)}; questions ${JSON.stringify(questions)}: ${JSON.stringify(checks)}`,
+        );
+        expect(home.last.status).toBe("done");
+        expect(visit.last.status).toBe("done");
         expect(checks).toEqual(Object.fromEntries(Object.keys(checks).map((k) => [k, true])));
       },
     );
