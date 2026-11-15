@@ -146,8 +146,16 @@ A complete, ready-made project that a maker can start a new project from, with i
 _Avoid_: Starter, theme; also avoid "template" for the source of a page
 
 **Template guide**:
-What a template tells the agent that adapts it: what the template is and suits, how it is made, how to adapt it, and the choices that vary, which the agent asks before building when the maker's message leaves them open. Read once, when a website starts from the template.
+What a template tells the agent that adapts it: what the template is and suits, how it is made, how to adapt it, and the choices that vary, page type by page type, which the agent asks before adapting each when the maker's messages leave them open. Read during the adaptation only.
 _Avoid_: Template questions, readme
+
+**Adaptation**:
+The stage in which a website started from a template is made the maker's, while it is created: the maker chooses the page types to keep, then each is adapted in turn, the home page first, and looked at before the next. Once the last is done, the website is edited as any other.
+_Avoid_: Onboarding, setup, wizard, customization
+
+**Page type**:
+The pages of a template that share their first folder, with their records: the menu; the events and each event's page; the home page alone. What an adaptation goes through, one at a time.
+_Avoid_: Page group, route, section
 
 **Design notes**:
 What a template leaves with the website it starts, for the agent's later turns: its type, colors, effects and how its lists work.
