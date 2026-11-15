@@ -34,7 +34,15 @@ import {
   titleOf,
 } from "./data.ts";
 import { escapeHtml } from "./escape.ts";
-import { addCreditsLink, CREDITS_ROUTE, creditedMedia, creditsPage, fillAlts, withSrcset } from "./media.ts";
+import {
+  addCreditsLink,
+  CREDITS_ROUTE,
+  creditedMedia,
+  creditsPage,
+  fillAlts,
+  pageLanguage,
+  withSrcset,
+} from "./media.ts";
 import { recordTitle } from "./records.ts";
 import { type SiteAssets, siteAssets } from "./scripts.ts";
 import type { ProjectSource } from "./source.ts";
@@ -233,8 +241,10 @@ export class Runtime {
     if (!route) return this.notFound(pathname);
     if (route.generated) {
       const started = performance.now();
+      // In the home page's language (Q325).
+      const language = (this.route("/") && pageLanguage(this.renderRoute("/").html)) || "en";
       const html = this.decorate(
-        withSrcset(fillAlts(creditsPage(creditedMedia(this.source)), this.source), this.images),
+        withSrcset(fillAlts(creditsPage(creditedMedia(this.source), language), this.source), this.images),
       );
       return { status: 200, html, file: route.file, notes: [], ms: performance.now() - started };
     }
@@ -451,7 +461,7 @@ export class Runtime {
     );
   }
 
-  /** What every page gets once rendered: alt texts kept beside images, and the credits' link (Q155, Q157). */
+  /** What every page gets once rendered: alt texts kept beside images, and the credits' link (Q155, Q157, Q325). */
   private finish(html: string): string {
     const filled = withSrcset(addTrapFields(fillAlts(html, this.source)), this.images);
     return creditedMedia(this.source).length ? addCreditsLink(filled) : filled;

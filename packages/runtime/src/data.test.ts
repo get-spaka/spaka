@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { Datasources, recordOf, splitRecord } from "./data.ts";
-import { addCreditsLink } from "./media.ts";
+import { addCreditsLink, pageLanguage } from "./media.ts";
 import { Runtime } from "./runtime.ts";
 import { memorySource, Overlay } from "./source.ts";
 
@@ -192,6 +192,51 @@ describe("media (Q155, Q157)", () => {
     );
     const once = addCreditsLink("<footer>x</footer>");
     expect(addCreditsLink(once)).toBe(once);
+  });
+
+  test("no credits link added when the page already links to the credits, whoever wrote it (Q325)", () => {
+    for (const written of [
+      `<a href="/credits">Crédits photos</a>`,
+      `<a class="link" href='/credits/'>Credits</a>`,
+      `<a href=/credits>Credits</a>`,
+    ]) {
+      const html = `<footer><p>${written}</p></footer>`;
+      expect(addCreditsLink(html)).toBe(html);
+    }
+    expect(addCreditsLink(`<footer><a href="/credits-and-thanks">Thanks</a></footer>`)).toContain("data-up-credits");
+    const site = new Runtime(
+      memorySource({
+        ...project,
+        "pages/index.liquid": page(`<img src="/media/cafe.jpg"><footer><a href="/credits">Crédits</a></footer>`),
+      }),
+    );
+    expect(site.renderRoute("/").html.match(/href="\/credits"/g)).toHaveLength(1);
+  });
+
+  test("the link and the /credits page are in the site's language, English otherwise (Q325)", () => {
+    expect(addCreditsLink(`<html lang="fr"><body><footer>x</footer></body></html>`)).toContain(">Crédits photos</a>");
+    expect(addCreditsLink(`<html class="a" lang="pt-BR"><footer>x</footer></html>`)).toContain(
+      ">Créditos das imagens</a>",
+    );
+    expect(addCreditsLink(`<html lang="no"><footer>x</footer></html>`)).toContain(">Bildekreditering</a>");
+    expect(addCreditsLink(`<html lang="ja"><footer>x</footer></html>`)).toContain(">Image credits</a>");
+    expect(addCreditsLink(`<footer>x</footer>`)).toContain(">Image credits</a>");
+    expect(pageLanguage(`<html data-theme="x" lang='de-AT'>`)).toBe("de-AT");
+
+    const french = new Runtime(
+      memorySource({
+        ...project,
+        "pages/index.liquid": `<!doctype html>\n<html lang="fr">\n<head><title>T</title></head>\n<body><img src="/media/cafe.jpg"><footer>Boulangerie</footer></body>\n</html>`,
+      }),
+    );
+    expect(french.renderRoute("/").html).toMatch(/Boulangerie<p data-up-credits[^>]*><a [^>]*>Crédits photos<\/a>/);
+    const credits = french.renderRoute("/credits").html;
+    expect(credits).toContain(`<html lang="fr"`);
+    expect(credits).toContain("<title>Crédits photos</title>");
+    expect(credits).toContain("par Jane Doe");
+    expect(credits).toContain("via Wikimedia Commons");
+    expect(credits).toContain("← Accueil");
+    expect(runtime.renderRoute("/credits").html).toContain("by Jane Doe");
   });
 
   test("no credits page nor link when no image needs one", () => {

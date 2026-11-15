@@ -2,7 +2,8 @@
 // its alternative text and, for one taken from an open collection, its
 // credits (media/cafe.jpg and media/cafe.json, Q155). The runtime fills an
 // image's missing alt from it, and lists the images whose licence asks for a
-// credit on a /credits page, linked from the end of every footer (Q157).
+// credit on a /credits page, linked from the end of every footer (Q157), both
+// in the site's language (Q325).
 import { escapeHtml } from "./escape.ts";
 import type { ProjectSource } from "./source.ts";
 
@@ -76,39 +77,77 @@ export function fillAlts(html: string, source: ProjectSource): string {
   });
 }
 
-/** The "Image credits" link, at the end of the page's last footer, or of its body without one. */
+/** The credits' words in a language, for the link and the /credits page (Q325). */
+type CreditsWords = { title: string; by: string; via: string; home: string };
+
+/** The languages Upstart writes the credits in; any other gets English. */
+const CREDITS_WORDS: Record<string, CreditsWords> = {
+  en: { title: "Image credits", by: "by", via: "via", home: "Home" },
+  fr: { title: "Crédits photos", by: "par", via: "via", home: "Accueil" },
+  de: { title: "Bildnachweis", by: "von", via: "über", home: "Startseite" },
+  es: { title: "Créditos de las imágenes", by: "por", via: "vía", home: "Inicio" },
+  it: { title: "Crediti delle immagini", by: "di", via: "tramite", home: "Home" },
+  pt: { title: "Créditos das imagens", by: "por", via: "via", home: "Início" },
+  nl: { title: "Beeldverantwoording", by: "door", via: "via", home: "Home" },
+  ca: { title: "Crèdits de les imatges", by: "per", via: "via", home: "Inici" },
+  sv: { title: "Bildkällor", by: "av", via: "via", home: "Start" },
+  da: { title: "Billedkreditering", by: "af", via: "via", home: "Forside" },
+  nb: { title: "Bildekreditering", by: "av", via: "via", home: "Forside" },
+  pl: { title: "Źródła zdjęć", by: "autor:", via: "źródło:", home: "Strona główna" },
+};
+
+/** The language a page says it is in (`<html lang="fr-CA">` gives "fr-CA"), if any. */
+export function pageLanguage(html: string): string | undefined {
+  const root = /<html\b[^>]*?\slang\s*=\s*["']?([a-z]{2,3}(?:-[a-z0-9]+)*)/i.exec(html);
+  return root?.[1];
+}
+
+/** The credits' words for a language: by its first part, Norwegian as one, English otherwise. */
+export function creditsWords(language: string | undefined): CreditsWords {
+  const primary = (language ?? "en").toLowerCase().split("-")[0];
+  return CREDITS_WORDS[primary === "no" || primary === "nn" ? "nb" : primary] ?? CREDITS_WORDS.en;
+}
+
+/**
+ * The credits link, at the end of the page's last footer, or of its body
+ * without one, in the page's language. None when the page already links to
+ * the credits, whoever wrote that link (Q325).
+ */
 export function addCreditsLink(html: string): string {
   // Already there: the element itself, not a stylesheet's selector naming it.
   if (/<[a-z][^>]*\sdata-up-credits\b/i.test(html)) return html;
-  const link = `<p data-up-credits style="margin:0.75rem 0 0;font-size:0.75rem;opacity:0.7"><a href="${CREDITS_ROUTE}" style="color:inherit">Image credits</a></p>`;
+  if (/<a\b[^>]*\shref\s*=\s*["']?\/credits\/?(?=["'\s>#?])/i.test(html)) return html;
+  const words = creditsWords(pageLanguage(html));
+  const link = `<p data-up-credits style="margin:0.75rem 0 0;font-size:0.75rem;opacity:0.7"><a href="${CREDITS_ROUTE}" style="color:inherit">${escapeHtml(words.title)}</a></p>`;
   const footer = html.toLowerCase().lastIndexOf("</footer>");
   if (footer >= 0) return html.slice(0, footer) + link + html.slice(footer);
   const body = html.toLowerCase().lastIndexOf("</body>");
   return body >= 0 ? html.slice(0, body) + link + html.slice(body) : html + link;
 }
 
-/** The /credits page: every credited image of the site, in the site's theme. */
-export function creditsPage(credited: { path: string; credit: Credit }[], title = "Image credits"): string {
+/** The /credits page: every credited image of the site, in the site's theme and language. */
+export function creditsPage(credited: { path: string; credit: Credit }[], language = "en"): string {
+  const words = creditsWords(language);
   const a = (text: string, url?: string) =>
     url ? `<a class="link" href="${escapeHtml(url)}">${escapeHtml(text)}</a>` : escapeHtml(text);
   const items = credited
     .map(({ path, credit }) => {
       const parts = [
         credit.title ? `“${a(credit.title, credit.sourceUrl)}”` : "",
-        credit.author ? `by ${a(credit.author, credit.authorUrl)}` : "",
+        credit.author ? `${escapeHtml(words.by)} ${a(credit.author, credit.authorUrl)}` : "",
         a(credit.license, credit.licenseUrl),
-        credit.source ? `via ${escapeHtml(credit.source)}` : "",
+        credit.source ? `${escapeHtml(words.via)} ${escapeHtml(credit.source)}` : "",
       ].filter(Boolean);
       return `<li class="flex items-center gap-4"><img src="/${escapeHtml(path)}" alt="" class="h-16 w-24 shrink-0 rounded object-cover"><span>${parts.join(", ")}</span></li>`;
     })
     .join("\n");
   return `<!doctype html>
-<html lang="en">
-<head><title>${escapeHtml(title)}</title><meta name="robots" content="noindex"></head>
+<html lang="${escapeHtml(language)}">
+<head><title>${escapeHtml(words.title)}</title><meta name="robots" content="noindex"></head>
 <body class="bg-base-100 text-base-content">
 <main class="mx-auto max-w-3xl px-6 py-16">
-<p><a class="link" href="/">← Home</a></p>
-<h1 class="mt-6 mb-8 text-3xl font-bold">${escapeHtml(title)}</h1>
+<p><a class="link" href="/">← ${escapeHtml(words.home)}</a></p>
+<h1 class="mt-6 mb-8 text-3xl font-bold">${escapeHtml(words.title)}</h1>
 <ul class="flex flex-col gap-4">
 ${items}
 </ul>

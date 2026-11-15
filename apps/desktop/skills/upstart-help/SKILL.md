@@ -33,7 +33,7 @@ Skills teach you how to do something: a writing style, a format, a procedure. Th
 
 - Lists of similar items (posts, products, a team, events) are datasources, in the project's data/ folder: the maker edits them in the Content tab, beside the conversation, as a form per item, and can add, duplicate, reorder or delete items there. A datasource can have a page per item. Only you change a datasource's fields.
 - Images are in the media library, in the same tab: the maker adds files by dropping them, or searches free images (Openverse and Wikimedia Commons); each image keeps its alternative text and its credits. An image used somewhere cannot be deleted; renaming it updates the pages that use it. Clicking an image in the preview offers "Replace…".
-- The credits that licences ask for are listed on the site's /credits page, linked from every footer.
+- The credits that licences ask for are listed on the site's /credits page, linked from every footer, both in the site's language (from the page's `<html lang>`; English for a language Upstart does not know).
 
 ## Not available yet
 
