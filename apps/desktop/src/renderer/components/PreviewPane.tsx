@@ -14,7 +14,7 @@ import {
   Tablet,
   Upload,
 } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type {
   DeviceView,
   HistoryEntry,
@@ -28,6 +28,7 @@ import { useComments } from "../hooks/useMain";
 import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
+import { stillToAdapt, useAdaptation } from "./AdaptationBar";
 import { ExportDialog } from "./ExportDialog";
 import { HistoryButtons, HistoryList } from "./HistoryPanel";
 import { PagesGrid, pageName } from "./PagesGrid";
@@ -92,6 +93,9 @@ export function PreviewPane({
 }) {
   const area = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
+  // During a template's adaptation, the pages still showing its contents (Q305).
+  const adaptation = useAdaptation(project?.id);
+  const toAdapt = useMemo(() => new Set(stillToAdapt(adaptation).map((s) => s.route)), [adaptation]);
   const [width, setWidth] = useState<Width>("desktop");
   const [landscape, setLandscape] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -510,6 +514,7 @@ export function PreviewPane({
               seen={seen}
               landing={zoom?.landing}
               panel={panel}
+              toAdapt={toAdapt}
             />
           ) : zoom ? null : (
             <>

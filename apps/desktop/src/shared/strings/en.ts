@@ -68,6 +68,14 @@ export const en = {
     },
     isNew: "new",
     toAdapt: "To adapt",
+    /** Publishing during the adaptation (Q311). */
+    publish: {
+      title: "Some pages are not adapted yet",
+      body: (names: string) =>
+        `${names} still show the template's contents: publishing now puts them online as they are.`,
+      continue: "Continue the adaptation",
+      anyway: "Publish anyway",
+    },
   },
   /** The card of pages of a template's adaptation (Q302). */
   pages: {

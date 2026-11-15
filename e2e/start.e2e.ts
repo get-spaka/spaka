@@ -144,6 +144,8 @@ describe("the start screen", () => {
     const w = launched.window;
     // Nothing but the templates and the message box: the agent asks the template's choices (Q297).
     await expect(w.getByTestId("template-questions").count()).resolves.toBe(0);
+    // No plan mode from a template: the card of pages and the adaptation stand for it (Q312).
+    await expect(w.getByTestId("mode-select").count()).resolves.toBe(0);
     await w.getByTestId("message-input").fill("A ceramics studio in Lisbon.");
     await w.getByTestId("message-input").press("Enter");
     await w.getByTestId("conversation").waitFor();
@@ -273,5 +275,32 @@ describe("the start screen", () => {
     const received = await main<string[]>("globalThis.upstart.replayed");
     expect(received.at(-1)).toMatch(/Next page of the adaptation: Studio \(\/studio\)\. Adapted already: /);
     await expect(w.getByTestId("maker-message").last().textContent()).resolves.toBe("Continue: Studio");
+    await until(
+      () =>
+        w
+          .locator('[data-testid="agent-message"]')
+          .last()
+          .getAttribute("data-status")
+          .then((s) => s === "done"),
+      30_000,
+    );
+
+    // The pages still showing the template's contents are marked in the grid (Q305)…
+    const toAdapt = (route: string) =>
+      w.locator(`[data-testid="page-thumb"][data-route="${route}"] [data-testid="page-to-adapt"]`).count();
+    await until(async () => (await toAdapt("/work")) === 1);
+    await expect(toAdapt("/contact")).resolves.toBe(1);
+    await expect(toAdapt("/")).resolves.toBe(0);
+    await expect(toAdapt("/studio")).resolves.toBe(0);
+    // …and named before publishing, which stays possible (Q311).
+    await w.getByTestId("export-open").click();
+    const warning = w.getByTestId("publish-adaptation");
+    await warning.waitFor();
+    await expect(warning.textContent()).resolves.toMatch(/Contact, Work still show the template's contents/);
+    await expect(w.getByTestId("publish-choice").count()).resolves.toBe(0);
+    await launched.capture("start-publish-warning");
+    await w.getByTestId("publish-anyway").click();
+    await w.getByTestId("publish-choice").first().waitFor();
+    await w.getByTestId("export-close").click();
   });
 });

@@ -13,6 +13,7 @@ import { GRID_GAP, GRID_PADDING, gridColumns, thumbnailScreen } from "../../shar
 import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
+import { pageTypeRoute } from "./AdaptationBar";
 
 export function PagesGrid({
   state,
@@ -23,6 +24,7 @@ export function PagesGrid({
   seen,
   landing,
   panel,
+  toAdapt,
 }: {
   state: PreviewState;
   device: { width: number; height: number } | undefined;
@@ -36,6 +38,8 @@ export function PagesGrid({
   landing?: string;
   /** The preview's own size: with a laptop's screen, pages are pictured at it, so the zoom to a page is a pure enlargement (Q142). */
   panel?: { width: number; height: number };
+  /** The page types still showing the template's contents, during an adaptation (Q305). */
+  toAdapt?: ReadonlySet<string>;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
   const cells = useRef(new Map<string, HTMLElement>());
@@ -145,6 +149,7 @@ export function PagesGrid({
         {pages.map((page, i) => {
           const { route } = page;
           const writing = state.writing === route;
+          const adapt = !writing && !!toAdapt?.has(pageTypeRoute(route));
           // Records' pages come after the others, under their datasource's name (Q164).
           const heading = page.group && page.group !== pages[i - 1]?.group ? page.group : undefined;
           return [
@@ -204,6 +209,14 @@ export function PagesGrid({
                 >
                   {route}
                 </span>
+                {adapt && (
+                  <span
+                    data-testid="page-to-adapt"
+                    className="ml-auto shrink-0 rounded-full border border-dashed px-2 py-0.5 text-[10px] text-muted-foreground"
+                  >
+                    {t.adaptation.toAdapt}
+                  </span>
+                )}
                 {writing && (
                   <span
                     data-testid="page-writing"

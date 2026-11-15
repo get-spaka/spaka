@@ -205,6 +205,7 @@ export function StartPanel({
         placeholder={chosenTemplate ? t.start.placeholder(chosenTemplate.name) : t.conversation.placeholder}
         newSettings={newSettings}
         onNewSettings={setSettings}
+        noPlan={!!chosenTemplate}
       >
         <div className="flex items-center gap-1.5 px-1 pb-1">
           {chosenTemplate ? (

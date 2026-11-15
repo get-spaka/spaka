@@ -128,6 +128,10 @@ When removed: point the visit page's "Eight or more" line to the phone.`;
     expect(text).toContain("<template-guide-section>\n### Visit (`/visit`)");
     expect(text).toContain("#### How do guests book a table?");
     expect(text).not.toContain("Is there a bar menu?");
+    // The guide's general part with it, without the other page types' sections (Q299 amended).
+    expect(text).toContain(`<template-guide>\n${sections.general}\n</template-guide>`);
+    expect(text.indexOf("<template-guide>")).toBeLessThan(text.indexOf("<template-guide-section>"));
+    expect(sections.general).not.toContain("## Pages");
     expect(text).toMatch(
       /before you change its files: of this section's choices, those the maker's messages leave open/,
     );

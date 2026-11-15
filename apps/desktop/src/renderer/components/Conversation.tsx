@@ -255,6 +255,7 @@ export function MessageBox({
   onNewSettings,
   className,
   children,
+  noPlan = false,
 }: {
   project: ProjectInfo | null;
   status: AgentStatus;
@@ -271,6 +272,8 @@ export function MessageBox({
   className?: string;
   /** Shown above the field, inside its frame: the template chosen (Q249). */
   children?: ReactNode;
+  /** A website started from a template has no plan mode: the card of pages and the adaptation stand for it (Q312). */
+  noPlan?: boolean;
 }) {
   const blocked = !accountReady(status, project?.model ?? newSettings.model);
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -306,6 +309,7 @@ export function MessageBox({
             newSettings={newSettings}
             onNewSettings={onNewSettings}
             working={working}
+            noPlan={noPlan}
           />
           <div className="ml-auto flex items-center gap-1">
             {working && (
@@ -522,6 +526,7 @@ function ModelControls({
   newSettings,
   onNewSettings,
   working = false,
+  noPlan = false,
 }: {
   project: ProjectInfo | null;
   status: AgentStatus;
@@ -529,6 +534,7 @@ function ModelControls({
   onNewSettings: (settings: NewSettings) => void;
   /** Whether the agent works: the mode waits for its next message (Q286). */
   working?: boolean;
+  noPlan?: boolean;
 }) {
   // A choice on its way to the main process, shown until the project says it.
   const [sent, setSent] = useState<{ projectId?: string; model?: string; effort?: Effort; mode?: AgentMode }>({});
@@ -580,21 +586,23 @@ function ModelControls({
           </option>
         ))}
       </select>
-      <select
-        aria-label={t.conversation.mode}
-        title={t.conversation.planHint}
-        data-testid="mode-select"
-        className={cn(select, mode === "plan" && "text-foreground")}
-        disabled={working}
-        value={mode}
-        onChange={(event) => change({ mode: event.target.value as AgentMode })}
-      >
-        {(["build", "plan"] as const).map((m) => (
-          <option key={m} value={m}>
-            {t.conversation.modes[m]}
-          </option>
-        ))}
-      </select>
+      {!noPlan && (
+        <select
+          aria-label={t.conversation.mode}
+          title={t.conversation.planHint}
+          data-testid="mode-select"
+          className={cn(select, mode === "plan" && "text-foreground")}
+          disabled={working}
+          value={mode}
+          onChange={(event) => change({ mode: event.target.value as AgentMode })}
+        >
+          {(["build", "plan"] as const).map((m) => (
+            <option key={m} value={m}>
+              {t.conversation.modes[m]}
+            </option>
+          ))}
+        </select>
+      )}
     </>
   );
 }

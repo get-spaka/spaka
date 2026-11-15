@@ -30,6 +30,17 @@ export function useAdaptation(projectId: string | undefined): AdaptationState | 
   return state;
 }
 
+/** The page type a page belongs to: "/" or its first folder, "/work/first-case" → "/work" (Q306). */
+export function pageTypeRoute(route: string): string {
+  const first = route.split("/").filter(Boolean)[0];
+  return first ? `/${first}` : "/";
+}
+
+/** The page types that still show the template's contents (Q305, Q311): not adapted yet, nor new. */
+export function stillToAdapt(state: AdaptationState | null): AdaptationStep[] {
+  return (state?.steps ?? []).filter((s) => (s.status === "todo" || s.status === "doing") && !s.new);
+}
+
 /** The page type Continue goes to: the one picked, or the first to do (Q313). */
 export function upcoming(state: AdaptationState): AdaptationStep | undefined {
   return (

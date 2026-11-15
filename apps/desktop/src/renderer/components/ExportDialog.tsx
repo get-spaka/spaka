@@ -1,10 +1,11 @@
-import { Check, Copy, FolderOpen, X } from "lucide-react";
+import { ArrowRight, Check, Copy, FolderOpen, TriangleAlert, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ExportResult, ProjectInfo, PublishInfo } from "../../shared/ipc";
 import { upstart } from "../lib/bridge";
 import { messageOf } from "../lib/errors";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
+import { stillToAdapt, useAdaptation } from "./AdaptationBar";
 import { Button } from "./ui/button";
 
 type Host = "netlify" | "cloudflare" | "github";
@@ -39,7 +40,8 @@ function CopyButton({ text, label, testid }: { text: string; label: string; test
  * visitors send; the form services' addresses for the static one; the export
  * into a folder, the management token written into it (Q191), then the steps
  * that put it online. Shown over the preview column, whose native
- * view is hidden meanwhile.
+ * view is hidden meanwhile. During a template's adaptation, the page types
+ * still showing its contents are named first (Q311).
  */
 export function ExportDialog({
   project,
@@ -56,6 +58,8 @@ export function ExportDialog({
   const [result, setResult] = useState<ExportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const toAdapt = stillToAdapt(useAdaptation(project.id));
+  const [anyway, setAnyway] = useState(false);
 
   useEffect(() => {
     void upstart
@@ -117,137 +121,170 @@ export function ExportDialog({
           </Button>
         </div>
 
-        <section className="flex flex-col gap-3">
-          <h3 className="text-sm font-medium">{t.export.step1}</h3>
-          <div className="flex flex-col gap-2">
-            {info?.choices.map((c) => {
-              const words = t.export.builders[c.id];
-              const refused = !!c.refused?.length;
-              return (
-                <button
-                  key={c.id}
-                  type="button"
-                  aria-pressed={choice === c.id}
-                  disabled={refused}
-                  onClick={() => pick(c.id)}
-                  data-testid="publish-choice"
-                  data-id={c.id}
-                  data-refused={refused || undefined}
-                  className={cn(
-                    "rounded-lg border p-3 text-left text-sm transition-colors",
-                    choice === c.id ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-accent",
-                    refused && "cursor-not-allowed opacity-60 hover:bg-transparent",
-                  )}
-                >
-                  <span className="font-medium">{words?.name ?? c.id}</span>
-                  <p className="mt-1 text-muted-foreground">{words?.line}</p>
-                  {refused && (
-                    <p className="mt-1 text-amber-700" data-testid="publish-refused">
-                      {t.export.refused(c.refused!.join(", "))}
-                    </p>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {chosen?.needs.formServices && (info?.forms.length ?? 0) > 0 && (
-            <div className="flex flex-col gap-2 rounded-lg border bg-muted/40 p-3" data-testid="form-services">
-              <h4 className="text-sm font-medium">{t.export.forms.title}</h4>
-              <p className="text-xs text-muted-foreground">{t.export.forms.intro}</p>
-              {info!.forms.map((name) => (
-                <FormService key={name} name={name} initial={project.formServices?.[name] ?? ""} />
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section className={cn("flex flex-col gap-3", !choice && "opacity-50")}>
-          <h3 className="text-sm font-medium">{t.export.step2}</h3>
-          {working && <p className="text-sm text-muted-foreground">{t.export.agentWorking}</p>}
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={() => void choose()} disabled={!choice || busy || working} data-testid="export-choose">
-              <FolderOpen />
-              {t.export.choose}
-            </Button>
-            {choice && folder && (
-              <Button
-                variant="outline"
-                onClick={() => void run(folder)}
-                disabled={busy || working}
-                data-testid="export-again"
-              >
-                {t.export.again}
-              </Button>
-            )}
-          </div>
-          {busy && <p className="text-sm text-muted-foreground">{t.export.running}</p>}
-          {error && (
-            <p className="text-sm text-destructive" data-testid="export-error">
-              {error}
+        {toAdapt.length > 0 && !anyway ? (
+          <section
+            data-testid="publish-adaptation"
+            className="flex flex-col gap-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-4"
+          >
+            <h3 className="flex items-center gap-2 text-sm font-medium">
+              <TriangleAlert className="size-4 text-amber-600" />
+              {t.adaptation.publish.title}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {t.adaptation.publish.body(toAdapt.map((s) => s.name).join(", "))}
             </p>
-          )}
-          {result && (
-            <div data-testid="export-result" className="rounded-lg border bg-muted/40 p-3 text-sm">
-              <p>{t.export.done(result.pages.length)}</p>
-              <button
-                type="button"
-                className="mt-1 max-w-full truncate text-left font-mono text-xs text-muted-foreground underline-offset-2 hover:underline"
-                onClick={() => void upstart.invoke("export:reveal", result.folder)}
-                title={t.export.reveal}
+            <div className="flex flex-wrap gap-2">
+              <Button
+                data-testid="publish-continue-adaptation"
+                disabled={working}
+                onClick={() => {
+                  onClose();
+                  void upstart.invoke("adaptation:continue");
+                }}
               >
-                {result.folder}
-              </button>
-              {result.warnings.length > 0 && (
-                <ul className="mt-2 list-disc pl-5 text-xs text-muted-foreground" data-testid="export-warnings">
-                  {result.warnings.map((w) => (
-                    <li key={w}>{w}</li>
-                  ))}
-                </ul>
-              )}
+                {t.adaptation.publish.continue}
+                <ArrowRight />
+              </Button>
+              <Button variant="outline" data-testid="publish-anyway" onClick={() => setAnyway(true)}>
+                {t.adaptation.publish.anyway}
+              </Button>
             </div>
-          )}
-        </section>
-
-        {result && (
-          <section className="flex flex-col gap-3" data-testid="publish-guide" data-builder={result.builder}>
-            <h3 className="text-sm font-medium">{t.export.step3}</h3>
-            {result.guide.some((s) => s.command) && (
-              <p className="text-xs text-muted-foreground">{t.export.inFolder}</p>
-            )}
-            <ol className="flex flex-col gap-3">
-              {result.guide
-                .filter((step) => step.id !== "forms" || (info?.forms.length ?? 0) > 0)
-                .map((step) => (
-                  <li key={step.id} data-testid="guide-step" data-id={step.id} className="text-sm">
-                    <p>{t.export.guides[result.builder]?.[step.id] ?? step.id}</p>
-                    {step.command && (
-                      <div className="mt-1 flex items-center gap-1 rounded-md border bg-muted/40 px-2 py-1">
-                        <code className="min-w-0 flex-1 break-all font-mono text-xs">{step.command}</code>
-                        <CopyButton text={step.command} label={t.export.copy} />
-                      </div>
-                    )}
-                    {result.builder === "static" && step.id === "upload" && (
-                      <ul className="mt-2 flex flex-col gap-2">
-                        {HOSTS.map((host) => (
-                          <li key={host} className="rounded-lg border p-3 text-sm">
-                            <button
-                              type="button"
-                              className="font-medium underline-offset-2 hover:underline"
-                              onClick={() => void upstart.invoke("export:open-host", host)}
-                            >
-                              {t.export.hosts[host].name}
-                            </button>
-                            <p className="mt-1 text-muted-foreground">{t.export.hosts[host].how}</p>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </li>
-                ))}
-            </ol>
-            {result.builder !== "static" && <p className="text-xs text-muted-foreground">{t.export.guideFile}</p>}
           </section>
+        ) : (
+          <>
+            <section className="flex flex-col gap-3">
+              <h3 className="text-sm font-medium">{t.export.step1}</h3>
+              <div className="flex flex-col gap-2">
+                {info?.choices.map((c) => {
+                  const words = t.export.builders[c.id];
+                  const refused = !!c.refused?.length;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      aria-pressed={choice === c.id}
+                      disabled={refused}
+                      onClick={() => pick(c.id)}
+                      data-testid="publish-choice"
+                      data-id={c.id}
+                      data-refused={refused || undefined}
+                      className={cn(
+                        "rounded-lg border p-3 text-left text-sm transition-colors",
+                        choice === c.id ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-accent",
+                        refused && "cursor-not-allowed opacity-60 hover:bg-transparent",
+                      )}
+                    >
+                      <span className="font-medium">{words?.name ?? c.id}</span>
+                      <p className="mt-1 text-muted-foreground">{words?.line}</p>
+                      {refused && (
+                        <p className="mt-1 text-amber-700" data-testid="publish-refused">
+                          {t.export.refused(c.refused!.join(", "))}
+                        </p>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {chosen?.needs.formServices && (info?.forms.length ?? 0) > 0 && (
+                <div className="flex flex-col gap-2 rounded-lg border bg-muted/40 p-3" data-testid="form-services">
+                  <h4 className="text-sm font-medium">{t.export.forms.title}</h4>
+                  <p className="text-xs text-muted-foreground">{t.export.forms.intro}</p>
+                  {info!.forms.map((name) => (
+                    <FormService key={name} name={name} initial={project.formServices?.[name] ?? ""} />
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section className={cn("flex flex-col gap-3", !choice && "opacity-50")}>
+              <h3 className="text-sm font-medium">{t.export.step2}</h3>
+              {working && <p className="text-sm text-muted-foreground">{t.export.agentWorking}</p>}
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => void choose()} disabled={!choice || busy || working} data-testid="export-choose">
+                  <FolderOpen />
+                  {t.export.choose}
+                </Button>
+                {choice && folder && (
+                  <Button
+                    variant="outline"
+                    onClick={() => void run(folder)}
+                    disabled={busy || working}
+                    data-testid="export-again"
+                  >
+                    {t.export.again}
+                  </Button>
+                )}
+              </div>
+              {busy && <p className="text-sm text-muted-foreground">{t.export.running}</p>}
+              {error && (
+                <p className="text-sm text-destructive" data-testid="export-error">
+                  {error}
+                </p>
+              )}
+              {result && (
+                <div data-testid="export-result" className="rounded-lg border bg-muted/40 p-3 text-sm">
+                  <p>{t.export.done(result.pages.length)}</p>
+                  <button
+                    type="button"
+                    className="mt-1 max-w-full truncate text-left font-mono text-xs text-muted-foreground underline-offset-2 hover:underline"
+                    onClick={() => void upstart.invoke("export:reveal", result.folder)}
+                    title={t.export.reveal}
+                  >
+                    {result.folder}
+                  </button>
+                  {result.warnings.length > 0 && (
+                    <ul className="mt-2 list-disc pl-5 text-xs text-muted-foreground" data-testid="export-warnings">
+                      {result.warnings.map((w) => (
+                        <li key={w}>{w}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </section>
+
+            {result && (
+              <section className="flex flex-col gap-3" data-testid="publish-guide" data-builder={result.builder}>
+                <h3 className="text-sm font-medium">{t.export.step3}</h3>
+                {result.guide.some((s) => s.command) && (
+                  <p className="text-xs text-muted-foreground">{t.export.inFolder}</p>
+                )}
+                <ol className="flex flex-col gap-3">
+                  {result.guide
+                    .filter((step) => step.id !== "forms" || (info?.forms.length ?? 0) > 0)
+                    .map((step) => (
+                      <li key={step.id} data-testid="guide-step" data-id={step.id} className="text-sm">
+                        <p>{t.export.guides[result.builder]?.[step.id] ?? step.id}</p>
+                        {step.command && (
+                          <div className="mt-1 flex items-center gap-1 rounded-md border bg-muted/40 px-2 py-1">
+                            <code className="min-w-0 flex-1 break-all font-mono text-xs">{step.command}</code>
+                            <CopyButton text={step.command} label={t.export.copy} />
+                          </div>
+                        )}
+                        {result.builder === "static" && step.id === "upload" && (
+                          <ul className="mt-2 flex flex-col gap-2">
+                            {HOSTS.map((host) => (
+                              <li key={host} className="rounded-lg border p-3 text-sm">
+                                <button
+                                  type="button"
+                                  className="font-medium underline-offset-2 hover:underline"
+                                  onClick={() => void upstart.invoke("export:open-host", host)}
+                                >
+                                  {t.export.hosts[host].name}
+                                </button>
+                                <p className="mt-1 text-muted-foreground">{t.export.hosts[host].how}</p>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </li>
+                    ))}
+                </ol>
+                {result.builder !== "static" && <p className="text-xs text-muted-foreground">{t.export.guideFile}</p>}
+              </section>
+            )}
+          </>
         )}
       </div>
     </div>

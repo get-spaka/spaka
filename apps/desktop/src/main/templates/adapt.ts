@@ -104,7 +104,8 @@ ${message}`;
 
 /**
  * What Continue sends the agent (Q303): the next page type of the adaptation,
- * its section of the guide, and what the maker took off the website since.
+ * the guide's general part and the page type's section (Q299 amended), and
+ * what the maker took off the website since.
  */
 export function stepMessage(
   state: Adaptation,
@@ -123,7 +124,7 @@ export function stepMessage(
     ? `\n- Also remove these page types, which the maker took off the website: ${removals.map((r) => `${r.name} (${r.files.join(", ")})`).join("; ")}${sections?.pages.length ? ', as their sections\' "When removed" say' : ""}, with their navigation records and what only they use, pointing what led to them elsewhere.`
     : "";
   return `${again ? "Taking up again the page the last turn left unfinished. " : ""}Next page of the adaptation: ${step.name} (${step.route})${step.new ? ", a new page" : ""}.${done.length ? ` Adapted already: ${done.join(", ")}.` : ""}${after.length ? ` Still to do after it: ${after.join(", ")}.` : " It is the last."}
-${section ? `\nIts section of the template's guide:\n\n<template-guide-section>\n${section.text}\n</template-guide-section>\n` : ""}
+${sections?.general ? `\nThe template's guide, its general part:\n\n<template-guide>\n${sections.general}\n</template-guide>\n` : ""}${section ? `\nIts section of the template's guide:\n\n<template-guide-section>\n${section.text}\n</template-guide-section>\n` : ""}
 1. First, before you change its files: of ${section ? "this section's choices" : "the choices for this page that are costly to guess"}, those the maker's messages leave open: ${CHOICES}
 ${build}
 ${REWRITE}${removed}
