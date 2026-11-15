@@ -135,11 +135,14 @@ The activity line today reads "Looking at the preview".
 - Sending a form in a look (Q322): fields may be filled, but no test record is written (`preview/test-records.ts`); the maker tries the forms.
 - Landscape screens.
 
-## Not verified yet
+## Verified since
 
-- That a hidden (offscreen) window runs Motion, Lenis and scroll timelines like the visible preview, and that `Page.captureScreenshot` works on it. The thumbnail window paints frames instead of using `capturePage`.
-- The time of a look in the hidden view: load, scroll, settle, measure at three screens.
-- That wheel events drive the templates' pinned sections like a real scroll.
+The probe in `spikes/looks/` (REPORT.md, 2026-11-15) checked what this section left open:
+
+- An offscreen window runs Motion, Lenis and scroll timelines at 60 frames a second, whether or not the maker's window is shown, and `Page.captureScreenshot` works on it. A view parked in the maker's window does not: it drops to 4–6 frames a second once that window is hidden.
+- Wheel events drive Pocket's pinned story, Reel's reel and Ember's scroll timeline as a person's scrolling does.
+- A look at a part further down takes 1.7 to 2.8 s at any of the three screens, the view jumping to the screen above the part and wheeling the last one.
+- The view holds 230–320 MB while open, not the 125 MB of Q141, which was measured on lighter pages.
 
 ## Decisions
 
