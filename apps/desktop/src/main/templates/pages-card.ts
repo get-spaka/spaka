@@ -10,14 +10,19 @@ import { HOME } from "./pages";
 /** The tool the agent shows it with, in the first turn of an adaptation. */
 export const PAGES_TOOL_NAME = "choose_pages";
 
-/** choose_pages's input, field by field. */
+/** choose_pages's input, field by field: the language first, which the names and lines are then written in. */
 export const PAGES_SHAPE = {
+  language: z
+    .string()
+    .describe(
+      "The language the maker's message is written in, e.g. \"English\": the site's and this card's. Never the language of the business's country or city: a message in English about a bar in Seville is \"English\".",
+    ),
   pages: z
     .array(
       z.object({
         route: z.string().describe('The page type\'s route, as listed in the first message: "/", "/menu", "/events"'),
-        name: z.string().describe("Its name for this business, in the maker's language, a word or two"),
-        line: z.string().describe("What it shows for this business, one short line in the maker's language"),
+        name: z.string().describe("Its name for this business, a word or two, in `language`"),
+        line: z.string().describe("What it shows for this business, one short line in `language`"),
         checked: z.boolean().describe("Kept unless the maker unchecks it: false when the business has no use for it"),
       }),
     )
@@ -28,8 +33,8 @@ export const PAGES_SHAPE = {
     .array(
       z.object({
         route: z.string().describe('A route of its own, e.g. "/shop"'),
-        name: z.string().describe("Its name, in the maker's language"),
-        line: z.string().describe("What it will show, one short line"),
+        name: z.string().describe("Its name, in `language`"),
+        line: z.string().describe("What it will show, one short line in `language`"),
       }),
     )
     .max(8)
@@ -41,7 +46,7 @@ export type PagesInput = z.infer<typeof PagesInput>;
 
 export const PAGES_DESCRIPTION = [
   "Only in the first turn of a website started from a template, before any file changes: shows the maker the card of pages and waits for their choice.",
-  "List every page type of the template (the routes the first message gives), each named and described in one line for this business, in the maker's language, checked unless the business has no use for it; the home page is always kept.",
+  "First say the language the maker's message is written in, the site's (never the business's country's). Then list every page type of the template (the routes the first message gives), each named and described in one line for this business in that language, checked unless the business has no use for it; the home page is always kept.",
   "Add in `new` the pages the maker's message asks for that the template lacks.",
   "Answers with the pages kept, in the order they are adapted, and those to remove.",
 ].join(" ");

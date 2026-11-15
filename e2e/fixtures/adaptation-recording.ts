@@ -58,6 +58,7 @@ const result = (t: number, text: string): Line => ({
 
 /** The card the agent shows: Reel's page types for a ceramics studio, a shop added. */
 export const CARD = {
+  language: "English",
   pages: [
     { route: "/", name: "Home", line: "The studio's pieces, the classes and a visit, at a glance.", checked: true },
     { route: "/work", name: "Pieces", line: "Each series of tableware and vases, with its page.", checked: true },

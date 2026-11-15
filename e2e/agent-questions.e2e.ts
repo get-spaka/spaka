@@ -182,9 +182,10 @@ async function emberCase(m: ReturnType<typeof maker>, timeout: number) {
   const project = await m.invoke<{ path: string; template?: { id: string; version: string } }>("projects:current");
   const read = (f: string) => (existsSync(join(project.path, f)) ? readFileSync(join(project.path, f), "utf8") : "");
   const same = (f: string) => read(f) === readFileSync(join(EMBER, f), "utf8");
-  const pages: { routes: string[]; checked: Record<string, boolean>; unchanged: boolean } = {
+  const pages: { routes: string[]; checked: Record<string, boolean>; lines: string[]; unchanged: boolean } = {
     routes: [],
     checked: {},
+    lines: [],
     unchanged: false,
   };
   const home: { questions: string[]; asked: number; unchangedWhenAsked: boolean } = {
@@ -201,6 +202,7 @@ async function emberCase(m: ReturnType<typeof maker>, timeout: number) {
           const route = (await choices.nth(i).getAttribute("data-route")) ?? "";
           pages.routes.push(route);
           pages.checked[route] = (await choices.nth(i).getAttribute("aria-pressed")) === "true";
+          pages.lines.push((await choices.nth(i).textContent()) ?? "");
         }
         await m.waitingPages().getByTestId("pages-keep").click();
       },
@@ -224,6 +226,9 @@ async function emberCase(m: ReturnType<typeof maker>, timeout: number) {
     "the card of pages before any file changed": pages.unchanged,
     "every page type in it, the home page first": pages.routes[0] === "/" && pages.routes.length >= 7,
     "the events kept": pages.checked["/events"] === true,
+    // In the message's language, English, not the business's country's.
+    "the card in English":
+      pages.lines.filter((l) => /\b(?:the|and|with|of)\b/i.test(l)).length >= pages.lines.length / 2,
     "no question on booking, which the message settled": !home.questions.some((q) => /book|reserv/i.test(q)),
     "at most one card of questions, before the home page changed": home.asked <= 1 && home.unchangedWhenAsked,
     "the home page about the bar": /triana/i.test(read("pages/index.liquid") + read("parts/hero.liquid")),
