@@ -104,21 +104,41 @@ describe("a project folder in the preview", () => {
     await until("location.pathname === '/' && document.querySelector('h1')?.textContent === 'Bread since 1952'");
   });
 
-  test("the agent's look at a page given by its address: the preview goes there first", async () => {
-    const look = (route?: string) =>
-      launched.app.evaluate(async (_electron, route) => {
-        // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-        const seen = await (globalThis as any).upstart.preview.look(route);
-        return { route: seen.route, png: !!seen.png, notes: seen.notes };
-      }, route);
-    await expect(look("/menu")).resolves.toMatchObject({ route: "/menu", png: true });
-    await until("location.pathname === '/menu'");
+  test("the agent looks at a page in a view of its own: the maker's preview does not move (Q314, Q315)", async () => {
+    const look = (route?: string, options: object = {}) =>
+      launched.app.evaluate(
+        async (_electron, { route, options }) => {
+          // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+          const seen = await (globalThis as any).upstart.preview.look(route, options);
+          // A PNG's width and height, from its header.
+          const size = seen.png && { width: seen.png.readUInt32BE(16), height: seen.png.readUInt32BE(20) };
+          return { route: seen.route, screen: seen.screen, size, notes: seen.notes };
+        },
+        { route, options },
+      );
+    await launched.window.getByTestId("page-select").selectOption("/");
+    await until("location.pathname === '/'");
+    await inPage("window.__notMoved = true");
+    await expect(look("/menu")).resolves.toMatchObject({
+      route: "/menu",
+      screen: "desktop",
+      size: { width: 1440, height: 900 },
+    });
     await expect(look("/nowhere")).resolves.toMatchObject({
       route: "/menu",
       notes: ["No page has the address /nowhere."],
     });
-    await expect(look()).resolves.toMatchObject({ route: "/menu" });
-    // Asked at once, as the agent does for each page: each answered, with its page's picture.
+    // With no address, the page it last looked at in this turn, on the same screen.
+    await expect(look()).resolves.toMatchObject({ route: "/menu", screen: "desktop" });
+    await expect(look("/menu", { screen: "phone" })).resolves.toMatchObject({
+      screen: "phone",
+      size: { width: 786, height: 1704 },
+    });
+    await expect(look(undefined, { screen: "tablet" })).resolves.toMatchObject({
+      route: "/menu",
+      size: { width: 820, height: 1180 },
+    });
+    // Asked at once, as the agent may: each answered, with its page's picture.
     const all = await launched.app.evaluate(async () => {
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
       const preview = (globalThis as any).upstart.preview;
@@ -130,9 +150,14 @@ describe("a project folder in the preview", () => {
       ["/menu", true],
       ["/", true],
     ]);
-    await look("/menu");
-    await launched.window.getByTestId("page-select").selectOption("/");
-    await until("location.pathname === '/'");
+    // The maker's preview stayed on its page, the same document.
+    await expect(inPage("location.pathname + ' ' + window.__notMoved")).resolves.toBe("/ true");
+    // The turn over, a look with no address starts again from the page the maker sees.
+    await launched.app.evaluate(() =>
+      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+      (globalThis as any).upstart.preview.endTurn(),
+    );
+    await expect(look()).resolves.toMatchObject({ route: "/", screen: "desktop" });
   });
 
   test("a page cannot leave the preview, open windows or reach the app", async () => {

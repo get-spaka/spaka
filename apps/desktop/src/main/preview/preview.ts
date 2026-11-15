@@ -23,6 +23,7 @@ import type {
   Rect,
   ToPreview,
 } from "../../shared/ipc";
+import { AgentView, type ScreenName } from "./agent-view";
 import { PageGrid, pictureKey, type ThumbnailAction, type ThumbnailScreen } from "./grid";
 import { PreviewServer, VENDOR_BASE } from "./server";
 import { isTestRecord, TestRecordStore, testRecordsSource } from "./test-records";
@@ -31,6 +32,15 @@ const here = fileURLToPath(new URL(".", import.meta.url));
 
 /** The shortest time between two renderings pushed to the page (ADR 0009). */
 const INTERVAL_MS = 60;
+
+/** What the agent sees when it looks at a page (Q314–Q318). */
+export type Seen = {
+  route: string | null;
+  screen?: ScreenName;
+  png?: Buffer;
+  errors: string[];
+  notes: string[];
+};
 
 type OpenSite = {
   project: ProjectInfo;
@@ -112,6 +122,8 @@ export class Preview {
   private writing: string | null = null;
   /** For checks: how long the last renderings took, in milliseconds, thumbnails included. */
   readonly pushTimes: number[] = [];
+  /** Where the agent looks, hidden from the maker (Q314). */
+  readonly agentView: AgentView;
 
   constructor(
     private readonly win: BrowserWindow,
@@ -149,6 +161,12 @@ export class Preview {
         return result.status === 200 ? pictureKey(result.html, site.runtime.theme()) : undefined;
       },
       onPicture: (route, url) => options.onPicture?.(route, url),
+    });
+    this.agentView = new AgentView({
+      origin: () => this.origin,
+      preload: join(here, "../preload/preview.cjs"),
+      wantsRendering: () => this.refresh(true),
+      scriptsKey: () => this.site && scriptsKey(this.site.runtime),
     });
   }
 
@@ -208,6 +226,7 @@ export class Preview {
     this.route = null;
     this.writing = null;
     this.grid.clear();
+    this.agentView.close();
     this.shown = false;
     this.layout();
     this.emit();
@@ -216,6 +235,11 @@ export class Preview {
   /** A new turn of the agent: the preview follows it again. */
   startFollowing() {
     this.following = true;
+  }
+
+  /** The agent's turn is over: its next look starts from a fresh page (Q324). */
+  endTurn() {
+    this.agentView.endTurn();
   }
 
   async navigate(route: string, byMaker = false) {
@@ -447,41 +471,44 @@ export class Preview {
   }
 
   /**
-   * What the agent sees when it looks at the preview: the page shown, or first
-   * the page at `to` (its address), with the errors the page reported and what
-   * the runtime had to repair or skip. Looks asked at once run one after
-   * another: a capture taken while another look moves the preview never ends.
+   * What the agent sees when it looks at a page (Q314–Q318): the page at `to`
+   * (its address), or the one it last looked at in this turn, or the one the
+   * maker sees, in the agent's own view on `screen`, with the errors the page
+   * reported and what the runtime had to repair or skip. The maker's preview
+   * does not move. Looks asked at once run one after another.
    */
-  look(to?: string): Promise<{ route: string | null; png?: Buffer; errors: string[]; notes: string[] }> {
-    const next = this.looking.then(() => this.lookNow(to));
+  look(to?: string, options: { screen?: ScreenName; fresh?: boolean } = {}): Promise<Seen> {
+    const next = this.looking.then(() => this.lookNow(to, options));
     this.looking = next.catch(() => {});
     return next;
   }
   private looking: Promise<unknown> = Promise.resolve();
 
   private async lookNow(
-    to?: string,
-  ): Promise<{ route: string | null; png?: Buffer; errors: string[]; notes: string[] }> {
-    if (to !== undefined && this.site) {
-      if (!this.site.runtime.resolve(to))
-        return { route: this.route, errors: [], notes: [`No page has the address ${to}.`] };
-      if (to !== this.route) await this.navigate(to);
-    }
+    to: string | undefined,
+    { screen, fresh }: { screen?: ScreenName; fresh?: boolean },
+  ): Promise<Seen> {
     const site = this.site;
-    const route = this.route;
-    const result = site && route !== null && site.runtime.resolve(route) ? site.runtime.renderRoute(route) : undefined;
-    const since = Date.now() - 60_000;
-    // A capture that does not come is not waited for: the page is described without its picture.
-    const png = this.shown
-      ? await Promise.race([
-          this.capture().catch(() => undefined),
-          new Promise<undefined>((resolve) => setTimeout(resolve, 10_000)),
-        ])
-      : undefined;
+    const shown = this.agentView.current;
+    if (!site || site.runtime.routes().length === 0) return { route: null, errors: [], notes: [] };
+    const route = to ?? shown ?? this.route ?? site.runtime.routes()[0]!.route;
+    if (!site.runtime.resolve(route)) return { route: shown, errors: [], notes: [`No page has the address ${route}.`] };
+    const on = screen ?? (to === undefined && shown !== null ? this.agentView.currentScreen : "desktop");
+    // A look that does not come back is not waited for: the page is described without its picture.
+    const png = await Promise.race([
+      this.agentView
+        .show(route, on, fresh)
+        .then(() => this.agentView.capture())
+        .catch(() => undefined),
+      new Promise<undefined>((resolve) => setTimeout(resolve, 20_000)),
+    ]);
+    const at = this.agentView.current ?? route;
+    const result = site.runtime.resolve(at) ? site.runtime.renderRoute(at) : undefined;
     return {
-      route,
+      route: at,
+      screen: on,
       png,
-      errors: this.errors.filter((e) => e.at > since).map((e) => (e.source ? `${e.message} (${e.source})` : e.message)),
+      errors: this.agentView.errors.map((e) => (e.source ? `${e.message} (${e.source})` : e.message)),
       notes: [
         ...new Set([
           ...(result
@@ -491,9 +518,9 @@ export class Preview {
               ]
             : []),
           // Every datasource's problems, whichever page is shown: a record left out is said (Q166).
-          ...(site ? dataNotes(site.runtime) : []),
+          ...dataNotes(site.runtime),
           // A page file that gets no address (Q188).
-          ...(site ? site.runtime.pageNotes().map((n) => `${n.file}: ${n.note}`) : []),
+          ...site.runtime.pageNotes().map((n) => `${n.file}: ${n.note}`),
         ]),
       ],
     };
@@ -529,6 +556,8 @@ export class Preview {
     const styles = tailwindStyle(site.runtime.styles());
     this.send({ type: "theme", css: themeStyle(theme), styles });
     this.grid.setTheme(themeStyle(theme), styles);
+    this.agentView.setTheme(themeStyle(theme), styles);
+    this.pushAgent(site, pending.final);
     // The site's scripts changed since the page loaded: it loads again, to run them anew (ADR 0011).
     if (pending.final && site.overlay.size === 0 && this.loadedScripts !== undefined) {
       const scripts = scriptsKey(site.runtime);
@@ -570,6 +599,17 @@ export class Preview {
       this.layout();
     }
     this.emit();
+  }
+
+  /** The page the agent looks at gets its rendering, kept in place with its state (Q324); new scripts load it again. */
+  private pushAgent(site: OpenSite, final: boolean) {
+    const route = this.agentView.current;
+    if (route === null || !site.runtime.resolve(route)) return;
+    if (final && site.overlay.size === 0) this.agentView.scriptsChanged(scriptsKey(site.runtime));
+    const result = site.runtime.renderRoute(route);
+    if (result.status !== 200) return;
+    if (site.overlay.size > 0 && !hasVisibleBody(result.html)) return;
+    this.agentView.render(route, result.html, final && site.overlay.size === 0);
   }
 
   /** Each page on screen in the "All pages" view gets its rendering (Q130), by the same rules as the page. */

@@ -20,23 +20,26 @@ const invoke = <C extends keyof PreviewInvokes>(channel: C, ...args: Parameters<
  * and the pointer coming and going are passed on.
  */
 const thumbnail = process.argv.includes("--upstart-thumbnail");
+/** The agent's own view (Q314): the page as a visitor sees it, with no editing. */
+const agent = process.argv.includes("--upstart-agent");
 
-const editor = thumbnail
-  ? undefined
-  : new Editor(
-      {
-        edit: (action) => invoke("preview:edit", action),
-        info: (file, at) => invoke("preview:edit-info", file, at),
-        pickImage: () => invoke("preview:pick-image"),
-        toEdit: () => void invoke("preview:to-edit"),
-        pathOf: (file) => webUtils.getPathForFile(file),
-        save: (comment) => invoke("preview:comment-save", comment),
-        remove: (id) => invoke("preview:comment-remove", id),
-        send: () => invoke("preview:comments-send"),
-        discard: () => invoke("preview:comments-discard"),
-      },
-      process.argv.includes("--upstart-checks"),
-    );
+const editor =
+  thumbnail || agent
+    ? undefined
+    : new Editor(
+        {
+          edit: (action) => invoke("preview:edit", action),
+          info: (file, at) => invoke("preview:edit-info", file, at),
+          pickImage: () => invoke("preview:pick-image"),
+          toEdit: () => void invoke("preview:to-edit"),
+          pathOf: (file) => webUtils.getPathForFile(file),
+          save: (comment) => invoke("preview:comment-save", comment),
+          remove: (id) => invoke("preview:comment-remove", id),
+          send: () => invoke("preview:comments-send"),
+          discard: () => invoke("preview:comments-discard"),
+        },
+        process.argv.includes("--upstart-checks"),
+      );
 
 if (thumbnail) {
   const stop = (event: Event) => {

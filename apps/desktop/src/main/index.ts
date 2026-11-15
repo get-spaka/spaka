@@ -493,6 +493,8 @@ async function main() {
         emitHistory();
       }
       if (event.type === "turn-end") notifyDone(projectId, event.status, event.error);
+      // The agent's next look starts from a fresh page (Q324).
+      if (event.type === "turn-end" && projectId === current?.id) preview.endTurn();
     },
     emitStatus: (status) => ipc.emit("agent:status", status),
     // What the agent writes reaches the preview before the disk (ADR 0009).
@@ -1156,6 +1158,7 @@ async function main() {
     thumbnails.close();
     peek.close();
     preview.grid.close();
+    preview.agentView.close();
   });
   ipc.handle("gallery:list", () => blocks.list().map(described));
   ipc.handle("gallery:thumbnail", (id) => {
