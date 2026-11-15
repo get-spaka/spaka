@@ -128,3 +128,36 @@ test("reads a tool input while it streams (from the spike)", () => {
   expect(edit.done.new_string).toBe(true);
   expect(parsePartialInput('{"file_path":"/p/a","old_string":"foo","new_string":"ba').done.new_string).toBe(false);
 });
+
+test("a tool result's blocks are read line by line, as a look's answer comes with its picture", () => {
+  const events: AgentEvent[] = [];
+  const reader = new StreamReader((e) => events.push(e));
+  reader.read({
+    type: "stream_event",
+    event: {
+      type: "content_block_start",
+      index: 0,
+      content_block: { type: "tool_use", id: "l1", name: "mcp__upstart__look_at_preview" },
+    },
+  });
+  reader.read({
+    type: "user",
+    message: {
+      content: [
+        {
+          type: "tool_result",
+          tool_use_id: "l1",
+          content: [
+            { type: "image", source: { type: "base64", media_type: "image/png", data: "" } },
+            { type: "text", text: "[Image: source: /tmp/look.png]" },
+            { type: "text", text: "Page: / (“Wick”), on a phone (393×852), screen 1 of 1." },
+          ],
+        },
+      ],
+    },
+  });
+  expect(events.at(-1)).toMatchObject({
+    kind: "tool-result",
+    text: "[Image: source: /tmp/look.png]\nPage: / (“Wick”), on a phone (393×852), screen 1 of 1.",
+  });
+});

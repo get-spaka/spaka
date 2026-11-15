@@ -337,6 +337,8 @@ test("a look's line names the page, the screen and the last action (Q320)", () =
     "Looking at the home page on desktop",
   );
   expect(lookedLabel("No page is shown.")).toBeUndefined();
+  // Claude's answer starts with a line for the picture.
+  expect(lookedLabel(`[Image: source: /tmp/look.png]\n${answer({})}`)).toBe("Looking at Menu on a phone");
 });
 
 test("the detailed output style's details: what was run or searched", () => {

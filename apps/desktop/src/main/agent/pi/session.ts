@@ -511,7 +511,7 @@ export class PiSession implements AgentRunner {
     }
     if (e.type === "tool_execution_end") {
       const content = (e.result?.content ?? []) as { type: string; text?: string }[];
-      const text = content.map((c) => (c.type === "text" ? (c.text ?? "") : "")).join("");
+      const text = content.flatMap((c) => (c.type === "text" && c.text ? [c.text] : [])).join("\n");
       this.emitAgent({
         kind: "tool-result",
         id: e.toolCallId,

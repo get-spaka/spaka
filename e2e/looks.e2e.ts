@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
@@ -222,6 +222,8 @@ describe("the agent's look at a page", () => {
     await expect(inView("location.pathname + ' ' + document.querySelector('input[name=email]').value")).resolves.toBe(
       "/ ana@example.com",
     );
+    // No test record either.
+    expect(existsSync(join(folder, ".upstart/test-records"))).toBe(false);
   });
 
   test("`at` ends the look on a part further down, scrolled to as a person would", async () => {
@@ -294,6 +296,15 @@ describe("the agent's look at a page", () => {
     await look("/");
     await expect(inView("document.getElementById('menu').open")).resolves.toBe(false);
     await expect(inPreview("location.pathname + ' ' + window.__notMoved")).resolves.toBe("/ true");
+    // The view is never shown and never takes the focus (Q314).
+    const shown = await launched.app.evaluate(({ BrowserWindow }) => {
+      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+      const agent = (globalThis as any).upstart.preview.agentView.contents;
+      return BrowserWindow.getAllWindows()
+        .filter((w) => w.webContents === agent)
+        .map((w) => ({ visible: w.isVisible(), focused: w.isFocused() }));
+    });
+    expect(shown).toEqual([{ visible: false, focused: false }]);
   });
 
   test("a turn's look, played back, runs for real; its line names the page, the screen and the click (Q320)", async () => {

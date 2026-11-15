@@ -136,7 +136,7 @@ export class StreamReader {
         typeof c.content === "string"
           ? c.content
           : Array.isArray(c.content)
-            ? c.content.map((x: { text?: string }) => x.text ?? "").join("")
+            ? c.content.flatMap((x: { text?: string }) => (x.text ? [x.text] : [])).join("\n")
             : "";
       this.emit({
         kind: "tool-result",
