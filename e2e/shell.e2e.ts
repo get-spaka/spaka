@@ -33,6 +33,57 @@ describe("the app's shell, launched in the background", () => {
     await window.getByTestId("sidebar").waitFor();
   });
 
+  // The macOS menus (Q335): each item with its shortcut, done by the interface as its button would.
+  const menuItem = (accelerator: string) =>
+    launched.app.evaluate(({ Menu }, accelerator) => {
+      const find = (items: Electron.MenuItem[]): Electron.MenuItem | undefined => {
+        for (const i of items) {
+          if (i.accelerator === accelerator) return i;
+          const inner = i.submenu && find(i.submenu.items);
+          if (inner) return inner;
+        }
+      };
+      const item = find(Menu.getApplicationMenu()?.items ?? []);
+      item?.click();
+      return item?.label;
+    }, accelerator);
+
+  test("the menus list the commands with their shortcuts", async () => {
+    const menus = await launched.app.evaluate(({ Menu }) =>
+      (Menu.getApplicationMenu()?.items ?? []).map((m) => ({
+        label: m.label,
+        items: (m.submenu?.items ?? []).filter((i) => i.type !== "separator").map((i) => [i.label, i.accelerator]),
+      })),
+    );
+    expect(menus.map((m) => m.label).slice(1)).toEqual(["File", "Edit", "View", "Window", "Help"]);
+    const file = menus.find((m) => m.label === "File")!.items;
+    expect(file.slice(0, 3)).toEqual([
+      ["New Website", "CommandOrControl+N"],
+      ["Open Folder…", "CommandOrControl+O"],
+      ["Publish…", "Shift+CommandOrControl+P"],
+    ]);
+    expect(menus.find((m) => m.label === "Help")!.items.map(([label]) => label)).toEqual([
+      "Tour of Upstart",
+      "Ask the Agent",
+      "Keyboard Shortcuts",
+    ]);
+  });
+
+  test("Keyboard Shortcuts opens the sheet, which Escape closes; the sidebar's item hides and shows it", async () => {
+    const { window } = launched;
+    expect(await menuItem("CommandOrControl+/")).toBe("Keyboard Shortcuts");
+    await window.getByTestId("shortcuts").waitFor();
+    const publish = window.getByTestId("shortcuts-file").locator("div", { hasText: "Publish…" });
+    expect(await publish.locator("kbd").textContent()).toBe("⇧⌘P");
+    await launched.capture("shortcuts");
+    await window.keyboard.press("Escape");
+    await window.getByTestId("shortcuts").waitFor({ state: "detached" });
+    await menuItem("Control+CommandOrControl+S");
+    await window.getByTestId("sidebar").waitFor({ state: "detached" });
+    await menuItem("Control+CommandOrControl+S");
+    await window.getByTestId("sidebar").waitFor();
+  });
+
   test("the interface reaches the main process only through the contract", async () => {
     const { window } = launched;
     // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge and the page's globals, untyped here

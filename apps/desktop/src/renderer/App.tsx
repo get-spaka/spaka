@@ -4,9 +4,11 @@ import type { SettingsPage } from "../shared/ipc";
 import { Conversation } from "./components/Conversation";
 import { MediaPicker } from "./components/MediaPicker";
 import { PreviewPane } from "./components/PreviewPane";
+import { ShortcutsDialog } from "./components/ShortcutsDialog";
 import { Sidebar } from "./components/Sidebar";
 import { SiteSettings } from "./components/SiteSettings";
 import { StartPanel } from "./components/StartPanel";
+import { useCommands } from "./hooks/useCommand";
 import {
   useAgentStatus,
   useConnectors,
@@ -49,6 +51,14 @@ export function App() {
     [],
   );
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
+  // The keyboard shortcuts' sheet, from the Help menu (Q335).
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  useCommands({
+    sidebar: () => setSidebarOpen((open) => !open),
+    "new-website": () => void upstart.invoke("projects:close"),
+    "open-folder": () => void upstart.invoke("projects:choose-folder"),
+    shortcuts: () => setShortcutsOpen((open) => !open),
+  });
 
   return (
     <div className="relative flex h-full">
@@ -84,7 +94,7 @@ export function App() {
             project={current}
             state={preview}
             working={isWorking(items)}
-            covered={siteShown || settingsOpen || !!picking}
+            covered={siteShown || settingsOpen || shortcutsOpen || !!picking}
             layoutKey={sidebarOpen}
             history={history}
           />
@@ -95,7 +105,7 @@ export function App() {
           status={status}
           sidebarOpen={sidebarOpen}
           onExpandSidebar={() => setSidebarOpen(true)}
-          covered={settingsOpen}
+          covered={settingsOpen || shortcutsOpen}
         />
       )}
       {siteShown && current && (
@@ -108,6 +118,7 @@ export function App() {
         />
       )}
       {picking && <MediaPicker key={picking.id} request={picking} />}
+      {shortcutsOpen && <ShortcutsDialog onClose={() => setShortcutsOpen(false)} />}
       {settingsOpen && <SettingsPanel page={settingsPage} onPage={setSettingsPage} onClose={closeSettings} />}
     </div>
   );

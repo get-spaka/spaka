@@ -4,7 +4,9 @@
 // both sides are checked against the same definition. The preload exposes
 // only these channels, and the main process accepts them only from the
 // interface's own main frame.
+
 import type { ConversationEvent, ConversationItem, QuestionAnswer } from "./conversation";
+import type { Command } from "./shortcuts";
 
 export type AppInfo = {
   version: string;
@@ -796,6 +798,8 @@ export type Events = {
   "settings:changed": (settings: AppSettings) => void;
   /** The settings panel is asked to open at a page, or to open or close (⌘, in the menu). */
   "settings:show": (request: { page?: SettingsPage; toggle?: boolean }) => void;
+  /** A menu item or its shortcut (Q335): the interface does what its button does. */
+  "menu:command": (command: Command) => void;
 };
 
 export type InvokeChannel = keyof Invokes;
@@ -938,6 +942,7 @@ export const channels = {
     "comments:changed",
     "settings:changed",
     "settings:show",
+    "menu:command",
   ],
 } as const satisfies {
   invoke: readonly InvokeChannel[];

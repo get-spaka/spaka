@@ -160,6 +160,42 @@ describe("a project folder in the preview", () => {
     await expect(look()).resolves.toMatchObject({ route: "/", screen: "desktop" });
   });
 
+  test("the menus' shortcuts do what the buttons do: tabs, screens, modes, all pages, publish (Q335)", async () => {
+    const w = launched.window;
+    const menuItem = (accelerator: string) =>
+      launched.app.evaluate(({ Menu }, accelerator) => {
+        const find = (items: Electron.MenuItem[]): Electron.MenuItem | undefined => {
+          for (const i of items) {
+            if (i.accelerator === accelerator) return i;
+            const inner = i.submenu && find(i.submenu.items);
+            if (inner) return inner;
+          }
+        };
+        find(Menu.getApplicationMenu()?.items ?? [])?.click();
+      }, accelerator);
+    const pressed = (testid: string) => w.getByTestId(testid).getAttribute("aria-pressed");
+    await menuItem("CommandOrControl+2");
+    await expect.poll(() => w.getByTestId("tab-blocks").getAttribute("aria-selected")).toBe("true");
+    await menuItem("CommandOrControl+1");
+    await expect.poll(() => w.getByTestId("tab-conversation").getAttribute("aria-selected")).toBe("true");
+    await menuItem("Alt+CommandOrControl+3");
+    await expect.poll(() => pressed("width-phone")).toBe("true");
+    await menuItem("Alt+CommandOrControl+1");
+    await expect.poll(() => pressed("width-desktop")).toBe("true");
+    await menuItem("Alt+CommandOrControl+V");
+    await expect.poll(() => pressed("mode-visitor")).toBe("true");
+    await menuItem("Alt+CommandOrControl+E");
+    await expect.poll(() => pressed("mode-edit")).toBe("true");
+    await menuItem("Shift+CommandOrControl+A");
+    await expect.poll(() => pressed("view-pages")).toBe("true");
+    await menuItem("Shift+CommandOrControl+A");
+    await expect.poll(() => pressed("view-page")).toBe("true");
+    await menuItem("Shift+CommandOrControl+P");
+    await w.getByTestId("export-dialog").waitFor();
+    await w.getByTestId("export-close").click();
+    await w.getByTestId("export-dialog").waitFor({ state: "detached" });
+  });
+
   test("a page cannot leave the preview, open windows or reach the app", async () => {
     await inPage("window.open('https://example.com'); location.href = 'https://example.com'; 1");
     await new Promise((r) => setTimeout(r, 500));

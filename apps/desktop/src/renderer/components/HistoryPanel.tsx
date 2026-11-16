@@ -1,6 +1,7 @@
 import { ChevronRight, History as HistoryIcon, Undo2 } from "lucide-react";
 import { useState } from "react";
 import type { HistoryEntry } from "../../shared/ipc";
+import { useCommands } from "../hooks/useCommand";
 import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
@@ -32,6 +33,8 @@ export function HistoryButtons({
   onToggle: () => void;
 }) {
   const canUndo = !disabled && entries.length > 0 && !(entries.length === 1 && entries[0]!.current);
+  // ⌘Z, when no text is being typed (Q335).
+  useCommands({ undo: () => canUndo && void upstart.invoke("history:undo") });
   return (
     <>
       <Button

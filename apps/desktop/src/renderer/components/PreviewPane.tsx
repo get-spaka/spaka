@@ -24,6 +24,7 @@ import type {
   ProjectInfo,
   Rect,
 } from "../../shared/ipc";
+import { useCommands } from "../hooks/useCommand";
 import { useComments } from "../hooks/useMain";
 import { upstart } from "../lib/bridge";
 import { BEZEL as BEZEL_COLORS, PAGE_WHITE } from "../lib/colors";
@@ -179,6 +180,20 @@ export function PreviewPane({
   // Every page as thumbnails (Q128), once the website has two (Q140).
   const pageCount = state.routes.filter((r) => !r.generated).length;
   const pagesView = !!project && state.view === "pages" && pageCount >= 2;
+  // The menus' items and their shortcuts (Q335): what the bar's buttons do, when they are shown.
+  const shown = !!project && state.routes.length > 0;
+  useCommands({
+    publish: () => shown && setExporting(true),
+    "screen-desktop": () => shown && setWidth("desktop"),
+    "screen-tablet": () => shown && setWidth("tablet"),
+    "screen-phone": () => shown && setWidth("phone"),
+    "all-pages": () =>
+      project && pageCount >= 2 && void upstart.invoke("preview:set-view", state.view === "pages" ? "page" : "pages"),
+    "mode-edit": () => shown && void upstart.invoke("preview:set-mode", "edit"),
+    "mode-comment": () => shown && void upstart.invoke("preview:set-mode", "comment"),
+    "mode-visitor": () => shown && void upstart.invoke("preview:set-mode", "visitor"),
+    "reload-preview": () => project && void upstart.invoke("preview:reload"),
+  });
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new project closes the dialog
   useLayoutEffect(() => setExporting(false), [project?.id]);
 

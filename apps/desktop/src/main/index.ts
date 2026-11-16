@@ -40,6 +40,7 @@ import {
   type Rect,
   SETTINGS_PAGES,
   type SettingsPage,
+  TEXT_SIZES,
 } from "../shared/ipc";
 import { en as t } from "../shared/strings/en";
 import { Agent, projectNameFrom } from "./agent/agent";
@@ -74,6 +75,7 @@ import { createIpc } from "./ipc";
 import { FileTap } from "./live/tap";
 import { libraryFiles, mediaKind, useFoundImage, usesLabel, usesOf, usingFiles } from "./media/library";
 import { FixtureImages, type ImageFinder, ImageSearch, imagesAnswer } from "./media/search";
+import { buildMenu } from "./menu";
 import { Preview } from "./preview/preview";
 import { testRecordFile } from "./preview/test-records";
 import { isEffort, Projects, readProjectFile } from "./projects";
@@ -203,34 +205,22 @@ async function main() {
   const applyTextSize = () => win.webContents.setZoomFactor(zoomFor(settings.get().textSize));
   win.webContents.on("did-finish-load", applyTextSize);
   nativeTheme.on("updated", () => win.setBackgroundColor(windowBackground()));
-  // The app's menu: macOS's usual one, with Settings… (⌘,) in the app's menu.
+  // The app's menus and their shortcuts (Q335).
   Menu.setApplicationMenu(
-    Menu.buildFromTemplate([
-      {
-        label: app.name,
-        submenu: [
-          { role: "about" },
-          { type: "separator" },
-          {
-            label: `${t.settings.title}…`,
-            accelerator: "CommandOrControl+,",
-            click: () => ipc.emit("settings:show", { toggle: true }),
-          },
-          { type: "separator" },
-          { role: "services" },
-          { type: "separator" },
-          { role: "hide" },
-          { role: "hideOthers" },
-          { role: "unhide" },
-          { type: "separator" },
-          { role: "quit" },
-        ],
+    buildMenu({
+      send: (command) => ipc.emit("menu:command", command),
+      settings: () => ipc.emit("settings:show", { toggle: true }),
+      textSize: (step) => {
+        const sizes = TEXT_SIZES;
+        const now = sizes.indexOf(settings.get().textSize);
+        const textSize = step === 0 ? "medium" : sizes[Math.max(0, Math.min(sizes.length - 1, now + step))];
+        if (!textSize || textSize === settings.get().textSize) return;
+        ipc.emit("settings:changed", settings.set({ textSize }));
+        applyTextSize();
       },
-      { role: "fileMenu" },
-      { role: "editMenu" },
-      { role: "viewMenu" },
-      { role: "windowMenu" },
-    ]),
+      askAgent: () => ipc.emit("conversation:prefill", t.help.ask),
+      development: !app.isPackaged,
+    }),
   );
   const projects = new Projects(app.getPath("userData"), env.projectsDir);
   // The gallery's blocks (Q92), shipped beside the app like its skills.

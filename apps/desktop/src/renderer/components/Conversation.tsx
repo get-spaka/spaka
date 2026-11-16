@@ -28,6 +28,7 @@ import {
   type ProjectInfo,
   usableModel,
 } from "../../shared/ipc";
+import { useCommands } from "../hooks/useCommand";
 import { useAppSettings } from "../hooks/useMain";
 import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
@@ -43,6 +44,10 @@ import { QuestionCard } from "./QuestionCard";
 import { SignInPanel } from "./SignInPanel";
 import { ThemeTab } from "./ThemeTab";
 import { Button } from "./ui/button";
+
+/** The middle column's tabs, in their order. */
+const TABS = ["conversation", "blocks", "theme", "content"] as const;
+type Tab = (typeof TABS)[number];
 
 export function Conversation({
   project,
@@ -61,8 +66,16 @@ export function Conversation({
 }) {
   const [draft, setDraft] = useState("");
   // The middle column's tabs (Q100): the conversation, the gallery's blocks.
-  const [tab, setTab] = useState<"conversation" | "blocks" | "theme" | "content">("conversation");
+  const [tab, setTab] = useState<Tab>("conversation");
   const shownTab = project ? tab : "conversation";
+  // ⌘1 to ⌘4 (Q335), once a website is open.
+  const tabCommand = (name: Tab) => () => project && setTab(name);
+  useCommands({
+    "tab-conversation": tabCommand("conversation"),
+    "tab-blocks": tabCommand("blocks"),
+    "tab-theme": tabCommand("theme"),
+    "tab-content": tabCommand("content"),
+  });
   // Before the first message there is no project yet: the choice waits for it.
   const [newSettings, setNewSettings] = useNewSettings(status);
   const working = isWorking(items);
@@ -130,7 +143,7 @@ export function Conversation({
 
       {project && (
         <div role="tablist" className="flex shrink-0 gap-1 border-b px-3">
-          {(["conversation", "blocks", "theme", "content"] as const).map((name) => (
+          {TABS.map((name) => (
             <button
               key={name}
               type="button"
