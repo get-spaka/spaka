@@ -60,6 +60,10 @@ _Avoid_: Prompt, dialog, questionnaire, permission
 The way of working in which the agent changes nothing in the project: it reads, asks its questions and hands in a plan of what it will build, which the maker approves before anything is written. Building is the other way, and the usual one.
 _Avoid_: Draft mode, design step, mock-up
 
+**Tour**:
+The five bubbles that show a maker, once their first website is built, how to change it: in words, in the page, with blocks, with the theme, and how to publish it.
+_Avoid_: Onboarding, walkthrough, tutorial
+
 **Snapshot**:
 A saved state of a project that the maker can return to. One is taken after every agent turn and every manual edit, and together they form the project's history.
 _Avoid_: Checkpoint, version, commit
