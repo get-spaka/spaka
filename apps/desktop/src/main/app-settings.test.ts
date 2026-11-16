@@ -27,12 +27,14 @@ test("each value is checked; a wrong or missing one is its default", () => {
       replyStyle: "rude",
       outputStyle: 2,
       notifyDone: "yes",
+      appearance: "dim",
     }),
   ).toEqual(DEFAULT_SETTINGS);
   const chosen = {
     newModel: "claude-opus-5-5",
     newEffort: "high",
     statistics: false,
+    appearance: "dark",
     textSize: "large",
     replyStyle: "teaching",
     outputStyle: "detailed",

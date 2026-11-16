@@ -55,34 +55,42 @@ const ICONS = {
   link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
 };
 
+// The overlays' surfaces and texts follow the interface's appearance (Q330), which
+// nativeTheme gives the preview too; the selection keeps its indigo.
 const STYLE = `
 :host { all: initial; }
+:host { --up-surface: #fff; --up-border: #e4e4e7; --up-input: #d4d4d8; --up-muted: #71717a; --up-hover: #f4f4f5;
+  --up-text: #18181b; --up-text-2: #3f3f46; --up-note: #fef3c7; --up-note-text: #92400e; --up-danger: #b91c1c; }
+@media (prefers-color-scheme: dark) {
+  :host { --up-surface: #27272a; --up-border: #3f3f46; --up-input: #52525b; --up-muted: #a1a1aa; --up-hover: #3f3f46;
+    --up-text: #fafafa; --up-text-2: #e4e4e7; --up-note: #451a03; --up-note-text: #fde68a; --up-danger: #f87171; }
+}
 .layer { position: fixed; inset: 0; pointer-events: none; z-index: 2147483647;
-  font: 12px/1.3 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #18181b; }
+  font: 12px/1.3 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--up-text); }
 .box { position: fixed; box-sizing: border-box; border-radius: 3px; display: none; }
 .hover { border: 1px solid #6366f1; }
 .selected { border: 2px solid #4f46e5; }
 .tag { position: absolute; left: -2px; top: -18px; background: #6366f1; color: #fff; padding: 1px 5px;
   border-radius: 3px 3px 0 0; font-size: 10px; white-space: nowrap; }
-.bar { position: fixed; display: none; align-items: center; gap: 2px; padding: 3px; background: #fff;
-  border: 1px solid #e4e4e7; border-radius: 8px; box-shadow: 0 4px 16px rgb(0 0 0 / .12); pointer-events: auto; }
-.bar button { all: unset; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 5px; cursor: default; color: #3f3f46; }
-.bar button:hover { background: #f4f4f5; }
+.bar { position: fixed; display: none; align-items: center; gap: 2px; padding: 3px; background: var(--up-surface);
+  border: 1px solid var(--up-border); border-radius: 8px; box-shadow: 0 4px 16px rgb(0 0 0 / .12); pointer-events: auto; }
+.bar button { all: unset; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 5px; cursor: default; color: var(--up-text-2); }
+.bar button:hover { background: var(--up-hover); }
 .bar button[disabled] { opacity: .35; }
 .bar button svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.bar .sep { width: 1px; height: 18px; background: #e4e4e7; margin: 0 2px; }
-.chip { padding: 0 6px; color: #92400e; background: #fef3c7; border-radius: 5px; height: 22px; display: flex; align-items: center; white-space: nowrap; }
-.pop { position: fixed; display: none; gap: 4px; padding: 6px; background: #fff; border: 1px solid #e4e4e7;
+.bar .sep { width: 1px; height: 18px; background: var(--up-border); margin: 0 2px; }
+.chip { padding: 0 6px; color: var(--up-note-text); background: var(--up-note); border-radius: 5px; height: 22px; display: flex; align-items: center; white-space: nowrap; }
+.pop { position: fixed; display: none; gap: 4px; padding: 6px; background: var(--up-surface); border: 1px solid var(--up-border);
   border-radius: 8px; box-shadow: 0 4px 16px rgb(0 0 0 / .12); pointer-events: auto; }
-.pop input { all: unset; width: 240px; padding: 4px 6px; border: 1px solid #d4d4d8; border-radius: 5px; font-size: 12px; }
+.pop input { all: unset; width: 240px; padding: 4px 6px; border: 1px solid var(--up-input); border-radius: 5px; font-size: 12px; }
 .pop button { all: unset; padding: 4px 8px; border-radius: 5px; background: #4f46e5; color: #fff; }
-.pop button.secondary { background: #f4f4f5; color: #3f3f46; }
+.pop button.secondary { background: var(--up-hover); color: var(--up-text-2); }
 .toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); max-width: 80%; padding: 8px 12px;
   background: #18181b; color: #fafafa; border-radius: 8px; display: none; pointer-events: none; }
 .line { position: fixed; left: 0; right: 0; height: 3px; margin-top: -1px; background: #4f46e5; border-radius: 2px; display: none;
   box-shadow: 0 0 0 2px rgb(255 255 255 / .8); }
 .bar button[data-act="drag"] { cursor: grab; }
-.editing-note { position: fixed; display: none; padding: 3px 7px; background: #fef3c7; color: #92400e; border-radius: 5px; white-space: nowrap; }
+.editing-note { position: fixed; display: none; padding: 3px 7px; background: var(--up-note); color: var(--up-note-text); border-radius: 5px; white-space: nowrap; }
 `;
 
 type Selected = { el: HTMLElement; origin: Origin; section?: Origin; info?: EditInfo; sectionInfo?: EditInfo };

@@ -19,6 +19,8 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   type AgentStatus,
+  APPEARANCES,
+  type Appearance,
   type KeyAccount,
   OUTPUT_STYLES,
   type OutputStyle,
@@ -33,6 +35,7 @@ import {
 import { searchSettings } from "../../shared/settings-search";
 import { useAgentStatus, useAppInfo, useAppSettings, useConnectors, useProjects, useSkills } from "../hooks/useMain";
 import { upstart } from "../lib/bridge";
+import { ACCOUNT, CLOSE_BUTTON, CLOSE_CROSS, TILES } from "../lib/colors";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { ConnectorList, SkillList } from "./lists";
@@ -40,12 +43,12 @@ import { ModelRows } from "./model";
 import { Group, Highlighted, inputClass, Push, Row, Segmented, Switch } from "./ui";
 
 const ICONS: Record<SettingsPage, { icon: LucideIcon; color: string }> = {
-  general: { icon: SlidersHorizontal, color: "bg-[#8e8e93]" },
-  agent: { icon: UserRound, color: "bg-[#d97757]" },
-  skills: { icon: BookOpen, color: "bg-[#8b5cf6]" },
-  connectors: { icon: Plug, color: "bg-[#2f7cf6]" },
-  privacy: { icon: Shield, color: "bg-[#1f9d55]" },
-  about: { icon: Info, color: "bg-[#737373]" },
+  general: { icon: SlidersHorizontal, color: TILES.general },
+  agent: { icon: UserRound, color: TILES.agent },
+  skills: { icon: BookOpen, color: TILES.skills },
+  connectors: { icon: Plug, color: TILES.connectors },
+  privacy: { icon: Shield, color: TILES.privacy },
+  about: { icon: Info, color: TILES.about },
 };
 
 export function SettingsPanel({
@@ -76,7 +79,7 @@ export function SettingsPanel({
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: a click outside is for the pointer; Escape and the close button do the same from the keyboard
     <div
-      className="no-drag absolute inset-0 z-30 flex items-center justify-center bg-black/25 p-6"
+      className="no-drag absolute inset-0 z-30 flex items-center justify-center bg-scrim p-6"
       data-testid="settings-backdrop"
       onMouseDown={(event) => event.target === event.currentTarget && onClose()}
     >
@@ -85,11 +88,11 @@ export function SettingsPanel({
         aria-modal="true"
         aria-label={t.settings.title}
         data-testid="settings"
-        className="flex h-full max-h-[780px] w-full max-w-[1100px] overflow-hidden rounded-xl border border-black/10 text-[13px] text-neutral-950 shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
+        className="flex h-full max-h-[780px] w-full max-w-[1100px] overflow-hidden rounded-xl border border-border text-[13px] text-foreground shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
       >
         <nav
           aria-label={t.settings.title}
-          className="flex w-[232px] shrink-0 flex-col gap-3 border-r border-neutral-200 bg-[#f2f2f3] px-2.5 pb-3"
+          className="flex w-[232px] shrink-0 flex-col gap-3 border-r border-border bg-panel-nav px-2.5 pb-3"
         >
           <div className="flex h-11 shrink-0 items-center px-1.5">
             <button
@@ -98,12 +101,15 @@ export function SettingsPanel({
               aria-label={t.settings.close}
               title={t.settings.close}
               data-testid="settings-close"
-              className="group flex size-3.5 items-center justify-center rounded-full bg-[#ff5f57] ring-1 ring-black/10 ring-inset"
+              className={cn(
+                "group flex size-3.5 items-center justify-center rounded-full ring-1 ring-inset",
+                CLOSE_BUTTON,
+              )}
             >
-              <X className="size-2.5 text-black/60 opacity-0 group-hover:opacity-100" strokeWidth={3} />
+              <X className={cn("size-2.5 opacity-0 group-hover:opacity-100", CLOSE_CROSS)} strokeWidth={3} />
             </button>
           </div>
-          <label className="flex h-7 items-center gap-1.5 rounded-[7px] bg-neutral-200/80 px-2 text-neutral-600">
+          <label className="flex h-7 items-center gap-1.5 rounded-[7px] bg-foreground/[0.08] px-2 text-muted-foreground">
             <Search className="size-3.5 shrink-0" aria-hidden="true" />
             <input
               type="search"
@@ -119,7 +125,7 @@ export function SettingsPanel({
                   setQuery("");
                 }
               }}
-              className="w-full min-w-0 bg-transparent text-neutral-950 outline-none [&::-webkit-search-cancel-button]:hidden"
+              className="w-full min-w-0 bg-transparent text-foreground outline-none [&::-webkit-search-cancel-button]:hidden"
             />
             {query && (
               <button type="button" aria-label={t.gallery.clearSearch} onClick={() => setQuery("")}>
@@ -130,18 +136,18 @@ export function SettingsPanel({
           <button
             type="button"
             onClick={() => setPage("agent")}
-            className="flex items-center gap-2.5 rounded-lg p-2 text-left hover:bg-neutral-200/60"
+            className="flex items-center gap-2.5 rounded-lg p-2 text-left hover:bg-foreground/[0.06]"
             data-testid="settings-account"
           >
             <span
               aria-hidden="true"
-              className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#d97757] text-white"
+              className={cn("flex size-8 shrink-0 items-center justify-center rounded-full", ACCOUNT)}
             >
               <UserRound className="size-4" strokeWidth={2.25} />
             </span>
             <span className="flex min-w-0 flex-col leading-tight">
               <span className="font-semibold">{t.settings.account.title}</span>
-              <span className="truncate text-[11px] text-neutral-600">{accountLine(status)}</span>
+              <span className="truncate text-[11px] text-muted-foreground">{accountLine(status)}</span>
             </span>
           </button>
           <div className="flex flex-col gap-0.5">
@@ -158,12 +164,12 @@ export function SettingsPanel({
                   }}
                   className={cn(
                     "flex items-center gap-2.5 rounded-[7px] px-2 py-[5px] text-left",
-                    p === shown ? "bg-neutral-900 text-white" : "hover:bg-neutral-200/60",
+                    p === shown ? "bg-primary text-primary-foreground" : "hover:bg-foreground/[0.06]",
                   )}
                 >
                   <span
                     aria-hidden="true"
-                    className={cn("flex size-[22px] shrink-0 items-center justify-center rounded-md text-white", color)}
+                    className={cn("flex size-[22px] shrink-0 items-center justify-center rounded-md", color)}
                   >
                     <Icon className="size-3.5" strokeWidth={2.2} />
                   </span>
@@ -172,15 +178,15 @@ export function SettingsPanel({
               );
             })}
             {found && pages.length === 0 && (
-              <p className="px-2 py-1 text-[11px] text-neutral-600" data-testid="settings-none">
+              <p className="px-2 py-1 text-[11px] text-muted-foreground" data-testid="settings-none">
                 {t.settings.noMatch(query.trim())}
               </p>
             )}
           </div>
         </nav>
 
-        <main className="flex min-w-0 flex-1 flex-col bg-[#f7f7f8]">
-          <header className="flex h-[52px] shrink-0 items-center border-b border-neutral-200 px-6">
+        <main className="flex min-w-0 flex-1 flex-col bg-panel">
+          <header className="flex h-[52px] shrink-0 items-center border-b border-border px-6">
             <h1 className="text-[15px] font-semibold" data-testid="settings-title">
               {shown ? t.settings.pages[shown] : t.settings.title}
             </h1>
@@ -220,14 +226,11 @@ function Intro({ page, text }: { page: SettingsPage; text: string }) {
   const { icon: Icon, color } = ICONS[page];
   return (
     <section className="flex flex-col items-center gap-1.5 text-center">
-      <span
-        aria-hidden="true"
-        className={cn("flex size-12 items-center justify-center rounded-[13px] text-white", color)}
-      >
+      <span aria-hidden="true" className={cn("flex size-12 items-center justify-center rounded-[13px]", color)}>
         <Icon className="size-6" strokeWidth={2} />
       </span>
       <h2 className="text-[15px] font-semibold">{t.settings.pages[page]}</h2>
-      <p className="max-w-[440px] leading-snug text-neutral-600">{text}</p>
+      <p className="max-w-[440px] leading-snug text-muted-foreground">{text}</p>
     </section>
   );
 }
@@ -254,6 +257,15 @@ function GeneralPage() {
         </Row>
       </Group>
       <Group title={g.interface}>
+        <Row id="appearance" label={g.appearance} detail={g.appearanceHelp}>
+          <Segmented<Appearance>
+            testid="appearance"
+            label={g.appearance}
+            value={settings.appearance}
+            options={APPEARANCES.map((value) => ({ value, label: g.appearances[value] }))}
+            onChange={(appearance) => void upstart.invoke("settings:set", { appearance })}
+          />
+        </Row>
         <Row id="text-size" label={g.textSize} detail={g.textSizeHelp}>
           <Segmented<TextSize>
             testid="text-size"
@@ -346,7 +358,7 @@ function AgentPage() {
             </Push>
           ) : status.chatgpt.signingIn ? (
             <span className="flex items-center gap-2">
-              <Loader2 className="size-3.5 animate-spin text-neutral-500" />
+              <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
               <Push onClick={() => void upstart.invoke("agent:chatgpt-cancel")}>{a.cancel}</Push>
             </span>
           ) : (
@@ -604,17 +616,17 @@ function AboutPage() {
     <section className="flex flex-col items-center gap-2 py-6 text-center" data-setting="version">
       <span
         aria-hidden="true"
-        className="flex size-16 items-center justify-center rounded-[18px] bg-neutral-900 text-2xl font-semibold text-white"
+        className="flex size-16 items-center justify-center rounded-[18px] bg-primary text-2xl font-semibold text-primary-foreground"
       >
         U
       </span>
       <h2 className="text-lg font-semibold">{t.app.name}</h2>
-      <p className="text-neutral-600">{t.settings.about.tagline}</p>
+      <p className="text-muted-foreground">{t.settings.about.tagline}</p>
       {info && (
         <>
           <p data-testid="about-version">{t.settings.about.version(info.version)}</p>
-          <p className="text-neutral-600">{t.settings.about.licence}</p>
-          <p className="text-[11px] text-neutral-600">
+          <p className="text-muted-foreground">{t.settings.about.licence}</p>
+          <p className="text-[11px] text-muted-foreground">
             {t.settings.about.built(info.versions.electron, info.versions.chromium, info.versions.node)}
           </p>
         </>

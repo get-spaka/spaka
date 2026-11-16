@@ -47,7 +47,7 @@ describe("the settings panel", () => {
   const file = () => JSON.parse(readFileSync(join(launched.dataDir, "settings.json"), "utf8"));
 
   beforeAll(async () => {
-    launched = await launchApp();
+    launched = await launchApp({ followAppearance: true });
     w = launched.window;
     await w.getByTestId("message-input").waitFor();
   }, 60_000);
@@ -127,6 +127,35 @@ describe("the settings panel", () => {
     await launched.capture("settings-text-large");
     await w.getByTestId("text-size").locator('[data-value="medium"]').click();
     await until(async () => (await zoom()) === 1);
+  });
+
+  test("the appearance turns the interface dark or light, System by default (Q330)", async () => {
+    await w.getByTestId("settings-page-general").click();
+    const appearance = w.getByTestId("appearance");
+    expect(await appearance.locator('[aria-pressed="true"]').textContent()).toBe("System");
+    const look = () =>
+      Promise.all([
+        w.evaluate(() => [
+          matchMedia("(prefers-color-scheme: dark)").matches,
+          getComputedStyle(document.body).backgroundColor,
+        ]),
+        launched.app.evaluate(({ nativeTheme }) => nativeTheme.themeSource),
+      ]);
+    await appearance.locator('[data-value="dark"]').click();
+    await until(async () => (await look())[0][0] === true);
+    const [[dark, darkBackground]] = await look();
+    expect(dark).toBe(true);
+    expect(file().appearance).toBe("dark");
+    // The rows ease their colors from one appearance to the other.
+    await new Promise((r) => setTimeout(r, 400));
+    await launched.capture("settings-dark");
+    await appearance.locator('[data-value="light"]').click();
+    await until(async () => (await look())[0][0] === false);
+    const [[light, lightBackground]] = await look();
+    expect(light).toBe(false);
+    expect(lightBackground).not.toBe(darkBackground);
+    await appearance.locator('[data-value="system"]').click();
+    await until(async () => file().appearance === "system");
   });
 
   test("the reply style is kept, and the effort for new websites is the one a new website starts with", async () => {

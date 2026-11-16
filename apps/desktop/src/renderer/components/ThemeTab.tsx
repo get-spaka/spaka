@@ -345,7 +345,7 @@ function ColorRow({
         />
       </div>
       {warning && (
-        <p data-testid="contrast-warning" className="mt-0.5 flex items-center gap-1 pl-10 text-[11px] text-amber-600">
+        <p data-testid="contrast-warning" className="mt-0.5 flex items-center gap-1 pl-10 text-[11px] text-warning">
           <AlertTriangle className="size-3" /> {warning}
         </p>
       )}

@@ -34,7 +34,7 @@ export function MediaPicker({ request }: { request: PickRequest }) {
   }, [request]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-8">
       <div
         data-testid="media-picker"
         role="dialog"

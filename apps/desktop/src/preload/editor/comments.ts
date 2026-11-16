@@ -12,16 +12,16 @@ export const COMMENT_STYLE = `
 .pin { position: fixed; width: 20px; height: 20px; border-radius: 10px 10px 10px 2px; background: #4f46e5; color: #fff;
   display: grid; place-items: center; font-size: 11px; font-weight: 600; pointer-events: auto; cursor: default;
   box-shadow: 0 1px 4px rgb(0 0 0 / .25); }
-.card { position: fixed; width: 260px; display: none; flex-direction: column; gap: 6px; padding: 8px; background: #fff;
-  border: 1px solid #e4e4e7; border-radius: 10px; box-shadow: 0 6px 20px rgb(0 0 0 / .15); pointer-events: auto; }
-.card .about { color: #71717a; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.card textarea { all: unset; box-sizing: border-box; width: 100%; min-height: 56px; padding: 6px; border: 1px solid #d4d4d8;
+.card { position: fixed; width: 260px; display: none; flex-direction: column; gap: 6px; padding: 8px; background: var(--up-surface);
+  border: 1px solid var(--up-border); border-radius: 10px; box-shadow: 0 6px 20px rgb(0 0 0 / .15); pointer-events: auto; }
+.card .about { color: var(--up-muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card textarea { all: unset; box-sizing: border-box; width: 100%; min-height: 56px; padding: 6px; border: 1px solid var(--up-input);
   border-radius: 6px; font-size: 12px; white-space: pre-wrap; }
 .card .row, .sendbar { display: flex; gap: 6px; align-items: center; }
 .card .row { justify-content: flex-end; }
-.card button, .sendbar button { all: unset; padding: 4px 9px; border-radius: 6px; background: #f4f4f5; color: #3f3f46; }
+.card button, .sendbar button { all: unset; padding: 4px 9px; border-radius: 6px; background: var(--up-hover); color: var(--up-text-2); }
 .card button.primary, .sendbar button.primary { background: #4f46e5; color: #fff; }
-.card button.danger { margin-right: auto; color: #b91c1c; }
+.card button.danger { margin-right: auto; color: var(--up-danger); }
 .sendbar button[disabled] { opacity: .5; }
 .sendbar { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); display: none; padding: 6px 6px 6px 12px;
   background: #18181b; color: #fafafa; border-radius: 12px; box-shadow: 0 6px 20px rgb(0 0 0 / .25); pointer-events: auto; white-space: nowrap; }

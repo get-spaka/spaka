@@ -15,6 +15,11 @@ export const SETTINGS: SettingEntry[] = [
   { page: "general", id: "folder", words: [t.general.folder, t.general.websites, "Finder", "documents", "location"] },
   {
     page: "general",
+    id: "appearance",
+    words: [t.general.appearance, "dark", "light", "theme", "night", "sombre", "clair", "apparence"],
+  },
+  {
+    page: "general",
     id: "text-size",
     words: [t.general.textSize, "font", "zoom", "bigger", "smaller", "police", "taille"],
   },

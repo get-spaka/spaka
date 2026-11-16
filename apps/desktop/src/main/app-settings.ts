@@ -1,11 +1,12 @@
 // The app's own settings, for every website (Q117, Q125): the model and effort a
-// new website starts with, the anonymous statistics switch, the text size, the
+// new website starts with, the anonymous statistics switch, the appearance (Q330), the text size, the
 // agent's reply style, the conversation's output style and the notification. Kept as a JSON file
 // in the app's data on this computer; a value missing or unreadable falls back
 // to its default.
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import {
+  APPEARANCES,
   type AppSettings,
   DEFAULT_APP_SETTINGS,
   OUTPUT_STYLES,
@@ -24,6 +25,7 @@ export function settingsFrom(data: unknown): AppSettings {
     newModel: typeof d.newModel === "string" && d.newModel.trim() ? d.newModel : DEFAULT_SETTINGS.newModel,
     newEffort: typeof d.newEffort === "string" && isEffort(d.newEffort) ? d.newEffort : DEFAULT_SETTINGS.newEffort,
     statistics: typeof d.statistics === "boolean" ? d.statistics : DEFAULT_SETTINGS.statistics,
+    appearance: oneOf(APPEARANCES, d.appearance) ?? DEFAULT_SETTINGS.appearance,
     textSize: oneOf(TEXT_SIZES, d.textSize) ?? DEFAULT_SETTINGS.textSize,
     replyStyle: oneOf(REPLY_STYLES, d.replyStyle) ?? DEFAULT_SETTINGS.replyStyle,
     outputStyle: oneOf(OUTPUT_STYLES, d.outputStyle) ?? DEFAULT_SETTINGS.outputStyle,

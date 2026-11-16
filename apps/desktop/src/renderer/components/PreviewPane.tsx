@@ -26,6 +26,7 @@ import type {
 } from "../../shared/ipc";
 import { useComments } from "../hooks/useMain";
 import { upstart } from "../lib/bridge";
+import { BEZEL as BEZEL_COLORS, PAGE_WHITE } from "../lib/colors";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { stillToAdapt, useAdaptation } from "./AdaptationBar";
@@ -494,7 +495,7 @@ export function PreviewPane({
             <div
               data-testid="device-frame"
               aria-hidden
-              className="absolute bg-zinc-800 shadow-xl ring-1 ring-black/10 dark:bg-zinc-700"
+              className={cn("absolute shadow-xl ring-1", BEZEL_COLORS)}
               style={{
                 left: frame.x,
                 top: frame.y,
@@ -651,7 +652,7 @@ function ZoomPicture({ zoom, onDone }: { zoom: Zoom; onDone: () => void }) {
       data-testid="preview-zoom"
       data-ready={zoom.ready ? "" : undefined}
       aria-hidden
-      className="pointer-events-none fixed z-40 origin-top-left overflow-hidden bg-white will-change-transform"
+      className={cn("pointer-events-none fixed z-40 origin-top-left overflow-hidden will-change-transform", PAGE_WHITE)}
       style={{ left: zoom.page.x, top: zoom.page.y, width: zoom.page.width, height: zoom.page.height }}
     >
       {zoom.toGrid && zoom.shot && (

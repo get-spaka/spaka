@@ -350,6 +350,9 @@ export type ConversationState = { projectId: string; items: ConversationItem[] }
 export const SETTINGS_PAGES = ["general", "agent", "skills", "connectors", "privacy", "about"] as const;
 export type SettingsPage = (typeof SETTINGS_PAGES)[number];
 
+/** The interface's appearance (Q330): macOS's, or always light or dark. */
+export const APPEARANCES = ["system", "light", "dark"] as const;
+export type Appearance = (typeof APPEARANCES)[number];
 export const TEXT_SIZES = ["small", "medium", "large"] as const;
 export type TextSize = (typeof TEXT_SIZES)[number];
 /** How the agent writes to the maker (Q125); not how it writes the website. */
@@ -366,6 +369,8 @@ export type AppSettings = {
   newEffort: Effort;
   /** Anonymous usage statistics (decisions: on by default; nothing is sent before the polish step). */
   statistics: boolean;
+  /** The interface's appearance (Q330); the website keeps its own theme. */
+  appearance: Appearance;
   /** The interface's text size; the website keeps its own. */
   textSize: TextSize;
   replyStyle: ReplyStyle;
@@ -377,6 +382,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   newModel: "claude-sonnet-5-5",
   newEffort: "medium",
   statistics: true,
+  appearance: "system",
   textSize: "medium",
   replyStyle: "short",
   outputStyle: "discreet",

@@ -81,8 +81,9 @@ export function fillAlts(html: string, source: ProjectSource): string {
 type CreditsWords = { title: string; by: string; via: string; home: string };
 
 /** The languages Upstart writes the credits in; any other gets English. */
+const ENGLISH: CreditsWords = { title: "Image credits", by: "by", via: "via", home: "Home" };
 const CREDITS_WORDS: Record<string, CreditsWords> = {
-  en: { title: "Image credits", by: "by", via: "via", home: "Home" },
+  en: ENGLISH,
   fr: { title: "Crédits photos", by: "par", via: "via", home: "Accueil" },
   de: { title: "Bildnachweis", by: "von", via: "über", home: "Startseite" },
   es: { title: "Créditos de las imágenes", by: "por", via: "vía", home: "Inicio" },
@@ -104,8 +105,8 @@ export function pageLanguage(html: string): string | undefined {
 
 /** The credits' words for a language: by its first part, Norwegian as one, English otherwise. */
 export function creditsWords(language: string | undefined): CreditsWords {
-  const primary = (language ?? "en").toLowerCase().split("-")[0];
-  return CREDITS_WORDS[primary === "no" || primary === "nn" ? "nb" : primary] ?? CREDITS_WORDS.en;
+  const primary = (language ?? "en").toLowerCase().split("-")[0] ?? "en";
+  return CREDITS_WORDS[primary === "no" || primary === "nn" ? "nb" : primary] ?? ENGLISH;
 }
 
 /**

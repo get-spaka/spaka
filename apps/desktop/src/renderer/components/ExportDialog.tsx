@@ -124,10 +124,10 @@ export function ExportDialog({
         {toAdapt.length > 0 && !anyway ? (
           <section
             data-testid="publish-adaptation"
-            className="flex flex-col gap-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-4"
+            className="flex flex-col gap-3 rounded-lg border border-warning/40 bg-warning-muted0/5 p-4"
           >
             <h3 className="flex items-center gap-2 text-sm font-medium">
-              <TriangleAlert className="size-4 text-amber-600" />
+              <TriangleAlert className="size-4 text-warning" />
               {t.adaptation.publish.title}
             </h3>
             <p className="text-sm text-muted-foreground">
@@ -177,7 +177,7 @@ export function ExportDialog({
                       <span className="font-medium">{words?.name ?? c.id}</span>
                       <p className="mt-1 text-muted-foreground">{words?.line}</p>
                       {refused && (
-                        <p className="mt-1 text-amber-700" data-testid="publish-refused">
+                        <p className="mt-1 text-warning" data-testid="publish-refused">
                           {t.export.refused(c.refused!.join(", "))}
                         </p>
                       )}

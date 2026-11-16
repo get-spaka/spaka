@@ -283,7 +283,7 @@ function DatasourceView({
                   {record.title}
                 </span>
                 {record.problems.length > 0 && (
-                  <AlertTriangle className="size-3.5 shrink-0 text-amber-600" aria-label={record.problems.join("; ")} />
+                  <AlertTriangle className="size-3.5 shrink-0 text-warning" aria-label={record.problems.join("; ")} />
                 )}
               </button>
               <Button
@@ -490,7 +490,7 @@ function RecordForm({
         {problems.length > 0 && record && (
           <div
             data-testid="record-problems"
-            className="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs dark:border-amber-700 dark:bg-amber-950"
+            className="rounded-md border border-warning/40 bg-warning-muted p-3 text-xs"
           >
             <p className="font-medium">{record.error ? t.content.skipped : t.content.problems}</p>
             <ul className="mt-1 list-disc pl-4">
@@ -610,7 +610,7 @@ function RecordId({
               {t.content.renameCancel}
             </Button>
           </div>
-          {route && <p className="text-amber-700 dark:text-amber-400">{t.content.renameWarning(route)}</p>}
+          {route && <p className="text-warning">{t.content.renameWarning(route)}</p>}
         </div>
       )}
     </div>
@@ -888,7 +888,7 @@ function DatasourceList({
       >
         <span className="truncate font-medium">{d.label}</span>
         {(d.problem || d.records.some((r) => r.problems.length)) && (
-          <AlertTriangle className="size-3.5 shrink-0 text-amber-600" />
+          <AlertTriangle className="size-3.5 shrink-0 text-warning" />
         )}
         {d.usedBy.length === 0 && (
           <span className="shrink-0 text-xs text-muted-foreground" data-testid="datasource-unused">

@@ -64,7 +64,7 @@ export function SkillList({
       }
     >
       {skills.length === 0 ? (
-        <p className="px-3 py-2.5 text-[13px] text-neutral-600">{t.skills.noneYet}</p>
+        <p className="px-3 py-2.5 text-[13px] text-muted-foreground">{t.skills.noneYet}</p>
       ) : (
         skills.map((skill) => (
           <button
@@ -76,12 +76,15 @@ export function SkillList({
             onClick={() => setChosen(skill.name)}
             className={cn(
               "flex w-full flex-col gap-0.5 px-3 py-2 text-left",
-              chosen === skill.name && "bg-neutral-900 text-white",
+              chosen === skill.name && "bg-primary text-primary-foreground",
             )}
           >
             <span className="font-mono text-[13px]">{skill.name}</span>
             <span
-              className={cn("line-clamp-2 text-[11px]", chosen === skill.name ? "text-white/80" : "text-neutral-600")}
+              className={cn(
+                "line-clamp-2 text-[11px]",
+                chosen === skill.name ? "text-primary-foreground/80" : "text-muted-foreground",
+              )}
             >
               {skill.description}
             </span>
@@ -143,7 +146,7 @@ export function ConnectorList({
         }
       >
         {connectors.length === 0 ? (
-          <p className="px-3 py-2.5 text-[13px] text-neutral-600">{t.skills.noneYet}</p>
+          <p className="px-3 py-2.5 text-[13px] text-muted-foreground">{t.skills.noneYet}</p>
         ) : (
           connectors.map((c) => (
             <ConnectorRow key={c.name} connector={c} chosen={chosen === c.name} onChoose={() => setChosen(c.name)} />
@@ -182,20 +185,26 @@ function ConnectorRow({
         type="button"
         aria-pressed={chosen}
         onClick={onChoose}
-        className={cn("flex w-full items-center gap-3 px-3 py-2 text-left", chosen && "bg-neutral-900 text-white")}
+        className={cn(
+          "flex w-full items-center gap-3 px-3 py-2 text-left",
+          chosen && "bg-primary text-primary-foreground",
+        )}
       >
         <span
           aria-hidden="true"
           className={cn(
             "flex size-7 shrink-0 items-center justify-center rounded-md text-xs font-semibold uppercase",
-            chosen ? "bg-white/15" : "bg-neutral-100",
+            chosen ? "bg-primary-foreground/15" : "bg-muted",
           )}
         >
           {c.name.slice(0, 1)}
         </span>
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="font-mono text-[13px]">{c.name}</span>
-          <span className={cn("truncate text-[11px]", chosen ? "text-white/80" : "text-neutral-600")} title={c.target}>
+          <span
+            className={cn("truncate text-[11px]", chosen ? "text-primary-foreground/80" : "text-muted-foreground")}
+            title={c.target}
+          >
             {t.connectors.kind[c.kind]} · {c.target}
             {c.oauth?.clientId && (
               <span data-testid="connector-app">
@@ -211,12 +220,12 @@ function ConnectorRow({
         </span>
       </button>
       {c.state === "needs-approval" && (
-        <div className="mx-3 mb-2.5 flex flex-col gap-2 rounded-md border border-amber-500/40 bg-amber-50 p-2.5 text-xs">
+        <div className="mx-3 mb-2.5 flex flex-col gap-2 rounded-md border border-warning/40 bg-warning-muted p-2.5 text-xs">
           <p className="flex gap-2">
-            <TriangleAlert className="size-4 shrink-0 text-amber-700" />
+            <TriangleAlert className="size-4 shrink-0 text-warning" />
             {t.connectors.approvalWarning}
           </p>
-          <code className="rounded bg-white px-2 py-1 break-all">{c.target}</code>
+          <code className="rounded bg-card px-2 py-1 break-all">{c.target}</code>
           <div>
             <Push
               testid="connector-approve"
@@ -242,7 +251,7 @@ function ConnectorRow({
               {t.connectors.signIn}
             </Push>
           </div>
-          {signingIn && <p className="text-neutral-600">{t.connectors.signInWaiting}</p>}
+          {signingIn && <p className="text-muted-foreground">{t.connectors.signInWaiting}</p>}
         </div>
       )}
       {c.state === "needs-secret" && (
@@ -283,17 +292,17 @@ function stateLabel(c: ConnectorInfo): string {
 }
 
 function tone(c: ConnectorInfo): string {
-  if (c.state === "needs-approval" || c.state === "needs-secret") return "text-amber-800";
-  if (c.status === "failed" || c.status === "needs-auth") return "text-red-700";
-  if (c.status === "connected") return "text-emerald-800";
-  return "text-neutral-600";
+  if (c.state === "needs-approval" || c.state === "needs-secret") return "text-warning";
+  if (c.status === "failed" || c.status === "needs-auth") return "text-destructive";
+  if (c.status === "connected") return "text-success";
+  return "text-muted-foreground";
 }
 
 function dot(c: ConnectorInfo): string {
-  if (c.state === "needs-approval" || c.state === "needs-secret" || c.status === "needs-auth") return "bg-amber-500";
-  if (c.status === "failed") return "bg-red-600";
-  if (c.status === "connected") return "bg-emerald-600";
-  return "bg-neutral-400";
+  if (c.state === "needs-approval" || c.state === "needs-secret" || c.status === "needs-auth") return "bg-warning";
+  if (c.status === "failed") return "bg-destructive";
+  if (c.status === "connected") return "bg-success";
+  return "bg-muted-foreground/50";
 }
 
 function AddConnector({ scope, onDone }: { scope: ConnectorScope; onDone: () => void }) {
@@ -324,7 +333,7 @@ function AddConnector({ scope, onDone }: { scope: ConnectorScope; onDone: () => 
   return (
     <form
       data-testid="connector-form"
-      className="flex flex-col gap-2.5 rounded-[10px] border border-neutral-200 bg-white p-3"
+      className="flex flex-col gap-2.5 rounded-[10px] border border-border bg-card p-3"
       onSubmit={(event) => {
         event.preventDefault();
         void submit();
@@ -362,7 +371,7 @@ function AddConnector({ scope, onDone }: { scope: ConnectorScope; onDone: () => 
         className={cn(inputClass, "font-mono")}
         data-testid="connector-target"
       />
-      {kind === "local" && <p className="text-[11px] text-neutral-600">{t.connectors.localWarning}</p>}
+      {kind === "local" && <p className="text-[11px] text-muted-foreground">{t.connectors.localWarning}</p>}
       <div className="flex flex-wrap gap-2">
         <input
           aria-label={kind === "remote" ? t.connectors.header : t.connectors.variable}
@@ -382,12 +391,12 @@ function AddConnector({ scope, onDone }: { scope: ConnectorScope; onDone: () => 
           data-testid="connector-secret-value"
         />
       </div>
-      <p className="text-[11px] text-neutral-600">{t.connectors.secretHelp}</p>
+      <p className="text-[11px] text-muted-foreground">{t.connectors.secretHelp}</p>
       {kind === "remote" && (
         <details className="text-xs" data-testid="connector-sign-in-settings">
-          <summary className="cursor-pointer text-neutral-600">{t.connectors.signInSettings}</summary>
+          <summary className="cursor-pointer text-muted-foreground">{t.connectors.signInSettings}</summary>
           <div className="mt-2 flex flex-col gap-2">
-            <p className="text-neutral-600">{t.connectors.signInSettingsHelp}</p>
+            <p className="text-muted-foreground">{t.connectors.signInSettingsHelp}</p>
             {(
               [
                 ["clientId", t.connectors.clientId, "w-full"],

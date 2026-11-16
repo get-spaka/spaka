@@ -113,7 +113,7 @@ export function CollectedView({
             data-reason={published.reason}
             className={cn(
               "px-2 pb-2 text-xs",
-              published.reason === "no-address" ? "text-muted-foreground" : "text-amber-700",
+              published.reason === "no-address" ? "text-muted-foreground" : "text-warning",
             )}
           >
             {published.reason === "no-address" ? t.content.collected.testsOnly : published.error}
@@ -168,13 +168,13 @@ export function CollectedView({
                       </span>
                     )}
                     {pending && (
-                      <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800">
+                      <span className="shrink-0 rounded bg-warning-muted px-1.5 py-0.5 text-[10px] font-medium text-warning">
                         {t.content.collected.pending}
                       </span>
                     )}
                     {row.kind === "test" && row.record.problems.length > 0 && (
                       <AlertTriangle
-                        className="size-3.5 shrink-0 text-amber-600"
+                        className="size-3.5 shrink-0 text-warning"
                         aria-label={row.record.problems.join("; ")}
                       />
                     )}

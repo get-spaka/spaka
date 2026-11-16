@@ -24,7 +24,7 @@ import {
   titleOf,
 } from "@upstart/runtime";
 import { diskSource } from "@upstart/runtime/node";
-import { app, BrowserWindow, dialog, Menu, Notification, safeStorage, shell } from "electron";
+import { app, BrowserWindow, dialog, Menu, Notification, nativeTheme, safeStorage, shell } from "electron";
 import { isPlan } from "../shared/conversation";
 import {
   type ConnectorInfo,
@@ -134,6 +134,11 @@ async function main() {
   if (!env.background && !app.requestSingleInstanceLock()) return app.quit();
   await app.whenReady();
 
+  const settings = new AppSettingsStore(join(app.getPath("userData"), "settings.json"));
+  // The interface's appearance (Q330): nativeTheme turns it into prefers-color-scheme for
+  // the interface, and the window's background follows, so that it never shows the other.
+  nativeTheme.themeSource = settings.get().appearance;
+  const windowBackground = () => (nativeTheme.shouldUseDarkColors ? "#121212" : "#fafafa");
   const win = new BrowserWindow({
     width: 1440,
     height: 900,
@@ -143,7 +148,7 @@ async function main() {
     title: "Upstart",
     titleBarStyle: "hiddenInset",
     trafficLightPosition: { x: 16, y: 18 },
-    backgroundColor: "#fafafa",
+    backgroundColor: windowBackground(),
     webPreferences: {
       preload: join(here, "../preload/app.cjs"),
       contextIsolation: true,
@@ -194,10 +199,10 @@ async function main() {
     });
     note.show();
   };
-  const settings = new AppSettingsStore(join(app.getPath("userData"), "settings.json"));
   // The interface's text size (Q125): the whole interface is drawn larger or smaller; the website is not.
   const applyTextSize = () => win.webContents.setZoomFactor(zoomFor(settings.get().textSize));
   win.webContents.on("did-finish-load", applyTextSize);
+  nativeTheme.on("updated", () => win.setBackgroundColor(windowBackground()));
   // The app's menu: macOS's usual one, with Settings… (⌘,) in the app's menu.
   Menu.setApplicationMenu(
     Menu.buildFromTemplate([
@@ -703,6 +708,7 @@ async function main() {
     const before = settings.get();
     const next = settings.set(change);
     if (next.textSize !== before.textSize) applyTextSize();
+    if (next.appearance !== before.appearance) nativeTheme.themeSource = next.appearance;
     // The agent's instructions say how it writes to the maker: idle agents start again with the new style.
     if (next.replyStyle !== before.replyStyle) agent.instructionsChanged();
     ipc.emit("settings:changed", next);

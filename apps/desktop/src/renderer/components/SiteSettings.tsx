@@ -34,25 +34,25 @@ export function SiteSettings({
 
   return (
     <div
-      className="absolute inset-0 z-20 flex items-start justify-center bg-black/15"
+      className="absolute inset-0 z-20 flex items-start justify-center bg-scrim"
       data-testid="site-settings-backdrop"
     >
       <section
         role="dialog"
         aria-label={t.site.open(project.name)}
         data-testid="site-settings"
-        className="flex max-h-[85%] w-[560px] flex-col gap-4 overflow-y-auto rounded-b-xl border border-t-0 border-neutral-300 bg-[#f7f7f8] px-5 pt-4 pb-4 text-[13px] text-neutral-950 shadow-[0_18px_40px_rgba(0,0,0,0.22)]"
+        className="flex max-h-[85%] w-[560px] flex-col gap-4 overflow-y-auto rounded-b-xl border border-t-0 border-input bg-panel px-5 pt-4 pb-4 text-[13px] text-foreground shadow-[0_18px_40px_rgba(0,0,0,0.22)]"
       >
         <header className="flex items-center gap-2.5">
           <span
             aria-hidden="true"
-            className="flex size-9 items-center justify-center rounded-[9px] border border-neutral-200 bg-white"
+            className="flex size-9 items-center justify-center rounded-[9px] border border-border bg-card"
           >
             <House className="size-[18px]" />
           </span>
           <span className="flex min-w-0 flex-1 flex-col">
             <h2 className="truncate text-[15px] font-semibold">{project.name}</h2>
-            <span className="text-[11px] text-neutral-600">{t.site.kept}</span>
+            <span className="text-[11px] text-muted-foreground">{t.site.kept}</span>
           </span>
         </header>
 
@@ -86,7 +86,7 @@ export function SiteSettings({
               {shared.length ? t.site.alsoUsed(shared.join(", ")) : t.site.noneShared}{" "}
               <button
                 type="button"
-                className="underline underline-offset-2 hover:text-neutral-950"
+                className="underline underline-offset-2 hover:text-foreground"
                 onClick={() => void upstart.invoke("settings:open", "connectors")}
                 data-testid="site-open-settings"
               >
@@ -149,7 +149,7 @@ function PublishedSite({ project }: { project: ProjectInfo }) {
             value={address}
             placeholder={p.addressPlaceholder}
             onChange={(e) => setAddress(e.target.value)}
-            className="w-64 rounded-md border border-neutral-300 bg-white px-2 py-1 text-[13px] outline-none focus:border-neutral-500"
+            className="w-64 rounded-md border border-input bg-card px-2 py-1 text-[13px] outline-none focus:border-ring"
           />
           <Push type="submit" testid="site-address-save">
             {address.trim() && address.trim() === (project.siteUrl ?? "") ? p.check : p.save}
@@ -160,7 +160,7 @@ function PublishedSite({ project }: { project: ProjectInfo }) {
         <div
           data-testid="site-check"
           data-ok={check !== "checking" && check?.ok ? "true" : "false"}
-          className={`px-3 py-2 text-[11px] ${error || (check !== "checking" && check && !check.ok) ? "text-red-700" : "text-neutral-600"}`}
+          className={`px-3 py-2 text-[11px] ${error || (check !== "checking" && check && !check.ok) ? "text-destructive" : "text-muted-foreground"}`}
         >
           {error ?? (check === "checking" ? p.checking : check?.ok ? p.ok : check?.message)}
         </div>

@@ -23,12 +23,12 @@ export function Group({
 }) {
   return (
     <section className="flex flex-col gap-1.5" data-testid={testid}>
-      {title && <h3 className="ml-2.5 text-xs font-semibold text-neutral-600">{title}</h3>}
-      <div className="overflow-hidden rounded-[10px] border border-neutral-200 bg-white">
-        <div className="divide-y divide-neutral-100">{children}</div>
+      {title && <h3 className="ml-2.5 text-xs font-semibold text-muted-foreground">{title}</h3>}
+      <div className="overflow-hidden rounded-[10px] border border-border bg-card">
+        <div className="divide-y divide-border">{children}</div>
         {footer}
       </div>
-      {caption && <div className="mx-2.5 text-[11px] leading-snug text-neutral-600">{caption}</div>}
+      {caption && <div className="mx-2.5 text-[11px] leading-snug text-muted-foreground">{caption}</div>}
     </section>
   );
 }
@@ -54,14 +54,14 @@ export function Row({
       data-found={id && found.has(id) ? "" : undefined}
       className={cn(
         "flex min-h-11 items-center gap-3 px-3 py-2 transition-colors",
-        id && found.has(id) && "bg-amber-100/80",
+        id && found.has(id) && "bg-warning-muted",
       )}
     >
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <Label htmlFor={htmlFor} className="text-[13px]">
           {label}
         </Label>
-        {detail && <span className="text-[11px] leading-snug text-neutral-600">{detail}</span>}
+        {detail && <span className="text-[11px] leading-snug text-muted-foreground">{detail}</span>}
       </span>
       {children}
     </div>
@@ -84,9 +84,9 @@ export function ListBar({
   canRemove: boolean;
   testid?: string;
 }) {
-  const button = "flex h-6 w-7 items-center justify-center border-r border-neutral-200 text-[15px] disabled:opacity-35";
+  const button = "flex h-6 w-7 items-center justify-center border-r border-border text-[15px] disabled:opacity-35";
   return (
-    <div className="flex border-t border-neutral-200 bg-neutral-50">
+    <div className="flex border-t border-border bg-muted">
       <button
         type="button"
         className={button}
@@ -134,12 +134,12 @@ export function Switch({
       data-testid={testid}
       className={cn(
         "relative h-[22px] w-10 shrink-0 rounded-full transition-colors",
-        checked ? "bg-neutral-900" : "bg-neutral-300",
+        checked ? "bg-primary" : "bg-input",
       )}
     >
       <span
         className={cn(
-          "absolute top-0.5 size-[18px] rounded-full bg-white shadow transition-[left]",
+          "absolute top-0.5 size-[18px] rounded-full bg-background shadow transition-[left]",
           checked ? "left-5" : "left-0.5",
         )}
       />
@@ -165,7 +165,7 @@ export function Segmented<V extends string>({
   return (
     <fieldset
       aria-label={label}
-      className="m-0 flex min-w-0 rounded-[7px] border-0 bg-neutral-200/70 p-0.5"
+      className="m-0 flex min-w-0 rounded-[7px] border-0 bg-foreground/[0.07] p-0.5"
       data-testid={testid}
     >
       {options.map((o) => (
@@ -178,7 +178,7 @@ export function Segmented<V extends string>({
           data-value={o.value}
           className={cn(
             "rounded-[5px] px-3 py-0.5 text-[13px] disabled:opacity-50",
-            o.value === value && "bg-white shadow-[0_1px_2px_rgba(0,0,0,0.15)]",
+            o.value === value && "bg-background shadow-[0_1px_2px_rgba(0,0,0,0.15)]",
           )}
         >
           {o.label}
@@ -212,7 +212,7 @@ export function Push({
       data-testid={testid}
       className={cn(
         "shrink-0 rounded-md border px-3 py-1 text-[13px] disabled:opacity-50",
-        primary ? "border-neutral-900 bg-neutral-900 text-white" : "border-neutral-300 bg-white hover:bg-neutral-50",
+        primary ? "border-primary bg-primary text-primary-foreground" : "border-input bg-card hover:bg-muted",
       )}
     >
       {children}
@@ -221,6 +221,6 @@ export function Push({
 }
 
 export const selectClass =
-  "h-7 shrink-0 rounded-md border border-neutral-300 bg-white px-2 text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-neutral-400";
+  "h-7 shrink-0 rounded-md border border-input bg-card px-2 text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-ring";
 export const inputClass =
-  "h-7 min-w-0 rounded-md border border-neutral-300 bg-white px-2 text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-neutral-400";
+  "h-7 min-w-0 rounded-md border border-input bg-card px-2 text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-ring";

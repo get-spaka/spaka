@@ -184,7 +184,7 @@ export function PagesGrid({
                   void upstart.invoke("preview:page-menu", route);
                 }}
                 className={cn(
-                  "block overflow-hidden rounded-md bg-background p-0 shadow-sm ring-1 ring-black/10 transition-shadow duration-150 group-hover:shadow-lg",
+                  "block overflow-hidden rounded-md bg-background p-0 shadow-sm ring-1 ring-foreground/10 transition-shadow duration-150 group-hover:shadow-lg",
                   hovered === route && "shadow-lg",
                   writing && "outline-2 outline-offset-3 outline-primary",
                 )}

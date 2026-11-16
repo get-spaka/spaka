@@ -27,9 +27,19 @@ export type LaunchOptions = {
   env?: Record<string, string>;
   /** Launch the packaged app (apps/desktop/dist) instead of the development build. */
   packaged?: boolean;
+  /**
+   * The interface follows the appearance setting (Q330) rather than Playwright's
+   * light prefers-color-scheme, which the other checks keep so that their pictures
+   * do not depend on macOS's appearance.
+   */
+  followAppearance?: boolean;
 };
 
-export async function launchApp({ env = {}, packaged = false }: LaunchOptions = {}): Promise<LaunchedApp> {
+export async function launchApp({
+  env = {},
+  packaged = false,
+  followAppearance = false,
+}: LaunchOptions = {}): Promise<LaunchedApp> {
   const scratch = mkdtempSync(join(tmpdir(), "upstart-e2e-"));
   const dataDir = join(scratch, "data");
   const projectsDir = join(scratch, "projects");
@@ -37,6 +47,7 @@ export async function launchApp({ env = {}, packaged = false }: LaunchOptions = 
   const app = await _electron.launch({
     executablePath: packaged ? backgroundPackagedApp() : backgroundElectron(),
     args: packaged ? [] : [appDir],
+    ...(followAppearance ? { colorScheme: null } : {}),
     env: {
       ...cleanEnv(),
       UPSTART_BACKGROUND: "1",

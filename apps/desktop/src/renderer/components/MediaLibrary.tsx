@@ -163,7 +163,7 @@ export function MediaLibrary({ onError }: { onError: (message: string | undefine
                 <div className="flex items-center gap-1 px-1.5 py-1">
                   <span className="truncate text-[11px]">{m.name}</span>
                   {m.uses.length > 0 && (
-                    <span className="ml-auto size-1.5 shrink-0 rounded-full bg-emerald-500" title={m.usesLabel} />
+                    <span className="ml-auto size-1.5 shrink-0 rounded-full bg-success" title={m.usesLabel} />
                   )}
                 </div>
               </button>
