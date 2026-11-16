@@ -34,6 +34,7 @@ export function previewHead({
   return [
     `<meta charset="utf-8" data-up-runtime>`,
     `<meta name="viewport" content="width=device-width, initial-scale=1" data-up-runtime>`,
+    `<style id="up-layers" data-up-runtime>${LAYER_ORDER}</style>`,
     `<link rel="stylesheet" href="${base}/daisyui.css" data-up-runtime>`,
     `<style id="up-theme" data-up-runtime>${themeStyle(theme)}</style>`,
     `<style id="up-bridge" data-up-runtime>${BRIDGE_CSS}</style>`,
@@ -44,6 +45,15 @@ export function previewHead({
     ...scriptTags(assets, `${base}/${START_SCRIPT}`, { wait: true }),
   ].join("");
 }
+
+/**
+ * The cascade layers' order, declared before daisyui.css: that file declares
+ * base, utilities and then its own layer, which would put Tailwind's
+ * components after its utilities, so that a site's `@layer components` rule
+ * beat a class such as text-[3rem]. As in an export, where daisyUI's
+ * components and the site's come before the utilities.
+ */
+export const LAYER_ORDER = "@layer theme, base, daisyui, components, utilities;";
 
 /** What the preview's Tailwind compiles beside the classes: the theme's names, then the site's stylesheets. */
 export function tailwindStyle(styles: string): string {

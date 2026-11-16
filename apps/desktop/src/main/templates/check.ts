@@ -339,7 +339,8 @@ export function fixedColors(css: string): string[] {
     const value = m[2]!.replace(/url\([^)]*\)/gi, "").replace(/var\(\s*--[\w-]+/g, "var(");
     const hex = /#[0-9a-f]{3,8}\b/i.exec(value)?.[0];
     const fn = /\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch)\(\s*(?!from\b)[^)]*\)/i.exec(value)?.[0];
-    const named = COLOR_PROPERTY.test(property) ? NAMED.exec(value)?.[0] : undefined;
+    // A quoted name ("Red Hat Mono") is a font's, not a color.
+    const named = COLOR_PROPERTY.test(property) ? NAMED.exec(value.replace(/"[^"]*"|'[^']*'/g, '""'))?.[0] : undefined;
     for (const color of [hex, fn, named]) if (color) found.push(`${property}: ${color}`);
   }
   return found;

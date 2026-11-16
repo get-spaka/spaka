@@ -292,6 +292,11 @@ describe("its checks", () => {
   box-shadow: 0 0 1rem oklch(from var(--color-primary) l c h / 0.3); mask: linear-gradient(black, transparent);
   border-color: color-mix(in oklch, var(--color-base-content) 20%, transparent); filter: url(#grain); }`),
     ).toEqual([]);
+    // A font's name is not a color, even when it holds one.
+    expect(
+      fixedColors(`:root { --font-mono: "Red Hat Mono", ui-monospace; --font-body: 'Pink Sans', sans-serif; }`),
+    ).toEqual([]);
+    expect(fixedColors(`:root { --edge: red; }`)).toEqual(["--edge: red"]);
   });
 
   test("nothing taken from another site but the libraries", () => {

@@ -98,3 +98,9 @@ test("the start script starts the modules on load and on what htmx brings, waits
   await window.__upStart!.start();
   expect(calls.slice(2)).toEqual(["stop", "start document"]);
 });
+
+test("the cascade layers are ordered before daisyUI's stylesheet, utilities last, as in an export", () => {
+  const head = previewHead({ vendorBase: "/v", theme: "" });
+  expect(head.indexOf("@layer theme, base, daisyui, components, utilities;")).toBeGreaterThan(-1);
+  expect(head.indexOf("@layer theme, base, daisyui, components, utilities;")).toBeLessThan(head.indexOf("daisyui.css"));
+});
