@@ -95,6 +95,12 @@ export class Preview {
   private route: string | null = null;
   private title = "";
   private loading = false;
+  /**
+   * The page's markup as the page has it, complete with its scripts run: the same
+   * rendering is not sent again, a morph would undo what the page's own htmx or
+   * scripts changed since (a form's answer).
+   */
+  private shownHtml: string | undefined;
   /** Whether the page shows something yet; until then the interface's empty state stays visible. */
   private shown = false;
   /**
@@ -247,6 +253,7 @@ export class Preview {
   async navigate(route: string, byMaker = false) {
     if (byMaker) this.following = false;
     this.loading = true;
+    this.shownHtml = undefined;
     this.emit();
     await this.view.webContents.loadURL(new URL(route, this.origin).toString()).catch(() => {});
   }
@@ -606,7 +613,10 @@ export class Preview {
     // Nor is a page whose body has not started yet (its head is still being
     // written): the page shown so far stays rather than turning blank.
     if (site.overlay.size > 0 && !hasVisibleBody(result.html)) return this.emit();
-    this.send({ type: "render", html: result.html, final: pending.final && site.overlay.size === 0 });
+    const final = pending.final && site.overlay.size === 0;
+    if (final && result.html === this.shownHtml) return this.emit();
+    this.send({ type: "render", html: result.html, final });
+    this.shownHtml = final ? result.html : undefined;
     if (!this.shown) {
       this.shown = true;
       this.layout();
@@ -744,6 +754,7 @@ export class Preview {
       }
       if (message.type === "loaded") {
         this.title = message.title;
+        this.shownHtml = this.route !== null ? this.server.servedPage(this.route) : undefined;
         if (this.site) this.loadedScripts = scriptsKey(this.site.runtime);
         this.sendEditor();
         // Anything that changed while the page was loading.

@@ -167,6 +167,8 @@ export class Editor {
 
   set(mode: PreviewMode, paused: boolean) {
     this.mode = mode;
+    // Said on its element too: the app's checks wait for a mode to have reached the page.
+    this.host.dataset.mode = mode;
     this.paused = paused;
     this.comments.setPaused(paused);
     if (mode === "visitor") this.comments.close();

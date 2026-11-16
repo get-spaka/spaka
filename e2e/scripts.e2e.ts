@@ -119,6 +119,8 @@ export function stop() {
       await page("performance.getEntriesByType('resource').filter((e) => e.name.includes('/scripts/')).length"),
     ).toBe(0);
     await invoke("preview:set-mode", "visitor");
+    // Until the page has it, the editor keeps the page's own submits and clicks.
+    await until(() => page(`document.querySelector("upstart-editor")?.dataset.mode === "visitor"`));
     await until(() => page("window.__version === 2 && window.__lib === 1"));
     expect(await animation()).toBe("rise");
   });

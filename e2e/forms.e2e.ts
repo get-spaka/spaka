@@ -91,6 +91,8 @@ describe("forms in the preview", () => {
     await until(async () => ((await shown()) ?? []).length === 2, 15_000);
     // Forms are tried in the visitor's view: in edit mode the page's own forms do nothing.
     await invoke("preview:set-mode", "visitor");
+    // Until the page has it, the editor keeps the page's own submits and clicks.
+    await until(() => page(`document.querySelector("upstart-editor")?.dataset.mode === "visitor"`));
   }, 90_000);
   afterAll(async () => {
     await launched?.close();

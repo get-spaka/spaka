@@ -37,6 +37,8 @@ export type Site = { root: string; runtime: Runtime };
 export class PreviewServer {
   private server: Server | undefined;
   private port = 0;
+  /** The page last served at each address, as it was sent. */
+  private readonly pages = new Map<string, string>();
 
   /**
    * `site()` gives what is served now: the open project, or nothing. `block(id)`
@@ -51,6 +53,11 @@ export class PreviewServer {
 
   get origin() {
     return `http://127.0.0.1:${this.port}`;
+  }
+
+  /** The page last served at an address, if it was one: what a page loaded from it shows. */
+  servedPage(pathname: string): string | undefined {
+    return this.pages.get(pathname);
   }
 
   async start() {
@@ -138,7 +145,10 @@ export class PreviewServer {
     const request = new Request(url, { method, headers: req.headers as Record<string, string>, body });
     const response = await site.runtime.fetch(request);
     res.writeHead(response.status, Object.fromEntries(response.headers));
-    res.end(Buffer.from(await response.arrayBuffer()));
+    const sent = Buffer.from(await response.arrayBuffer());
+    if (method === "GET" && response.status === 200 && response.headers.get("content-type")?.startsWith("text/html"))
+      this.pages.set(url.pathname, sent.toString("utf8"));
+    res.end(sent);
   }
 }
 
