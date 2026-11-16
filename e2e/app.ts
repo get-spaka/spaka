@@ -65,6 +65,8 @@ export async function launchApp({
       UPSTART_PROJECTS_DIR: projectsDir,
       // The agent is played back from a recording unless a check asks for the real one ("").
       UPSTART_AGENT_REPLAY: join(import.meta.dirname, "fixtures/bakery.jsonl"),
+      // A packaged app sends its statistics to Aptabase: a check's go to a log instead.
+      UPSTART_STATS_LOG: join(scratch, "stats.jsonl"),
       ...env,
     },
   });

@@ -12,8 +12,8 @@ import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { dirname } from "node:path";
 import { AGENT_ACCOUNTS } from "../shared/ipc";
 
-/** The app's key at Aptabase: public, it only lets events in (Q334). Empty until the account exists. */
-export const APTABASE_KEY = "";
+/** The app's key at Aptabase (its EU region): public, it only lets events in (Q334). */
+export const APTABASE_KEY = "A-EU-0260899559";
 
 /** The ways of publishing: the builders' ids. */
 export const PUBLISH_WAYS = ["static", "node", "cloudflare"] as const;
