@@ -78,6 +78,7 @@ ipcRenderer.on("preview:message", (_event, message: ToPreview) => {
     editor?.set(message.mode, message.paused);
     if (!thumbnail) setMoving(message.mode === "visitor");
   } else if (message.type === "comments") editor?.setComments(message.comments);
+  else if (message.type === "tour") editor?.setTour(message.tour, (action) => send({ type: "tour", action }));
   else if (message.type === "chrome") {
     editor?.setHidden(message.hidden);
     // Answered once the page has drawn itself without them.

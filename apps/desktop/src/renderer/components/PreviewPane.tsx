@@ -308,7 +308,7 @@ export function PreviewPane({
   }, [pagesView]);
 
   return (
-    <main data-testid="preview" className="flex min-w-0 flex-1 flex-col bg-muted/40">
+    <main data-testid="preview" data-tour="page" className="flex min-w-0 flex-1 flex-col bg-muted/40">
       <div className="drag-region flex h-13 shrink-0 items-center gap-2 border-b bg-background px-3">
         {project && state.routes.length > 0 && (
           <label className="no-drag relative flex items-center">
@@ -480,6 +480,7 @@ export function PreviewPane({
             tip={t.preview.publishTip}
             command="publish"
             data-testid="export-open"
+            data-tour="publish"
           >
             <Upload />
             {t.preview.publish}
@@ -509,6 +510,7 @@ export function PreviewPane({
       <div className="flex min-h-0 flex-1">
         <div
           ref={area}
+          data-tour-area
           className="relative flex min-w-0 flex-1 flex-col items-center justify-center gap-2 px-8 text-center"
         >
           {frame && state.route !== null && (

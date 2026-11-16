@@ -379,6 +379,8 @@ export type AppSettings = {
   outputStyle: OutputStyle;
   /** A system notification when the agent finishes while Upstart is not in front. */
   notifyDone: boolean;
+  /** The tour has been seen, to its end or skipped (Q328, Q340): it no longer opens by itself. */
+  tourSeen: boolean;
 };
 export const DEFAULT_APP_SETTINGS: AppSettings = {
   newModel: "claude-sonnet-5-5",
@@ -389,6 +391,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   replyStyle: "short",
   outputStyle: "discreet",
   notifyDone: true,
+  tourSeen: false,
 };
 
 /** Calls from the interface that get an answer: channel → (args) → answer. */
@@ -572,6 +575,10 @@ export type Invokes = {
   "preview:navigate": (route: string) => void;
   "preview:reload": () => void;
   "preview:set-mode": (mode: PreviewMode) => void;
+  /** The tour's step in the page (Q332): its veil, or its bubble on the page; null takes them away. */
+  "tour:page": (tour: PageTour | null) => void;
+  /** The tour was seen to its end or skipped: it no longer opens by itself (Q328). */
+  "tour:seen": () => void;
   /** One page or every page (Q128). */
   /** `route`: the page opened, for the zoom from its thumbnail (Q133). */
   "preview:set-view": (view: PreviewView, route?: string) => void;
@@ -800,6 +807,10 @@ export type Events = {
   "settings:show": (request: { page?: SettingsPage; toggle?: boolean }) => void;
   /** A menu item or its shortcut (Q335): the interface does what its button does. */
   "menu:command": (command: Command) => void;
+  /** The maker's first website is built: the tour opens (Q328, Q336). */
+  "tour:start": () => void;
+  /** Next or Skip, clicked on the tour's bubble drawn in the page. */
+  "tour:action": (action: TourAction) => void;
 };
 
 export type InvokeChannel = keyof Invokes;
@@ -824,6 +835,8 @@ export const channels = {
     "preview:navigate",
     "preview:reload",
     "preview:set-mode",
+    "tour:page",
+    "tour:seen",
     "preview:set-view",
     "preview:open-page",
     "preview:page-menu",
@@ -943,6 +956,8 @@ export const channels = {
     "settings:changed",
     "settings:show",
     "menu:command",
+    "tour:start",
+    "tour:action",
   ],
 } as const satisfies {
   invoke: readonly InvokeChannel[];
@@ -980,7 +995,32 @@ export type ToPreview =
   /** Hides Upstart's own drawings in the page while a capture is taken; answered by "chrome-hidden". */
   | { type: "chrome"; hidden: boolean }
   /** A thumbnail partly scrolled out at the top: its page moves up by this many of its own pixels. */
-  | { type: "clip"; top: number };
+  | { type: "clip"; top: number }
+  /** The tour's veil or bubble over the page (Q337), or none. */
+  | { type: "tour"; tour: PageTour | null };
+
+export type TourAction = "next" | "skip";
+
+/**
+ * The tour in the page, a native view the interface cannot draw over: the page
+ * dimmed while a step points elsewhere, or the step about the page itself,
+ * drawn on its first heading or image in view.
+ */
+export type PageTour =
+  | { kind: "veil" }
+  | {
+      kind: "bubble";
+      /**
+       * On the page's first heading or image in view, or at its top, pointing up at
+       * the interface's Publish button: `x` its middle from the left of the page's area, `width` that area's.
+       */
+      at: "content" | { x: number; width: number };
+      title: string;
+      text: string;
+      count: string;
+      next: string;
+      skip: string;
+    };
 
 /**
  * Edit: a click selects, a double click edits a text. Comment: a click opens
@@ -1009,7 +1049,9 @@ export type FromPreview =
   | { type: "rendered"; ms: number }
   | { type: "chrome-hidden" }
   /** A thumbnail of the "All pages" view was clicked, right-clicked, or the pointer came or left (Q132). */
-  | { type: "thumb"; action: "click" | "menu" | "enter" | "leave" };
+  | { type: "thumb"; action: "click" | "menu" | "enter" | "leave" }
+  /** Next or Skip on the tour's bubble drawn in the page. */
+  | { type: "tour"; action: TourAction };
 
 /** Calls from the preview's script that get an answer (the edits it asks for). */
 export type PreviewInvokes = {

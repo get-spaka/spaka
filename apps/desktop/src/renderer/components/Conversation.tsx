@@ -158,6 +158,7 @@ export function Conversation({
                 role="tab"
                 aria-selected={shownTab === name}
                 data-testid={`tab-${name}`}
+                data-tour={name === "conversation" ? undefined : name}
                 onClick={() => setTab(name)}
                 className={cn(
                   "-mb-px border-b-2 px-2 py-1.5 text-xs font-medium",
@@ -312,7 +313,10 @@ export function MessageBox({
         onSend();
       }}
     >
-      <div className="rounded-xl border bg-background p-2 shadow-xs focus-within:ring-[3px] focus-within:ring-ring/30">
+      <div
+        data-tour="conversation"
+        className="rounded-xl border bg-background p-2 shadow-xs focus-within:ring-[3px] focus-within:ring-ring/30"
+      >
         {children}
         <textarea
           data-testid="message-input"

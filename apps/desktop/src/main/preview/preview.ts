@@ -13,6 +13,7 @@ import type {
   FromPreview,
   GridCell,
   PageComment,
+  PageTour,
   PreviewInvokes,
   PreviewMode,
   PreviewState,
@@ -436,6 +437,15 @@ export class Preview {
   private sendEditor() {
     this.send({ type: "editor", mode: this.mode, paused: this.paused });
     this.send({ type: "comments", comments: this.comments });
+    if (this.pageTour) this.send({ type: "tour", tour: this.pageTour });
+  }
+
+  private pageTour: PageTour | null = null;
+
+  /** The tour's veil or bubble over the page (Q337), kept through a new page loaded. */
+  setTour(tour: PageTour | null) {
+    this.pageTour = tour;
+    this.send({ type: "tour", tour });
   }
 
   private comments: PageComment[] = [];

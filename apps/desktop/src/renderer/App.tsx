@@ -8,6 +8,7 @@ import { ShortcutsDialog } from "./components/ShortcutsDialog";
 import { Sidebar } from "./components/Sidebar";
 import { SiteSettings } from "./components/SiteSettings";
 import { StartPanel } from "./components/StartPanel";
+import { Tour } from "./components/Tour";
 import { TipProvider } from "./components/ui/tip";
 import { useCommands } from "./hooks/useCommand";
 import {
@@ -54,7 +55,24 @@ export function App() {
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
   // The keyboard shortcuts' sheet, from the Help menu (Q335).
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  // The tour (Q328, Q338): opened by main once the first website is built, or from the Help menu.
+  const [tourStep, setTourStep] = useState<number | null>(null);
+  const startTour = useCallback(() => {
+    if (!current) return;
+    setSettingsOpen(false);
+    setSiteOpen(false);
+    setShortcutsOpen(false);
+    // The page itself is one of its steps.
+    void upstart.invoke("preview:set-view", "page");
+    setTourStep(0);
+  }, [current]);
+  useEffect(() => upstart.on("tour:start", startTour), [startTour]);
+  const endTour = useCallback(() => {
+    setTourStep(null);
+    void upstart.invoke("tour:seen");
+  }, []);
   useCommands({
+    tour: startTour,
     sidebar: () => setSidebarOpen((open) => !open),
     "new-website": () => void upstart.invoke("projects:close"),
     "open-folder": () => void upstart.invoke("projects:choose-folder"),
@@ -120,6 +138,7 @@ export function App() {
           />
         )}
         {picking && <MediaPicker key={picking.id} request={picking} />}
+        {tourStep !== null && current && <Tour step={tourStep} onStep={setTourStep} onEnd={endTour} />}
         {shortcutsOpen && <ShortcutsDialog onClose={() => setShortcutsOpen(false)} />}
         {settingsOpen && <SettingsPanel page={settingsPage} onPage={setSettingsPage} onClose={closeSettings} />}
       </div>

@@ -16,11 +16,14 @@ import {
   type EditAction,
   type EditInfo,
   type PageComment,
+  type PageTour,
   type PreviewMode,
+  type TourAction,
 } from "../../shared/ipc";
 import { en } from "../../shared/strings/en";
 import { COMMENT_STYLE, CommentLayer, type CommentsBridge } from "./comments";
 import { attachTips, TIP_STYLE } from "./tip";
+import { PageTourLayer, TOUR_STYLE } from "./tour";
 import { insertionPoint, type Origin, originOf, sectionList, sectionTarget, textsOf, tracedFrom } from "./trace";
 
 const t = en.editor;
@@ -109,6 +112,7 @@ export class Editor {
   private readonly toastEl: HTMLElement;
   private readonly note: HTMLElement;
   private readonly line: HTMLElement;
+  private readonly tour: PageTourLayer;
   private hovered: HTMLElement | undefined;
   private selected: Selected | undefined;
   private editing: { el: HTMLElement; before: string; origin: Origin; field?: string } | undefined;
@@ -127,7 +131,7 @@ export class Editor {
     this.host.style.cssText =
       "all: initial; position: fixed; top: 0; left: 0; width: 0; height: 0; z-index: 2147483647;";
     this.root = this.host.attachShadow({ mode: open ? "open" : "closed" });
-    this.root.innerHTML = `<style>${STYLE}${COMMENT_STYLE}${TIP_STYLE}</style><div class="layer">
+    this.root.innerHTML = `<style>${STYLE}${COMMENT_STYLE}${TIP_STYLE}${TOUR_STYLE}</style><div class="layer">
       <div class="box hover"><span class="tag"></span></div>
       <div class="box selected"></div>
       <div class="bar" data-testid="editor-bar"></div>
@@ -147,6 +151,7 @@ export class Editor {
     q<HTMLButtonElement>('[data-act="save"]').textContent = t.save;
     this.comments = new CommentLayer(q(".layer"), bridge, (text) => this.toast(text));
     attachTips(this.root, q(".layer"));
+    this.tour = new PageTourLayer(q(".layer"));
     this.listen();
   }
 
@@ -163,6 +168,11 @@ export class Editor {
     // The page's own size changes (a font, an image) move what is drawn over it.
     if (!this.observed) new ResizeObserver(() => this.follow()).observe(document.documentElement);
     this.observed = true;
+  }
+
+  /** The tour's veil or bubble over the page (Q337). */
+  setTour(tour: PageTour | null, act: (action: TourAction) => void) {
+    this.tour.set(tour, act);
   }
 
   set(mode: PreviewMode, paused: boolean) {

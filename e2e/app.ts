@@ -33,17 +33,27 @@ export type LaunchOptions = {
    * do not depend on macOS's appearance.
    */
   followAppearance?: boolean;
+  /**
+   * The tour opens by itself, as for a new maker (Q328); the other checks start
+   * with it seen, so that it covers nothing they look at.
+   */
+  tour?: boolean;
 };
 
 export async function launchApp({
   env = {},
   packaged = false,
   followAppearance = false,
+  tour = false,
 }: LaunchOptions = {}): Promise<LaunchedApp> {
   const scratch = mkdtempSync(join(tmpdir(), "upstart-e2e-"));
   const dataDir = join(scratch, "data");
   const projectsDir = join(scratch, "projects");
   mkdirSync(projectsDir, { recursive: true });
+  if (!tour) {
+    mkdirSync(dataDir, { recursive: true });
+    writeFileSync(join(dataDir, "settings.json"), JSON.stringify({ tourSeen: true }));
+  }
   const app = await _electron.launch({
     executablePath: packaged ? backgroundPackagedApp() : backgroundElectron(),
     args: packaged ? [] : [appDir],

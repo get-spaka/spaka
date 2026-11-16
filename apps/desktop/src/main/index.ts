@@ -104,6 +104,7 @@ import { pagesAnswered, readPagesCard } from "./templates/pages-card";
 import { TemplateViewer } from "./templates/viewer";
 import { Fonts } from "./theme/fonts";
 import { readTheme, type ThemeValues, themeColors, writeTheme } from "./theme/theme-file";
+import { opensTour, type TourMoment } from "./tour";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
 const env = readEnvironment();
@@ -223,6 +224,14 @@ async function main() {
     }),
   );
   const projects = new Projects(app.getPath("userData"), env.projectsDir);
+  // The first start with the tour: a maker who already has websites never sees it open by itself (Q340).
+  settings.settleTour(projects.list().length > 0);
+  /** The tour opens by itself once, when the maker's first website is built (Q328, Q336). */
+  const maybeTour = (projectId: string, moment: Omit<TourMoment, "seen" | "shown" | "hasPage">) => {
+    const shown = projectId === current?.id;
+    const hasPage = shown && (preview.runtime?.routes().length ?? 0) > 0;
+    if (opensTour({ ...moment, seen: settings.get().tourSeen, shown, hasPage })) ipc.emit("tour:start");
+  };
   // The gallery's blocks (Q92), shipped beside the app like its skills.
   const gallery = new Gallery(app.isPackaged ? join(process.resourcesPath, "gallery") : join(here, "../../gallery"));
   let index: BlockIndex | undefined;
@@ -266,6 +275,8 @@ async function main() {
       else if (action === "menu") pageMenu(route);
     },
     onPicture: (route, url) => ipc.emit("preview:picture", { route, url }),
+    // Next or Skip on the tour's bubble in the page (Q337).
+    onPageEvent: (event) => event.type === "tour" && ipc.emit("tour:action", event.action),
     onView: (view) => writeViewData({ ...viewData(), view }),
     onZoom: (zoom) => ipc.emit("preview:zoom", zoom),
     onZoomReady: (ready) => ipc.emit("preview:zoom-ready", ready),
@@ -476,11 +487,13 @@ async function main() {
       // A page type adapted waits for the maker to look at it; after the last one, the adaptation is over (Q303, Q307).
       if (event.type === "turn-end") {
         const path = projectId === current?.id ? current.path : projects.list().find((p) => p.id === projectId)?.path;
+        const done = event.status === "done";
         if (path && readAdaptation(path)) {
-          const { finished } = turnEnded(path, event.status === "done");
+          const { finished } = turnEnded(path, done);
           if (finished) agent.notice(projectId, t.adaptation.finished);
           emitAdaptation(projectId, finished);
-        }
+          maybeTour(projectId, { done, adapting: true, adaptationFinished: finished });
+        } else maybeTour(projectId, { done, adapting: false, adaptationFinished: false });
       }
       // A version of the project after each turn of the agent (decisions: history).
       if (event.type === "turn-end" && history?.projectId === projectId) {
@@ -703,6 +716,10 @@ async function main() {
     if (next.replyStyle !== before.replyStyle) agent.instructionsChanged();
     ipc.emit("settings:changed", next);
     return next;
+  });
+  ipc.handle("tour:page", (tour) => preview.setTour(tour));
+  ipc.handle("tour:seen", () => {
+    ipc.emit("settings:changed", settings.set({ tourSeen: true }));
   });
   ipc.handle("settings:reveal-projects", () => {
     mkdirSync(env.projectsDir, { recursive: true });
@@ -989,6 +1006,7 @@ async function main() {
         finishAdaptation(root);
         agent.notice(project.id, t.adaptation.finished);
         emitAdaptation(project.id, true);
+        maybeTour(project.id, { done: false, adapting: true, adaptationFinished: true });
         return;
       }
       emitAdaptation(project.id);

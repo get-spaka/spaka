@@ -41,7 +41,8 @@ describe("a template's adaptation, page by page", () => {
   beforeAll(async () => {
     const file = join(mkdtempSync(join(tmpdir(), "upstart-adaptation-")), "adaptation.jsonl");
     writeAdaptationRecording(file);
-    launched = await launchApp({ env: { UPSTART_AGENT_REPLAY: file } });
+    // A new maker: the tour waits for the adaptation's end (Q328).
+    launched = await launchApp({ tour: true, env: { UPSTART_AGENT_REPLAY: file } });
     await launched.window.getByTestId("start").waitFor();
   });
   afterAll(async () => {
@@ -125,6 +126,8 @@ describe("a template's adaptation, page by page", () => {
     );
     await expect(status("/")).resolves.toBe("done");
     await expect(status("/work")).resolves.toBe("ready");
+    // Pages are left to do: no tour yet.
+    expect(await w.getByTestId("tour").count()).toBe(0);
     // The agent removed the contact page in that turn, as it was told.
     rmSync(join(root, "pages/contact.liquid"));
   });
@@ -145,6 +148,11 @@ describe("a template's adaptation, page by page", () => {
     await until(async () => (await w.getByTestId("adaptation-bar").count()) === 0);
     await expect(w.locator('[data-testid="notice"]').last().textContent()).resolves.toMatch(/Your website is adapted/);
     expect(existsSync(join(root, ".upstart/adaptation"))).toBe(false);
+    // Then the tour, from its first step; Skip ends it.
+    await w.getByTestId("tour").waitFor();
+    await expect(w.getByTestId("tour").getAttribute("data-step")).resolves.toBe("conversation");
     await launched.capture("adaptation-done");
+    await w.getByTestId("tour-skip").click();
+    await w.getByTestId("tour").waitFor({ state: "detached" });
   });
 });

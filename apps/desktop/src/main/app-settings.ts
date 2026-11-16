@@ -1,6 +1,6 @@
 // The app's own settings, for every website (Q117, Q125): the model and effort a
 // new website starts with, the anonymous statistics switch, the appearance (Q330), the text size, the
-// agent's reply style, the conversation's output style and the notification. Kept as a JSON file
+// agent's reply style, the conversation's output style, the notification and whether the tour was seen. Kept as a JSON file
 // in the app's data on this computer; a value missing or unreadable falls back
 // to its default.
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
@@ -30,6 +30,7 @@ export function settingsFrom(data: unknown): AppSettings {
     replyStyle: oneOf(REPLY_STYLES, d.replyStyle) ?? DEFAULT_SETTINGS.replyStyle,
     outputStyle: oneOf(OUTPUT_STYLES, d.outputStyle) ?? DEFAULT_SETTINGS.outputStyle,
     notifyDone: typeof d.notifyDone === "boolean" ? d.notifyDone : DEFAULT_SETTINGS.notifyDone,
+    tourSeen: typeof d.tourSeen === "boolean" ? d.tourSeen : DEFAULT_SETTINGS.tourSeen,
   };
 }
 
@@ -51,6 +52,18 @@ export class AppSettingsStore {
       }
     }
     return this.cache;
+  }
+
+  /**
+   * The first start of the version with the tour (Q340): a maker who already has
+   * a website has found the way without it, and it never opens by itself for them.
+   */
+  settleTour(hasWebsites: boolean) {
+    let kept: unknown;
+    try {
+      kept = (JSON.parse(readFileSync(this.file, "utf8")) as Record<string, unknown>).tourSeen;
+    } catch {}
+    if (typeof kept !== "boolean") this.set({ tourSeen: hasWebsites });
   }
 
   set(change: Partial<AppSettings>): AppSettings {

@@ -41,6 +41,39 @@ export const en = {
     window: "Window",
     help: "Help",
   },
+  /** The tour (Q332): five steps, from the conversation to Publish. */
+  tour: {
+    steps: {
+      conversation: {
+        title: "Ask in words",
+        text: "Tell the agent what to change, as you would tell a person: “warmer colors”, “add our opening hours”.",
+      },
+      page: {
+        title: "Change it by hand",
+        text: "In Edit mode, click a text to rewrite it or an image to replace it. The agent sees what you changed.",
+      },
+      blocks: {
+        title: "Add a section",
+        text: "The Blocks tab holds ready-made sections: drag one into the page, where you want it.",
+      },
+      theme: {
+        title: "Colors and fonts",
+        text: "The Theme tab changes the colors, fonts and shapes of the whole website at once.",
+      },
+      publish: {
+        title: "Publish",
+        text: "When it is ready, Publish puts the website online or saves it as files.",
+      },
+    },
+    count: (step: number, total: number) => `${step} of ${total}`,
+    next: "Next",
+    nextTip: "Go on to the next step",
+    done: "Done",
+    doneTip: "End the tour",
+    skip: "Skip",
+    skipTip: "End the tour now: it starts again from the Help menu",
+    label: "Tour of Upstart",
+  },
   shortcuts: {
     title: "Keyboard shortcuts",
     close: "Close",
