@@ -166,7 +166,7 @@ export function StartPanel({
                       className={cn(
                         "rounded-full border px-2.5 py-0.5 text-xs",
                         category === c
-                          ? "border-foreground bg-foreground text-background"
+                          ? "border-primary bg-primary text-primary-foreground"
                           : "text-muted-foreground hover:border-foreground/40 hover:text-foreground",
                       )}
                     >
@@ -296,7 +296,7 @@ function TemplateCard({
           className={cn(
             "relative block aspect-[8/5] w-full overflow-hidden rounded-lg border bg-muted outline-none transition-shadow",
             "focus-visible:ring-[3px] focus-visible:ring-ring/50",
-            chosen ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : "hover:shadow-md",
+            chosen ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:shadow-md",
           )}
         >
           {cover && (
@@ -328,7 +328,7 @@ function TemplateCard({
             </span>
           )}
           {chosen && (
-            <span className="ml-auto inline-flex size-6 items-center justify-center rounded-full bg-foreground text-background shadow-xs">
+            <span className="ml-auto inline-flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xs">
               <Check className="size-3.5" />
             </span>
           )}

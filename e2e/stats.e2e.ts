@@ -61,7 +61,8 @@ describe("anonymous statistics", () => {
 
   test("the Privacy page lists what is sent; switched off, nothing more is", async () => {
     await invoke("settings:open", "privacy");
-    expect(await w().getByTestId("statistics-events").locator("li").count()).toBe(10);
+    // The page is drawn after settings:open answers: wait for its list.
+    await until(async () => (await w().getByTestId("statistics-events").locator("li").count()) === 10);
     await expect(w().getByText("This copy of Upstart sends nothing.").count()).resolves.toBe(1);
     await launched.capture("settings-privacy");
     await w().getByTestId("statistics-switch").click();

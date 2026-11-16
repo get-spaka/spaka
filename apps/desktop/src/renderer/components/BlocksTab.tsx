@@ -100,7 +100,7 @@ export function BlocksTab({
                   className={cn(
                     "rounded-full border px-2 py-0.5 text-[11px]",
                     kind === k
-                      ? "border-foreground bg-foreground text-background"
+                      ? "border-primary bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:border-foreground/40 hover:text-foreground",
                   )}
                 >

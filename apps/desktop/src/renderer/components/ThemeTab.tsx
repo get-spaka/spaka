@@ -79,7 +79,7 @@ export function ThemeTab({ theme, working, onAskDark }: { theme: string; working
                   onClick={() => apply(Object.fromEntries(set.map((c) => [c, p.colors[c]!])))}
                   className={cn(
                     "overflow-hidden rounded-md border text-left text-[11px] disabled:opacity-50",
-                    current ? "ring-2 ring-foreground" : "hover:border-foreground/40",
+                    current ? "ring-2 ring-primary" : "hover:border-foreground/40",
                   )}
                 >
                   <div className="flex h-8" style={{ background: p.colors["--theme-color-surface"] }}>
@@ -171,7 +171,7 @@ export function ThemeTab({ theme, working, onAskDark }: { theme: string; working
                       onClick={() => current !== option && apply({ [style.variable]: value })}
                       className={cn(
                         "flex-1 rounded-sm px-1.5 py-1 disabled:opacity-50",
-                        current === option ? "bg-foreground text-background" : "hover:bg-muted",
+                        current === option ? "bg-primary text-primary-foreground" : "hover:bg-muted",
                       )}
                     >
                       {(strings.options as Record<string, string>)[option]}
