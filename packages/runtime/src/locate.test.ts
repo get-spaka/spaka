@@ -77,11 +77,8 @@ test("the sections of a page: children of main, else body, includes among them",
 });
 
 test("on a page the agent wrote: every heading and paragraph without Liquid can be edited", () => {
-  const dir = join(
-    import.meta.dirname,
-    "../../../spikes/live-generation/runs/A-business-5-live-2026-11-09T22-22-50/project/pages",
-  );
-  const src = readFileSync(join(dir, "index.liquid"), "utf8");
+  // A home page Claude wrote in the live-generation spike's run A-business-5.
+  const src = readFileSync(join(import.meta.dirname, "fixtures/agent-written-page.liquid"), "utf8");
   const found = sections(src);
   assert.ok(found.length >= 5, `${found.length} sections`);
   assert.equal(found[0]!.kind, "include");

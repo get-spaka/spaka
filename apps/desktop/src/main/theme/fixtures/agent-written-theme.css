@@ -1,0 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Nunito:wght@400;600;700&display=swap');
+
+:root {
+  --theme-color-primary: #b5651d;
+  --theme-color-primary-content: #fff8ef;
+  --theme-color-secondary: #7a8b5c;
+  --theme-color-secondary-content: #fdfdf6;
+  --theme-color-accent: #e9b44c;
+  --theme-color-accent-content: #3b2a14;
+  --theme-color-neutral: #3b2a1a;
+  --theme-color-neutral-content: #f6ead9;
+  --theme-color-surface: #fffaf2;
+  --theme-color-surface-alt: #f6ead7;
+  --theme-color-border: #e4d2b6;
+  --theme-color-text: #3b2a1a;
+  --theme-font-heading: 'Fraunces', Georgia, serif;
+  --theme-font-body: 'Nunito', system-ui, sans-serif;
+  --theme-radius: 1rem;
+}

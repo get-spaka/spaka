@@ -57,13 +57,8 @@ test("with no :root yet, one is written", () => {
 });
 
 test("on a theme the agent wrote in a real run, reading and writing round-trips", () => {
-  const css = readFileSync(
-    join(
-      __dirname,
-      "../../../../../spikes/live-generation/runs/A-business-5-live-2026-11-09T22-22-50/project/theme.css",
-    ),
-    "utf8",
-  );
+  // The theme Claude wrote in the live-generation spike's run A-business-5.
+  const css = readFileSync(join(__dirname, "fixtures/agent-written-theme.css"), "utf8");
   const values = readTheme(css);
   expect(Object.keys(values).length).toBeGreaterThanOrEqual(12);
   expect(writeTheme(css, values)).toBe(css);

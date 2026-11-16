@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Chez Margot – Neighbourhood bakery in Lyon</title>
+  <meta name="description" content="Chez Margot is a neighbourhood bakery in Lyon: sourdough breads, buttery viennoiseries and pastries baked fresh every morning.">
+  <meta property="og:title" content="Chez Margot – Neighbourhood bakery in Lyon">
+  <meta property="og:description" content="Sourdough breads, viennoiseries and pastries baked fresh every morning in Lyon.">
+</head>
+<body class="bg-base-100 text-base-content">
+  {% render 'header' %}
+
+  <section class="hero bg-gradient-to-br from-base-200 to-accent/30">
+    <div class="hero-content max-w-6xl py-16 md:py-28 text-center">
+      <div class="max-w-2xl">
+        <span class="badge badge-secondary mb-4">Bakery · Lyon</span>
+        <h1 class="text-4xl md:text-6xl font-bold leading-tight">Bread that smells like your childhood.</h1>
+        <p class="py-6 text-lg text-base-content/70">Every morning from 5 am, Margot and her team shape, proof and bake sourdough loaves, croissants and tarts, a few steps from the Croix-Rousse market.</p>
+        <div class="flex flex-wrap gap-3 justify-center">
+          <a href="/menu" class="btn btn-primary">See our breads &amp; pastries</a>
+          <a href="/contact" class="btn btn-outline">Find the bakery</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="max-w-6xl mx-auto px-4 py-16">
+    <h2 class="text-3xl font-bold text-center mb-10">Why our neighbours queue up</h2>
+    <div class="grid gap-6 md:grid-cols-3">
+      <div class="card card-border bg-base-100">
+        <div class="card-body">
+          <div class="text-4xl">🌾</div>
+          <h3 class="card-title">Slow-fermented sourdough</h3>
+          <p class="text-base-content/70">A 30-year-old starter, 24 hours of rest and stone-milled flour from farms in the Rhône valley.</p>
+        </div>
+      </div>
+      <div class="card card-border bg-base-100">
+        <div class="card-body">
+          <div class="text-4xl">🥐</div>
+          <h3 class="card-title">Pure butter viennoiseries</h3>
+          <p class="text-base-content/70">Croissants laminated by hand with AOP Charentes-Poitou butter. Nothing else goes in.</p>
+        </div>
+      </div>
+      <div class="card card-border bg-base-100">
+        <div class="card-body">
+          <div class="text-4xl">🏡</div>
+          <h3 class="card-title">Made on the spot</h3>
+          <p class="text-base-content/70">Everything is baked in our own oven, in the shop, and sold the same day.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-base-200 py-16">
+    <div class="max-w-6xl mx-auto px-4">
+      <h2 class="text-3xl font-bold text-center mb-10">A day at the bakery</h2>
+      <ul class="steps steps-vertical md:steps-horizontal w-full">
+        <li class="step step-primary"><span class="text-left md:text-center"><b>4:00</b> Kneading</span></li>
+        <li class="step step-primary"><span class="text-left md:text-center"><b>6:30</b> First loaves</span></li>
+        <li class="step step-primary"><span class="text-left md:text-center"><b>8:00</b> Croissants out</span></li>
+        <li class="step step-primary"><span class="text-left md:text-center"><b>16:00</b> Afternoon tarts</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="max-w-6xl mx-auto px-4 py-16">
+    <h2 class="text-3xl font-bold text-center mb-10">What the neighbourhood says</h2>
+    <div class="grid gap-6 md:grid-cols-3">
+      <div class="card bg-base-200"><div class="card-body">
+        <p>“The best tradition baguette in the 4th arrondissement. I stop by every day on my way to work.”</p>
+        <p class="font-semibold">Camille, Croix-Rousse</p>
+      </div></div>
+      <div class="card bg-base-200"><div class="card-body">
+        <p>“Their pain au chocolat is still warm at 8 am. My kids ask for it every Sunday.”</p>
+        <p class="font-semibold">Julien, father of two</p>
+      </div></div>
+      <div class="card bg-base-200"><div class="card-body">
+        <p>“Margot made our wedding brioche tower. Guests are still talking about it.”</p>
+        <p class="font-semibold">Inès &amp; Karim</p>
+      </div></div>
+    </div>
+  </section>
+
+  <section class="px-4 pb-16">
+    <div class="max-w-4xl mx-auto bg-primary text-primary-content rounded-box p-10 text-center">
+      <h2 class="text-3xl font-bold">Come early, the best loaves go fast.</h2>
+      <p class="mt-3 opacity-90">Open Tuesday to Sunday, from 6:30 am.</p>
+      <a href="/contact" class="btn btn-accent mt-6">Opening hours &amp; address</a>
+    </div>
+  </section>
+
+  {% render 'footer' %}
+</body>
+</html>
