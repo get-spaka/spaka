@@ -50,6 +50,8 @@ describe.skipIf(!dir)("a template's pictures", () => {
         const resize = async (height: number) => win.setContentSize(device.width, height);
         try {
           await win.loadURL(url);
+          // A picture shows the page, not its scrollbar, whatever the system's setting.
+          await win.webContents.insertCSS("html { scrollbar-width: none !important; }");
           // Visitor mode, as the preview's own script sets it.
           await js(
             "document.documentElement.setAttribute('data-up-moving', ''); window.__upStart && window.__upStart.go()",
