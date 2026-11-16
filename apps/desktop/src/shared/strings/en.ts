@@ -40,6 +40,7 @@ export const en = {
     preview: "Preview",
     window: "Window",
     help: "Help",
+    about: "About Upstart",
   },
   /** The tour (Q332): five steps, from the conversation to Publish. */
   tour: {
@@ -910,9 +911,11 @@ export const en = {
       notYet: "This copy of Upstart sends nothing.",
     },
     about: {
-      tagline: "Websites made with an agent, on your computer.",
       version: (version: string) => `Version ${version}`,
       licence: "Free software, under the MIT licence.",
+      site: "upstart.gg",
+      siteTip: "Open Upstart's website in your browser",
+      madeWith: "Made with",
       built: (electron: string, chromium: string, node: string) =>
         `Electron ${electron} · Chromium ${chromium} · Node ${node}`,
     },

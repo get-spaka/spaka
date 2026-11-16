@@ -236,6 +236,7 @@ async function main() {
     buildMenu({
       send: (command) => ipc.emit("menu:command", command),
       settings: () => ipc.emit("settings:show", { toggle: true }),
+      about: () => openSettings("about"),
       textSize: (step) => {
         const sizes = TEXT_SIZES;
         const now = sizes.indexOf(settings.get().textSize);

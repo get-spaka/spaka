@@ -14,6 +14,8 @@ export type MenuActions = {
   /** The interface does what the command's button does. */
   send(command: Command): void;
   settings(): void;
+  /** The About page of the settings, which Settings → About Upstart shows too (Q339). */
+  about(): void;
   /** One step larger or smaller, or back to the usual size. */
   textSize(step: 1 | -1 | 0): void;
   askAgent(): void;
@@ -45,7 +47,7 @@ export function buildMenu(actions: MenuActions): Menu {
     {
       label: app.name,
       submenu: [
-        { role: "about" },
+        { label: t.menus.about, click: actions.about },
         { type: "separator" },
         item("settings", actions.settings),
         { type: "separator" },

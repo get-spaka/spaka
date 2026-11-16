@@ -20,9 +20,13 @@ import { upstart } from "../lib/bridge";
 export function useProjects() {
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [current, setCurrent] = useState<ProjectInfo | null>(null);
+  // Until both are known, the window shows the startup view rather than the start screen.
+  const [loaded, setLoaded] = useState(false);
   useEffect(() => {
-    void upstart.invoke("projects:list").then(setProjects);
-    void upstart.invoke("projects:current").then(setCurrent);
+    void Promise.all([
+      upstart.invoke("projects:list").then(setProjects),
+      upstart.invoke("projects:current").then(setCurrent),
+    ]).then(() => setLoaded(true));
     const offList = upstart.on("projects:changed", setProjects);
     const offOpen = upstart.on("project:opened", setCurrent);
     return () => {
@@ -30,7 +34,7 @@ export function useProjects() {
       offOpen();
     };
   }, []);
-  return { projects, current };
+  return { projects, current, loaded };
 }
 
 /** The open project's conversation, kept in step with the agent's work. */

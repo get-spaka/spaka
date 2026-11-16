@@ -75,6 +75,13 @@ describe("the settings panel", () => {
     await invoke("settings:open", "about");
     await until(async () => (await w.getByTestId("settings-title").textContent()) === "About Upstart");
     expect(await w.getByTestId("about-version").textContent()).toMatch(/^Version \d/);
+    // Its icon, its site and what it is made with, each with its licence (Q339).
+    await until(() => w.getByTestId("about-icon").evaluate((img: HTMLImageElement) => img.naturalWidth > 0));
+    expect(await w.getByTestId("about-site").textContent()).toBe("upstart.gg");
+    const made = w.getByTestId("about-components").locator("li");
+    expect(await made.count()).toBe(16);
+    expect(await made.first().textContent()).toBe("ElectronMIT");
+    await launched.capture("settings-about");
   });
 
   test("the search narrows the categories and highlights what it found; Escape empties it, then closes", async () => {

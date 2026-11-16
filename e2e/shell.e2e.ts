@@ -69,6 +69,19 @@ describe("the app's shell, launched in the background", () => {
     ]);
   });
 
+  test("the app menu's About Upstart opens the settings at About Upstart (Q339)", async () => {
+    const { window } = launched;
+    const first = await launched.app.evaluate(({ Menu }) => {
+      const item = Menu.getApplicationMenu()?.items[0]?.submenu?.items[0];
+      item?.click();
+      return item?.label;
+    });
+    expect(first).toBe("About Upstart");
+    await window.getByTestId("settings-title").filter({ hasText: "About Upstart" }).waitFor();
+    await window.keyboard.press("Escape");
+    await window.getByTestId("settings-title").waitFor({ state: "detached" });
+  });
+
   test("Keyboard Shortcuts opens the sheet, which Escape closes; the sidebar's item hides and shows it", async () => {
     const { window } = launched;
     expect(await menuItem("CommandOrControl+/")).toBe("Keyboard Shortcuts");

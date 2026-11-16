@@ -32,11 +32,14 @@ import {
   type TextSize,
   usableModel,
 } from "../../shared/ipc";
+import { COMPONENTS, UPSTART_SITE } from "../../shared/open-source";
 import { searchSettings } from "../../shared/settings-search";
+import { Button } from "../components/ui/button";
 import { Tip } from "../components/ui/tip";
 import { useAgentStatus, useAppInfo, useAppSettings, useConnectors, useProjects, useSkills } from "../hooks/useMain";
 import { upstart } from "../lib/bridge";
 import { ACCOUNT, CLOSE_BUTTON, CLOSE_CROSS, TILES } from "../lib/colors";
+import { APP_ICON } from "../lib/icon";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { ConnectorList, SkillList } from "./lists";
@@ -666,19 +669,34 @@ function AboutPage() {
   const info = useAppInfo();
   return (
     <section className="flex flex-col items-center gap-2 py-6 text-center" data-setting="version">
-      <span
-        aria-hidden="true"
-        className="flex size-16 items-center justify-center rounded-[18px] bg-primary text-2xl font-semibold text-primary-foreground"
-      >
-        U
-      </span>
+      <img src={APP_ICON} alt="" className="size-24" draggable={false} data-testid="about-icon" />
       <h2 className="text-lg font-semibold">{t.app.name}</h2>
-      <p className="text-muted-foreground">{t.settings.about.tagline}</p>
       {info && (
         <>
           <p data-testid="about-version">{t.settings.about.version(info.version)}</p>
           <p className="text-muted-foreground">{t.settings.about.licence}</p>
-          <p className="text-[11px] text-muted-foreground">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-primary underline-offset-4 hover:bg-transparent hover:underline"
+            tip={t.settings.about.siteTip}
+            onClick={() => void upstart.invoke("app:open-link", UPSTART_SITE)}
+            data-testid="about-site"
+          >
+            {t.settings.about.site}
+          </Button>
+          <div className="mt-4 w-full max-w-md" data-testid="about-components">
+            <h3 className="mb-2 text-xs font-medium text-muted-foreground">{t.settings.about.madeWith}</h3>
+            <ul className="grid grid-cols-2 gap-x-6 gap-y-1 text-left text-xs">
+              {COMPONENTS.map((c) => (
+                <li key={c.name} className="flex justify-between gap-2">
+                  <span>{c.name}</span>
+                  <span className="text-muted-foreground">{c.licence}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <p className="mt-3 text-[11px] text-muted-foreground">
             {t.settings.about.built(info.versions.electron, info.versions.chromium, info.versions.node)}
           </p>
         </>

@@ -8,6 +8,7 @@ import { ShortcutsDialog } from "./components/ShortcutsDialog";
 import { Sidebar } from "./components/Sidebar";
 import { SiteSettings } from "./components/SiteSettings";
 import { StartPanel } from "./components/StartPanel";
+import { Startup } from "./components/Startup";
 import { Tour } from "./components/Tour";
 import { TipProvider } from "./components/ui/tip";
 import { useCommands } from "./hooks/useCommand";
@@ -27,7 +28,7 @@ import { SettingsPanel } from "./settings/SettingsPanel";
 
 export function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const { projects, current } = useProjects();
+  const { projects, current, loaded } = useProjects();
   const preview = usePreviewState();
   const items = useConversation(current?.id);
   const history = useHistory(current?.id);
@@ -79,6 +80,7 @@ export function App() {
     shortcuts: () => setShortcutsOpen((open) => !open),
   });
 
+  if (!loaded) return <Startup />;
   return (
     <TipProvider>
       <div className="relative flex h-full">
