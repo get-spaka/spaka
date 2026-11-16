@@ -138,6 +138,8 @@ app.setName("Upstart");
 async function main() {
   if (!env.background && !app.requestSingleInstanceLock()) return app.quit();
   await app.whenReady();
+  // A packaged app has its icon in its bundle; a development run shows it in the Dock all the same.
+  if (!app.isPackaged && !env.background) app.dock?.setIcon(join(here, "../../build/icon.png"));
 
   const settings = new AppSettingsStore(join(app.getPath("userData"), "settings.json"));
   // The interface's appearance (Q330): nativeTheme turns it into prefers-color-scheme for
