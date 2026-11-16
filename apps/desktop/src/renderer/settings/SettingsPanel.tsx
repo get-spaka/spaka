@@ -634,12 +634,19 @@ function ConnectorsPage() {
 
 function PrivacyPage() {
   const settings = useAppSettings();
+  const info = useAppInfo();
   return (
     <Group
       caption={
         <>
           <p>{t.settings.privacy.statisticsHelp}</p>
-          <p className="mt-1">{t.settings.privacy.notYet}</p>
+          <ul className="mt-1 list-disc pl-4" data-testid="statistics-events">
+            {t.settings.privacy.events.map((event) => (
+              <li key={event}>{event}</li>
+            ))}
+          </ul>
+          <p className="mt-1">{t.settings.privacy.never}</p>
+          {info && !info.sendsStatistics && <p className="mt-1">{t.settings.privacy.notYet}</p>}
         </>
       }
     >

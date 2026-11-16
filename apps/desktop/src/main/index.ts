@@ -24,9 +24,10 @@ import {
   titleOf,
 } from "@upstart/runtime";
 import { diskSource } from "@upstart/runtime/node";
-import { app, BrowserWindow, dialog, Menu, Notification, nativeTheme, safeStorage, shell } from "electron";
+import { app, BrowserWindow, dialog, Menu, Notification, nativeTheme, net, safeStorage, shell } from "electron";
 import { isPlan } from "../shared/conversation";
 import {
+  accountOf,
   type ConnectorInfo,
   type ContentDatasource,
   type ContentRecord,
@@ -88,6 +89,7 @@ import {
   SiteUnavailable,
 } from "./publish/management";
 import { Skills } from "./skills/skills";
+import { APTABASE_KEY, errorType, type PUBLISH_WAYS, Stats } from "./stats";
 import { adaptMessage, copyTemplate, removalMessage, removalsOf, reviewNote, stepMessage } from "./templates/adapt";
 import {
   adaptationGuide,
@@ -141,6 +143,27 @@ async function main() {
   // The interface's appearance (Q330): nativeTheme turns it into prefers-color-scheme for
   // the interface, and the window's background follows, so that it never shows the other.
   nativeTheme.themeSource = settings.get().appearance;
+  // Anonymous usage statistics (Q331, Q334), unless the maker switched them off.
+  const stats = new Stats({
+    allowed: () => settings.get().statistics,
+    appVersion: app.getVersion(),
+    osName: process.platform === "darwin" ? "macOS" : process.platform === "win32" ? "Windows" : "Linux",
+    osVersion: process.getSystemVersion(),
+    key: APTABASE_KEY,
+    packaged: app.isPackaged,
+    templates: () => templates.list().flatMap((t) => (t.imported ? [] : [t.id])),
+    dayFile: join(app.getPath("userData"), "stats.json"),
+    ...(env.statsLog ? { log: env.statsLog } : {}),
+    send: async (url, key, body) => {
+      await net.fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "App-Key": key },
+        body,
+        credentials: "omit",
+      });
+    },
+  });
+  stats.launched();
   const windowBackground = () => (nativeTheme.shouldUseDarkColors ? "#121212" : "#fafafa");
   const win = new BrowserWindow({
     width: 1440,
@@ -501,6 +524,8 @@ async function main() {
         emitHistory();
       }
       if (event.type === "turn-end") notifyDone(projectId, event.status, event.error);
+      if (event.type === "turn-end" && event.status === "failed")
+        stats.track("error", { type: errorType(event.error, t.errors) });
       // The agent's next look starts from a fresh page (Q324).
       if (event.type === "turn-end" && projectId === current?.id) preview.endTurn();
     },
@@ -547,6 +572,12 @@ async function main() {
     block: (id) => blocks.get(id),
     busy: () => !!current && agentBusy(current.id),
     before: () => history?.store.snapshot("outside", ""),
+    did: (what) =>
+      stats.track(
+        ({ page: "page_edit", block: "block_dropped", theme: "theme_changed", content: "content_changed" } as const)[
+          what
+        ],
+      ),
     changed: (change) => {
       history?.store.snapshot("hand", change.label);
       if (current) notesFor(current.id).changed(change);
@@ -718,7 +749,8 @@ async function main() {
     return next;
   });
   ipc.handle("tour:page", (tour) => preview.setTour(tour));
-  ipc.handle("tour:seen", () => {
+  ipc.handle("tour:seen", (how) => {
+    stats.track(how === "finished" ? "tour_finished" : "tour_skipped");
     ipc.emit("settings:changed", settings.set({ tourSeen: true }));
   });
   ipc.handle("settings:reveal-projects", () => {
@@ -731,6 +763,7 @@ async function main() {
   });
   ipc.handle("app:info", () => ({
     version: app.getVersion(),
+    sendsStatistics: app.isPackaged && !!APTABASE_KEY,
     platform: process.platform,
     background: env.background,
     projectsDir: env.projectsDir,
@@ -936,6 +969,7 @@ async function main() {
       const copied = dir ? copyTemplate(dir, created.path) : undefined;
       const manifest = copied?.manifest;
       const template = manifest && { id: manifest.id, version: manifest.version };
+      stats.track("site_created", { template: manifest?.id ?? "none" });
       project = await opened(
         projects.update(created.id, { model, effort, ...(template ? { template } : {}), ...(mode ? { mode } : {}) }),
       );
@@ -965,6 +999,7 @@ async function main() {
     const note = notesFor(project.id).take();
     preview.startFollowing();
     agent.send(project, shown, note ? `${note}\n\n${forAgent}` : forAgent);
+    stats.track("message_sent", { provider: accountOf(project.model) });
   }
   ipc.handle("conversation:stop", () => current && agent.stop(current.id));
   ipc.handle("conversation:answer", (cardId, answer) => {
@@ -1090,7 +1125,11 @@ async function main() {
       hostsDir: app.isPackaged ? join(process.resourcesPath, "hosts") : join(here, "../hosts"),
       ...(formServices ? { formServices } : {}),
       managementToken: () => tokens.ensure(current!.id),
+    }).catch((error) => {
+      stats.track("error", { type: "export" });
+      throw error;
     });
+    stats.track("published", { way: builder as (typeof PUBLISH_WAYS)[number] });
     writeFileSync(
       lastExportFile()!,
       JSON.stringify({ builder, folders: { ...lastExport().folders, [builder]: result.folder } }),

@@ -46,6 +46,8 @@ export type Environment = {
   templatesUrl: string | undefined;
   /** The catalogue and pictures shipped with the app, when not its own: checks start with none. */
   templatesSnapshot: string | undefined;
+  /** Checks: the anonymous statistics written to this file, one event a line, instead of sent. */
+  statsLog: string | undefined;
 };
 
 export function readEnvironment(env: NodeJS.ProcessEnv = process.env): Environment {
@@ -58,6 +60,7 @@ export function readEnvironment(env: NodeJS.ProcessEnv = process.env): Environme
     agentReplay: env.UPSTART_AGENT_REPLAY || undefined,
     agentReplaySpeed: Number(env.UPSTART_AGENT_REPLAY_SPEED) || 4,
     imagesFixture: env.UPSTART_IMAGES_FIXTURE || undefined,
+    statsLog: env.UPSTART_STATS_LOG || undefined,
     agentRecord: env.UPSTART_AGENT_RECORD || undefined,
     piReplay: env.UPSTART_PI_REPLAY || undefined,
     piRecord: env.UPSTART_PI_RECORD || undefined,

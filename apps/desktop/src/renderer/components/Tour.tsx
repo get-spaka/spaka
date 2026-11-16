@@ -18,12 +18,21 @@ const IN_PAGE: Partial<Record<Step, true>> = { page: true, publish: true };
 
 type Rect = { left: number; top: number; width: number; height: number };
 
-export function Tour({ step, onStep, onEnd }: { step: number; onStep: (step: number) => void; onEnd: () => void }) {
+export function Tour({
+  step,
+  onStep,
+  onEnd,
+}: {
+  step: number;
+  onStep: (step: number) => void;
+  onEnd: (how: "finished" | "skipped") => void;
+}) {
   const name = TOUR_STEPS[step]!;
   const words = t.tour.steps[name];
   const last = step === TOUR_STEPS.length - 1;
   const count = t.tour.count(step + 1, TOUR_STEPS.length);
-  const next = useCallback(() => (last ? onEnd() : onStep(step + 1)), [last, onEnd, onStep, step]);
+  const next = useCallback(() => (last ? onEnd("finished") : onStep(step + 1)), [last, onEnd, onStep, step]);
+  const skip = useCallback(() => onEnd("skipped"), [onEnd]);
 
   // Where the step points, kept as the window changes.
   const [rect, setRect] = useState<Rect>();
@@ -61,12 +70,12 @@ export function Tour({ step, onStep, onEnd }: { step: number; onStep: (step: num
   useEffect(() => () => void upstart.invoke("tour:page", null), []);
 
   // Next and Skip clicked on the bubble in the page; Escape in the interface.
-  useEffect(() => upstart.on("tour:action", (action) => (action === "skip" ? onEnd() : next())), [next, onEnd]);
+  useEffect(() => upstart.on("tour:action", (action) => (action === "skip" ? skip() : next())), [next, skip]);
   useEffect(() => {
-    const onKey = (event: KeyboardEvent) => event.key === "Escape" && onEnd();
+    const onKey = (event: KeyboardEvent) => event.key === "Escape" && skip();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onEnd]);
+  }, [skip]);
 
   const nextButton = useRef<HTMLButtonElement>(null);
   // biome-ignore lint/correctness/useExhaustiveDependencies: each step's Next takes the keyboard
@@ -116,7 +125,7 @@ export function Tour({ step, onStep, onEnd }: { step: number; onStep: (step: num
               variant="ghost"
               size="sm"
               className="h-7"
-              onClick={onEnd}
+              onClick={skip}
               tip={t.tour.skipTip}
               data-testid="tour-skip"
             >

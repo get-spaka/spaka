@@ -15,6 +15,8 @@ export type AppInfo = {
   /** The folder new websites go into. */
   projectsDir: string;
   versions: { electron: string; chromium: string; node: string };
+  /** Whether this copy of Upstart sends the anonymous statistics: a packaged app with its key. */
+  sendsStatistics: boolean;
 };
 
 export type Effort = "low" | "medium" | "high" | "xhigh" | "max";
@@ -578,7 +580,8 @@ export type Invokes = {
   /** The tour's step in the page (Q332): its veil, or its bubble on the page; null takes them away. */
   "tour:page": (tour: PageTour | null) => void;
   /** The tour was seen to its end or skipped: it no longer opens by itself (Q328). */
-  "tour:seen": () => void;
+  /** The tour ended: through its last step, or skipped. */
+  "tour:seen": (how: "finished" | "skipped") => void;
   /** One page or every page (Q128). */
   /** `route`: the page opened, for the zoom from its thumbnail (Q133). */
   "preview:set-view": (view: PreviewView, route?: string) => void;

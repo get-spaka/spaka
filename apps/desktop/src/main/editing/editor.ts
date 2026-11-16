@@ -80,6 +80,8 @@ export type EditorDeps = {
   changed: (change: { label: string; files: string[] }) => void;
   /** A gallery block: its kind and template (Q92), and for a data block its datasource and record page (Q194). */
   block: (id: string) => DroppedBlock | undefined;
+  /** What kind of change the maker made, for the anonymous statistics (Q334). */
+  did?: (what: "page" | "block" | "theme" | "content") => void;
 };
 
 export class Editor {
@@ -146,6 +148,7 @@ export class Editor {
     const label = editing.label ?? (editing.added ? t.recordAdded(name) : t.recordEdited(name));
     const change = { label, files: [editing.file] };
     this.deps.changed(change);
+    this.deps.did?.("content");
     return change;
   }
 
@@ -161,6 +164,7 @@ export class Editor {
     }
     const change = { label: en.editing.labels.recordsReordered, files: [file] };
     this.deps.changed(change);
+    this.deps.did?.("content");
     return change;
   }
 
@@ -186,6 +190,7 @@ export class Editor {
     }
     const change = { label: en.editing.labels.recordRenamed, files };
     this.deps.changed(change);
+    this.deps.did?.("content");
     return { ...change, file: to };
   }
 
@@ -416,6 +421,7 @@ export class Editor {
     if (action.type === "record-text") label = t.recordEdited(this.recordName(Object.keys(writes)[0]!));
     const change = { label, files: [...added, ...Object.keys(writes)] };
     this.deps.changed(change);
+    this.deps.did?.(action.type === "insert" ? "block" : "page");
     return change;
   }
 
@@ -456,6 +462,7 @@ export class Editor {
     rmSync(dir, { recursive: true, force: true });
     const change = { label: en.editing.labels.datasourceDeleted(label), files };
     this.deps.changed(change);
+    this.deps.did?.("content");
     return change;
   }
 
@@ -470,6 +477,7 @@ export class Editor {
     this.write(copy, src);
     const change = { label: en.editing.labels.recordDuplicated, files: [copy] };
     this.deps.changed(change);
+    this.deps.did?.("content");
     return { ...change, file: copy };
   }
 
@@ -481,6 +489,7 @@ export class Editor {
     rmSync(this.abs(file));
     const change = { label: en.editing.labels.recordDeleted, files: [file] };
     this.deps.changed(change);
+    this.deps.did?.("content");
     return change;
   }
 
@@ -512,6 +521,7 @@ export class Editor {
     atomicWrite(join(root, "theme.css"), css);
     const change = { label: en.editing.labels.theme, files: ["theme.css", ...files] };
     this.deps.changed(change);
+    this.deps.did?.("theme");
     return change;
   }
 

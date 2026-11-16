@@ -67,9 +67,9 @@ export function App() {
     setTourStep(0);
   }, [current]);
   useEffect(() => upstart.on("tour:start", startTour), [startTour]);
-  const endTour = useCallback(() => {
+  const endTour = useCallback((how: "finished" | "skipped") => {
     setTourStep(null);
-    void upstart.invoke("tour:seen");
+    void upstart.invoke("tour:seen", how);
   }, []);
   useCommands({
     tour: startTour,

@@ -893,8 +893,21 @@ export const en = {
     privacy: {
       statistics: "Share anonymous usage statistics",
       statisticsHelp:
-        "The app's version, the system, the day's launch, the features used and the type of an error. Never a message, a website's content, a file name or an address.",
-      notYet: "Nothing is sent yet: this version of Upstart has no statistics service.",
+        "They go to Aptabase, a statistics service hosted in the European Union, with no identifier: each time the app's version and the system's, and one of these:",
+      events: [
+        "Upstart launched, once a day",
+        "A website created, and the template it started from",
+        "A message sent, and the account of its agent",
+        "An edit in the page",
+        "A block added",
+        "The theme changed",
+        "Content changed",
+        "A website published, and how",
+        "The tour finished or skipped",
+        "An error, and its kind",
+      ],
+      never: "Never a message, a website's content, a file name or an address.",
+      notYet: "This copy of Upstart sends nothing.",
     },
     about: {
       tagline: "Websites made with an agent, on your computer.",
