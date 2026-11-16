@@ -42,6 +42,22 @@ describe("editing in the preview", () => {
     ).toBe(true);
   });
 
+  test("a button of the bar shows its tooltip of Upstart's own, not the native title (Q329)", async () => {
+    const shadow = "document.querySelector('upstart-editor').shadowRoot";
+    const { x, y } = await page(`(() => {
+      const r = ${shadow}.querySelector('[data-testid="editor-link"]').getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    })()`);
+    await input([{ type: "mouseMove", x, y }]);
+    await until(() => page(`${shadow}.querySelector('[data-testid="editor-tip"]').style.display === 'block'`));
+    expect(await page(`${shadow}.querySelector('[data-testid="editor-tip"]').textContent`)).toBe(
+      await page(`${shadow}.querySelector('[data-testid="editor-link"]').getAttribute('aria-label')`),
+    );
+    expect(await page(`${shadow}.querySelector('[data-testid="editor-link"]').hasAttribute('title')`)).toBe(false);
+    await input([{ type: "mouseMove", x: 5, y: 5 }]);
+    await until(() => page(`${shadow}.querySelector('[data-testid="editor-tip"]').style.display === 'none'`));
+  });
+
   test("the selection's outline follows its element as the page scrolls", async () => {
     // The recorded page is short: room below it to scroll.
     await page(

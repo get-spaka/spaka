@@ -7,6 +7,7 @@ import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { stillToAdapt, useAdaptation } from "./AdaptationBar";
 import { Button } from "./ui/button";
+import { Tip } from "./ui/tip";
 
 type Host = "netlify" | "cloudflare" | "github";
 const HOSTS: Host[] = ["netlify", "cloudflare", "github"];
@@ -19,6 +20,7 @@ function CopyButton({ text, label, testid }: { text: string; label: string; test
       variant="ghost"
       size="sm"
       className="h-7 shrink-0"
+      tip={t.export.copyTip}
       data-testid={testid}
       onClick={() =>
         void navigator.clipboard.writeText(text).then(() => {
@@ -116,7 +118,7 @@ export function ExportDialog({
             <h2 className="text-lg font-semibold">{t.export.title}</h2>
             <p className="mt-1 text-sm text-muted-foreground">{t.export.intro}</p>
           </div>
-          <Button variant="ghost" size="icon-sm" onClick={onClose} title={t.export.close} data-testid="export-close">
+          <Button variant="ghost" size="icon-sm" onClick={onClose} tip={t.export.closeTip} data-testid="export-close">
             <X />
           </Button>
         </div>
@@ -137,6 +139,7 @@ export function ExportDialog({
               <Button
                 data-testid="publish-continue-adaptation"
                 disabled={working}
+                tip={t.adaptation.publish.continueTip}
                 onClick={() => {
                   onClose();
                   void upstart.invoke("adaptation:continue");
@@ -145,7 +148,12 @@ export function ExportDialog({
                 {t.adaptation.publish.continue}
                 <ArrowRight />
               </Button>
-              <Button variant="outline" data-testid="publish-anyway" onClick={() => setAnyway(true)}>
+              <Button
+                variant="outline"
+                data-testid="publish-anyway"
+                tip={t.adaptation.publish.anywayTip}
+                onClick={() => setAnyway(true)}
+              >
                 {t.adaptation.publish.anyway}
               </Button>
             </div>
@@ -159,29 +167,30 @@ export function ExportDialog({
                   const words = t.export.builders[c.id];
                   const refused = !!c.refused?.length;
                   return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      aria-pressed={choice === c.id}
-                      disabled={refused}
-                      onClick={() => pick(c.id)}
-                      data-testid="publish-choice"
-                      data-id={c.id}
-                      data-refused={refused || undefined}
-                      className={cn(
-                        "rounded-lg border p-3 text-left text-sm transition-colors",
-                        choice === c.id ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-accent",
-                        refused && "cursor-not-allowed opacity-60 hover:bg-transparent",
-                      )}
-                    >
-                      <span className="font-medium">{words?.name ?? c.id}</span>
-                      <p className="mt-1 text-muted-foreground">{words?.line}</p>
-                      {refused && (
-                        <p className="mt-1 text-warning" data-testid="publish-refused">
-                          {t.export.refused(c.refused!.join(", "))}
-                        </p>
-                      )}
-                    </button>
+                    <Tip key={c.id} text={refused ? t.export.refusedTip : t.export.pickTip}>
+                      <button
+                        type="button"
+                        aria-pressed={choice === c.id}
+                        disabled={refused}
+                        onClick={() => pick(c.id)}
+                        data-testid="publish-choice"
+                        data-id={c.id}
+                        data-refused={refused || undefined}
+                        className={cn(
+                          "rounded-lg border p-3 text-left text-sm transition-colors",
+                          choice === c.id ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-accent",
+                          refused && "cursor-not-allowed opacity-60 hover:bg-transparent",
+                        )}
+                      >
+                        <span className="font-medium">{words?.name ?? c.id}</span>
+                        <p className="mt-1 text-muted-foreground">{words?.line}</p>
+                        {refused && (
+                          <p className="mt-1 text-warning" data-testid="publish-refused">
+                            {t.export.refused(c.refused!.join(", "))}
+                          </p>
+                        )}
+                      </button>
+                    </Tip>
                   );
                 })}
               </div>
@@ -201,7 +210,12 @@ export function ExportDialog({
               <h3 className="text-sm font-medium">{t.export.step2}</h3>
               {working && <p className="text-sm text-muted-foreground">{t.export.agentWorking}</p>}
               <div className="flex flex-wrap gap-2">
-                <Button onClick={() => void choose()} disabled={!choice || busy || working} data-testid="export-choose">
+                <Button
+                  onClick={() => void choose()}
+                  disabled={!choice || busy || working}
+                  tip={t.export.chooseTip}
+                  data-testid="export-choose"
+                >
                   <FolderOpen />
                   {t.export.choose}
                 </Button>
@@ -210,6 +224,7 @@ export function ExportDialog({
                     variant="outline"
                     onClick={() => void run(folder)}
                     disabled={busy || working}
+                    tip={t.export.againTip}
                     data-testid="export-again"
                   >
                     {t.export.again}
@@ -225,14 +240,15 @@ export function ExportDialog({
               {result && (
                 <div data-testid="export-result" className="rounded-lg border bg-muted/40 p-3 text-sm">
                   <p>{t.export.done(result.pages.length)}</p>
-                  <button
-                    type="button"
-                    className="mt-1 max-w-full truncate text-left font-mono text-xs text-muted-foreground underline-offset-2 hover:underline"
-                    onClick={() => void upstart.invoke("export:reveal", result.folder)}
-                    title={t.export.reveal}
-                  >
-                    {result.folder}
-                  </button>
+                  <Tip text={t.export.reveal}>
+                    <button
+                      type="button"
+                      className="mt-1 max-w-full truncate text-left font-mono text-xs text-muted-foreground underline-offset-2 hover:underline"
+                      onClick={() => void upstart.invoke("export:reveal", result.folder)}
+                    >
+                      {result.folder}
+                    </button>
+                  </Tip>
                   {result.warnings.length > 0 && (
                     <ul className="mt-2 list-disc pl-5 text-xs text-muted-foreground" data-testid="export-warnings">
                       {result.warnings.map((w) => (
@@ -266,13 +282,15 @@ export function ExportDialog({
                           <ul className="mt-2 flex flex-col gap-2">
                             {HOSTS.map((host) => (
                               <li key={host} className="rounded-lg border p-3 text-sm">
-                                <button
-                                  type="button"
-                                  className="font-medium underline-offset-2 hover:underline"
-                                  onClick={() => void upstart.invoke("export:open-host", host)}
-                                >
-                                  {t.export.hosts[host].name}
-                                </button>
+                                <Tip text={t.export.hostTip}>
+                                  <button
+                                    type="button"
+                                    className="font-medium underline-offset-2 hover:underline"
+                                    onClick={() => void upstart.invoke("export:open-host", host)}
+                                  >
+                                    {t.export.hosts[host].name}
+                                  </button>
+                                </Tip>
                                 <p className="mt-1 text-muted-foreground">{t.export.hosts[host].how}</p>
                               </li>
                             ))}
@@ -323,7 +341,14 @@ function FormService({ name, initial }: { name: string; initial: string }) {
           aria-label={t.export.forms.label(name)}
           className="h-8 min-w-0 flex-1 rounded-md border bg-background px-2.5 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30"
         />
-        <Button type="submit" variant="outline" size="sm" className="h-8" data-testid="form-service-save">
+        <Button
+          type="submit"
+          variant="outline"
+          size="sm"
+          className="h-8"
+          tip={t.export.forms.saveTip}
+          data-testid="form-service-save"
+        >
           {saved ? t.export.forms.saved : t.export.forms.save}
         </Button>
       </div>

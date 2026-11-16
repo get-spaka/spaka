@@ -7,6 +7,7 @@ import { SHEET, shortcutOf } from "../../shared/shortcuts";
 import { CLOSE_BUTTON, CLOSE_CROSS } from "../lib/colors";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
+import { Tip } from "./ui/tip";
 
 export function ShortcutsDialog({ onClose }: { onClose: () => void }) {
   useEffect(() => {
@@ -30,19 +31,20 @@ export function ShortcutsDialog({ onClose }: { onClose: () => void }) {
         className="flex max-h-full w-full max-w-[560px] flex-col overflow-hidden rounded-xl border bg-popover text-[13px] text-popover-foreground shadow-[0_24px_60px_rgba(0,0,0,0.3)]"
       >
         <div className="relative flex h-11 shrink-0 items-center justify-center border-b px-3">
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={t.shortcuts.close}
-            title={t.shortcuts.close}
-            data-testid="shortcuts-close"
-            className={cn(
-              "group absolute left-3 flex size-3.5 items-center justify-center rounded-full ring-1 ring-inset",
-              CLOSE_BUTTON,
-            )}
-          >
-            <X className={cn("size-2.5 opacity-0 group-hover:opacity-100", CLOSE_CROSS)} strokeWidth={3} />
-          </button>
+          <Tip text={t.shortcuts.close}>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={t.shortcuts.close}
+              data-testid="shortcuts-close"
+              className={cn(
+                "group absolute left-3 flex size-3.5 items-center justify-center rounded-full ring-1 ring-inset",
+                CLOSE_BUTTON,
+              )}
+            >
+              <X className={cn("size-2.5 opacity-0 group-hover:opacity-100", CLOSE_CROSS)} strokeWidth={3} />
+            </button>
+          </Tip>
           <h2 className="font-semibold">{t.shortcuts.title}</h2>
         </div>
         <div className="min-h-0 overflow-y-auto px-5 py-3">

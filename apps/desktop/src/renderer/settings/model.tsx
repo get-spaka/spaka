@@ -70,7 +70,11 @@ export function ModelRows({
           testid={`${idPrefix}-effort`}
           value={effort}
           onChange={(value) => onChange({ effort: value })}
-          options={efforts.map((e) => ({ value: e, label: t.conversation.efforts[e] }))}
+          options={efforts.map((e) => ({
+            value: e,
+            label: t.conversation.efforts[e],
+            tip: t.conversation.effortTips[e],
+          }))}
         />
       </Row>
     </>

@@ -10,6 +10,7 @@ import { messageOf } from "../lib/errors";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { Button } from "./ui/button";
+import { Tip } from "./ui/tip";
 
 // Small copies of the library's images, kept until a media file changes.
 const thumbs = new Map<string, Promise<string | null>>();
@@ -122,7 +123,12 @@ export function MediaLibrary({ onError }: { onError: (message: string | undefine
       className={cn("relative flex min-h-0 flex-1 flex-col", drop.over && "bg-accent/60")}
     >
       <div className="flex shrink-0 items-center gap-2 px-4 pb-2">
-        <Button size="sm" variant="outline" onClick={() => add(() => upstart.invoke("media:choose-files"))}>
+        <Button
+          size="sm"
+          variant="outline"
+          tip={t.media.addFilesTip}
+          onClick={() => add(() => upstart.invoke("media:choose-files"))}
+        >
           <Upload />
           {t.media.addFiles}
         </Button>
@@ -130,6 +136,7 @@ export function MediaLibrary({ onError }: { onError: (message: string | undefine
           size="sm"
           variant={searching ? "secondary" : "outline"}
           onClick={() => setSearching((s) => !s)}
+          tip={searching ? t.media.searchClose : t.media.searchOpen}
           data-testid="media-search-toggle"
         >
           <Search />
@@ -146,27 +153,28 @@ export function MediaLibrary({ onError }: { onError: (message: string | undefine
         <ul className="grid grid-cols-3 gap-2">
           {list?.map((m) => (
             <li key={m.path}>
-              <button
-                type="button"
-                data-testid="media-item"
-                data-path={m.path}
-                onClick={() => setOpen(m.path)}
-                className="w-full overflow-hidden rounded-md border text-left hover:ring-2 hover:ring-ring/30"
-              >
-                {m.image ? (
-                  <MediaThumb path={m.path} className="aspect-[4/3] w-full" />
-                ) : (
-                  <div className="flex aspect-[4/3] w-full items-center justify-center bg-muted text-muted-foreground">
-                    <FileText className="size-6" />
-                  </div>
-                )}
-                <div className="flex items-center gap-1 px-1.5 py-1">
-                  <span className="truncate text-[11px]">{m.name}</span>
-                  {m.uses.length > 0 && (
-                    <span className="ml-auto size-1.5 shrink-0 rounded-full bg-success" title={m.usesLabel} />
+              {/* Its tip also says where the file is used, which the green dot shows. */}
+              <Tip text={t.media.openTip(m.uses.length ? m.usesLabel : undefined)}>
+                <button
+                  type="button"
+                  data-testid="media-item"
+                  data-path={m.path}
+                  onClick={() => setOpen(m.path)}
+                  className="w-full overflow-hidden rounded-md border text-left hover:ring-2 hover:ring-ring/30"
+                >
+                  {m.image ? (
+                    <MediaThumb path={m.path} className="aspect-[4/3] w-full" />
+                  ) : (
+                    <div className="flex aspect-[4/3] w-full items-center justify-center bg-muted text-muted-foreground">
+                      <FileText className="size-6" />
+                    </div>
                   )}
-                </div>
-              </button>
+                  <div className="flex items-center gap-1 px-1.5 py-1">
+                    <span className="truncate text-[11px]">{m.name}</span>
+                    {m.uses.length > 0 && <span className="ml-auto size-1.5 shrink-0 rounded-full bg-success" />}
+                  </div>
+                </button>
+              </Tip>
             </li>
           ))}
         </ul>
@@ -182,17 +190,19 @@ export function MediaLibrary({ onError }: { onError: (message: string | undefine
           className="mx-4 mb-3 flex items-center gap-2 rounded-md bg-foreground px-3 py-2 text-xs text-background"
         >
           {t.media.deleted(deleted)}
-          <button
-            type="button"
-            data-testid="media-deleted-undo"
-            className="ml-auto rounded px-1.5 py-0.5 font-medium hover:bg-background/20"
-            onClick={() => {
-              setDeleted(undefined);
-              void upstart.invoke("history:undo");
-            }}
-          >
-            {t.content.undo}
-          </button>
+          <Tip text={t.content.undoTip}>
+            <button
+              type="button"
+              data-testid="media-deleted-undo"
+              className="ml-auto rounded px-1.5 py-0.5 font-medium hover:bg-background/20"
+              onClick={() => {
+                setDeleted(undefined);
+                void upstart.invoke("history:undo");
+              }}
+            >
+              {t.content.undo}
+            </button>
+          </Tip>
         </div>
       )}
     </div>
@@ -242,7 +252,7 @@ function MediaDetail({
   return (
     <div data-testid="media-detail" className="flex min-h-0 flex-1 flex-col">
       <div className="flex shrink-0 items-center gap-1 border-b px-2 py-1.5">
-        <Button variant="ghost" size="icon-sm" onClick={onBack} title={t.content.back} data-testid="media-back">
+        <Button variant="ghost" size="icon-sm" onClick={onBack} tip={t.content.backTip} data-testid="media-back">
           <ChevronLeft />
         </Button>
         <h2 className="min-w-0 truncate text-sm font-medium">{item.name}</h2>
@@ -250,7 +260,7 @@ function MediaDetail({
           variant="ghost"
           size="icon-sm"
           className="ml-auto"
-          title={item.uses.length ? t.media.inUse : t.media.delete}
+          tip={item.uses.length ? t.media.inUse : t.media.deleteTip}
           disabled={item.uses.length > 0}
           data-testid="media-delete"
           onClick={() =>
@@ -272,14 +282,16 @@ function MediaDetail({
                 /{item.path}
               </code>
               <span className="text-muted-foreground">{t.media.size(item.size)}</span>
-              <button
-                type="button"
-                className="ml-auto text-muted-foreground underline"
-                onClick={() => setName(stem)}
-                data-testid="media-rename"
-              >
-                {t.media.rename}
-              </button>
+              <Tip text={t.media.renameTip}>
+                <button
+                  type="button"
+                  className="ml-auto text-muted-foreground underline"
+                  onClick={() => setName(stem)}
+                  data-testid="media-rename"
+                >
+                  {t.media.rename}
+                </button>
+              </Tip>
             </>
           ) : (
             <>
@@ -295,7 +307,7 @@ function MediaDetail({
                 }}
                 className="h-7 flex-1 rounded-md border bg-background px-2 font-mono"
               />
-              <Button size="sm" onClick={rename} data-testid="media-name-save">
+              <Button size="sm" onClick={rename} tip={t.media.renameSaveTip} data-testid="media-name-save">
                 {t.content.renameSave}
               </Button>
             </>
@@ -384,7 +396,13 @@ export function ImageSearch({
           placeholder={t.media.searchPlaceholder}
           className="h-8 flex-1 rounded-md border bg-background px-2.5 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30"
         />
-        <Button size="sm" type="submit" disabled={!query.trim() || !!busy}>
+        <Button
+          size="sm"
+          type="submit"
+          disabled={!query.trim() || !!busy}
+          tip={t.media.search}
+          aria-label={t.media.search}
+        >
           <Search />
         </Button>
       </form>
@@ -397,33 +415,34 @@ export function ImageSearch({
       <ul className="grid grid-cols-3 gap-2">
         {result?.images.map((image) => (
           <li key={image.id}>
-            <button
-              type="button"
-              data-testid="image-found"
-              data-id={image.id}
-              disabled={!!busy}
-              onClick={() => choose(image)}
-              title={`${image.title} — ${image.credit.license}${image.credit.author ? `, ${t.media.by(image.credit.author)}` : ""}`}
-              className="relative w-full overflow-hidden rounded-md border text-left hover:ring-2 hover:ring-ring/30 disabled:opacity-60"
-            >
-              {image.thumb ? (
-                <img src={image.thumb} alt="" className="aspect-[4/3] w-full bg-muted object-cover" />
-              ) : (
-                <div className="aspect-[4/3] w-full bg-muted" />
-              )}
-              <div className="px-1.5 py-1 text-[10px] leading-tight">
-                <p className="truncate font-medium">{image.title}</p>
-                <p className="truncate text-muted-foreground">
-                  {image.credit.license}
-                  {image.credit.author ? ` · ${image.credit.author}` : ""}
-                </p>
-              </div>
-              {busy === image.id && (
-                <span className="absolute inset-0 flex items-center justify-center bg-background/70 text-xs">
-                  {t.media.adding}
-                </span>
-              )}
-            </button>
+            <Tip text={t.media.addFound(image.title, image.credit.license, image.credit.author)}>
+              <button
+                type="button"
+                data-testid="image-found"
+                data-id={image.id}
+                disabled={!!busy}
+                onClick={() => choose(image)}
+                className="relative w-full overflow-hidden rounded-md border text-left hover:ring-2 hover:ring-ring/30 disabled:opacity-60"
+              >
+                {image.thumb ? (
+                  <img src={image.thumb} alt="" className="aspect-[4/3] w-full bg-muted object-cover" />
+                ) : (
+                  <div className="aspect-[4/3] w-full bg-muted" />
+                )}
+                <div className="px-1.5 py-1 text-[10px] leading-tight">
+                  <p className="truncate font-medium">{image.title}</p>
+                  <p className="truncate text-muted-foreground">
+                    {image.credit.license}
+                    {image.credit.author ? ` · ${image.credit.author}` : ""}
+                  </p>
+                </div>
+                {busy === image.id && (
+                  <span className="absolute inset-0 flex items-center justify-center bg-background/70 text-xs">
+                    {t.media.adding}
+                  </span>
+                )}
+              </button>
+            </Tip>
           </li>
         ))}
       </ul>

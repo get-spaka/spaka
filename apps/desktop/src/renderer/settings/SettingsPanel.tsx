@@ -33,6 +33,7 @@ import {
   usableModel,
 } from "../../shared/ipc";
 import { searchSettings } from "../../shared/settings-search";
+import { Tip } from "../components/ui/tip";
 import { useAgentStatus, useAppInfo, useAppSettings, useConnectors, useProjects, useSkills } from "../hooks/useMain";
 import { upstart } from "../lib/bridge";
 import { ACCOUNT, CLOSE_BUTTON, CLOSE_CROSS, TILES } from "../lib/colors";
@@ -95,19 +96,20 @@ export function SettingsPanel({
           className="flex w-[232px] shrink-0 flex-col gap-3 border-r border-border bg-panel-nav px-2.5 pb-3"
         >
           <div className="flex h-11 shrink-0 items-center px-1.5">
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label={t.settings.close}
-              title={t.settings.close}
-              data-testid="settings-close"
-              className={cn(
-                "group flex size-3.5 items-center justify-center rounded-full ring-1 ring-inset",
-                CLOSE_BUTTON,
-              )}
-            >
-              <X className={cn("size-2.5 opacity-0 group-hover:opacity-100", CLOSE_CROSS)} strokeWidth={3} />
-            </button>
+            <Tip text={t.settings.close}>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label={t.settings.close}
+                data-testid="settings-close"
+                className={cn(
+                  "group flex size-3.5 items-center justify-center rounded-full ring-1 ring-inset",
+                  CLOSE_BUTTON,
+                )}
+              >
+                <X className={cn("size-2.5 opacity-0 group-hover:opacity-100", CLOSE_CROSS)} strokeWidth={3} />
+              </button>
+            </Tip>
           </div>
           <label className="flex h-7 items-center gap-1.5 rounded-[7px] bg-foreground/[0.08] px-2 text-muted-foreground">
             <Search className="size-3.5 shrink-0" aria-hidden="true" />
@@ -128,53 +130,58 @@ export function SettingsPanel({
               className="w-full min-w-0 bg-transparent text-foreground outline-none [&::-webkit-search-cancel-button]:hidden"
             />
             {query && (
-              <button type="button" aria-label={t.gallery.clearSearch} onClick={() => setQuery("")}>
-                <X className="size-3.5" />
-              </button>
+              <Tip text={t.gallery.clearSearch}>
+                <button type="button" aria-label={t.gallery.clearSearch} onClick={() => setQuery("")}>
+                  <X className="size-3.5" />
+                </button>
+              </Tip>
             )}
           </label>
-          <button
-            type="button"
-            onClick={() => setPage("agent")}
-            className="flex items-center gap-2.5 rounded-lg p-2 text-left hover:bg-foreground/[0.06]"
-            data-testid="settings-account"
-          >
-            <span
-              aria-hidden="true"
-              className={cn("flex size-8 shrink-0 items-center justify-center rounded-full", ACCOUNT)}
+          <Tip text={t.settings.account.tip} side="right">
+            <button
+              type="button"
+              onClick={() => setPage("agent")}
+              className="flex items-center gap-2.5 rounded-lg p-2 text-left hover:bg-foreground/[0.06]"
+              data-testid="settings-account"
             >
-              <UserRound className="size-4" strokeWidth={2.25} />
-            </span>
-            <span className="flex min-w-0 flex-col leading-tight">
-              <span className="font-semibold">{t.settings.account.title}</span>
-              <span className="truncate text-[11px] text-muted-foreground">{accountLine(status)}</span>
-            </span>
-          </button>
+              <span
+                aria-hidden="true"
+                className={cn("flex size-8 shrink-0 items-center justify-center rounded-full", ACCOUNT)}
+              >
+                <UserRound className="size-4" strokeWidth={2.25} />
+              </span>
+              <span className="flex min-w-0 flex-col leading-tight">
+                <span className="font-semibold">{t.settings.account.title}</span>
+                <span className="truncate text-[11px] text-muted-foreground">{accountLine(status)}</span>
+              </span>
+            </button>
+          </Tip>
           <div className="flex flex-col gap-0.5">
             {pages.map((p) => {
               const { icon: Icon, color } = ICONS[p];
               return (
-                <button
-                  type="button"
-                  key={p}
-                  data-testid={`settings-page-${p}`}
-                  aria-current={p === shown ? "page" : undefined}
-                  onClick={() => {
-                    setPage(p);
-                  }}
-                  className={cn(
-                    "flex items-center gap-2.5 rounded-[7px] px-2 py-[5px] text-left",
-                    p === shown ? "bg-primary text-primary-foreground" : "hover:bg-foreground/[0.06]",
-                  )}
-                >
-                  <span
-                    aria-hidden="true"
-                    className={cn("flex size-[22px] shrink-0 items-center justify-center rounded-md", color)}
+                <Tip key={p} text={t.settings.pageTips[p]} side="right">
+                  <button
+                    type="button"
+                    data-testid={`settings-page-${p}`}
+                    aria-current={p === shown ? "page" : undefined}
+                    onClick={() => {
+                      setPage(p);
+                    }}
+                    className={cn(
+                      "flex items-center gap-2.5 rounded-[7px] px-2 py-[5px] text-left",
+                      p === shown ? "bg-primary text-primary-foreground" : "hover:bg-foreground/[0.06]",
+                    )}
                   >
-                    <Icon className="size-3.5" strokeWidth={2.2} />
-                  </span>
-                  {t.settings.pages[p]}
-                </button>
+                    <span
+                      aria-hidden="true"
+                      className={cn("flex size-[22px] shrink-0 items-center justify-center rounded-md", color)}
+                    >
+                      <Icon className="size-3.5" strokeWidth={2.2} />
+                    </span>
+                    {t.settings.pages[p]}
+                  </button>
+                </Tip>
               );
             })}
             {found && pages.length === 0 && (
@@ -246,12 +253,18 @@ function GeneralPage() {
           id="folder"
           label={g.folder}
           detail={
-            <span className="block truncate font-mono" title={info?.projectsDir} data-testid="projects-dir">
-              {info?.projectsDir}
-            </span>
+            <Tip text={info?.projectsDir ?? ""}>
+              <span className="block truncate font-mono" data-testid="projects-dir">
+                {info?.projectsDir}
+              </span>
+            </Tip>
           }
         >
-          <Push testid="reveal-projects" onClick={() => void upstart.invoke("settings:reveal-projects")}>
+          <Push
+            testid="reveal-projects"
+            tip={g.revealTip}
+            onClick={() => void upstart.invoke("settings:reveal-projects")}
+          >
             {g.reveal}
           </Push>
         </Row>
@@ -262,7 +275,7 @@ function GeneralPage() {
             testid="appearance"
             label={g.appearance}
             value={settings.appearance}
-            options={APPEARANCES.map((value) => ({ value, label: g.appearances[value] }))}
+            options={APPEARANCES.map((value) => ({ value, label: g.appearances[value], tip: g.appearanceTips[value] }))}
             onChange={(appearance) => void upstart.invoke("settings:set", { appearance })}
           />
         </Row>
@@ -271,7 +284,7 @@ function GeneralPage() {
             testid="text-size"
             label={g.textSize}
             value={settings.textSize}
-            options={TEXT_SIZES.map((value) => ({ value, label: g.textSizes[value] }))}
+            options={TEXT_SIZES.map((value) => ({ value, label: g.textSizes[value], tip: g.textSizeTips[value] }))}
             onChange={(textSize) => void upstart.invoke("settings:set", { textSize })}
           />
         </Row>
@@ -280,7 +293,11 @@ function GeneralPage() {
             testid="output-style"
             label={g.outputStyle}
             value={settings.outputStyle}
-            options={OUTPUT_STYLES.map((value) => ({ value, label: g.outputStyles[value] }))}
+            options={OUTPUT_STYLES.map((value) => ({
+              value,
+              label: g.outputStyles[value],
+              tip: g.outputStyleTips[value],
+            }))}
             onChange={(outputStyle) => void upstart.invoke("settings:set", { outputStyle })}
           />
         </Row>
@@ -321,12 +338,18 @@ function AgentPage() {
           }
         >
           {status.auth === "signed-out" && (
-            <Push testid="claude-sign-in" onClick={() => void upstart.invoke("agent:sign-in", "claudeai")}>
+            <Push
+              testid="claude-sign-in"
+              tip={a.signInClaudeTip}
+              onClick={() => void upstart.invoke("agent:sign-in", "claudeai")}
+            >
               {a.signIn}
             </Push>
           )}
           {status.auth === "signing-in" && (
-            <Push onClick={() => void upstart.invoke("agent:cancel-sign-in")}>{a.cancel}</Push>
+            <Push tip={a.cancelSignInTip} onClick={() => void upstart.invoke("agent:cancel-sign-in")}>
+              {a.cancel}
+            </Push>
           )}
         </Row>
         <KeyRow
@@ -353,16 +376,26 @@ function AgentPage() {
           }
         >
           {status.accounts.chatgpt ? (
-            <Push testid="chatgpt-sign-out" onClick={() => void upstart.invoke("agent:chatgpt-sign-out")}>
+            <Push
+              testid="chatgpt-sign-out"
+              tip={a.signOutChatgptTip}
+              onClick={() => void upstart.invoke("agent:chatgpt-sign-out")}
+            >
               {a.signOut}
             </Push>
           ) : status.chatgpt.signingIn ? (
             <span className="flex items-center gap-2">
               <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
-              <Push onClick={() => void upstart.invoke("agent:chatgpt-cancel")}>{a.cancel}</Push>
+              <Push tip={a.cancelSignInTip} onClick={() => void upstart.invoke("agent:chatgpt-cancel")}>
+                {a.cancel}
+              </Push>
             </span>
           ) : (
-            <Push testid="chatgpt-sign-in" onClick={() => void upstart.invoke("agent:chatgpt-sign-in")}>
+            <Push
+              testid="chatgpt-sign-in"
+              tip={a.signInChatgptTip}
+              onClick={() => void upstart.invoke("agent:chatgpt-sign-in")}
+            >
               {a.signIn}
             </Push>
           )}
@@ -417,7 +450,11 @@ function AgentPage() {
             testid="reply-style"
             label={t.settings.agent.replyStyle}
             value={settings.replyStyle}
-            options={REPLY_STYLES.map((value) => ({ value, label: t.settings.agent.replyStyles[value] }))}
+            options={REPLY_STYLES.map((value) => ({
+              value,
+              label: t.settings.agent.replyStyles[value],
+              tip: t.settings.agent.replyStyleTips[value],
+            }))}
             onChange={(replyStyle) => void upstart.invoke("settings:set", { replyStyle })}
           />
         </Row>
@@ -453,12 +490,12 @@ function KeyRow({
     <>
       <Row id={id} label={label} detail={kept ? keptText : noneText}>
         {kept ? (
-          <Push testid={`${id}-remove`} onClick={() => void onSave(null)}>
+          <Push testid={`${id}-remove`} tip={a.removeKeyTip} onClick={() => void onSave(null)}>
             {a.removeKey}
           </Push>
         ) : (
           !open && (
-            <Push testid={`${id}-use`} onClick={() => setOpen(true)}>
+            <Push testid={`${id}-use`} tip={a.useKeyTip} onClick={() => setOpen(true)}>
               {a.useKey}
             </Push>
           )
@@ -483,8 +520,10 @@ function KeyRow({
             className={cn(inputClass, "flex-1")}
             data-testid={`${id}-input`}
           />
-          <Push onClick={close}>{a.cancel}</Push>
-          <Push type="submit" primary disabled={!key.trim()}>
+          <Push tip={a.cancelTip} onClick={close}>
+            {a.cancel}
+          </Push>
+          <Push type="submit" primary disabled={!key.trim()} tip={a.saveKeyTip}>
             {a.saveKey}
           </Push>
         </form>
@@ -516,12 +555,16 @@ function GcloudRow({ gcloud }: { gcloud: AgentStatus["vertexGcloud"] }) {
         }
       >
         {gcloud ? (
-          <Push testid="vertex-gcloud-stop" onClick={() => void upstart.invoke("agent:set-vertex-gcloud", null)}>
+          <Push
+            testid="vertex-gcloud-stop"
+            tip={a.stopProjectTip}
+            onClick={() => void upstart.invoke("agent:set-vertex-gcloud", null)}
+          >
             {a.stopProject}
           </Push>
         ) : (
           !open && (
-            <Push testid="vertex-gcloud-use" onClick={() => setOpen(true)}>
+            <Push testid="vertex-gcloud-use" tip={a.useProjectTip} onClick={() => setOpen(true)}>
               {a.useProject}
             </Push>
           )
@@ -545,8 +588,10 @@ function GcloudRow({ gcloud }: { gcloud: AgentStatus["vertexGcloud"] }) {
             className={cn(inputClass, "flex-1")}
             data-testid="vertex-gcloud-input"
           />
-          <Push onClick={close}>{a.cancel}</Push>
-          <Push type="submit" primary disabled={!project.trim()}>
+          <Push tip={a.cancelTip} onClick={close}>
+            {a.cancel}
+          </Push>
+          <Push type="submit" primary disabled={!project.trim()} tip={a.saveProjectTip}>
             {a.saveKey}
           </Push>
         </form>

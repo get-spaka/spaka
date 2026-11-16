@@ -44,6 +44,7 @@ import { QuestionCard } from "./QuestionCard";
 import { SignInPanel } from "./SignInPanel";
 import { ThemeTab } from "./ThemeTab";
 import { Button } from "./ui/button";
+import { Tip } from "./ui/tip";
 
 /** The middle column's tabs, in their order. */
 const TABS = ["conversation", "blocks", "theme", "content"] as const;
@@ -116,7 +117,14 @@ export function Conversation({
       {/* Room for the window's buttons when the sidebar is hidden. */}
       <div className={cn("drag-region flex h-13 shrink-0 items-center gap-2", sidebarOpen ? "px-4" : "pr-4 pl-20")}>
         {!sidebarOpen && (
-          <Button variant="ghost" size="icon-sm" className="no-drag" onClick={onExpandSidebar} title={t.sidebar.expand}>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="no-drag"
+            onClick={onExpandSidebar}
+            tip={t.sidebar.expand}
+            command="sidebar"
+          >
             <PanelLeft />
           </Button>
         )}
@@ -133,7 +141,7 @@ export function Conversation({
             className="no-drag text-muted-foreground"
             disabled={working}
             onClick={() => void upstart.invoke("conversation:start-over")}
-            title={t.conversation.startOver}
+            tip={t.conversation.startOverTip}
             data-testid="start-over"
           >
             <Eraser />
@@ -144,22 +152,23 @@ export function Conversation({
       {project && (
         <div role="tablist" className="flex shrink-0 gap-1 border-b px-3">
           {TABS.map((name) => (
-            <button
-              key={name}
-              type="button"
-              role="tab"
-              aria-selected={shownTab === name}
-              data-testid={`tab-${name}`}
-              onClick={() => setTab(name)}
-              className={cn(
-                "-mb-px border-b-2 px-2 py-1.5 text-xs font-medium",
-                shownTab === name
-                  ? "border-foreground text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {t.tabs[name]}
-            </button>
+            <Tip key={name} text={t.tabs.tips[name]} command={`tab-${name}`}>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={shownTab === name}
+                data-testid={`tab-${name}`}
+                onClick={() => setTab(name)}
+                className={cn(
+                  "-mb-px border-b-2 px-2 py-1.5 text-xs font-medium",
+                  shownTab === name
+                    ? "border-foreground text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {t.tabs[name]}
+              </button>
+            </Tip>
           ))}
         </div>
       )}
@@ -332,7 +341,7 @@ export function MessageBox({
                 variant="secondary"
                 data-testid="stop"
                 onClick={() => void upstart.invoke("conversation:stop")}
-                title={t.conversation.stop}
+                tip={t.conversation.stopTip}
               >
                 <Square className="size-3 fill-current" />
               </Button>
@@ -343,7 +352,7 @@ export function MessageBox({
                 size="icon-sm"
                 data-testid="send"
                 disabled={!draft.trim() || blocked}
-                title={t.conversation.send}
+                tip={t.conversation.sendTip}
               >
                 <ArrowUp />
               </Button>
@@ -480,16 +489,18 @@ function Steps({ activities }: { activities: Activity[] }) {
   const failed = activities.filter((a) => a.state === "failed" || a.state === "refused").length;
   return (
     <div>
-      <button
-        type="button"
-        data-testid="steps"
-        aria-expanded={open}
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground"
-      >
-        <ChevronRight className={cn("size-3.5 transition-transform", open && "rotate-90")} />
-        {t.conversation.steps(activities.length, failed)}
-      </button>
+      <Tip text={open ? t.conversation.hideSteps : t.conversation.showSteps}>
+        <button
+          type="button"
+          data-testid="steps"
+          aria-expanded={open}
+          onClick={() => setOpen(!open)}
+          className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground"
+        >
+          <ChevronRight className={cn("size-3.5 transition-transform", open && "rotate-90")} />
+          {t.conversation.steps(activities.length, failed)}
+        </button>
+      </Tip>
       {open && (
         <div className="mt-1 space-y-1.5 pl-5.5">
           {activities.map((a) => (

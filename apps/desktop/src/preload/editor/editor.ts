@@ -20,6 +20,7 @@ import {
 } from "../../shared/ipc";
 import { en } from "../../shared/strings/en";
 import { COMMENT_STYLE, CommentLayer, type CommentsBridge } from "./comments";
+import { attachTips, TIP_STYLE } from "./tip";
 import { insertionPoint, type Origin, originOf, sectionList, sectionTarget, textsOf, tracedFrom } from "./trace";
 
 const t = en.editor;
@@ -126,11 +127,11 @@ export class Editor {
     this.host.style.cssText =
       "all: initial; position: fixed; top: 0; left: 0; width: 0; height: 0; z-index: 2147483647;";
     this.root = this.host.attachShadow({ mode: open ? "open" : "closed" });
-    this.root.innerHTML = `<style>${STYLE}${COMMENT_STYLE}</style><div class="layer">
+    this.root.innerHTML = `<style>${STYLE}${COMMENT_STYLE}${TIP_STYLE}</style><div class="layer">
       <div class="box hover"><span class="tag"></span></div>
       <div class="box selected"></div>
       <div class="bar" data-testid="editor-bar"></div>
-      <div class="pop"><input type="text"><button class="secondary" data-act="cancel"></button><button data-act="save"></button></div>
+      <div class="pop"><input type="text"><button class="secondary" data-act="cancel" data-tip="${t.cancelTip}"></button><button data-act="save" data-tip="${t.saveTip}"></button></div>
       <div class="editing-note"></div>
       <div class="line" data-testid="insertion-line"></div>
       <div class="toast" role="status"></div></div>`;
@@ -145,6 +146,7 @@ export class Editor {
     q<HTMLButtonElement>('[data-act="cancel"]').textContent = t.cancel;
     q<HTMLButtonElement>('[data-act="save"]').textContent = t.save;
     this.comments = new CommentLayer(q(".layer"), bridge, (text) => this.toast(text));
+    attachTips(this.root, q(".layer"));
     this.listen();
   }
 
@@ -361,7 +363,7 @@ export class Editor {
     const buttons: string[] = [];
     const button = (act: string, icon: keyof typeof ICONS, title: string, enabled = true) =>
       buttons.push(
-        `<button data-act="${act}" data-testid="editor-${act}" title="${title}" aria-label="${title}"${enabled ? "" : " disabled"}><svg viewBox="0 0 24 24">${ICONS[icon]}</svg></button>`,
+        `<button data-act="${act}" data-testid="editor-${act}" data-tip="${title}" aria-label="${title}"${enabled ? "" : " disabled"}><svg viewBox="0 0 24 24">${ICONS[icon]}</svg></button>`,
       );
     const parent = tracedFrom(s.el.parentElement);
     button("parent", "parent", t.parent, !!parent);

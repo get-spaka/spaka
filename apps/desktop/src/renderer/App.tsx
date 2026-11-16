@@ -8,6 +8,7 @@ import { ShortcutsDialog } from "./components/ShortcutsDialog";
 import { Sidebar } from "./components/Sidebar";
 import { SiteSettings } from "./components/SiteSettings";
 import { StartPanel } from "./components/StartPanel";
+import { TipProvider } from "./components/ui/tip";
 import { useCommands } from "./hooks/useCommand";
 import {
   useAgentStatus,
@@ -61,65 +62,67 @@ export function App() {
   });
 
   return (
-    <div className="relative flex h-full">
-      {sidebarOpen && (
-        <Sidebar
-          projects={projects}
-          waiting={waiting}
-          current={current}
-          onCollapse={() => setSidebarOpen(false)}
-          onNew={() => void upstart.invoke("projects:close")}
-          onSettings={() => {
-            setSiteOpen(false);
-            setSettingsOpen(true);
-          }}
-          onSiteSettings={async (id) => {
-            if (current?.id !== id) await upstart.invoke("projects:open", id);
-            setSettingsOpen(false);
-            setSiteOpen(true);
-          }}
-        />
-      )}
-      {current ? (
-        <>
-          <Conversation
-            project={current}
-            items={items}
+    <TipProvider>
+      <div className="relative flex h-full">
+        {sidebarOpen && (
+          <Sidebar
+            projects={projects}
+            waiting={waiting}
+            current={current}
+            onCollapse={() => setSidebarOpen(false)}
+            onNew={() => void upstart.invoke("projects:close")}
+            onSettings={() => {
+              setSiteOpen(false);
+              setSettingsOpen(true);
+            }}
+            onSiteSettings={async (id) => {
+              if (current?.id !== id) await upstart.invoke("projects:open", id);
+              setSettingsOpen(false);
+              setSiteOpen(true);
+            }}
+          />
+        )}
+        {current ? (
+          <>
+            <Conversation
+              project={current}
+              items={items}
+              status={status}
+              sidebarOpen={sidebarOpen}
+              onExpandSidebar={() => setSidebarOpen(true)}
+              preview={preview}
+            />
+            <PreviewPane
+              project={current}
+              state={preview}
+              working={isWorking(items)}
+              covered={siteShown || settingsOpen || shortcutsOpen || !!picking}
+              layoutKey={sidebarOpen}
+              history={history}
+            />
+          </>
+        ) : (
+          // No website open: the start screen, one large panel (Q245).
+          <StartPanel
             status={status}
             sidebarOpen={sidebarOpen}
             onExpandSidebar={() => setSidebarOpen(true)}
-            preview={preview}
+            covered={settingsOpen || shortcutsOpen}
           />
-          <PreviewPane
+        )}
+        {siteShown && current && (
+          <SiteSettings
             project={current}
-            state={preview}
-            working={isWorking(items)}
-            covered={siteShown || settingsOpen || shortcutsOpen || !!picking}
-            layoutKey={sidebarOpen}
-            history={history}
+            status={status}
+            skills={skills}
+            connectors={connectors}
+            onClose={() => setSiteOpen(false)}
           />
-        </>
-      ) : (
-        // No website open: the start screen, one large panel (Q245).
-        <StartPanel
-          status={status}
-          sidebarOpen={sidebarOpen}
-          onExpandSidebar={() => setSidebarOpen(true)}
-          covered={settingsOpen || shortcutsOpen}
-        />
-      )}
-      {siteShown && current && (
-        <SiteSettings
-          project={current}
-          status={status}
-          skills={skills}
-          connectors={connectors}
-          onClose={() => setSiteOpen(false)}
-        />
-      )}
-      {picking && <MediaPicker key={picking.id} request={picking} />}
-      {shortcutsOpen && <ShortcutsDialog onClose={() => setShortcutsOpen(false)} />}
-      {settingsOpen && <SettingsPanel page={settingsPage} onPage={setSettingsPage} onClose={closeSettings} />}
-    </div>
+        )}
+        {picking && <MediaPicker key={picking.id} request={picking} />}
+        {shortcutsOpen && <ShortcutsDialog onClose={() => setShortcutsOpen(false)} />}
+        {settingsOpen && <SettingsPanel page={settingsPage} onPage={setSettingsPage} onClose={closeSettings} />}
+      </div>
+    </TipProvider>
   );
 }

@@ -10,6 +10,7 @@ import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { Button } from "./ui/button";
+import { Tip } from "./ui/tip";
 
 /** The open website's adaptation, as the main process last said; null when there is none. */
 export function useAdaptation(projectId: string | undefined): AdaptationState | null {
@@ -90,6 +91,7 @@ export function AdaptationBar({ state, working }: { state: AdaptationState; work
             size="sm"
             className="w-full justify-between"
             data-testid="adaptation-continue"
+            tip={t.adaptation.continueTip}
             onClick={go}
           >
             <span className="truncate">{label}</span>
@@ -113,7 +115,6 @@ function StepChip({ step, picked, disabled }: { step: AdaptationStep; picked: bo
       data-testid="adaptation-step"
       data-route={step.route}
       data-status={step.status}
-      title={t.adaptation.status[step.status]}
       className={cn(
         "group inline-flex items-center rounded-full border text-xs",
         step.status === "doing" && "border-primary text-primary",
@@ -123,28 +124,32 @@ function StepChip({ step, picked, disabled }: { step: AdaptationStep; picked: bo
         picked && "ring-1 ring-primary",
       )}
     >
-      <button
-        type="button"
-        disabled={!todo || disabled}
-        title={todo ? t.adaptation.pick : t.adaptation.status[step.status]}
-        onClick={() => void upstart.invoke("adaptation:pick", step.route)}
-        className={cn("inline-flex items-center gap-1 py-0.5 pl-2", todo ? "pr-1 hover:text-primary" : "pr-2")}
-      >
-        <Icon className={cn("size-3", step.status === "doing" && "animate-pulse")} />
-        {step.name}
-        {step.new && <span className="text-[10px] text-primary">{t.adaptation.isNew}</span>}
-      </button>
-      {todo && (
+      {/* The chip's status, or what a click does on a page to do. */}
+      <Tip text={todo ? t.adaptation.pick : t.adaptation.status[step.status]}>
         <button
           type="button"
-          data-testid="adaptation-remove"
-          disabled={disabled}
-          title={t.adaptation.remove}
-          onClick={() => void upstart.invoke("adaptation:remove", step.route)}
-          className="mr-1 rounded-full p-0.5 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100 focus-visible:opacity-100"
+          disabled={!todo || disabled}
+          onClick={() => void upstart.invoke("adaptation:pick", step.route)}
+          className={cn("inline-flex items-center gap-1 py-0.5 pl-2", todo ? "pr-1 hover:text-primary" : "pr-2")}
         >
-          <X className="size-3" />
+          <Icon className={cn("size-3", step.status === "doing" && "animate-pulse")} />
+          {step.name}
+          {step.new && <span className="text-[10px] text-primary">{t.adaptation.isNew}</span>}
         </button>
+      </Tip>
+      {todo && (
+        <Tip text={t.adaptation.remove}>
+          <button
+            type="button"
+            data-testid="adaptation-remove"
+            disabled={disabled}
+            aria-label={t.adaptation.remove}
+            onClick={() => void upstart.invoke("adaptation:remove", step.route)}
+            className="mr-1 rounded-full p-0.5 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100 focus-visible:opacity-100"
+          >
+            <X className="size-3" />
+          </button>
+        </Tip>
       )}
     </li>
   );

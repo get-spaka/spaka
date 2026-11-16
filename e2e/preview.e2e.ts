@@ -194,6 +194,10 @@ describe("a project folder in the preview", () => {
     await w.getByTestId("export-dialog").waitFor();
     await w.getByTestId("export-close").click();
     await w.getByTestId("export-dialog").waitFor({ state: "detached" });
+    // The bar's buttons say their shortcut in their tooltip (Q329).
+    await w.getByTestId("width-phone").hover();
+    await expect.poll(() => w.getByTestId("tip").textContent()).toContain("⌥⌘3");
+    await w.mouse.move(400, 500);
   });
 
   test("a page cannot leave the preview, open windows or reach the app", async () => {

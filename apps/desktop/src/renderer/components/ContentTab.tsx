@@ -26,6 +26,7 @@ import { cn } from "../lib/utils";
 import { CollectedView } from "./CollectedView";
 import { MediaLibrary, MediaThumb } from "./MediaLibrary";
 import { Button } from "./ui/button";
+import { Tip } from "./ui/tip";
 
 /** How long typing must stop before a change is written (Q162). */
 const WRITE_AFTER = 500;
@@ -116,20 +117,21 @@ export function ContentTab({ working, onAsk }: { working: boolean; onAsk: (text:
         <>
           <div role="tablist" className="flex shrink-0 gap-1 px-4 pt-3 pb-2">
             {(["datasources", "media"] as const).map((name) => (
-              <button
-                key={name}
-                type="button"
-                role="tab"
-                aria-selected={section === name}
-                data-testid={`content-${name}`}
-                onClick={() => setSection(name)}
-                className={cn(
-                  "rounded-md px-2 py-1 text-xs font-medium",
-                  section === name ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {t.content.sections[name]}
-              </button>
+              <Tip key={name} text={t.content.sectionTips[name]}>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={section === name}
+                  data-testid={`content-${name}`}
+                  onClick={() => setSection(name)}
+                  className={cn(
+                    "rounded-md px-2 py-1 text-xs font-medium",
+                    section === name ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {t.content.sections[name]}
+                </button>
+              </Tip>
             ))}
           </div>
           {section === "media" ? (
@@ -139,7 +141,12 @@ export function ContentTab({ working, onAsk }: { working: boolean; onAsk: (text:
               {list.length === 0 ? (
                 <div className="space-y-3">
                   <p className="text-sm text-muted-foreground">{t.content.none}</p>
-                  <Button size="sm" variant="outline" onClick={() => onAsk(t.content.askForOneMessage)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    tip={t.content.askForOneTip}
+                    onClick={() => onAsk(t.content.askForOneMessage)}
+                  >
                     {t.content.askForOne}
                   </Button>
                 </div>
@@ -165,17 +172,19 @@ export function ContentTab({ working, onAsk }: { working: boolean; onAsk: (text:
           className="mx-4 mb-3 flex items-center gap-2 rounded-md bg-foreground px-3 py-2 text-xs text-background"
         >
           {t.content.deleted(deleted.name)}
-          <button
-            type="button"
-            data-testid="record-deleted-undo"
-            className="ml-auto rounded px-1.5 py-0.5 font-medium hover:bg-background/20"
-            onClick={() => {
-              setDeleted(undefined);
-              void upstart.invoke("history:undo").then(load);
-            }}
-          >
-            {t.content.undo}
-          </button>
+          <Tip text={t.content.undoTip}>
+            <button
+              type="button"
+              data-testid="record-deleted-undo"
+              className="ml-auto rounded px-1.5 py-0.5 font-medium hover:bg-background/20"
+              onClick={() => {
+                setDeleted(undefined);
+                void upstart.invoke("history:undo").then(load);
+              }}
+            >
+              {t.content.undo}
+            </button>
+          </Tip>
         </div>
       )}
     </fieldset>
@@ -185,7 +194,7 @@ export function ContentTab({ working, onAsk }: { working: boolean; onAsk: (text:
 function Header({ title, onBack, children }: { title: string; onBack: () => void; children?: React.ReactNode }) {
   return (
     <div className="flex shrink-0 items-center gap-1 border-b px-2 py-1.5">
-      <Button variant="ghost" size="icon-sm" onClick={onBack} title={t.content.back} data-testid="content-back">
+      <Button variant="ghost" size="icon-sm" onClick={onBack} tip={t.content.backTip} data-testid="content-back">
         <ChevronLeft />
       </Button>
       <h2 className="min-w-0 truncate text-sm font-medium">{title}</h2>
@@ -227,7 +236,14 @@ function DatasourceView({
   return (
     <>
       <Header title={ds.label} onBack={onBack}>
-        <Button size="sm" variant="outline" onClick={onAdd} disabled={!!ds.problem} data-testid="record-add">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onAdd}
+          disabled={!!ds.problem}
+          tip={t.content.addTip}
+          data-testid="record-add"
+        >
           <Plus />
           {t.content.add}
         </Button>
@@ -274,23 +290,25 @@ function DatasourceView({
                   aria-label={t.content.dragToReorder}
                 />
               )}
-              <button
-                type="button"
-                onClick={() => onOpen(record.id)}
-                className={cn("flex min-w-0 flex-1 items-center gap-2 py-2 text-left text-sm", !manual && "pl-2")}
-              >
-                <span className={cn("truncate", record.skipped && "text-muted-foreground line-through")}>
-                  {record.title}
-                </span>
-                {record.problems.length > 0 && (
-                  <AlertTriangle className="size-3.5 shrink-0 text-warning" aria-label={record.problems.join("; ")} />
-                )}
-              </button>
+              <Tip text={t.content.openRecord}>
+                <button
+                  type="button"
+                  onClick={() => onOpen(record.id)}
+                  className={cn("flex min-w-0 flex-1 items-center gap-2 py-2 text-left text-sm", !manual && "pl-2")}
+                >
+                  <span className={cn("truncate", record.skipped && "text-muted-foreground line-through")}>
+                    {record.title}
+                  </span>
+                  {record.problems.length > 0 && (
+                    <AlertTriangle className="size-3.5 shrink-0 text-warning" aria-label={record.problems.join("; ")} />
+                  )}
+                </button>
+              </Tip>
               <Button
                 variant="ghost"
                 size="icon-sm"
                 className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
-                title={t.content.duplicate}
+                tip={t.content.duplicateTip}
                 data-testid="record-duplicate"
                 onClick={() => onDuplicate(record.id)}
               >
@@ -300,7 +318,7 @@ function DatasourceView({
                 variant="ghost"
                 size="icon-sm"
                 className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
-                title={t.content.delete}
+                tip={t.content.deleteTip}
                 data-testid="record-delete"
                 onClick={() => onDelete(record)}
               >
@@ -333,6 +351,7 @@ function DatasourceView({
             size="sm"
             variant="outline"
             className="mt-3"
+            tip={t.content.askFieldsTip}
             onClick={() => onAsk(t.content.askFieldsMessage(ds.label))}
           >
             {t.content.askFields}
@@ -461,6 +480,7 @@ function RecordForm({
             className="h-7"
             disabled={working || status === "saving" || !Object.keys(values).length}
             onClick={save}
+            tip={t.content.collected.saveTip}
             data-testid="record-save"
           >
             {t.content.collected.save}
@@ -474,7 +494,7 @@ function RecordForm({
           <Button
             variant="ghost"
             size="icon-sm"
-            title={t.content.openPage}
+            tip={t.content.openPage}
             onClick={() =>
               void upstart
                 .invoke("preview:set-view", "page")
@@ -502,6 +522,7 @@ function RecordForm({
               size="sm"
               variant="outline"
               className="mt-2"
+              tip={t.content.askFixTip}
               onClick={() => onAsk(t.content.askFixMessage(record.file, problems))}
             >
               {t.content.askFix}
@@ -579,14 +600,16 @@ function RecordId({
           <code data-testid="record-id" className="truncate rounded bg-muted px-1.5 py-0.5">
             {route ?? id}
           </code>
-          <button
-            type="button"
-            className="text-muted-foreground underline"
-            onClick={() => setEditing(id)}
-            data-testid="record-rename"
-          >
-            {t.content.rename}
-          </button>
+          <Tip text={t.content.renameTip}>
+            <button
+              type="button"
+              className="text-muted-foreground underline"
+              onClick={() => setEditing(id)}
+              data-testid="record-rename"
+            >
+              {t.content.rename}
+            </button>
+          </Tip>
         </div>
       ) : (
         <div className="mt-1 space-y-1">
@@ -603,10 +626,10 @@ function RecordId({
               }}
               className="h-7 flex-1 rounded-md border bg-background px-2 font-mono"
             />
-            <Button size="sm" onClick={save} data-testid="record-id-save">
+            <Button size="sm" onClick={save} tip={t.content.renameSaveTip} data-testid="record-id-save">
               {t.content.renameSave}
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setEditing(undefined)}>
+            <Button size="sm" variant="ghost" tip={t.content.renameCancelTip} onClick={() => setEditing(undefined)}>
               {t.content.renameCancel}
             </Button>
           </div>
@@ -731,13 +754,14 @@ function FieldInput({
             size="sm"
             variant="outline"
             disabled={disabled}
+            tip={t.content.chooseTip}
             data-testid={`field-${field.name}-choose`}
             onClick={() => void pickImage().then((path) => path && onChange(path))}
           >
             {t.content.choose}
           </Button>
           {text && (
-            <Button size="sm" variant="ghost" disabled={disabled} onClick={() => onChange("")}>
+            <Button size="sm" variant="ghost" disabled={disabled} tip={t.content.clearTip} onClick={() => onChange("")}>
               {t.content.clear}
             </Button>
           )}
@@ -819,7 +843,7 @@ function LinksInput({
             size="icon-sm"
             variant="ghost"
             disabled={disabled || i === 0}
-            title={words.up}
+            tip={words.up}
             onClick={() => move(i, -1)}
           >
             <ArrowUp />
@@ -828,7 +852,7 @@ function LinksInput({
             size="icon-sm"
             variant="ghost"
             disabled={disabled || i === rows.length - 1}
-            title={words.down}
+            tip={words.down}
             onClick={() => move(i, 1)}
           >
             <ArrowDown />
@@ -837,7 +861,7 @@ function LinksInput({
             size="icon-sm"
             variant="ghost"
             disabled={disabled}
-            title={words.remove}
+            tip={words.remove}
             data-testid="link-remove"
             onClick={() => onChange(rows.filter((_, j) => j !== i))}
           >
@@ -849,6 +873,7 @@ function LinksInput({
         size="sm"
         variant="outline"
         disabled={disabled}
+        tip={words.addTip}
         data-testid="link-add"
         onClick={() => onChange([...rows, { label: "", href: "" }])}
       >
@@ -878,31 +903,33 @@ function DatasourceList({
   for (const d of list) if (d.section) pages.set(d.section.route, [...(pages.get(d.section.route) ?? []), d]);
   const row = (d: ContentDatasource) => (
     <li key={d.name} className="group flex items-center">
-      <button
-        type="button"
-        data-testid="datasource"
-        data-name={d.name}
-        data-unused={d.usedBy.length === 0 || undefined}
-        onClick={() => onOpen(d.name)}
-        className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-accent"
-      >
-        <span className="truncate font-medium">{d.label}</span>
-        {(d.problem || d.records.some((r) => r.problems.length)) && (
-          <AlertTriangle className="size-3.5 shrink-0 text-warning" />
-        )}
-        {d.usedBy.length === 0 && (
-          <span className="shrink-0 text-xs text-muted-foreground" data-testid="datasource-unused">
-            {t.content.unused}
-          </span>
-        )}
-        <span className="ml-auto shrink-0 text-xs text-muted-foreground">{t.content.records(d.records.length)}</span>
-        <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-      </button>
+      <Tip text={t.content.openDatasource}>
+        <button
+          type="button"
+          data-testid="datasource"
+          data-name={d.name}
+          data-unused={d.usedBy.length === 0 || undefined}
+          onClick={() => onOpen(d.name)}
+          className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-accent"
+        >
+          <span className="truncate font-medium">{d.label}</span>
+          {(d.problem || d.records.some((r) => r.problems.length)) && (
+            <AlertTriangle className="size-3.5 shrink-0 text-warning" />
+          )}
+          {d.usedBy.length === 0 && (
+            <span className="shrink-0 text-xs text-muted-foreground" data-testid="datasource-unused">
+              {t.content.unused}
+            </span>
+          )}
+          <span className="ml-auto shrink-0 text-xs text-muted-foreground">{t.content.records(d.records.length)}</span>
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+        </button>
+      </Tip>
       {d.section && d.usedBy.length === 0 && (
         <Button
           size="icon-sm"
           variant="ghost"
-          title={t.content.deleteList(d.label)}
+          tip={t.content.deleteList(d.label)}
           data-testid="datasource-delete"
           onClick={() => onDelete(d)}
         >

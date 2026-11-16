@@ -10,6 +10,7 @@ import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { AgentText } from "./AgentText";
 import { Button } from "./ui/button";
+import { Tip } from "./ui/tip";
 
 export function PlanCard({ card }: { card: Card }) {
   const [sent, setSent] = useState(false);
@@ -31,6 +32,7 @@ export function PlanCard({ card }: { card: Card }) {
             size="sm"
             data-testid="plan-build"
             disabled={sent}
+            tip={t.plan.buildTip}
             onClick={() => {
               setSent(true);
               void upstart.invoke("conversation:approve-plan", card.id).catch(() => setSent(false));
@@ -46,18 +48,20 @@ export function PlanCard({ card }: { card: Card }) {
     card.state === "approved" ? t.plan.approved : card.state === "replaced" ? t.plan.replaced : t.plan.notAnswered;
   return (
     <div data-testid="plan-card" data-state={card.state} className="rounded-lg border border-dashed px-3 py-2 text-xs">
-      <button
-        type="button"
-        data-testid="plan-toggle"
-        aria-expanded={open}
-        onClick={() => setOpen(!open)}
-        className="flex w-full items-center gap-1.5 text-left text-muted-foreground hover:text-foreground"
-      >
-        <ChevronRight className={cn("size-3.5 shrink-0 transition-transform", open && "rotate-90")} />
-        {card.state === "approved" && <Check className="size-3.5 shrink-0" />}
-        <span className="font-medium">{label}</span>
-        {card.changes && <span className="truncate">· {card.changes}</span>}
-      </button>
+      <Tip text={open ? t.plan.hide : t.plan.show}>
+        <button
+          type="button"
+          data-testid="plan-toggle"
+          aria-expanded={open}
+          onClick={() => setOpen(!open)}
+          className="flex w-full items-center gap-1.5 text-left text-muted-foreground hover:text-foreground"
+        >
+          <ChevronRight className={cn("size-3.5 shrink-0 transition-transform", open && "rotate-90")} />
+          {card.state === "approved" && <Check className="size-3.5 shrink-0" />}
+          <span className="font-medium">{label}</span>
+          {card.changes && <span className="truncate">· {card.changes}</span>}
+        </button>
+      </Tip>
       {open && (
         <div className="mt-2 text-sm" data-testid="plan-text">
           <AgentText text={card.text} streaming={false} />

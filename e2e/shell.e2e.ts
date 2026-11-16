@@ -27,9 +27,9 @@ describe("the app's shell, launched in the background", () => {
 
   test("the sidebar collapses and comes back", async () => {
     const { window } = launched;
-    await window.getByTitle("Hide the sidebar").click();
+    await window.getByLabel("Hide the sidebar").click();
     await expect(window.getByTestId("sidebar").count()).resolves.toBe(0);
-    await window.getByTitle("Show the sidebar").click();
+    await window.getByLabel("Show the sidebar").click();
     await window.getByTestId("sidebar").waitFor();
   });
 
@@ -82,6 +82,21 @@ describe("the app's shell, launched in the background", () => {
     await window.getByTestId("sidebar").waitFor({ state: "detached" });
     await menuItem("Control+CommandOrControl+S");
     await window.getByTestId("sidebar").waitFor();
+  });
+
+  test("a button shows its tooltip of Upstart's own, with its shortcut (Q329)", async () => {
+    const { window } = launched;
+    await window.getByRole("button", { name: "New website" }).hover();
+    const tip = window.getByTestId("tip");
+    await tip.waitFor();
+    expect(await tip.textContent()).toContain("⌘N");
+    await window.waitForTimeout(250); // its fade-in
+    await launched.capture("tooltip");
+    // Away from the button, in the sidebar's empty part: the tooltip goes.
+    // Radix keeps it while the pointer may be on its way to it: the next move closes it.
+    await window.mouse.move(120, 500, { steps: 4 });
+    await window.mouse.move(130, 520);
+    await tip.waitFor({ state: "detached" });
   });
 
   test("the interface reaches the main process only through the contract", async () => {

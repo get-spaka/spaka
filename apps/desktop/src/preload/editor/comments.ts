@@ -55,8 +55,8 @@ export class CommentLayer {
       "beforeend",
       `<div class="pins"></div>
       <div class="card" data-testid="comment-card"><div class="about"></div><textarea></textarea>
-        <div class="row"><button class="danger" data-act="remove">${t.remove}</button><button data-act="close">${t.cancel}</button><button class="primary" data-act="save">${t.save}</button></div></div>
-      <div class="sendbar" data-testid="comment-bar"><span class="count"></span><button data-act="discard">${t.discard}</button><button class="primary" data-act="send">${t.send}</button></div>`,
+        <div class="row"><button class="danger" data-act="remove" data-tip="${t.removeTip}">${t.remove}</button><button data-act="close" data-tip="${t.cancelTip}">${t.cancel}</button><button class="primary" data-act="save" data-tip="${t.saveTip}">${t.save}</button></div></div>
+      <div class="sendbar" data-testid="comment-bar"><span class="count"></span><button data-act="discard" data-tip="${t.discardTip}">${t.discard}</button><button class="primary" data-act="send">${t.send}</button></div>`,
     );
     this.pins = layer.querySelector(".pins")!;
     this.card = layer.querySelector(".card")!;
@@ -155,7 +155,7 @@ export class CommentLayer {
       const pin = document.createElement("div");
       pin.className = "pin";
       pin.textContent = String(i + 1);
-      pin.title = c.text;
+      pin.dataset.tip = c.text;
       pin.dataset.file = c.file;
       pin.dataset.at = String(c.at);
       pin.dataset.testid = "comment-pin";
@@ -173,7 +173,7 @@ export class CommentLayer {
     this.bar.querySelector(".count")!.textContent = t.count(n);
     const send = this.bar.querySelector('[data-act="send"]') as HTMLButtonElement;
     send.disabled = this.paused;
-    send.title = this.paused ? t.waitForAgent : t.sendTitle;
+    send.dataset.tip = this.paused ? t.waitForAgent : t.sendTitle;
   }
 
   private async save() {

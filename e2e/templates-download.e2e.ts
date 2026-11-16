@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
@@ -75,7 +75,11 @@ describe("Upstart's templates, downloaded", () => {
     await w.locator('[data-testid="template-card"][data-template="reel"]').waitFor();
     expect(asked[0]).toBe("/releases/latest/download/catalogue.json");
     const ids = await w.getByTestId("template-card").evaluateAll((els) => els.map((el) => el.dataset.template));
-    expect(ids).toHaveLength(8);
+    // Every template of the repository, as the release has them.
+    const repository = readdirSync(join(import.meta.dirname, "../apps/desktop/templates")).filter((id) =>
+      existsSync(join(import.meta.dirname, "../apps/desktop/templates", id, "template.json")),
+    );
+    expect([...ids].sort()).toEqual(repository.sort());
     await until(() => w.locator('[data-template="reel"] img[src^="data:image/webp"]').count());
     expect(asked).toContain(`/releases/download/v1/reel-${version("reel")}-cover.webp`);
     expect(zips()).toEqual([]);

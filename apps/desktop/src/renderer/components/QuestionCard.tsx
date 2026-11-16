@@ -11,6 +11,7 @@ import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { MediaThumb } from "./MediaLibrary";
 import { Button } from "./ui/button";
+import { Tip } from "./ui/tip";
 
 const RECOMMENDED = /\s*\(recommended\)\s*$/i;
 
@@ -71,46 +72,47 @@ function WaitingCard({ card }: { card: Card }) {
               const label = shownLabel(option.label);
               const picked = chosen[q.question]?.includes(option.label) ?? false;
               return (
-                <button
-                  key={option.label}
-                  type="button"
-                  data-testid="question-choice"
-                  aria-pressed={oneClick ? undefined : picked}
-                  onClick={() => choose(q, option)}
-                  className={cn(
-                    "flex w-full items-start gap-2 rounded-lg border bg-background px-2.5 py-2 text-left transition-colors hover:bg-accent disabled:opacity-60",
-                    picked && "border-primary ring-1 ring-primary",
-                  )}
-                >
-                  {!oneClick && (
-                    <span
-                      className={cn(
-                        "mt-0.5 flex size-4 shrink-0 items-center justify-center border",
-                        q.multiSelect ? "rounded" : "rounded-full",
-                        picked && "border-primary bg-primary text-primary-foreground",
-                      )}
-                    >
-                      {picked && <Check className="size-3" />}
-                    </span>
-                  )}
-                  <span className="min-w-0 flex-1 space-y-1">
-                    <span className="flex flex-wrap items-center gap-1.5 text-sm">
-                      <span className="font-medium">{label.text}</span>
-                      {label.recommended && (
-                        <span
-                          data-testid="question-recommended"
-                          className="rounded-full bg-primary/10 px-1.5 py-px text-[10px] font-medium text-primary"
-                        >
-                          {t.question.recommended}
-                        </span>
-                      )}
-                    </span>
-                    {option.description && (
-                      <span className="block text-xs text-muted-foreground">{option.description}</span>
+                <Tip key={option.label} text={oneClick ? t.question.sendChoice : t.question.pickChoice}>
+                  <button
+                    type="button"
+                    data-testid="question-choice"
+                    aria-pressed={oneClick ? undefined : picked}
+                    onClick={() => choose(q, option)}
+                    className={cn(
+                      "flex w-full items-start gap-2 rounded-lg border bg-background px-2.5 py-2 text-left transition-colors hover:bg-accent disabled:opacity-60",
+                      picked && "border-primary ring-1 ring-primary",
                     )}
-                    {option.preview && <ChoicePreview preview={option.preview} />}
-                  </span>
-                </button>
+                  >
+                    {!oneClick && (
+                      <span
+                        className={cn(
+                          "mt-0.5 flex size-4 shrink-0 items-center justify-center border",
+                          q.multiSelect ? "rounded" : "rounded-full",
+                          picked && "border-primary bg-primary text-primary-foreground",
+                        )}
+                      >
+                        {picked && <Check className="size-3" />}
+                      </span>
+                    )}
+                    <span className="min-w-0 flex-1 space-y-1">
+                      <span className="flex flex-wrap items-center gap-1.5 text-sm">
+                        <span className="font-medium">{label.text}</span>
+                        {label.recommended && (
+                          <span
+                            data-testid="question-recommended"
+                            className="rounded-full bg-primary/10 px-1.5 py-px text-[10px] font-medium text-primary"
+                          >
+                            {t.question.recommended}
+                          </span>
+                        )}
+                      </span>
+                      {option.description && (
+                        <span className="block text-xs text-muted-foreground">{option.description}</span>
+                      )}
+                      {option.preview && <ChoicePreview preview={option.preview} />}
+                    </span>
+                  </button>
+                </Tip>
               );
             })}
           </div>
@@ -123,6 +125,7 @@ function WaitingCard({ card }: { card: Card }) {
           size="sm"
           data-testid="question-skip"
           disabled={sent}
+          tip={t.question.skipTip}
           onClick={() => send({ kind: "skipped" })}
         >
           {t.question.skip}
@@ -133,6 +136,7 @@ function WaitingCard({ card }: { card: Card }) {
             size="sm"
             data-testid="question-answer"
             disabled={sent || !complete}
+            tip={t.question.answerTip}
             onClick={() => send({ kind: "choices", answers: answers() })}
           >
             {t.question.answer}

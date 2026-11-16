@@ -171,6 +171,7 @@ export function PagesGrid({
               data-testid="page-thumb"
               data-route={route}
             >
+              {/* no tip: a large picture of the page, its name under it */}
               <button
                 type="button"
                 ref={(el) => {

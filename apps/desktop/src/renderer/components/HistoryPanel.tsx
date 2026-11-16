@@ -6,6 +6,7 @@ import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { Button } from "./ui/button";
+import { Tip } from "./ui/tip";
 
 const time = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" });
 const day = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short" });
@@ -43,7 +44,8 @@ export function HistoryButtons({
         className="no-drag text-muted-foreground"
         disabled={!canUndo}
         onClick={() => void upstart.invoke("history:undo")}
-        title={t.history.undo}
+        tip={t.history.undo}
+        command="undo"
         data-testid="undo"
       >
         <Undo2 />
@@ -53,7 +55,7 @@ export function HistoryButtons({
         size="icon-sm"
         className={cn("no-drag text-muted-foreground", open && "bg-accent")}
         onClick={onToggle}
-        title={t.history.title}
+        tip={open ? t.history.hide : t.history.show}
         aria-pressed={open}
         data-testid="history"
       >
@@ -119,22 +121,24 @@ function HandGroup({
   const [open, setOpen] = useState(false);
   return (
     <div data-testid="history-group">
-      <button
-        type="button"
-        className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left text-sm hover:bg-accent"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        data-testid="history-group-toggle"
-      >
-        <ChevronRight className={cn("size-3.5 text-muted-foreground transition-transform", open && "rotate-90")} />
-        <div className="min-w-0 flex-1">
-          <div className="truncate">{t.history.byHand(entries.length)}</div>
-          <div className="text-xs text-muted-foreground">
-            {day.format(entries[0]!.at)} · {span(entries.at(-1)!.at, entries[0]!.at)}
+      <Tip text={open ? t.history.hideGroup : t.history.showGroup}>
+        <button
+          type="button"
+          className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left text-sm hover:bg-accent"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          data-testid="history-group-toggle"
+        >
+          <ChevronRight className={cn("size-3.5 text-muted-foreground transition-transform", open && "rotate-90")} />
+          <div className="min-w-0 flex-1">
+            <div className="truncate">{t.history.byHand(entries.length)}</div>
+            <div className="text-xs text-muted-foreground">
+              {day.format(entries[0]!.at)} · {span(entries.at(-1)!.at, entries[0]!.at)}
+            </div>
           </div>
-        </div>
-        {entries[0]!.current && !open && <span className="text-xs text-muted-foreground">{t.history.current}</span>}
-      </button>
+          {entries[0]!.current && !open && <span className="text-xs text-muted-foreground">{t.history.current}</span>}
+        </button>
+      </Tip>
       {open && (
         <div className="ml-4 border-l pl-1">
           {entries.map((entry) => (
@@ -170,6 +174,7 @@ function Row({ entry, disabled, onRestore }: { entry: HistoryEntry; disabled: bo
             onRestore();
             void upstart.invoke("history:restore", entry.id);
           }}
+          tip={t.history.restoreTip}
           data-testid="history-restore"
         >
           {t.history.restore}

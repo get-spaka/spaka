@@ -10,6 +10,7 @@ import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { Button } from "./ui/button";
+import { Tip } from "./ui/tip";
 
 export function PagesCard({ card }: { card: Card }) {
   if (card.state !== "waiting") return <SettledCard card={card} />;
@@ -40,50 +41,48 @@ function WaitingCard({ card }: { card: Card }) {
           const home = page.route === "/";
           const on = home || checked.has(page.route);
           return (
-            <button
-              key={page.route}
-              type="button"
-              data-testid="pages-choice"
-              data-route={page.route}
-              aria-pressed={on}
-              onClick={() => toggle(page)}
-              className={cn(
-                "flex w-full items-center gap-2.5 rounded-lg border bg-background p-1.5 pr-2.5 text-left transition-colors disabled:opacity-60",
-                home ? "cursor-default" : "hover:bg-accent",
-                on ? "border-primary/60" : "opacity-70",
-              )}
-            >
-              <PagePicture route={page.route} isNew={!!page.new} />
-              <span className="min-w-0 flex-1 space-y-0.5">
-                <span className="flex flex-wrap items-center gap-1.5 text-sm">
-                  <span className="font-medium">{page.name}</span>
-                  {page.new && (
-                    <span className="inline-flex items-center gap-0.5 rounded-full bg-primary/10 px-1.5 py-px text-[10px] font-medium text-primary">
-                      <Sparkles className="size-2.5" />
-                      {t.pages.isNew}
-                    </span>
-                  )}
+            <Tip key={page.route} text={home ? t.pages.homeTip : on ? t.pages.dropTip : t.pages.keepOneTip}>
+              <button
+                type="button"
+                data-testid="pages-choice"
+                data-route={page.route}
+                aria-pressed={on}
+                onClick={() => toggle(page)}
+                className={cn(
+                  "flex w-full items-center gap-2.5 rounded-lg border bg-background p-1.5 pr-2.5 text-left transition-colors disabled:opacity-60",
+                  home ? "cursor-default" : "hover:bg-accent",
+                  on ? "border-primary/60" : "opacity-70",
+                )}
+              >
+                <PagePicture route={page.route} isNew={!!page.new} />
+                <span className="min-w-0 flex-1 space-y-0.5">
+                  <span className="flex flex-wrap items-center gap-1.5 text-sm">
+                    <span className="font-medium">{page.name}</span>
+                    {page.new && (
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-primary/10 px-1.5 py-px text-[10px] font-medium text-primary">
+                        <Sparkles className="size-2.5" />
+                        {t.pages.isNew}
+                      </span>
+                    )}
+                  </span>
+                  {page.line && <span className="line-clamp-2 block text-xs text-muted-foreground">{page.line}</span>}
                 </span>
-                {page.line && <span className="line-clamp-2 block text-xs text-muted-foreground">{page.line}</span>}
-              </span>
-              {home ? (
-                <span
-                  title={t.pages.home}
-                  className="flex size-4 shrink-0 items-center justify-center text-muted-foreground"
-                >
-                  <Lock className="size-3.5" />
-                </span>
-              ) : (
-                <span
-                  className={cn(
-                    "flex size-4 shrink-0 items-center justify-center rounded border",
-                    on && "border-primary bg-primary text-primary-foreground",
-                  )}
-                >
-                  {on && <Check className="size-3" />}
-                </span>
-              )}
-            </button>
+                {home ? (
+                  <span className="flex size-4 shrink-0 items-center justify-center text-muted-foreground">
+                    <Lock className="size-3.5" />
+                  </span>
+                ) : (
+                  <span
+                    className={cn(
+                      "flex size-4 shrink-0 items-center justify-center rounded border",
+                      on && "border-primary bg-primary text-primary-foreground",
+                    )}
+                  >
+                    {on && <Check className="size-3" />}
+                  </span>
+                )}
+              </button>
+            </Tip>
           );
         })}
       </fieldset>
@@ -94,6 +93,7 @@ function WaitingCard({ card }: { card: Card }) {
           size="sm"
           data-testid="pages-skip"
           disabled={sent}
+          tip={t.question.skipTip}
           onClick={() => send({ kind: "skipped" })}
         >
           {t.question.skip}
@@ -103,6 +103,7 @@ function WaitingCard({ card }: { card: Card }) {
           size="sm"
           data-testid="pages-keep"
           disabled={sent}
+          tip={t.pages.keepTip}
           onClick={() =>
             send({
               kind: "pages",

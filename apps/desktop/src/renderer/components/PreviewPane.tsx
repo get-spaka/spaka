@@ -35,6 +35,7 @@ import { ExportDialog } from "./ExportDialog";
 import { HistoryButtons, HistoryList } from "./HistoryPanel";
 import { PagesGrid, pageName } from "./PagesGrid";
 import { Button } from "./ui/button";
+import { Tip } from "./ui/tip";
 
 /**
  * The devices the preview can show (Q110), in portrait: an iPad Air and an
@@ -354,34 +355,36 @@ export function PreviewPane({
             className="no-drag flex items-center gap-2 rounded-md bg-foreground py-1 pr-1 pl-2.5 text-xs text-background"
           >
             {t.preview.pageDeleted(pageName(deleted.route, deleted.name))}
-            <button
-              type="button"
-              data-testid="page-deleted-undo"
-              onClick={() => {
-                setDeleted(undefined);
-                void upstart.invoke("history:undo");
-              }}
-              className="rounded px-1.5 py-0.5 font-medium hover:bg-background/20"
-            >
-              {t.preview.undo}
-            </button>
+            <Tip text={t.preview.undoDelete}>
+              <button
+                type="button"
+                data-testid="page-deleted-undo"
+                onClick={() => {
+                  setDeleted(undefined);
+                  void upstart.invoke("history:undo");
+                }}
+                className="rounded px-1.5 py-0.5 font-medium hover:bg-background/20"
+              >
+                {t.preview.undo}
+              </button>
+            </Tip>
           </div>
         )}
         {project && pageCount >= 2 && (
           <div className="no-drag flex items-center rounded-md border p-0.5" data-testid="preview-view">
             {(
               [
-                ["page", Square, t.preview.pageView],
-                ["pages", LayoutGrid, t.preview.allPages],
+                ["page", Square, t.preview.pageViewTip, undefined],
+                ["pages", LayoutGrid, t.preview.allPagesTip, "all-pages"],
               ] as const
-            ).map(([view, Icon, title]) => (
+            ).map(([view, Icon, tip, command]) => (
               <Button
                 key={view}
                 variant="ghost"
                 size="icon-sm"
                 className={cn("size-6", state.view === view && "bg-accent")}
-                title={title}
-                aria-label={title}
+                tip={tip}
+                command={command}
                 aria-pressed={state.view === view}
                 data-testid={`view-${view}`}
                 onClick={() => void upstart.invoke("preview:set-view", view)}
@@ -400,14 +403,14 @@ export function PreviewPane({
                   ["comment", MessageSquarePlus, t.preview.commentMode],
                   ["visitor", Eye, t.preview.visitorMode],
                 ] as const
-              ).map(([mode, Icon, title]) => (
+              ).map(([mode, Icon, tip]) => (
                 <Button
                   key={mode}
                   variant="ghost"
                   size="icon-sm"
                   className={cn("size-6", state.mode === mode && "bg-accent")}
-                  title={title}
-                  aria-label={title}
+                  tip={tip}
+                  command={`mode-${mode}`}
                   aria-pressed={state.mode === mode}
                   data-testid={`mode-${mode}`}
                   onClick={() => void upstart.invoke("preview:set-mode", mode)}
@@ -423,14 +426,14 @@ export function PreviewPane({
                   ["tablet", Tablet, t.preview.tablet],
                   ["phone", Smartphone, t.preview.phone],
                 ] as const
-              ).map(([w, Icon, title]) => (
+              ).map(([w, Icon, tip]) => (
                 <Button
                   key={w}
                   variant="ghost"
                   size="icon-sm"
                   className={cn("size-6", width === w && "bg-accent")}
-                  title={title}
-                  aria-label={title}
+                  tip={tip}
+                  command={`screen-${w}`}
                   aria-pressed={width === w}
                   data-testid={`width-${w}`}
                   onClick={() => setWidth(w)}
@@ -443,8 +446,7 @@ export function PreviewPane({
                   variant="ghost"
                   size="icon-sm"
                   className={cn("size-6", landscape && "bg-accent")}
-                  title={landscape ? t.preview.portrait : t.preview.landscape}
-                  aria-label={landscape ? t.preview.portrait : t.preview.landscape}
+                  tip={landscape ? t.preview.portrait : t.preview.landscape}
                   aria-pressed={landscape}
                   data-testid="rotate"
                   onClick={() => setLandscape((l) => !l)}
@@ -461,7 +463,7 @@ export function PreviewPane({
             size="sm"
             className="no-drag h-7"
             disabled={working}
-            title={working ? t.comments.waitForAgent : t.comments.sendTitle}
+            tip={working ? t.comments.waitForAgent : t.comments.sendTitle}
             onClick={() => void upstart.invoke("comments:send")}
             data-testid="comments-send"
           >
@@ -475,6 +477,8 @@ export function PreviewPane({
             size="sm"
             className="no-drag h-7"
             onClick={() => setExporting(true)}
+            tip={t.preview.publishTip}
+            command="publish"
             data-testid="export-open"
           >
             <Upload />
@@ -494,7 +498,8 @@ export function PreviewPane({
             variant="ghost"
             size="icon-sm"
             className="no-drag"
-            title={t.preview.reload}
+            tip={t.preview.reload}
+            command="reload-preview"
             onClick={() => void upstart.invoke("preview:reload")}
           >
             <RotateCw className={state.loading ? "animate-spin" : undefined} />

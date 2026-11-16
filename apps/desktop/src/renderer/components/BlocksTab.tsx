@@ -11,6 +11,7 @@ import { BLOCK_DRAG_TYPE, BLOCK_KINDS, type BlockKind, type GalleryBlock } from 
 import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
+import { Tip } from "./ui/tip";
 
 export function BlocksTab({
   projectId,
@@ -72,15 +73,16 @@ export function BlocksTab({
             className="h-8 w-full rounded-md border bg-background pr-8 pl-8 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-[3px] focus-visible:ring-ring/30 [&::-webkit-search-cancel-button]:hidden"
           />
           {query && (
-            <button
-              type="button"
-              onClick={() => setQuery("")}
-              title={t.gallery.clearSearch}
-              aria-label={t.gallery.clearSearch}
-              className="absolute right-2 rounded p-0.5 text-muted-foreground hover:text-foreground"
-            >
-              <X className="size-3.5" />
-            </button>
+            <Tip text={t.gallery.clearSearch}>
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                aria-label={t.gallery.clearSearch}
+                className="absolute right-2 rounded p-0.5 text-muted-foreground hover:text-foreground"
+              >
+                <X className="size-3.5" />
+              </button>
+            </Tip>
           )}
         </label>
       </div>
@@ -88,22 +90,23 @@ export function BlocksTab({
         {kinds.length > 1 && (
           <div className="flex flex-wrap gap-1" role="toolbar" aria-label={t.gallery.kindsLabel}>
             {kinds.map((k) => (
-              <button
-                key={k}
-                type="button"
-                aria-pressed={kind === k}
-                data-testid="blocks-chip"
-                data-kind={k}
-                onClick={() => setKind(kind === k ? undefined : k)}
-                className={cn(
-                  "rounded-full border px-2 py-0.5 text-[11px]",
-                  kind === k
-                    ? "border-foreground bg-foreground text-background"
-                    : "text-muted-foreground hover:border-foreground/40 hover:text-foreground",
-                )}
-              >
-                {t.gallery.kinds[k]}
-              </button>
+              <Tip key={k} text={kind === k ? t.gallery.kindAll : t.gallery.kindOnly}>
+                <button
+                  type="button"
+                  aria-pressed={kind === k}
+                  data-testid="blocks-chip"
+                  data-kind={k}
+                  onClick={() => setKind(kind === k ? undefined : k)}
+                  className={cn(
+                    "rounded-full border px-2 py-0.5 text-[11px]",
+                    kind === k
+                      ? "border-foreground bg-foreground text-background"
+                      : "text-muted-foreground hover:border-foreground/40 hover:text-foreground",
+                  )}
+                >
+                  {t.gallery.kinds[k]}
+                </button>
+              </Tip>
             ))}
           </div>
         )}
@@ -152,27 +155,31 @@ export function BlocksTab({
           const Chevron = all ? ChevronDown : ChevronRight;
           return (
             <section key={k} className="space-y-2" data-testid="blocks-group" data-kind={k} data-open={all}>
-              <button
-                type="button"
-                aria-expanded={all}
-                data-testid="blocks-group-toggle"
-                onClick={() => toggle(k)}
-                className="-mx-1 flex w-[calc(100%+0.5rem)] items-center gap-1 rounded px-1 py-0.5 text-xs font-medium text-muted-foreground uppercase tracking-wide hover:text-foreground"
-              >
-                <Chevron className="size-3.5" />
-                {t.gallery.kinds[k]}
-                <span className="ml-auto font-normal normal-case tracking-normal">{list.length}</span>
-              </button>
-              {cards}
-              {!all && list.length > FIRST && (
+              <Tip text={all ? t.gallery.groupClose : t.gallery.groupOpen}>
                 <button
                   type="button"
-                  data-testid="blocks-group-more"
+                  aria-expanded={all}
+                  data-testid="blocks-group-toggle"
                   onClick={() => toggle(k)}
-                  className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                  className="-mx-1 flex w-[calc(100%+0.5rem)] items-center gap-1 rounded px-1 py-0.5 text-xs font-medium text-muted-foreground uppercase tracking-wide hover:text-foreground"
                 >
-                  {t.gallery.showAll(list.length)}
+                  <Chevron className="size-3.5" />
+                  {t.gallery.kinds[k]}
+                  <span className="ml-auto font-normal normal-case tracking-normal">{list.length}</span>
                 </button>
+              </Tip>
+              {cards}
+              {!all && list.length > FIRST && (
+                <Tip text={t.gallery.groupOpen}>
+                  <button
+                    type="button"
+                    data-testid="blocks-group-more"
+                    onClick={() => toggle(k)}
+                    className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                  >
+                    {t.gallery.showAll(list.length)}
+                  </button>
+                </Tip>
               )}
             </section>
           );
@@ -203,37 +210,38 @@ function BlockCard({ block, theme, disabled }: { block: GalleryBlock; theme: str
     [],
   );
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: dragging is for the pointer; the Add button does the same from the keyboard
-    <div
-      data-testid="block"
-      data-block={block.id}
-      draggable={!disabled}
-      onMouseEnter={() => peek(true)}
-      onMouseLeave={() => peek(false)}
-      onDragStart={(event) => {
-        peek(false);
-        event.dataTransfer.setData(BLOCK_DRAG_TYPE, block.id);
-        event.dataTransfer.effectAllowed = "copy";
-      }}
-      title={block.description}
-      className={cn(
-        "group relative overflow-hidden rounded-lg border bg-background",
-        disabled ? "opacity-60" : "cursor-grab active:cursor-grabbing",
-      )}
-    >
-      <div ref={thumbnail.ref} className="flex aspect-[4/3] items-center overflow-hidden bg-muted">
-        {thumbnail.url ? (
-          <img src={thumbnail.url} alt="" draggable={false} className="max-h-full w-full object-cover object-top" />
-        ) : (
-          <div className="grid h-full w-full place-items-center text-[11px] text-muted-foreground">
-            {t.gallery.drawing}
-          </div>
+    <Tip text={block.description}>
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: dragging is for the pointer; the Add button does the same from the keyboard */}
+      <div
+        data-testid="block"
+        data-block={block.id}
+        draggable={!disabled}
+        onMouseEnter={() => peek(true)}
+        onMouseLeave={() => peek(false)}
+        onDragStart={(event) => {
+          peek(false);
+          event.dataTransfer.setData(BLOCK_DRAG_TYPE, block.id);
+          event.dataTransfer.effectAllowed = "copy";
+        }}
+        className={cn(
+          "group relative overflow-hidden rounded-lg border bg-background",
+          disabled ? "opacity-60" : "cursor-grab active:cursor-grabbing",
         )}
+      >
+        <div ref={thumbnail.ref} className="flex aspect-[4/3] items-center overflow-hidden bg-muted">
+          {thumbnail.url ? (
+            <img src={thumbnail.url} alt="" draggable={false} className="max-h-full w-full object-cover object-top" />
+          ) : (
+            <div className="grid h-full w-full place-items-center text-[11px] text-muted-foreground">
+              {t.gallery.drawing}
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-1 border-t px-2 py-1">
+          <span className="flex-1 truncate text-xs">{block.name}</span>
+        </div>
       </div>
-      <div className="flex items-center gap-1 border-t px-2 py-1">
-        <span className="flex-1 truncate text-xs">{block.name}</span>
-      </div>
-    </div>
+    </Tip>
   );
 }
 

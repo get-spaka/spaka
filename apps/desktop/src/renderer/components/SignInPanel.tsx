@@ -57,13 +57,19 @@ export function SignInPanel({ status, modelName }: { status: AgentStatus; modelN
           </p>
           <div className="flex gap-2">
             {status.auth === "signing-in" && status.signInUrl && (
-              <Button size="sm" variant="outline" onClick={() => void upstart.invoke("agent:open-sign-in-page")}>
+              <Button
+                size="sm"
+                variant="outline"
+                tip={t.signIn.openLinkTip}
+                onClick={() => void upstart.invoke("agent:open-sign-in-page")}
+              >
                 {t.signIn.openLink}
               </Button>
             )}
             <Button
               size="sm"
               variant="ghost"
+              tip={t.signIn.cancelTip}
               onClick={() =>
                 void upstart.invoke(status.chatgpt.signingIn ? "agent:chatgpt-cancel" : "agent:cancel-sign-in")
               }
@@ -76,21 +82,37 @@ export function SignInPanel({ status, modelName }: { status: AgentStatus; modelN
         <div className="space-y-2">
           {(status.signInFailed || status.chatgpt.failed) && <p className="text-destructive">{t.signIn.failed}</p>}
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" onClick={() => void upstart.invoke("agent:sign-in", "claudeai")}>
+            <Button
+              size="sm"
+              tip={t.signIn.subscriptionTip}
+              onClick={() => void upstart.invoke("agent:sign-in", "claudeai")}
+            >
               {t.signIn.subscription}
             </Button>
             <Button
               size="sm"
               variant="outline"
               data-testid="sign-in-chatgpt"
+              tip={t.signIn.chatgptTip}
               onClick={() => void upstart.invoke("agent:chatgpt-sign-in")}
             >
               {t.signIn.chatgpt}
             </Button>
-            <Button size="sm" variant="outline" onClick={() => void upstart.invoke("agent:sign-in", "console")}>
+            <Button
+              size="sm"
+              variant="outline"
+              tip={t.signIn.consoleTip}
+              onClick={() => void upstart.invoke("agent:sign-in", "console")}
+            >
               {t.signIn.console}
             </Button>
-            <Button size="sm" variant="ghost" data-testid="sign-in-key" onClick={() => setKeyOpen((open) => !open)}>
+            <Button
+              size="sm"
+              variant="ghost"
+              data-testid="sign-in-key"
+              tip={t.signIn.apiKeyTip}
+              onClick={() => setKeyOpen((open) => !open)}
+            >
               <KeyRound />
               {t.signIn.apiKey}
             </Button>
@@ -126,7 +148,7 @@ export function SignInPanel({ status, modelName }: { status: AgentStatus; modelN
                 placeholder={t.signIn.keyPlaceholders[keyFor]}
                 className="h-8 min-w-0 flex-1 rounded-md border bg-background px-2 font-mono text-xs outline-none focus:ring-[3px] focus:ring-ring/30"
               />
-              <Button size="sm" type="submit" disabled={!key.trim()}>
+              <Button size="sm" type="submit" disabled={!key.trim()} tip={t.signIn.saveTip}>
                 {t.signIn.save}
               </Button>
             </form>

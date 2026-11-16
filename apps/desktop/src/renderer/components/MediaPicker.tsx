@@ -10,6 +10,7 @@ import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { ImageSearch, MediaThumb, useFileDrop, useMediaList } from "./MediaLibrary";
 import { Button } from "./ui/button";
+import { Tip } from "./ui/tip";
 
 export function MediaPicker({ request }: { request: PickRequest }) {
   const [list] = useMediaList();
@@ -49,26 +50,28 @@ export function MediaPicker({ request }: { request: PickRequest }) {
           <h2 className="text-sm font-semibold">{t.media.pickTitle}</h2>
           <div role="tablist" className="ml-4 flex gap-1">
             {(["site", "search"] as const).map((name) => (
-              <button
-                key={name}
-                type="button"
-                role="tab"
-                aria-selected={tab === name}
-                data-testid={`picker-${name}`}
-                onClick={() => setTab(name)}
-                className={cn(
-                  "rounded-md px-2 py-1 text-xs font-medium",
-                  tab === name ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {name === "site" ? t.media.thisSite : t.media.search}
-              </button>
+              <Tip key={name} text={t.media.pickerTips[name]}>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === name}
+                  data-testid={`picker-${name}`}
+                  onClick={() => setTab(name)}
+                  className={cn(
+                    "rounded-md px-2 py-1 text-xs font-medium",
+                    tab === name ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {name === "site" ? t.media.thisSite : t.media.search}
+                </button>
+              </Tip>
             ))}
           </div>
           <Button
             size="sm"
             variant="outline"
             className="ml-auto"
+            tip={t.media.fromComputerTip}
             onClick={() => added(() => upstart.invoke("media:choose-files"))}
           >
             <Upload />
@@ -77,7 +80,7 @@ export function MediaPicker({ request }: { request: PickRequest }) {
           <Button
             variant="ghost"
             size="icon-sm"
-            title={t.media.cancel}
+            tip={t.media.cancelTip}
             onClick={() => pick(null)}
             data-testid="picker-close"
           >
@@ -91,16 +94,18 @@ export function MediaPicker({ request }: { request: PickRequest }) {
               <ul className="grid grid-cols-4 gap-3">
                 {images.map((m) => (
                   <li key={m.path}>
-                    <button
-                      type="button"
-                      data-testid="picker-item"
-                      data-path={m.path}
-                      onClick={() => pick(m.path)}
-                      className="w-full overflow-hidden rounded-md border text-left hover:ring-2 hover:ring-ring/40"
-                    >
-                      <MediaThumb path={m.path} className="aspect-[4/3] w-full" />
-                      <span className="block truncate px-1.5 py-1 text-[11px]">{m.name}</span>
-                    </button>
+                    <Tip text={t.media.pickTip}>
+                      <button
+                        type="button"
+                        data-testid="picker-item"
+                        data-path={m.path}
+                        onClick={() => pick(m.path)}
+                        className="w-full overflow-hidden rounded-md border text-left hover:ring-2 hover:ring-ring/40"
+                      >
+                        <MediaThumb path={m.path} className="aspect-[4/3] w-full" />
+                        <span className="block truncate px-1.5 py-1 text-[11px]">{m.name}</span>
+                      </button>
+                    </Tip>
                   </li>
                 ))}
               </ul>

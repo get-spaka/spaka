@@ -11,6 +11,7 @@ import { messageOf } from "../lib/errors";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { Button } from "./ui/button";
+import { Tip } from "./ui/tip";
 
 type Published = { records: PublishedRecord[] } | { error: string; reason: string };
 type Row =
@@ -76,7 +77,7 @@ export function CollectedView({
   return (
     <>
       <div className="flex shrink-0 items-center gap-1 border-b px-2 py-1.5">
-        <Button variant="ghost" size="icon-sm" onClick={onBack} title={t.content.back} data-testid="content-back">
+        <Button variant="ghost" size="icon-sm" onClick={onBack} tip={t.content.backTip} data-testid="content-back">
           <ChevronLeft />
         </Button>
         <h2 className="min-w-0 truncate text-sm font-medium">{ds.label}</h2>
@@ -85,7 +86,7 @@ export function CollectedView({
             size="sm"
             variant="outline"
             disabled={!published || rows.length === 0}
-            title={t.content.collected.csvTitle}
+            tip={t.content.collected.csvTitle}
             data-testid="collected-csv"
             onClick={() =>
               act(async () => {
@@ -97,7 +98,14 @@ export function CollectedView({
             <Download />
             {t.content.collected.csv}
           </Button>
-          <Button size="sm" variant="outline" onClick={onAdd} disabled={!!ds.problem} data-testid="record-add">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onAdd}
+            disabled={!!ds.problem}
+            tip={t.content.collected.addTestTip}
+            data-testid="record-add"
+          >
             <Plus />
             {t.content.collected.addTest}
           </Button>
@@ -149,42 +157,50 @@ export function CollectedView({
                 className="group rounded-md pr-1 hover:bg-accent"
               >
                 <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      row.kind === "test" ? onOpen(row.id) : setOpen((o) => (o === row.id ? undefined : row.id))
+                  {/* A test record's tip also says what its Test badge means. */}
+                  <Tip
+                    text={
+                      row.kind === "test"
+                        ? t.content.collected.openTest
+                        : open === row.id
+                          ? t.content.collected.hideSent
+                          : t.content.collected.showSent
                     }
-                    className="flex min-w-0 flex-1 items-center gap-2 py-2 pl-2 text-left text-sm"
                   >
-                    <span className={cn("truncate", row.kind === "test" && row.record.skipped && "line-through")}>
-                      {title}
-                    </span>
-                    {row.kind === "test" && (
-                      <span
-                        title={t.content.collected.testTitle}
-                        className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
-                      >
-                        {t.content.collected.test}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        row.kind === "test" ? onOpen(row.id) : setOpen((o) => (o === row.id ? undefined : row.id))
+                      }
+                      className="flex min-w-0 flex-1 items-center gap-2 py-2 pl-2 text-left text-sm"
+                    >
+                      <span className={cn("truncate", row.kind === "test" && row.record.skipped && "line-through")}>
+                        {title}
                       </span>
-                    )}
-                    {pending && (
-                      <span className="shrink-0 rounded bg-warning-muted px-1.5 py-0.5 text-[10px] font-medium text-warning">
-                        {t.content.collected.pending}
-                      </span>
-                    )}
-                    {row.kind === "test" && row.record.problems.length > 0 && (
-                      <AlertTriangle
-                        className="size-3.5 shrink-0 text-warning"
-                        aria-label={row.record.problems.join("; ")}
-                      />
-                    )}
-                    <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">{when(row.submitted)}</span>
-                  </button>
+                      {row.kind === "test" && (
+                        <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                          {t.content.collected.test}
+                        </span>
+                      )}
+                      {pending && (
+                        <span className="shrink-0 rounded bg-warning-muted px-1.5 py-0.5 text-[10px] font-medium text-warning">
+                          {t.content.collected.pending}
+                        </span>
+                      )}
+                      {row.kind === "test" && row.record.problems.length > 0 && (
+                        <AlertTriangle
+                          className="size-3.5 shrink-0 text-warning"
+                          aria-label={row.record.problems.join("; ")}
+                        />
+                      )}
+                      <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">{when(row.submitted)}</span>
+                    </button>
+                  </Tip>
                   {row.kind === "published" && pending && (
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      title={t.content.collected.approve}
+                      tip={t.content.collected.approveTip}
                       data-testid="record-approve"
                       onClick={() => act(() => upstart.invoke("content:approve", ds.name, row.id))}
                     >
@@ -195,7 +211,7 @@ export function CollectedView({
                     variant="ghost"
                     size="icon-sm"
                     className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
-                    title={t.content.collected.delete}
+                    tip={t.content.deleteTip}
                     data-testid="record-delete"
                     onClick={() => (row.kind === "test" ? onDeleteTest(row.record) : setConfirming(row.id))}
                   >
@@ -209,6 +225,7 @@ export function CollectedView({
                       size="sm"
                       variant="outline"
                       className="text-destructive"
+                      tip={t.content.collected.deleteForGoodTip}
                       data-testid="record-delete-for-good"
                       onClick={() => {
                         setConfirming(undefined);
@@ -217,7 +234,12 @@ export function CollectedView({
                     >
                       {t.content.collected.delete}
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setConfirming(undefined)}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      tip={t.content.collected.keepTip}
+                      onClick={() => setConfirming(undefined)}
+                    >
                       {t.content.collected.cancel}
                     </Button>
                   </div>
@@ -247,6 +269,7 @@ export function CollectedView({
           size="sm"
           variant="outline"
           className="mt-4 ml-2"
+          tip={t.content.askFieldsTip}
           onClick={() => onAsk(t.content.askFieldsMessage(ds.label))}
         >
           {t.content.askFields}

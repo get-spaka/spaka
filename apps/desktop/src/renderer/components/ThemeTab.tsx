@@ -11,6 +11,7 @@ import { messageOf } from "../lib/errors";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { Button } from "./ui/button";
+import { Tip } from "./ui/tip";
 
 const COLORS = Object.keys(PALETTES[0]!.colors) as (keyof PaletteColors)[];
 
@@ -53,8 +54,8 @@ export function ThemeTab({ theme, working, onAskDark }: { theme: string; working
 
   if (!theme) return <p className="px-4 py-3 text-xs text-muted-foreground">{t.theme.noProject}</p>;
   const radius = Number.parseFloat(values["--theme-radius"] ?? "0.75") || 0;
-  const tiles: { id: string; name: string; title?: string; colors: ThemeValues }[] = [
-    ...(own ? [{ id: "own", name: t.theme.own, title: t.theme.ownTitle, colors: own }] : []),
+  const tiles: { id: string; name: string; tip?: string; colors: ThemeValues }[] = [
+    ...(own ? [{ id: "own", name: t.theme.own, tip: t.theme.ownTip, colors: own }] : []),
     ...PALETTES,
   ];
 
@@ -69,36 +70,43 @@ export function ThemeTab({ theme, working, onAskDark }: { theme: string; working
             const set = COLORS.filter((c) => p.colors[c]);
             const current = set.every((c) => same(values[c], p.colors[c]));
             return (
-              <button
-                key={p.id}
-                type="button"
-                data-testid={`palette-${p.id}`}
-                aria-pressed={current}
-                title={p.title}
-                onClick={() => apply(Object.fromEntries(set.map((c) => [c, p.colors[c]!])))}
-                className={cn(
-                  "overflow-hidden rounded-md border text-left text-[11px] disabled:opacity-50",
-                  current ? "ring-2 ring-foreground" : "hover:border-foreground/40",
-                )}
-              >
-                <div className="flex h-8" style={{ background: p.colors["--theme-color-surface"] }}>
-                  {(
-                    [
-                      "--theme-color-primary",
-                      "--theme-color-secondary",
-                      "--theme-color-accent",
-                      "--theme-color-neutral",
-                    ] as const
-                  ).map((c) => (
-                    <span key={c} className="m-1 flex-1 rounded-sm" style={{ background: p.colors[c] }} />
-                  ))}
-                </div>
-                <div className="px-1.5 py-1">{p.name}</div>
-              </button>
+              <Tip key={p.id} text={p.tip ?? t.theme.paletteTip}>
+                <button
+                  type="button"
+                  data-testid={`palette-${p.id}`}
+                  aria-pressed={current}
+                  onClick={() => apply(Object.fromEntries(set.map((c) => [c, p.colors[c]!])))}
+                  className={cn(
+                    "overflow-hidden rounded-md border text-left text-[11px] disabled:opacity-50",
+                    current ? "ring-2 ring-foreground" : "hover:border-foreground/40",
+                  )}
+                >
+                  <div className="flex h-8" style={{ background: p.colors["--theme-color-surface"] }}>
+                    {(
+                      [
+                        "--theme-color-primary",
+                        "--theme-color-secondary",
+                        "--theme-color-accent",
+                        "--theme-color-neutral",
+                      ] as const
+                    ).map((c) => (
+                      <span key={c} className="m-1 flex-1 rounded-sm" style={{ background: p.colors[c] }} />
+                    ))}
+                  </div>
+                  <div className="px-1.5 py-1">{p.name}</div>
+                </button>
+              </Tip>
             );
           })}
         </div>
-        <Button variant="outline" size="sm" className="mt-2 w-full" onClick={onAskDark} data-testid="ask-dark">
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-2 w-full"
+          onClick={onAskDark}
+          tip={t.theme.askDarkTip}
+          data-testid="ask-dark"
+        >
           <Moon /> {t.theme.askDark}
         </Button>
       </Group>
@@ -144,27 +152,30 @@ export function ThemeTab({ theme, working, onAskDark }: { theme: string; working
           const strings = t.theme.styles[style.id];
           const current = style.read(values[style.variable]);
           return (
-            <div key={style.id} className="flex items-center gap-3 text-xs" title={strings.title}>
-              <span className="w-24 shrink-0">{strings.label}</span>
+            <div key={style.id} className="flex items-center gap-3 text-xs">
+              <Tip text={strings.title}>
+                <span className="w-24 shrink-0">{strings.label}</span>
+              </Tip>
               <fieldset
                 aria-label={strings.label}
                 data-testid={`style-${style.id}`}
                 className="flex flex-1 rounded-md border p-0.5"
               >
                 {Object.entries(style.options).map(([option, value]) => (
-                  <button
-                    key={option}
-                    type="button"
-                    data-testid={`style-${style.id}-${option}`}
-                    aria-pressed={current === option}
-                    onClick={() => current !== option && apply({ [style.variable]: value })}
-                    className={cn(
-                      "flex-1 rounded-sm px-1.5 py-1 disabled:opacity-50",
-                      current === option ? "bg-foreground text-background" : "hover:bg-muted",
-                    )}
-                  >
-                    {(strings.options as Record<string, string>)[option]}
-                  </button>
+                  <Tip key={option} text={strings.title}>
+                    <button
+                      type="button"
+                      data-testid={`style-${style.id}-${option}`}
+                      aria-pressed={current === option}
+                      onClick={() => current !== option && apply({ [style.variable]: value })}
+                      className={cn(
+                        "flex-1 rounded-sm px-1.5 py-1 disabled:opacity-50",
+                        current === option ? "bg-foreground text-background" : "hover:bg-muted",
+                      )}
+                    >
+                      {(strings.options as Record<string, string>)[option]}
+                    </button>
+                  </Tip>
                 ))}
               </fieldset>
             </div>

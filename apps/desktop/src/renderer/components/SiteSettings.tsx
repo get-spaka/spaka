@@ -11,6 +11,7 @@ import { t } from "../lib/strings";
 import { ConnectorList, SkillList } from "../settings/lists";
 import { ModelRows } from "../settings/model";
 import { Group, Push, Row } from "../settings/ui";
+import { Tip } from "./ui/tip";
 
 export function SiteSettings({
   project,
@@ -84,14 +85,16 @@ export function SiteSettings({
           caption={
             <span data-testid="site-shared-connectors">
               {shared.length ? t.site.alsoUsed(shared.join(", ")) : t.site.noneShared}{" "}
-              <button
-                type="button"
-                className="underline underline-offset-2 hover:text-foreground"
-                onClick={() => void upstart.invoke("settings:open", "connectors")}
-                data-testid="site-open-settings"
-              >
-                {t.site.fromSettings}
-              </button>
+              <Tip text={t.site.fromSettingsTip}>
+                <button
+                  type="button"
+                  className="underline underline-offset-2 hover:text-foreground"
+                  onClick={() => void upstart.invoke("settings:open", "connectors")}
+                  data-testid="site-open-settings"
+                >
+                  {t.site.fromSettings}
+                </button>
+              </Tip>
             </span>
           }
         />
@@ -99,7 +102,7 @@ export function SiteSettings({
         <PublishedSite project={project} />
 
         <div className="flex justify-end">
-          <Push primary onClick={onClose} testid="site-settings-done">
+          <Push primary onClick={onClose} tip={t.site.doneTip} testid="site-settings-done">
             {t.site.done}
           </Push>
         </div>
@@ -151,7 +154,11 @@ function PublishedSite({ project }: { project: ProjectInfo }) {
             onChange={(e) => setAddress(e.target.value)}
             className="w-64 rounded-md border border-input bg-card px-2 py-1 text-[13px] outline-none focus:border-ring"
           />
-          <Push type="submit" testid="site-address-save">
+          <Push
+            type="submit"
+            testid="site-address-save"
+            tip={address.trim() && address.trim() === (project.siteUrl ?? "") ? p.checkTip : p.saveTip}
+          >
             {address.trim() && address.trim() === (project.siteUrl ?? "") ? p.check : p.save}
           </Push>
         </form>
@@ -169,11 +176,12 @@ function PublishedSite({ project }: { project: ProjectInfo }) {
         <code data-testid="site-token" className="max-w-48 truncate font-mono text-[12px]">
           {token ? (shown ? token : "•".repeat(12)) : ""}
         </code>
-        <Push testid="site-token-show" onClick={() => setShown((s) => !s)}>
+        <Push testid="site-token-show" tip={shown ? p.hideTip : p.showTip} onClick={() => setShown((s) => !s)}>
           {shown ? p.hide : p.show}
         </Push>
         <Push
           testid="site-token-copy"
+          tip={p.copyTip}
           onClick={() => {
             if (!token) return;
             void navigator.clipboard.writeText(token).then(() => {
@@ -186,6 +194,7 @@ function PublishedSite({ project }: { project: ProjectInfo }) {
         </Push>
         <Push
           testid="site-token-new"
+          tip={p.newTokenTip}
           onClick={() => {
             if (!window.confirm(p.newTokenConfirm)) return;
             void upstart.invoke("site:new-token").then((next) => {

@@ -22,6 +22,7 @@ import { cn } from "../lib/utils";
 import { MessageBox, modelName, useNewSettings } from "./Conversation";
 import { SignInPanel } from "./SignInPanel";
 import { Button } from "./ui/button";
+import { Tip } from "./ui/tip";
 
 const NO_VIEW: TemplateViewState = { id: null, route: null, title: "", pages: [], loading: false };
 
@@ -108,7 +109,14 @@ export function StartPanel({
     <section data-testid="start" className="relative flex min-w-0 flex-1 flex-col bg-background">
       <div className={cn("drag-region flex h-13 shrink-0 items-center gap-2", sidebarOpen ? "px-4" : "pr-4 pl-20")}>
         {!sidebarOpen && (
-          <Button variant="ghost" size="icon-sm" className="no-drag" onClick={onExpandSidebar} title={t.sidebar.expand}>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="no-drag"
+            onClick={onExpandSidebar}
+            tip={t.sidebar.expand}
+            command="sidebar"
+          >
             <PanelLeft />
           </Button>
         )}
@@ -118,6 +126,7 @@ export function StartPanel({
           size="sm"
           className="no-drag text-muted-foreground"
           data-testid="template-import"
+          tip={t.start.importTip}
           onClick={() => void runImport()}
         >
           <Upload />
@@ -146,22 +155,23 @@ export function StartPanel({
             {categories.length > 1 && (
               <div className="flex flex-wrap gap-1.5" role="toolbar" aria-label={t.start.title}>
                 {[undefined, ...categories].map((c) => (
-                  <button
-                    key={c ?? "all"}
-                    type="button"
-                    aria-pressed={category === c}
-                    data-testid="template-chip"
-                    data-category={c ?? "all"}
-                    onClick={() => setCategory(c)}
-                    className={cn(
-                      "rounded-full border px-2.5 py-0.5 text-xs",
-                      category === c
-                        ? "border-foreground bg-foreground text-background"
-                        : "text-muted-foreground hover:border-foreground/40 hover:text-foreground",
-                    )}
-                  >
-                    {c ? t.start.categories[c] : t.start.all}
-                  </button>
+                  <Tip key={c ?? "all"} text={c ? t.start.categoryTip : t.start.allTip}>
+                    <button
+                      type="button"
+                      aria-pressed={category === c}
+                      data-testid="template-chip"
+                      data-category={c ?? "all"}
+                      onClick={() => setCategory(c)}
+                      className={cn(
+                        "rounded-full border px-2.5 py-0.5 text-xs",
+                        category === c
+                          ? "border-foreground bg-foreground text-background"
+                          : "text-muted-foreground hover:border-foreground/40 hover:text-foreground",
+                      )}
+                    >
+                      {c ? t.start.categories[c] : t.start.all}
+                    </button>
+                  </Tip>
                 ))}
               </div>
             )}
@@ -214,15 +224,17 @@ export function StartPanel({
               className="inline-flex items-center gap-1 rounded-full bg-secondary py-0.5 pr-1 pl-2.5 text-xs"
             >
               {t.start.startingFrom(chosenTemplate.name)}
-              <button
-                type="button"
-                className="rounded-full p-0.5 text-muted-foreground hover:bg-background hover:text-foreground"
-                title={t.start.clear}
-                data-testid="chosen-template-clear"
-                onClick={() => setChosen(undefined)}
-              >
-                <X className="size-3" />
-              </button>
+              <Tip text={t.start.clear}>
+                <button
+                  type="button"
+                  className="rounded-full p-0.5 text-muted-foreground hover:bg-background hover:text-foreground"
+                  aria-label={t.start.clear}
+                  data-testid="chosen-template-clear"
+                  onClick={() => setChosen(undefined)}
+                >
+                  <X className="size-3" />
+                </button>
+              </Tip>
             </span>
           ) : (
             <span data-testid="chosen-template-none" className="text-xs text-muted-foreground">
@@ -275,6 +287,7 @@ function TemplateCard({
       onPointerLeave={() => setHovered(false)}
     >
       <div className="relative">
+        {/* no tip: a large picture of the template, its name and description under it */}
         <button
           type="button"
           aria-pressed={chosen}
@@ -323,6 +336,7 @@ function TemplateCard({
           size="sm"
           variant="secondary"
           data-testid="template-view"
+          tip={t.start.viewTip}
           onClick={onView}
           className={cn(
             "absolute right-2 bottom-2 h-7 bg-background/90 shadow-xs backdrop-blur",
@@ -400,7 +414,7 @@ function TemplateLarge({
   return (
     <div data-testid="template-large" data-template={template.id} className="flex min-h-0 flex-1 flex-col px-4">
       <div className="flex shrink-0 items-center gap-2 pb-2">
-        <Button variant="ghost" size="sm" onClick={onBack} data-testid="template-back">
+        <Button variant="ghost" size="sm" onClick={onBack} tip={t.start.backTip} data-testid="template-back">
           <ArrowLeft />
           {t.start.back}
         </Button>
@@ -427,6 +441,7 @@ function TemplateLarge({
           variant={chosen ? "secondary" : "default"}
           onClick={onChoose}
           disabled={chosen}
+          tip={chosen ? t.start.chosenTip : t.start.chooseTip}
           data-testid="template-choose"
         >
           {chosen && <Check />}
@@ -443,7 +458,7 @@ function TemplateLarge({
         {problem ? (
           <div data-testid="template-problem" role="alert" className="max-w-sm space-y-3 text-center text-sm">
             <p>{problem}</p>
-            <Button size="sm" variant="outline" onClick={onRetry}>
+            <Button size="sm" variant="outline" tip={t.start.tryAgainTip} onClick={onRetry}>
               {t.start.tryAgain}
             </Button>
           </div>
@@ -510,11 +525,16 @@ function ImportDialog({
           </div>
         )}
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" size="sm" onClick={onClose}>
+          <Button variant="ghost" size="sm" tip={t.start.importCancelTip} onClick={onClose}>
             {t.start.importCancel}
           </Button>
           {"token" in answer && (
-            <Button size="sm" data-testid="template-import-add" onClick={() => onAccept(answer.token)}>
+            <Button
+              size="sm"
+              data-testid="template-import-add"
+              tip={t.start.importAddTip}
+              onClick={() => onAccept(answer.token)}
+            >
               {t.start.importAdd}
             </Button>
           )}

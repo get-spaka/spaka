@@ -4,6 +4,7 @@
 import { TriangleAlert } from "lucide-react";
 import { useState } from "react";
 import type { ConnectorInfo, ConnectorScope, SkillInfo } from "../../shared/ipc";
+import { Tip } from "../components/ui/tip";
 import { upstart } from "../lib/bridge";
 import { messageOf } from "../lib/errors";
 import { t } from "../lib/strings";
@@ -67,28 +68,29 @@ export function SkillList({
         <p className="px-3 py-2.5 text-[13px] text-muted-foreground">{t.skills.noneYet}</p>
       ) : (
         skills.map((skill) => (
-          <button
-            type="button"
-            key={skill.name}
-            data-testid="skill"
-            data-name={skill.name}
-            aria-pressed={chosen === skill.name}
-            onClick={() => setChosen(skill.name)}
-            className={cn(
-              "flex w-full flex-col gap-0.5 px-3 py-2 text-left",
-              chosen === skill.name && "bg-primary text-primary-foreground",
-            )}
-          >
-            <span className="font-mono text-[13px]">{skill.name}</span>
-            <span
+          <Tip key={skill.name} text={t.settings.skills.chooseTip}>
+            <button
+              type="button"
+              data-testid="skill"
+              data-name={skill.name}
+              aria-pressed={chosen === skill.name}
+              onClick={() => setChosen(skill.name)}
               className={cn(
-                "line-clamp-2 text-[11px]",
-                chosen === skill.name ? "text-primary-foreground/80" : "text-muted-foreground",
+                "flex w-full flex-col gap-0.5 px-3 py-2 text-left",
+                chosen === skill.name && "bg-primary text-primary-foreground",
               )}
             >
-              {skill.description}
-            </span>
-          </button>
+              <span className="font-mono text-[13px]">{skill.name}</span>
+              <span
+                className={cn(
+                  "line-clamp-2 text-[11px]",
+                  chosen === skill.name ? "text-primary-foreground/80" : "text-muted-foreground",
+                )}
+              >
+                {skill.description}
+              </span>
+            </button>
+          </Tip>
         ))
       )}
     </Group>
@@ -181,44 +183,46 @@ function ConnectorRow({
   const missing = c.secrets.filter((s) => !s.set);
   return (
     <div data-testid="connector" data-name={c.name} data-state={c.state} className="flex flex-col">
-      <button
-        type="button"
-        aria-pressed={chosen}
-        onClick={onChoose}
-        className={cn(
-          "flex w-full items-center gap-3 px-3 py-2 text-left",
-          chosen && "bg-primary text-primary-foreground",
-        )}
-      >
-        <span
-          aria-hidden="true"
+      {/* Its tip also gives the address or command in full, which the row cuts short. */}
+      <Tip text={t.settings.connectors.chooseTip(c.target)}>
+        <button
+          type="button"
+          aria-pressed={chosen}
+          onClick={onChoose}
           className={cn(
-            "flex size-7 shrink-0 items-center justify-center rounded-md text-xs font-semibold uppercase",
-            chosen ? "bg-primary-foreground/15" : "bg-muted",
+            "flex w-full items-center gap-3 px-3 py-2 text-left",
+            chosen && "bg-primary text-primary-foreground",
           )}
         >
-          {c.name.slice(0, 1)}
-        </span>
-        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="font-mono text-[13px]">{c.name}</span>
           <span
-            className={cn("truncate text-[11px]", chosen ? "text-primary-foreground/80" : "text-muted-foreground")}
-            title={c.target}
-          >
-            {t.connectors.kind[c.kind]} · {c.target}
-            {c.oauth?.clientId && (
-              <span data-testid="connector-app">
-                {" "}
-                · {t.connectors.registeredApp(c.oauth.clientId, c.oauth.callbackPort)}
-              </span>
+            aria-hidden="true"
+            className={cn(
+              "flex size-7 shrink-0 items-center justify-center rounded-md text-xs font-semibold uppercase",
+              chosen ? "bg-primary-foreground/15" : "bg-muted",
             )}
+          >
+            {c.name.slice(0, 1)}
           </span>
-        </span>
-        <span data-testid="connector-state" className="flex shrink-0 items-center gap-1.5 text-xs">
-          <span aria-hidden="true" className={cn("size-2 rounded-full", dot(c))} />
-          <span className={chosen ? undefined : tone(c)}>{stateLabel(c)}</span>
-        </span>
-      </button>
+          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span className="font-mono text-[13px]">{c.name}</span>
+            <span
+              className={cn("truncate text-[11px]", chosen ? "text-primary-foreground/80" : "text-muted-foreground")}
+            >
+              {t.connectors.kind[c.kind]} · {c.target}
+              {c.oauth?.clientId && (
+                <span data-testid="connector-app">
+                  {" "}
+                  · {t.connectors.registeredApp(c.oauth.clientId, c.oauth.callbackPort)}
+                </span>
+              )}
+            </span>
+          </span>
+          <span data-testid="connector-state" className="flex shrink-0 items-center gap-1.5 text-xs">
+            <span aria-hidden="true" className={cn("size-2 rounded-full", dot(c))} />
+            <span className={chosen ? undefined : tone(c)}>{stateLabel(c)}</span>
+          </span>
+        </button>
+      </Tip>
       {c.state === "needs-approval" && (
         <div className="mx-3 mb-2.5 flex flex-col gap-2 rounded-md border border-warning/40 bg-warning-muted p-2.5 text-xs">
           <p className="flex gap-2">
@@ -229,6 +233,7 @@ function ConnectorRow({
           <div>
             <Push
               testid="connector-approve"
+              tip={t.connectors.approveTip}
               onClick={() => void run(() => upstart.invoke("connectors:approve", c.name))}
             >
               {t.connectors.approve}
@@ -241,6 +246,7 @@ function ConnectorRow({
           <div>
             <Push
               testid="connector-sign-in"
+              tip={t.connectors.signInTip}
               onClick={() =>
                 void run(async () => {
                   await upstart.invoke("connectors:sign-in", c.name);
@@ -274,7 +280,7 @@ function ConnectorRow({
               data-testid="connector-secret"
             />
           ))}
-          <Push type="submit" testid="connector-secret-save">
+          <Push type="submit" testid="connector-secret-save" tip={t.connectors.saveTip}>
             {t.connectors.save}
           </Push>
         </form>
@@ -424,8 +430,10 @@ function AddConnector({ scope, onDone }: { scope: ConnectorScope; onDone: () => 
         </p>
       )}
       <div className="flex justify-end gap-2">
-        <Push onClick={onDone}>{t.connectors.cancel}</Push>
-        <Push type="submit" primary testid="connector-add">
+        <Push tip={t.connectors.cancelTip} onClick={onDone}>
+          {t.connectors.cancel}
+        </Push>
+        <Push type="submit" primary testid="connector-add" tip={t.connectors.addSubmitTip}>
           {t.connectors.addSubmit}
         </Push>
       </div>
