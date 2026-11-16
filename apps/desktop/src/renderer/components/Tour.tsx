@@ -79,7 +79,7 @@ export function Tour({
 
   const nextButton = useRef<HTMLButtonElement>(null);
   // biome-ignore lint/correctness/useExhaustiveDependencies: each step's Next takes the keyboard
-  useEffect(() => nextButton.current?.focus(), [step]);
+  useEffect(() => nextButton.current?.focus({ focusVisible: false }), [step]);
 
   const pad = 6;
   // The page itself is lit in the page; Publish, above it, is lit here while its bubble is drawn there.

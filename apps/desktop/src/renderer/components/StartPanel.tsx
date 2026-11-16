@@ -22,6 +22,7 @@ import { cn } from "../lib/utils";
 import { MessageBox, modelName, useNewSettings } from "./Conversation";
 import { SignInPanel } from "./SignInPanel";
 import { Button } from "./ui/button";
+import { NativeSelect } from "./ui/native-select";
 import { Tip } from "./ui/tip";
 
 const NO_VIEW: TemplateViewState = { id: null, route: null, title: "", pages: [], loading: false };
@@ -420,10 +421,11 @@ function TemplateLarge({
         </Button>
         <span className="truncate text-sm font-medium">{template.name}</span>
         {state.pages.length > 1 && (
-          <select
+          <NativeSelect
             aria-label={t.start.page}
             data-testid="template-page"
-            className="h-7 rounded-md border bg-transparent px-1.5 text-xs outline-none hover:bg-accent"
+            size="xs"
+            className="hover:bg-accent"
             value={state.pages.some((p) => p.route === state.route) ? (state.route ?? "/") : ""}
             onChange={(event) => void upstart.invoke("templates:view", template.id, event.target.value)}
           >
@@ -433,7 +435,7 @@ function TemplateLarge({
                 {p.name}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         )}
         <div className="ml-auto" />
         <Button

@@ -132,9 +132,7 @@ export function ExportDialog({
               <TriangleAlert className="size-4 text-warning" />
               {t.adaptation.publish.title}
             </h3>
-            <p className="text-sm text-muted-foreground">
-              {t.adaptation.publish.body(toAdapt.map((s) => s.name).join(", "))}
-            </p>
+            <p className="text-sm text-muted-foreground">{t.adaptation.publish.body(toAdapt.map((s) => s.name))}</p>
             <div className="flex flex-wrap gap-2">
               <Button
                 data-testid="publish-continue-adaptation"

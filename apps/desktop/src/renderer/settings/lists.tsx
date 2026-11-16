@@ -4,6 +4,7 @@
 import { TriangleAlert } from "lucide-react";
 import { useState } from "react";
 import type { ConnectorInfo, ConnectorScope, SkillInfo } from "../../shared/ipc";
+import { NativeSelect } from "../components/ui/native-select";
 import { Tip } from "../components/ui/tip";
 import { upstart } from "../lib/bridge";
 import { messageOf } from "../lib/errors";
@@ -346,16 +347,18 @@ function AddConnector({ scope, onDone }: { scope: ConnectorScope; onDone: () => 
       }}
     >
       <div className="flex flex-wrap items-center gap-2">
-        <select
+        <NativeSelect
           aria-label={t.connectors.kindLabel}
           value={kind}
           onChange={(event) => setKind(event.target.value as "remote" | "local")}
+          size="xs"
           className={selectClass}
+          wrapperClassName="shrink-0"
           data-testid="connector-kind"
         >
           <option value="remote">{t.connectors.kind.remote}</option>
           <option value="local">{t.connectors.kind.local}</option>
-        </select>
+        </NativeSelect>
         <input
           aria-label={t.connectors.name}
           placeholder={t.connectors.name}

@@ -2,12 +2,16 @@ import { STATUS_TEXT_AT, STATUS_TONES } from "@upstart/runtime";
 import { expect, test } from "vitest";
 import { contrast, PALETTES, parseColor, READ_TOGETHER } from "./palettes";
 
-test("colours are read from hex and rgb notations", () => {
+test("colours are read from hex, rgb and oklch notations", () => {
   expect(parseColor("#fff")).toEqual([255, 255, 255, 1]);
   expect(parseColor("#9A3412")).toEqual([154, 52, 18, 1]);
   expect(parseColor("rgb(10, 20, 30)")).toEqual([10, 20, 30, 1]);
   expect(parseColor("rgba(10 20 30 / 0.5)")).toEqual([10, 20, 30, 0.5]);
-  expect(parseColor("oklch(50% 0.1 200)")).toBeUndefined();
+  // OKLCH, as the templates write it: sRGB's red, white and black, a color's alpha.
+  expect(parseColor("oklch(0.628 0.2577 29.23)")).toEqual([255, 0, 0, 1]);
+  expect(parseColor("oklch(1 0 0)")).toEqual([255, 255, 255, 1]);
+  expect(parseColor("oklch(0% 0 none)")).toEqual([0, 0, 0, 1]);
+  expect(parseColor("oklch(0.9 0.2 125 / 50%)")?.[3]).toBe(0.5);
 });
 
 test("contrast is WCAG's ratio", () => {

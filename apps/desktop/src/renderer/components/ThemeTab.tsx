@@ -11,6 +11,7 @@ import { messageOf } from "../lib/errors";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { Button } from "./ui/button";
+import { NativeSelect } from "./ui/native-select";
 import { Tip } from "./ui/tip";
 
 const COLORS = Object.keys(PALETTES[0]!.colors) as (keyof PaletteColors)[];
@@ -60,7 +61,7 @@ export function ThemeTab({ theme, working, onAskDark }: { theme: string; working
   ];
 
   return (
-    <fieldset data-testid="theme" disabled={working} className="flex-1 space-y-6 overflow-y-auto px-4 py-3">
+    <fieldset data-testid="theme" disabled={working} className="min-w-0 flex-1 space-y-6 overflow-y-auto px-4 py-3">
       {working && <p className="text-xs text-muted-foreground">{t.theme.busy}</p>}
       {error && <p className="text-xs text-destructive">{error}</p>}
 
@@ -141,12 +142,12 @@ export function ThemeTab({ theme, working, onAskDark }: { theme: string; working
                 data-testid="radius"
                 aria-label={t.theme.radius}
                 onChange={(e) => show({ "--theme-radius": `${e.target.value}rem` })}
-                className="flex-1"
+                className="min-w-0 flex-1"
               />
             )}
             onEnd={(el) => apply({ "--theme-radius": `${(el as HTMLInputElement).value}rem` })}
           />
-          <span className="w-12 text-right tabular-nums text-muted-foreground">{radius}rem</span>
+          <span className="w-16 shrink-0 text-right tabular-nums text-muted-foreground">{radius}rem</span>
         </div>
         {STYLES.map((style) => {
           const strings = t.theme.styles[style.id];
@@ -185,11 +186,14 @@ export function ThemeTab({ theme, working, onAskDark }: { theme: string; working
 
       <Group title={t.theme.fonts}>
         {(["--theme-font-heading", "--theme-font-body"] as const).map((name) => (
-          <label key={name} className="flex items-center gap-3 text-xs">
+          <div key={name} className="flex items-center gap-3 text-xs">
             <span className="w-24 shrink-0">{name.endsWith("heading") ? t.theme.heading : t.theme.body}</span>
-            <select
+            <NativeSelect
               data-testid={`font-${name.endsWith("heading") ? "heading" : "body"}`}
-              className="h-8 flex-1 rounded-md border bg-background px-2"
+              aria-label={name.endsWith("heading") ? t.theme.heading : t.theme.body}
+              size="sm"
+              className="text-xs"
+              wrapperClassName="min-w-0 flex-1"
               value={fonts.find((f) => same(f.stack, values[name]))?.id ?? ""}
               onChange={(e) => {
                 const font = fonts.find((f) => f.id === e.target.value);
@@ -215,8 +219,8 @@ export function ThemeTab({ theme, working, onAskDark }: { theme: string; working
                     </option>
                   ))}
               </optgroup>
-            </select>
-          </label>
+            </NativeSelect>
+          </div>
         ))}
       </Group>
     </fieldset>
@@ -352,7 +356,7 @@ function ColorRow({
           onBlur={commit}
           onKeyDown={(e) => e.key === "Enter" && commit()}
           spellCheck={false}
-          className="h-6 w-24 rounded border bg-background px-1.5 font-mono text-[11px]"
+          className="h-6 w-40 shrink-0 rounded border bg-background px-1.5 font-mono text-[11px]"
         />
       </div>
       {warning && (

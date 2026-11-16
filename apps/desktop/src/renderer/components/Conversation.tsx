@@ -44,6 +44,7 @@ import { QuestionCard } from "./QuestionCard";
 import { SignInPanel } from "./SignInPanel";
 import { ThemeTab } from "./ThemeTab";
 import { Button } from "./ui/button";
+import { NativeSelect } from "./ui/native-select";
 import { Tip } from "./ui/tip";
 
 /** The middle column's tabs, in their order. */
@@ -583,14 +584,16 @@ function ModelControls({
     if (next.mode) void upstart.invoke("agent:set-mode", next.mode).finally(done);
   };
 
-  const select = "h-7 rounded-md bg-transparent px-1.5 text-xs text-muted-foreground outline-none hover:bg-accent";
   return (
     <>
-      <select
+      <NativeSelect
         aria-label={t.conversation.model}
         data-testid="model-select"
+        size="xs"
+        variant="ghost"
+        className="text-muted-foreground"
         // As wide as its longest model: it shrinks before the send and stop buttons are pushed out of the box.
-        className={cn(select, "min-w-0 shrink truncate")}
+        wrapperClassName="min-w-0 shrink"
         disabled={!models.length}
         value={model}
         onChange={(event) => {
@@ -601,11 +604,14 @@ function ModelControls({
         {!choice && <option value={model}>{modelName(status, model)}</option>}
         <ModelOptions models={models} />
         <option value={CONNECT}>{t.accounts.connectAnother}</option>
-      </select>
-      <select
+      </NativeSelect>
+      <NativeSelect
         aria-label={t.conversation.effort}
         data-testid="effort-select"
-        className={cn(select, "shrink-0")}
+        size="xs"
+        variant="ghost"
+        className="text-muted-foreground"
+        wrapperClassName="shrink-0"
         value={effort}
         onChange={(event) => change({ effort: event.target.value as Effort })}
       >
@@ -614,13 +620,16 @@ function ModelControls({
             {t.conversation.efforts[level]}
           </option>
         ))}
-      </select>
+      </NativeSelect>
       {!noPlan && (
-        <select
+        <NativeSelect
           aria-label={t.conversation.mode}
           title={t.conversation.planHint}
           data-testid="mode-select"
-          className={cn(select, "shrink-0", mode === "plan" && "text-foreground")}
+          size="xs"
+          variant="ghost"
+          className={cn("text-muted-foreground", mode === "plan" && "text-foreground")}
+          wrapperClassName="shrink-0"
           disabled={working}
           value={mode}
           onChange={(event) => change({ mode: event.target.value as AgentMode })}
@@ -630,7 +639,7 @@ function ModelControls({
               {t.conversation.modes[m]}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       )}
     </>
   );

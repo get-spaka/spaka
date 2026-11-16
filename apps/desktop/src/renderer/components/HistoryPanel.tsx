@@ -53,7 +53,7 @@ export function HistoryButtons({
       <Button
         variant="ghost"
         size="icon-sm"
-        className={cn("no-drag text-muted-foreground", open && "bg-accent")}
+        className={cn("no-drag text-muted-foreground", open && "bg-foreground/10 text-foreground")}
         onClick={onToggle}
         tip={open ? t.history.hide : t.history.show}
         aria-pressed={open}
@@ -154,11 +154,11 @@ function Row({ entry, disabled, onRestore }: { entry: HistoryEntry; disabled: bo
   return (
     <div
       data-testid="history-entry"
-      className="group flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm hover:bg-accent"
+      className="group relative flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm hover:bg-accent"
     >
       <div className="min-w-0 flex-1">
         <div className="truncate">{entryLabel(entry)}</div>
-        <div className="text-xs text-muted-foreground">
+        <div className="truncate text-xs text-muted-foreground">
           {day.format(entry.at)} · {time.format(entry.at)}
         </div>
       </div>
@@ -168,7 +168,8 @@ function Row({ entry, disabled, onRestore }: { entry: HistoryEntry; disabled: bo
         <Button
           size="sm"
           variant="outline"
-          className="h-7 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+          // Over the row's end on hover: hidden, it takes none of the label's room.
+          className="absolute top-1/2 right-2 h-7 -translate-y-1/2 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
           disabled={disabled}
           onClick={() => {
             onRestore();

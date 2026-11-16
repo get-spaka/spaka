@@ -31,7 +31,13 @@ export function Tip({
   const keys = command && shortcutOf(command);
   return (
     <Tooltip.Root>
-      <Tooltip.Trigger asChild>{children}</Tooltip.Trigger>
+      {/* A button given the keyboard by the app (the tour's Next) shows no tip: only one reached with the keyboard does. */}
+      <Tooltip.Trigger
+        asChild
+        onFocus={(event) => !event.currentTarget.matches(":focus-visible") && event.preventDefault()}
+      >
+        {children}
+      </Tooltip.Trigger>
       <Tooltip.Portal>
         <Tooltip.Content
           side={side}

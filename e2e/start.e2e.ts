@@ -295,7 +295,7 @@ describe("the start screen", () => {
     await w.getByTestId("export-open").click();
     const warning = w.getByTestId("publish-adaptation");
     await warning.waitFor();
-    await expect(warning.textContent()).resolves.toMatch(/Work, Contact still show the template's contents/);
+    await expect(warning.textContent()).resolves.toMatch(/Work and Contact still show the template's contents/);
     await expect(w.getByTestId("publish-choice").count()).resolves.toBe(0);
     await launched.capture("start-publish-warning");
     await w.getByTestId("publish-anyway").click();

@@ -153,6 +153,37 @@ export function parseColor(text: string): [number, number, number, number] | und
     if (parts.length >= 3 && parts.slice(0, 3).every((n) => Number.isFinite(n)))
       return [parts[0]!, parts[1]!, parts[2]!, parts[3] ?? 1];
   }
+  // The templates write their colors in OKLCH: turned into sRGB, clamped to it.
+  const oklch = /^oklch\(([^)]+)\)$/.exec(t)?.[1];
+  if (oklch) {
+    const [l, c, h, a] = oklch.split(/[\s/]+/).filter(Boolean);
+    const number = (v: string | undefined, percent: number) =>
+      v === undefined || v === "none"
+        ? 0
+        : v.endsWith("%")
+          ? (Number.parseFloat(v) / 100) * percent
+          : Number.parseFloat(v);
+    const L = number(l, 1);
+    const C = number(c, 0.4);
+    const H = (number(h?.replace(/deg$/, ""), 1) * Math.PI) / 180;
+    if (![L, C, H].every(Number.isFinite)) return undefined;
+    const [A, B] = [C * Math.cos(H), C * Math.sin(H)];
+    const lms = [
+      L + 0.3963377774 * A + 0.2158037573 * B,
+      L - 0.1055613458 * A - 0.0638541728 * B,
+      L - 0.0894841775 * A - 1.291485548 * B,
+    ].map((v) => v ** 3) as [number, number, number];
+    const linear = [
+      4.0767416621 * lms[0] - 3.3077115913 * lms[1] + 0.2309699292 * lms[2],
+      -1.2684380046 * lms[0] + 2.6097574011 * lms[1] - 0.3413193965 * lms[2],
+      -0.0041960863 * lms[0] - 0.7034186147 * lms[1] + 1.707614701 * lms[2],
+    ];
+    const [r, g, b] = linear.map((v) => {
+      const s = v <= 0.0031308 ? 12.92 * v : 1.055 * Math.max(v, 0) ** (1 / 2.4) - 0.055;
+      return Math.round(Math.min(1, Math.max(0, s)) * 255);
+    }) as [number, number, number];
+    return [r, g, b, a === undefined ? 1 : number(a, 1)];
+  }
   return undefined;
 }
 

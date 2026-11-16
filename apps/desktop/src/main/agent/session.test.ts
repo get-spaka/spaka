@@ -409,6 +409,12 @@ test("models, project names, sign-in output", () => {
   ]);
   expect(projectNameFrom("a bakery in Lyon. With a menu page")).toBe("A bakery in Lyon");
   expect(projectNameFrom("   ")).toBe("Untitled website");
+  // Never cut in the middle of a clause, nor ending on a word that leads to the next.
+  expect(projectNameFrom("A website for Terra Lenta, a ceramics studio in Lisbon, with a shop.")).toBe(
+    "A website for Terra Lenta",
+  );
+  expect(projectNameFrom("A website for my small bakery in the old town")).toBe("A website for my small bakery");
+  expect(projectNameFrom("Un site pour la boulangerie de mon quartier")).toBe("Un site pour la boulangerie");
   expect(parseAuthStatus('{"loggedIn":true,"authMethod":"claude.ai"}')).toEqual({
     loggedIn: true,
     method: "claude.ai",

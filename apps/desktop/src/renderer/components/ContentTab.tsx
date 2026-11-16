@@ -26,6 +26,7 @@ import { cn } from "../lib/utils";
 import { CollectedView } from "./CollectedView";
 import { MediaLibrary, MediaThumb } from "./MediaLibrary";
 import { Button } from "./ui/button";
+import { NativeSelect } from "./ui/native-select";
 import { Tip } from "./ui/tip";
 
 /** How long typing must stop before a change is written (Q162). */
@@ -715,14 +716,20 @@ function FieldInput({
       break;
     case "choice":
       input = (
-        <select {...common} value={text} onChange={(e) => onChange(e.target.value)} className={INPUT}>
+        <NativeSelect
+          {...common}
+          value={text}
+          onChange={(e) => onChange(e.target.value)}
+          className={cn(INPUT, "h-auto pr-9 shadow-none")}
+          wrapperClassName="w-full"
+        >
           <option value="">{t.content.noChoice}</option>
           {(field.choices ?? []).map((c) => (
             <option key={c} value={c}>
               {c}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       );
       break;
     case "links":

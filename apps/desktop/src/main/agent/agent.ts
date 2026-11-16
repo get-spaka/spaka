@@ -410,13 +410,33 @@ export function piChoices(connected: string[]): ModelChoice[] {
 }
 
 /** A name for a project created from the maker's first message. */
+/** Words that lead to what follows them, in English and French: a name does not end on one. */
+const LEADING = new Set(
+  "a an the and or of for with in on at to by from my our de du des la le les un une et ou pour avec en au aux à sur par mon ma mes notre nos".split(
+    " ",
+  ),
+);
+
 export function projectNameFrom(text: string): string {
   const first = text
     .trim()
     .split(/[\n.!?]/)[0]!
     .trim();
-  const words = first.split(/\s+/).filter(Boolean);
-  const name = words.slice(0, 6).join(" ");
+  // A clause cut short reads as a mistake: the words before a comma when they make a name,
+  // never ending on a word that leads to the next ("Terra Lenta, a" → "Terra Lenta").
+  const clause = first.split(/[,;:–—(]/)[0]!.trim();
+  const words = (clause.split(/\s+/).length >= 2 ? clause : first).split(/\s+/).filter(Boolean).slice(0, 6);
+  while (
+    words.length > 1 &&
+    LEADING.has(
+      words
+        .at(-1)!
+        .toLowerCase()
+        .replace(/[^\p{L}]/gu, ""),
+    )
+  )
+    words.pop();
+  const name = words.join(" ").replace(/[,;:–—-]+$/, "");
   const short = name.length > 40 ? `${name.slice(0, 39).trimEnd()}…` : name;
   return short ? short[0]!.toUpperCase() + short.slice(1) : "Untitled website";
 }

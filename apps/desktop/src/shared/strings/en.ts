@@ -168,8 +168,10 @@ export const en = {
     /** Publishing during the adaptation (Q311). */
     publish: {
       title: "Some pages are not adapted yet",
-      body: (names: string) =>
-        `${names} still show the template's contents: publishing now puts them online as they are.`,
+      body: (names: string[]) =>
+        names.length === 1
+          ? `${names[0]} still shows the template's contents: publishing now puts it online as it is.`
+          : `${new Intl.ListFormat("en", { type: "conjunction" }).format(names)} still show the template's contents: publishing now puts them online as they are.`,
       continue: "Continue the adaptation",
       continueTip: "Close this and let the agent adapt the next page",
       anyway: "Publish anyway",

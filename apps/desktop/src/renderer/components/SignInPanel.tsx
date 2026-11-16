@@ -4,6 +4,7 @@ import { type AgentStatus, anyAccount } from "../../shared/ipc";
 import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { Button } from "./ui/button";
+import { NativeSelect } from "./ui/native-select";
 
 type KeyFor = "claude" | "openai" | "gemini";
 
@@ -125,19 +126,21 @@ export function SignInPanel({ status, modelName }: { status: AgentStatus; modelN
                 save();
               }}
             >
-              <select
+              <NativeSelect
                 aria-label={t.signIn.keyFor}
                 data-testid="sign-in-key-account"
                 value={keyFor}
                 onChange={(event) => setChosen(event.target.value as KeyFor)}
-                className="h-8 rounded-md border bg-background px-1.5 text-xs outline-none focus:ring-[3px] focus:ring-ring/30"
+                size="sm"
+                className="text-xs"
+                wrapperClassName="shrink-0"
               >
                 {(["claude", "openai", "gemini"] as const).map((account) => (
                   <option key={account} value={account}>
                     {t.accounts.names[account]}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
               <input
                 type="password"
                 autoComplete="off"

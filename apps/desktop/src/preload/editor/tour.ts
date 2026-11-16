@@ -1,7 +1,7 @@
 // The tour in the page (Q332, Q337, ADR 0008): the page is a native view the
 // interface cannot draw over, so the editing script dims it while a step points
 // elsewhere, and draws the step about the page itself, its bubble on the first
-// heading or image in view, the rest dimmed around it. Next and Skip go back to
+// heading in view (an image when there is none), the rest dimmed around it. Next and Skip go back to
 // the interface, which leads the tour.
 import type { PageTour, TourAction } from "../../shared/ipc";
 
@@ -23,12 +23,14 @@ export const TOUR_STYLE = `
   border: 1px solid var(--up-border); }
 `;
 
-/** What a bubble points at on the page: its first heading or image in view. */
+/** What a bubble points at on the page: its first heading in view, else its first image. */
 function target(): Element | undefined {
-  for (const el of document.body.querySelectorAll("h1, h2, h3, img")) {
+  const shown = (el: Element) => {
     const r = el.getBoundingClientRect();
-    if (r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < innerHeight) return el;
-  }
+    return r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < innerHeight;
+  };
+  for (const selector of ["h1, h2, h3", "img"])
+    for (const el of document.body.querySelectorAll(selector)) if (shown(el)) return el;
   return undefined;
 }
 

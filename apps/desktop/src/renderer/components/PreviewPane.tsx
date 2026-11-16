@@ -1,5 +1,4 @@
 import {
-  ChevronDown,
   Eye,
   Globe,
   LayoutGrid,
@@ -35,6 +34,7 @@ import { ExportDialog } from "./ExportDialog";
 import { HistoryButtons, HistoryList } from "./HistoryPanel";
 import { PagesGrid, pageName } from "./PagesGrid";
 import { Button } from "./ui/button";
+import { NativeSelect } from "./ui/native-select";
 import { Tip } from "./ui/tip";
 
 /**
@@ -311,17 +311,18 @@ export function PreviewPane({
     <main data-testid="preview" data-tour="page" className="flex min-w-0 flex-1 flex-col bg-muted/40">
       <div className="drag-region flex h-13 shrink-0 items-center gap-2 border-b bg-background px-3">
         {project && state.routes.length > 0 && (
-          <label className="no-drag relative flex items-center">
-            <Globe className="pointer-events-none absolute left-2 size-3.5 text-muted-foreground" />
-            <select
+          <div className="no-drag relative flex items-center">
+            <Globe className="pointer-events-none absolute left-2 z-10 size-3.5 text-muted-foreground" />
+            <NativeSelect
               aria-label={t.preview.pages}
+              size="xs"
               data-testid="page-select"
               value={state.route ?? ""}
               onChange={(event) => {
                 const route = event.target.value;
                 void upstart.invoke("preview:set-view", "page").then(() => upstart.invoke("preview:navigate", route));
               }}
-              className="h-7 appearance-none rounded-md border bg-background pr-7 pl-7 text-xs font-medium outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/30"
+              className="field-sizing-content bg-background pl-7 font-medium hover:bg-accent"
             >
               {state.route !== null && !state.routes.some((r) => r.route === state.route) && (
                 <option value={state.route}>{state.route}</option>
@@ -344,9 +345,8 @@ export function PreviewPane({
                     ))}
                 </optgroup>
               ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-2 size-3.5 text-muted-foreground" />
-          </label>
+            </NativeSelect>
+          </div>
         )}
         <div className="flex-1" />
         {deleted && (
@@ -382,7 +382,7 @@ export function PreviewPane({
                 key={view}
                 variant="ghost"
                 size="icon-sm"
-                className={cn("size-6", state.view === view && "bg-accent")}
+                className={cn("size-6", state.view === view && "bg-foreground/10 text-foreground")}
                 tip={tip}
                 command={command}
                 aria-pressed={state.view === view}
@@ -408,7 +408,7 @@ export function PreviewPane({
                   key={mode}
                   variant="ghost"
                   size="icon-sm"
-                  className={cn("size-6", state.mode === mode && "bg-accent")}
+                  className={cn("size-6", state.mode === mode && "bg-foreground/10 text-foreground")}
                   tip={tip}
                   command={`mode-${mode}`}
                   aria-pressed={state.mode === mode}
@@ -431,7 +431,7 @@ export function PreviewPane({
                   key={w}
                   variant="ghost"
                   size="icon-sm"
-                  className={cn("size-6", width === w && "bg-accent")}
+                  className={cn("size-6", width === w && "bg-foreground/10 text-foreground")}
                   tip={tip}
                   command={`screen-${w}`}
                   aria-pressed={width === w}
@@ -445,7 +445,7 @@ export function PreviewPane({
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  className={cn("size-6", landscape && "bg-accent")}
+                  className={cn("size-6", landscape && "bg-foreground/10 text-foreground")}
                   tip={landscape ? t.preview.portrait : t.preview.landscape}
                   aria-pressed={landscape}
                   data-testid="rotate"

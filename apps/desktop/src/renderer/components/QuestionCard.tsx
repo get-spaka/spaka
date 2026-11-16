@@ -219,7 +219,7 @@ function BlockPreview({ id }: { id: string }) {
       className="flex aspect-[4/3] w-full max-w-56 items-center overflow-hidden rounded-md border bg-muted"
     >
       {url ? (
-        <img src={url} alt="" draggable={false} className="w-full object-cover object-top" />
+        <img src={url} alt="" draggable={false} className="size-full object-cover object-top" />
       ) : url === null ? (
         <span className="w-full text-center text-[11px] text-muted-foreground">{t.question.previewMissing}</span>
       ) : null}

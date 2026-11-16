@@ -172,7 +172,7 @@ export function Segmented<V extends string>({
   return (
     <fieldset
       aria-label={label}
-      className="m-0 flex min-w-0 rounded-[7px] border-0 bg-foreground/[0.07] p-0.5"
+      className="m-0 flex min-w-0 rounded-[7px] border-0 bg-foreground/[0.09] p-0.5"
       data-testid={testid}
     >
       {options.map((o) => (
@@ -185,7 +185,7 @@ export function Segmented<V extends string>({
             data-value={o.value}
             className={cn(
               "rounded-[5px] px-3 py-0.5 text-[13px] disabled:opacity-50",
-              o.value === value && "bg-background shadow-[0_1px_2px_rgba(0,0,0,0.15)]",
+              o.value === value && "bg-background font-medium shadow-[0_1px_3px_rgba(0,0,0,0.2)]",
             )}
           >
             {o.label}
@@ -232,7 +232,7 @@ export function Push({
   );
 }
 
-export const selectClass =
-  "h-7 shrink-0 rounded-md border border-input bg-card px-2 text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-ring";
+/** A NativeSelect of the settings (size "xs"): on the panel's cards, at the settings' text size. */
+export const selectClass = "bg-card text-[13px] dark:bg-card";
 export const inputClass =
   "h-7 min-w-0 rounded-md border border-input bg-card px-2 text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-ring";
