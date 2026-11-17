@@ -14,7 +14,10 @@ export const LAYER_ORDER = "@layer theme, base, daisyui, components, utilities;"
  * by Tailwind with `@plugin "daisyui"`; there they beat every rule of a
  * site's `@layer components`. Each part of a utilities layer that holds a
  * `@layer daisyui…` goes, in its place and order, into `@layer daisyui`; the
- * rest stays a utility. Nothing else is changed.
+ * rest stays a utility. A Tailwind utility named as one of daisyUI's
+ * components (`.collapse`, `visibility: collapse`) goes with them: daisyUI
+ * answers it from beside it (`visibility: revert-layer`, a more precise
+ * selector), which only works in the same layer. Nothing else is changed.
  */
 export function daisyuiBelowComponents(css: string): string {
   return statements(css, 0, css.length)
@@ -22,9 +25,19 @@ export function daisyuiBelowComponents(css: string): string {
       const utilities = /^((?:\s|\/\*[\s\S]*?\*\/)*)@layer\s+utilities\s*\{([\s\S]*)\}\s*$/.exec(statement);
       if (!utilities) return statement;
       const [, lead, inner] = utilities as unknown as [string, string, string];
+      const parts = statements(inner, 0, inner.length).map((part) => ({
+        part,
+        daisyui: /@layer\s+daisyui\b/.test(part.replace(/\/\*[\s\S]*?\*\//g, "")),
+      }));
+      const components = new Set<string>();
+      for (const { part, daisyui } of parts)
+        if (daisyui)
+          for (const [, name] of part.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/(?:^|[{};])\s*\.([a-zA-Z][\w-]*)/g))
+            components.add(name as string);
       const groups: { daisyui: boolean; text: string }[] = [];
-      for (const part of statements(inner, 0, inner.length)) {
-        const daisyui = /@layer\s+daisyui\b/.test(part.replace(/\/\*[\s\S]*?\*\//g, ""));
+      for (const { part, daisyui: inDaisyui } of parts) {
+        const bare = /^\s*\.([a-zA-Z][\w-]*)\s*\{/.exec(part.replace(/\/\*[\s\S]*?\*\//g, ""));
+        const daisyui = inDaisyui || (bare !== null && components.has(bare[1] as string));
         const last = groups.at(-1);
         if (last && (last.daisyui === daisyui || !part.trim())) last.text += part;
         else groups.push({ daisyui, text: part });

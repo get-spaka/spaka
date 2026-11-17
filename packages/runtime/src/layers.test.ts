@@ -37,6 +37,27 @@ test("daisyUI's components leave the utilities layer for the daisyui layer, in t
   );
 });
 
+test("a Tailwind utility named as a daisyUI component goes with it; other utilities stay", () => {
+  const css = [
+    "@layer utilities{",
+    ".collapse:not(td, tr, colgroup){visibility:revert-layer;@layer daisyui.l1.l2.l3{display:grid}}",
+    ".collapse{visibility:collapse}",
+    ".hidden{display:none}",
+    ".collapse-title{@layer daisyui.l1{padding:1rem}}",
+    "}",
+  ].join("");
+  expect(daisyuiBelowComponents(css)).toBe(
+    [
+      "@layer daisyui{",
+      ".collapse:not(td, tr, colgroup){visibility:revert-layer;@layer daisyui.l1.l2.l3{display:grid}}",
+      ".collapse{visibility:collapse}",
+      "}",
+      "@layer utilities{.hidden{display:none}}",
+      "@layer daisyui{.collapse-title{@layer daisyui.l1{padding:1rem}}}",
+    ].join(""),
+  );
+});
+
 test("a stylesheet without daisyUI's components is left as it is", () => {
   const css = "@layer utilities{.p-4{padding:1rem}}\n.hero{color:red}\n";
   expect(daisyuiBelowComponents(css)).toBe(css);
