@@ -9,7 +9,7 @@ Most sites need neither: Tailwind's classes, daisyUI and htmx cover layouts, men
 
 Pages never hold `<script>`, `<style>` or `<link>` tags. Upstart loads, for every page:
 
-- `styles/*.css`, the site's stylesheet, compiled with Tailwind's: `@apply`, Tailwind's functions and the theme's variables (`var(--color-primary)`, `var(--radius-box)`) work there. To restyle one of daisyUI's components (`.btn`, `.card`…), write the rule in `@layer components`: it comes after daisyUI's, and Tailwind's classes on an element still win over it;
+- `styles/*.css`, the site's stylesheet, compiled with Tailwind's: `@apply`, Tailwind's functions and the theme's variables (`var(--color-primary)`, `var(--radius-box)`) work there. To restyle one of daisyUI's components (`.btn`, `.card`…), write the rule in `@layer components`: it comes after daisyUI's, and Tailwind's classes on an element still win over it. Set the properties themselves (`border-radius`, `padding-inline`), not daisyUI's own variables such as `--btn-p`, which daisyUI may change in any release;
 - the libraries listed in `scripts/libraries.json`, from their address, then those in `scripts/lib/*.js`, in name order;
 - `scripts/*.js`, the site's modules, which Upstart imports and starts.
 
