@@ -115,15 +115,12 @@ export function activityLabel(name: string, input: Record<string, unknown>, proj
       return en.activity.placeBlocks(typeof input.page === "string" ? shortPath(input.page, projectDir) : undefined);
     case FIND_IMAGES_TOOL:
       return en.activity.findImages;
-    case USE_IMAGE_TOOL:
-      if (Array.isArray(input.images) && input.images.length > 1) return en.activity.addImages(input.images.length);
-      return en.activity.addImage(
-        typeof input.name === "string"
-          ? input.name
-          : typeof input.images?.[0]?.name === "string"
-            ? input.images[0].name
-            : undefined,
-      );
+    case USE_IMAGE_TOOL: {
+      const images: { name?: unknown }[] = Array.isArray(input.images) ? input.images : [];
+      if (images.length > 1) return en.activity.addImages(images.length);
+      const name = typeof input.name === "string" ? input.name : images[0]?.name;
+      return en.activity.addImage(typeof name === "string" ? name : undefined);
+    }
     case "Skill":
       // "project:menu-format" is shown as "menu-format".
       return en.activity.skill(typeof input.skill === "string" ? input.skill.replace(/^[\w-]+:/, "") : undefined);
