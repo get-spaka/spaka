@@ -54,6 +54,114 @@ export function fixedClockScript(at: number): string {
 })();`;
 }
 
+/**
+ * A script run in a page before its own (every shoot window's preload): each
+ * image loads at once, even one marked loading="lazy" (an image below the first
+ * screen would otherwise wait for a scroll, and the shoot for the image).
+ */
+export function eagerImagesScript(): string {
+  return `(() => {
+  const eager = (img) => { if (img.getAttribute("loading") === "lazy") img.setAttribute("loading", "eager"); };
+  const sweep = (node) => {
+    if (node.nodeType !== 1) return;
+    if (node.localName === "img") eager(node);
+    for (const img of node.getElementsByTagName("img")) eager(img);
+  };
+  new MutationObserver((changes) => {
+    for (const change of changes)
+      if (change.type === "attributes") eager(change.target);
+      else for (const node of change.addedNodes) sweep(node);
+  }).observe(document, { subtree: true, childList: true, attributes: true, attributeFilter: ["loading"] });
+})();`;
+}
+
+/**
+ * A script run in a page before its own, for its whole picture only (not the
+ * cover's or the hover's): the page is photographed a slice at a time, scrolled
+ * between them, and this keeps each element in one state from the top of the
+ * page to its end, so that nothing changes where a slice meets the next.
+ * - An animation driven by scrolling (CSS's animation-timeline, Motion's
+ *   scroll()) is held: one that follows an element across the screen (view())
+ *   as it is with the element in the middle of the screen, one that follows the
+ *   page (scroll()) as it is with the page at its top.
+ * - An IntersectionObserver on the screen (Motion's inView) sees each element
+ *   it watches come wholly into view at once, and nothing after: every reveal
+ *   plays as the page opens, and stays.
+ * - `__upStill.pin()`, called before the window is made a slice tall, sets what
+ *   floats over the page (position: fixed: a floating button, a corner badge)
+ *   where it stands on the page's first screen, so that it is in the picture
+ *   once. A backdrop as large as the screen stays fixed, behind every slice.
+ */
+export function stillPageScript(): string {
+  return `(() => {
+  const held = new WeakSet();
+  const hold = () => {
+    for (const a of document.getAnimations()) {
+      const timeline = a.timeline;
+      if (held.has(a) || !timeline || timeline instanceof DocumentTimeline || a.startTime == null) continue;
+      const start = typeof a.startTime === "number" ? a.startTime : a.startTime.value;
+      const at = typeof ViewTimeline !== "undefined" && timeline instanceof ViewTimeline ? 50 : 0;
+      a.pause();
+      a.currentTime = CSS.percent((at - start) * a.playbackRate);
+      held.add(a);
+    }
+    requestAnimationFrame(hold);
+  };
+  requestAnimationFrame(hold);
+
+  const Observer = globalThis.IntersectionObserver;
+  if (Observer)
+    globalThis.IntersectionObserver = class extends Observer {
+      constructor(callback, options) {
+        const screen = !options || options.root == null || options.root === document;
+        super(screen ? () => {} : callback, options);
+        this.screen = screen;
+        this.callback = callback;
+        this.watched = new Set();
+      }
+      observe(target) {
+        super.observe(target);
+        if (!this.screen || this.watched.has(target)) return;
+        this.watched.add(target);
+        setTimeout(() => {
+          if (!this.watched.has(target)) return;
+          const box = target.getBoundingClientRect();
+          const rootBounds = new DOMRect(0, 0, innerWidth, innerHeight);
+          this.callback([{ target, time: performance.now(), isIntersecting: true, intersectionRatio: 1, boundingClientRect: box, intersectionRect: box, rootBounds }], this);
+        });
+      }
+      unobserve(target) {
+        super.unobserve(target);
+        this.watched.delete(target);
+      }
+      disconnect() {
+        super.disconnect();
+        this.watched.clear();
+      }
+    };
+
+  globalThis.__upStill = {
+    pin() {
+      for (const el of document.querySelectorAll("*")) {
+        if (!(el instanceof HTMLElement) || getComputedStyle(el).position !== "fixed" || !el.getClientRects().length) continue;
+        const box = el.getBoundingClientRect();
+        if (box.width >= innerWidth && box.height >= innerHeight) continue;
+        const set = (key, value) => el.style.setProperty(key, value, "important");
+        set("box-sizing", "border-box");
+        set("width", el.offsetWidth + "px");
+        set("height", el.offsetHeight + "px");
+        set("position", "absolute");
+        for (const side of ["top", "left"]) set(side, "0px");
+        for (const side of ["right", "bottom"]) set(side, "auto");
+        const moved = el.getBoundingClientRect();
+        set("top", box.top - moved.top + "px");
+        set("left", box.left - moved.left + "px");
+      }
+    },
+  };
+})();`;
+}
+
 async function sharp() {
   return (await import("sharp")).default;
 }

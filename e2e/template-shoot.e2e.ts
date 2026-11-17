@@ -2,9 +2,11 @@ import { cpSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import {
+  eagerImagesScript,
   fixedClockScript,
   shootClock,
   shotPages,
+  stillPageScript,
   writeAnimatedWebp,
   writeWebp,
 } from "../apps/desktop/src/main/templates/pictures.ts";
@@ -19,6 +21,8 @@ import { previewDriver } from "./preview-driver.ts";
 // pictures/, and a review sheet in e2e/.runs/template-sheets/. A template whose
 // look follows the time is photographed at its own clock (shootClock: `--clock`,
 // or `shoot.clock` in its template.json), whatever the day of the shoot.
+// Every image loads at once, lazy or not; a page's whole picture is taken with
+// the page held still (stillPageScript), the cover and the hover moving.
 const dir = process.env.UPSTART_TEMPLATE_SHOOT ?? "";
 const DEVICES = [
   { name: "desktop", width: 1440, height: 900, out: 1200 },
@@ -37,31 +41,42 @@ describe.skipIf(!dir)("a template's pictures", () => {
   const manifest = JSON.parse(files.get("template.json")?.toString("utf8") ?? "{}");
   const id = manifest.id as string;
   const at = dir ? shootClock(manifest, process.env.UPSTART_TEMPLATE_SHOOT_CLOCK) : undefined;
-  /** The clock's script, the windows' preload (the DevTools protocol hangs a window not yet loaded). */
-  const clock = at === undefined ? undefined : join(runsDir, `template-shoot-clock-${id}.js`);
-  if (clock && at !== undefined) {
-    mkdirSync(runsDir, { recursive: true });
-    writeFileSync(clock, fixedClockScript(at));
-  }
+  /**
+   * The windows' preloads (the DevTools protocol hangs a window not yet
+   * loaded): the clock, the images loaded at once, and for a page's whole
+   * picture the page held still.
+   */
+  const preload = (kind: "page" | "screen") => {
+    const path = join(runsDir, `template-shoot-${id}-${kind}.js`);
+    const scripts = [
+      ...(at === undefined ? [] : [fixedClockScript(at)]),
+      eagerImagesScript(),
+      ...(kind === "page" ? [stillPageScript()] : []),
+    ];
+    if (dir) {
+      mkdirSync(runsDir, { recursive: true });
+      writeFileSync(path, scripts.join("\n"));
+    }
+    return path;
+  };
+  const preloads = { page: preload("page"), screen: preload("screen") };
 
   /**
    * A page in a window of its own, never shown (the app's checks keep hidden
-   * windows painting and animating), moving as in visitor mode; `act` pictures it.
+   * windows painting and animating), moving as in visitor mode; `act` pictures
+   * it. `kind`: "page" for its whole picture, held still, "screen" for its first screen.
    */
-  const inWindow = (route: string, device: { width: number; height: number }, act: string) =>
+  const inWindow = (route: string, device: { width: number; height: number }, kind: "page" | "screen", act: string) =>
     launched.app.evaluate(
-      async ({ BrowserWindow }, { url, device, act, clock }) => {
+      async ({ BrowserWindow }, { url, device, act, preload }) => {
         const win = new BrowserWindow({
           show: false,
           width: device.width,
           height: device.height,
           useContentSize: true,
           enableLargerThanScreen: true,
-          // The clock's preload runs in the page's own world, before its scripts.
-          webPreferences: {
-            backgroundThrottling: false,
-            ...(clock ? { preload: clock, contextIsolation: false, sandbox: false } : {}),
-          },
+          // The preload runs in the page's own world, before its scripts.
+          webPreferences: { backgroundThrottling: false, preload, contextIsolation: false, sandbox: false },
         });
         const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
         const js = (code: string) => win.webContents.executeJavaScript(code);
@@ -84,7 +99,7 @@ describe.skipIf(!dir)("a template's pictures", () => {
           win.destroy();
         }
       },
-      { url: new URL(route, origin).toString(), device, act, clock },
+      { url: new URL(route, origin).toString(), device, act, preload: preloads[kind] },
     );
 
   beforeAll(async () => {
@@ -133,13 +148,16 @@ describe.skipIf(!dir)("a template's pictures", () => {
         // size): the window a slice tall, scrolled down the page a slice at a
         // time, each part given time to rise; writeWebp puts them back together.
         // What stays in place while the page scrolls (sticky) is let go, or it
-        // would be in every slice.
+        // would be in every slice; what floats over it (fixed) is set where it
+        // stands on the first screen, before the window grows.
         const slices = (await inWindow(
           route,
           device,
+          "page",
           `async ({ wait, js, png, resize }) => {
             await wait(600);
             await js("for (const el of document.querySelectorAll('*')) if (getComputedStyle(el).position === 'sticky') el.style.position = 'static'");
+            await js("__upStill.pin()");
             // The page's height once its images have come, for an image of no set size.
             await js("Promise.race([Promise.all([...document.images].filter((i) => !i.complete).map((i) => new Promise((done) => { i.addEventListener('load', done); i.addEventListener('error', done); }))), new Promise((done) => setTimeout(done, 8000))])");
             const tall = Math.min(await js("document.documentElement.scrollHeight"), ${PAGE_MAX});
@@ -167,6 +185,7 @@ describe.skipIf(!dir)("a template's pictures", () => {
     const cover = (await inWindow(
       "/",
       DEVICES[0],
+      "screen",
       "async ({ wait, png }) => { await wait(2400); return png(); }",
     )) as string;
     await webp(cover, 1200, "pictures/cover.webp");
@@ -175,6 +194,7 @@ describe.skipIf(!dir)("a template's pictures", () => {
     const frames = (await inWindow(
       "/",
       DEVICES[0],
+      "screen",
       `async ({ wait, js, png }) => {
         const frames = [];
         for (let i = 0; i < ${HOVER.frames}; i++) { frames.push(await png()); await wait(${HOVER.every}); }
