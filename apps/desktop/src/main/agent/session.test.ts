@@ -288,6 +288,10 @@ test("activity lines", () => {
     "Placing blocks on pages/index.liquid",
   );
   expect(activityLabel("mcp__upstart__use_image", { name: "bouquet" }, "/p")).toBe("Adding the image bouquet");
+  expect(activityLabel("mcp__upstart__use_image", { images: [{ name: "a" }, { name: "b" }] }, "/p")).toBe(
+    "Adding 2 images",
+  );
+  expect(activityLabel("mcp__upstart__use_image", { images: [{ name: "a" }] }, "/p")).toBe("Adding the image a");
 });
 
 test("a look's line names the page, the screen and the last action (Q320)", () => {

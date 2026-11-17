@@ -9,6 +9,7 @@ import {
   DEFINITION_FILE,
   infoFile,
   locate,
+  moveRecordItem,
   newRecordText,
   RecordWriteRefused,
   readRecordFile,
@@ -17,6 +18,7 @@ import {
   recordIdFrom,
   recordOf,
   recordTitle,
+  removeRecordItem,
   renameInOrder,
   sections,
   setOrder,
@@ -410,11 +412,30 @@ export class Editor {
       case "image":
         if (action.record) {
           const file = this.recordFileFor(action.file, src, action.at, action.record, "src", en.editing.notRecordImage);
-          if (file.kind !== "image") throw new EditRefused(en.editing.notRecordImage);
-          writes[file.path] = this.recordValue(file.path, file.field, action.src);
+          // One image of a list of images, or a record's image field (Q355).
+          if (file.kind === "images" && file.item?.whole)
+            writes[file.path] = this.recordList(file.path, (text) =>
+              setRecordValueAt(text, [file.field, file.item!.index], action.src),
+            );
+          else if (file.kind === "image" && !file.item)
+            writes[file.path] = this.recordValue(file.path, file.field, action.src);
+          else throw new EditRefused(en.editing.notRecordImage);
         } else writes[action.file] = setImageSource(src, action.at, action.src, this.altOf(action.src));
         label = t.imageReplaced;
         break;
+      case "record-item": {
+        // An image taken out of its list, or moved in it (Q356).
+        const file = this.recordFileFor(action.file, src, action.at, action.record, "src", en.editing.notRecordImage);
+        const item = file.item;
+        if (file.kind !== "images" || !item?.whole) throw new EditRefused(en.editing.notRecordImage);
+        writes[file.path] = this.recordList(file.path, (text) =>
+          action.op === "remove"
+            ? removeRecordItem(text, file.field, item.index)
+            : moveRecordItem(text, file.field, item.index, action.to),
+        );
+        label = action.op === "remove" ? t.imageRemoved : t.imageMoved;
+        break;
+      }
     }
     for (const [file, content] of Object.entries(writes)) this.write(file, content);
     // A record's title may be the text just written.
@@ -525,8 +546,11 @@ export class Editor {
     return change;
   }
 
-  /** What the preview needs to know before the maker edits an element. */
-  info(file: string, at: number): EditInfo {
+  /**
+   * What the preview needs to know before the maker edits an element;
+   * `record` is the one its trace names, for an image of a list of images.
+   */
+  info(file: string, at: number, record?: string): EditInfo {
     const src = this.read(file);
     const include = includeAt(src, at);
     const el = include ? undefined : locate(src, at);
@@ -545,17 +569,30 @@ export class Editor {
       movable: include ? true : !!el && !el.inLoop && el.whole,
       sharedBy: part ? pagesUsing(part, this.templates()) : 0,
       ...(field ? { field } : shown?.kind ? { fromRecord: true } : {}),
-      ...(el?.name === "img" ? this.imageInfo(file, src, at) : {}),
+      ...(el?.name === "img" ? this.imageInfo(file, src, at, record) : {}),
     };
   }
 
-  /** Whether an image can be replaced: its address written in the template, or a record's image field (Q159). */
-  private imageInfo(file: string, src: string, at: number): Pick<EditInfo, "image"> {
+  /**
+   * Whether an image can be replaced: its address written in the template, a
+   * record's image field (Q159), or one image of a record's list of images,
+   * with how many the list holds (Q355, Q356).
+   */
+  private imageInfo(file: string, src: string, at: number, record?: string): Pick<EditInfo, "image"> {
     const tag = src.slice(at, src.indexOf(">", at) + 1);
     const address = /\ssrc\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/i.exec(tag)?.[1];
     if (!address || !/\{[{%]/.test(address)) return { image: {} };
     const shown = this.recordField(file, src, at, "src");
-    return shown?.kind === "image" ? { image: { field: shown.field } } : {};
+    if (shown?.kind === "image" && !shown.sub && !shown.item) return { image: { field: shown.field } };
+    if (shown?.kind !== "images" || !shown.item) return {};
+    let count: number | undefined;
+    const of = record && /^([a-z0-9][\w-]*)\/([a-z0-9][\w-]*)#\d+$/i.exec(record);
+    if (of && of[1] === shown.datasource)
+      try {
+        const list = readRecordFile(this.read(recordFile(of[1]!, of[2]!))).values[shown.field];
+        count = Array.isArray(list) ? list.length : typeof list === "string" ? 1 : 0;
+      } catch {}
+    return { image: { field: shown.field, list: count === undefined ? {} : { count } } };
   }
 
   /**
@@ -572,7 +609,13 @@ export class Editor {
         .definition(datasource)
         .definition?.fields.find((f) => f.name === found.field)?.kind;
     } catch {}
-    return { datasource, field: found.field, kind, ...(found.sub ? { sub: found.sub } : {}) };
+    return {
+      datasource,
+      field: found.field,
+      kind,
+      ...(found.sub ? { sub: found.sub } : {}),
+      ...(found.item ? { item: true } : {}),
+    };
   }
 
   /** The file of the record an edit names, checked against the field the element shows. */
@@ -585,16 +628,26 @@ export class Editor {
     refused: string,
   ) {
     const shown = this.recordField(file, src, at, attribute);
-    // "team/anna", or "navigation/services#2" for the third of its links.
+    // "team/anna", or "navigation/services#2" for the third of its links, "homes/wren#1" for its second image.
     const of = /^([a-z0-9][\w-]*)\/([a-z0-9][\w-]*)(?:#(\d+))?$/i.exec(record);
-    if (!shown || !of || of[1] !== shown.datasource || !!shown.sub !== (of[3] !== undefined))
-      throw new EditRefused(refused);
+    const inList = !!shown?.sub || !!shown?.item;
+    if (!shown || !of || of[1] !== shown.datasource || inList !== (of[3] !== undefined)) throw new EditRefused(refused);
     return {
       path: recordFile(of[1]!, of[2]!),
       field: shown.field,
       kind: shown.kind,
-      ...(shown.sub ? { item: { index: Number(of[3]), sub: shown.sub } } : {}),
+      ...(inList ? { item: { index: Number(of[3]), sub: shown.sub, whole: !!shown.item } } : {}),
     };
+  }
+
+  /** A record's file with one of its lists changed (an image of a list of images). */
+  private recordList(file: string, change: (text: string) => string): string {
+    try {
+      return change(this.read(file));
+    } catch (error) {
+      if (error instanceof RecordWriteRefused) throw new EditRefused(error.message);
+      throw error;
+    }
   }
 
   /** A record's file with one value inside a list changed. */

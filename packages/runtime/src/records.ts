@@ -2,7 +2,7 @@
 // time, the rest of the file as it was (the order of its fields, its
 // comments, its text below); a new record's id from its title; the manual
 // order kept in the definition.
-import { type Document, isMap, isSeq, parseDocument } from "yaml";
+import { type Document, isMap, isScalar, isSeq, parseDocument, type YAMLSeq } from "yaml";
 import { type DataRecord, type Definition, splitRecord } from "./data.ts";
 
 /** The field a record is known by: the definition's first text field. */
@@ -59,20 +59,64 @@ export function setRecordValue(text: string, field: string, value: unknown, isBo
 
 /**
  * A record's file with one value inside a list changed, the rest as it was:
- * `["links", 2, "label"]` is the third link's label (Q212). Refused when that
- * item is not in the record.
+ * `["links", 2, "label"]` is the third link's label (Q212), `["photos", 1]`
+ * the second image of a list of images (Q355). Refused when that item is not
+ * in the record.
  */
-export function setRecordValueAt(text: string, path: [string, number, string], value: string): string {
+export function setRecordValueAt(
+  text: string,
+  path: [string, number] | [string, number, string],
+  value: string,
+): string {
+  const [field, index, key] = path;
+  return changeList(text, field, key === undefined ? "image" : "link", (list, doc) => {
+    const item = list.items[index];
+    if (key === undefined) {
+      if (!isScalar(item)) return false;
+      list.items[index] = doc.createNode(value);
+    } else {
+      if (!isMap(item)) return false;
+      item.set(key, value);
+    }
+    return true;
+  });
+}
+
+/** A record's file with an item of one of its lists taken out, the field left out once empty (Q356). */
+export function removeRecordItem(text: string, field: string, index: number): string {
+  return changeList(text, field, "image", (list, doc) => {
+    if (index < 0 || index >= list.items.length) return false;
+    list.items.splice(index, 1);
+    if (!list.items.length) doc.delete(field);
+    return true;
+  });
+}
+
+/** A record's file with an item of one of its lists moved to another place, `to` being its place once moved (Q356). */
+export function moveRecordItem(text: string, field: string, from: number, to: number): string {
+  return changeList(text, field, "image", (list) => {
+    const n = list.items.length;
+    if (from < 0 || from >= n || to < 0 || to >= n) return false;
+    const [item] = list.items.splice(from, 1);
+    list.items.splice(to, 0, item);
+    return true;
+  });
+}
+
+/** The record's file with one of its lists changed in place, its style kept; refused when `change` finds no such item. */
+function changeList(
+  text: string,
+  field: string,
+  what: "link" | "image",
+  change: (list: YAMLSeq, doc: Document) => boolean,
+): string {
   const parts = splitRecord(text) ?? { yaml: "", body: text };
   const doc = parseDocument(parts.yaml);
   if (doc.errors.length || !isMap(doc.contents))
     throw new RecordWriteRefused("This record's fields do not read: ask the agent to fix it.");
-  const [field, index] = path;
   const list = doc.get(field, true);
-  if (!isSeq(list) || !isMap(list.items[index]))
-    throw new RecordWriteRefused("This link is not in the record any more.");
-  doc.setIn(path, value);
-  return joinRecord(write(doc), parts.body);
+  if (!isSeq(list) || !change(list, doc)) throw new RecordWriteRefused(`This ${what} is not in the record any more.`);
+  return joinRecord(isMap(doc.contents) && doc.contents.items.length ? write(doc) : "", parts.body);
 }
 
 /**

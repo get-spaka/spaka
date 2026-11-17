@@ -161,3 +161,21 @@ test("inside a loop over a record's links, the trace names the record and which 
   });
   assert.match(html, /data-up-rec="navigation\/services#1"[^>]*>Cakes</);
 });
+
+test("inside a loop over a record's images, the trace names which image, an offset or a reversed order counted (Q355)", () => {
+  const src =
+    '{% for photo in record.photos %}<img src="{{ photo }}">{% endfor %}{% for photo in record.photos offset: 1 %}<i>{{ photo }}</i>{% endfor %}{% for photo in record.photos reversed %}<b>{{ photo }}</b>{% endfor %}{% for photo in record.photos offset: n %}<u>{{ photo }}</u>{% endfor %}';
+  const traced = injectTrace(src, "pages/homes/[homes].liquid");
+  const html = new Liquid().parseAndRenderSync(traced, {
+    __rec: "",
+    n: 1,
+    record: { __ref: "homes/wren", photos: ["/media/a.jpg", "/media/b.jpg", "/media/c.jpg"] },
+  });
+  assert.match(html, /<img [^>]*data-up-rec="homes\/wren#1" src="\/media\/b.jpg">/);
+  assert.match(html, /<i [^>]*data-up-rec="homes\/wren#1">\/media\/b.jpg</);
+  assert.match(html, /<i [^>]*data-up-rec="homes\/wren#2">\/media\/c.jpg</);
+  assert.match(html, /<b [^>]*data-up-rec="homes\/wren#2">\/media\/c.jpg</);
+  assert.match(html, /<b [^>]*data-up-rec="homes\/wren#0">\/media\/a.jpg</);
+  // An offset the template computes: which image cannot be known, so none is named.
+  assert.match(html, /<u [^>]*data-up-rec="homes\/wren">/);
+});

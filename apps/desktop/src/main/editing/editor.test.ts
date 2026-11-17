@@ -195,6 +195,58 @@ test("a link's label in a menu is edited in place, in its record (Q212)", () => 
   ).toThrow(EditRefused);
 });
 
+test("an image of a record's list of images is replaced, removed and moved in place (Q355, Q356)", () => {
+  const { root, editor, changes } = project();
+  mkdirSync(join(root, "data/homes"), { recursive: true });
+  mkdirSync(join(root, "pages/homes"), { recursive: true });
+  writeFileSync(
+    join(root, "data/homes/_datasource.yaml"),
+    "label: Homes\nfields:\n  - name: address\n    kind: text\n  - name: cover\n    kind: image\n  - name: photos\n    kind: images\n",
+  );
+  const file = join(root, "data/homes/wren.md");
+  const record = "---\naddress: Wren\nphotos:\n  - /media/a.jpg\n  - /media/b.jpg\n  - /media/c.jpg\n---\nThe house.\n";
+  writeFileSync(file, record);
+  const page = `<main><img class="cover" src="{{ record.cover }}">{% for photo in record.photos %}<img src="{{ photo }}">{% endfor %}</main>`;
+  writeFileSync(join(root, "pages/homes/[homes].liquid"), page);
+  const at = page.indexOf('<img src="{{ photo');
+  const where = { file: "pages/homes/[homes].liquid", at };
+  expect(editor.info(where.file, at, "homes/wren#1")).toMatchObject({ image: { field: "photos", list: { count: 3 } } });
+  expect(editor.info(where.file, at)).toMatchObject({ image: { field: "photos", list: {} } });
+  // The record's own image field is not a list.
+  expect(editor.info(where.file, page.indexOf('<img class="cover"')).image).toEqual({ field: "cover" });
+
+  editor.apply({ type: "image", ...where, record: "homes/wren#1", src: "/media/x.jpg" });
+  expect(readFileSync(file, "utf8")).toBe(record.replace("b.jpg", "x.jpg"));
+  expect(changes.at(-1)).toMatchObject({ label: "Image replaced", files: ["data/homes/wren.md"] });
+
+  editor.apply({ type: "record-item", ...where, record: "homes/wren#2", op: "move", to: 0 });
+  expect(readFileSync(file, "utf8")).toContain("photos:\n  - /media/c.jpg\n  - /media/a.jpg\n  - /media/x.jpg\n");
+  expect(changes.at(-1)?.label).toBe("Image moved in the list");
+
+  editor.apply({ type: "record-item", ...where, record: "homes/wren#1", op: "remove" });
+  expect(readFileSync(file, "utf8")).toBe(
+    "---\naddress: Wren\nphotos:\n  - /media/c.jpg\n  - /media/x.jpg\n---\nThe house.\n",
+  );
+  expect(changes.at(-1)?.label).toBe("Image removed from the list");
+
+  // Without saying which image, for one that is not there, or on the record's own image field: refused.
+  expect(() => editor.apply({ type: "image", ...where, record: "homes/wren", src: "/media/y.jpg" })).toThrow(
+    EditRefused,
+  );
+  expect(() => editor.apply({ type: "record-item", ...where, record: "homes/wren#5", op: "remove" })).toThrow(
+    EditRefused,
+  );
+  expect(() =>
+    editor.apply({
+      type: "record-item",
+      file: where.file,
+      at: page.indexOf('<img class="cover"'),
+      record: "homes/wren",
+      op: "remove",
+    }),
+  ).toThrow(EditRefused);
+});
+
 test("an image replaced: its address in the template with the new alt text, or the record's field (Q159)", () => {
   const { root, editor, changes, list, at } = withBlog();
   const fixed = at('<img src="/media');

@@ -84,6 +84,36 @@ export async function addImage(root: string, name: string, bytes: Buffer, info: 
   return { path, width, height };
 }
 
+/** One image use_image is asked for. */
+export type ImageWanted = { id: string; name: string; alt: string };
+
+/** What became of an image use_image was asked for: added, already there, or why not. */
+type Used = { path: string; size?: string; existing?: boolean } | { error: string };
+
+/** Downloads an image found by a search and adds it with its alt text and credits; one already added keeps its file. */
+async function addFound(finder: ImageFinder, root: string, { id, name, alt }: ImageWanted): Promise<Used> {
+  const image = finder.found(id);
+  if (!image)
+    return {
+      error: `No image with the id ${id} was found by find_images in this session: search again, then use one of the ids it gives.`,
+    };
+  // The same image used again: the file already in media/, its alt text replaced.
+  const existing = image.credit.sourceUrl ? sameSource(root, image.credit.sourceUrl) : undefined;
+  if (existing) {
+    const info = JSON.parse(readFileSync(join(root, infoFile(existing)), "utf8"));
+    writeFileSync(join(root, infoFile(existing)), `${JSON.stringify({ ...info, alt }, null, 2)}\n`);
+    return { path: existing, existing: true };
+  }
+  let bytes: Buffer;
+  try {
+    bytes = await finder.download(image);
+  } catch (error) {
+    return { error: `${(error as Error).message} Try another of the images found.` };
+  }
+  const added = await addImage(root, name, bytes, { alt, credit: image.credit });
+  return { path: added.path, ...(added.width ? { size: `${added.width}×${added.height}` } : {}) };
+}
+
 /**
  * use_image (Q167): downloads an image found by a search, adds it to the
  * project's media with the alternative text the agent gave and its credits,
@@ -96,25 +126,40 @@ export async function useFoundImage(
   name: string,
   alt: string,
 ): Promise<string> {
-  const image = finder.found(id);
-  if (!image)
-    return `No image with the id ${id} was found by find_images in this session: search again, then use one of the ids it gives.`;
-  // The same image used again: the file already in media/, its alt text replaced.
-  const existing = image.credit.sourceUrl ? sameSource(root, image.credit.sourceUrl) : undefined;
-  if (existing) {
-    const info = JSON.parse(readFileSync(join(root, infoFile(existing)), "utf8"));
-    writeFileSync(join(root, infoFile(existing)), `${JSON.stringify({ ...info, alt }, null, 2)}\n`);
-    return `This image is already in the project as /${existing}: its alternative text is now the one you gave. Use that address; nothing was added.`;
+  return answerOne(await addFound(finder, root, { id, name, alt }));
+}
+
+/** What use_image answers for one image. */
+function answerOne(used: Used): string {
+  if ("error" in used) return used.error;
+  if (used.existing)
+    return `This image is already in the project as /${used.path}: its alternative text is now the one you gave. Use that address; nothing was added.`;
+  return `Added as /${used.path}${used.size ? ` (${used.size})` : ""}. Write <img src="/${used.path}" …> in a page, part or record without an alt attribute: Upstart takes its alternative text from ${infoFile(used.path)}, where the maker can change it, and lists its credits on the site's /credits page when its licence asks for them.`;
+}
+
+/**
+ * use_image with several images (Q357): each added in turn, and the
+ * addresses answered in the order asked, ready for a list of images.
+ */
+export async function addFoundImages(finder: ImageFinder, root: string, wanted: ImageWanted[]): Promise<string> {
+  if (wanted.length === 1) return answerOne(await addFound(finder, root, wanted[0]!));
+  const lines: string[] = [];
+  const paths: string[] = [];
+  for (const [i, one] of wanted.entries()) {
+    const used = await addFound(finder, root, one);
+    if ("error" in used) {
+      lines.push(`${i + 1}. ${one.id}: not added. ${used.error}`);
+      continue;
+    }
+    paths.push(`/${used.path}`);
+    lines.push(
+      `${i + 1}. /${used.path}${used.size ? ` (${used.size})` : ""}${used.existing ? ", already in the project: its alternative text is now the one you gave" : ""}`,
+    );
   }
-  let bytes: Buffer;
-  try {
-    bytes = await finder.download(image);
-  } catch (error) {
-    return `${(error as Error).message} Try another of the images found.`;
-  }
-  const added = await addImage(root, name, bytes, { alt, credit: image.credit });
-  const size = added.width ? ` (${added.width}×${added.height})` : "";
-  return `Added as /${added.path}${size}. Write <img src="/${added.path}" …> in a page, part or record without an alt attribute: Upstart takes its alternative text from ${infoFile(added.path)}, where the maker can change it, and lists its credits on the site's /credits page when its licence asks for them.`;
+  const how = paths.length
+    ? `\n\nIn this order, as a list of images in a record: \`[${paths.join(", ")}]\`. Write <img> without an alt attribute: Upstart takes each one's alternative text from the file beside it, and lists the credits on the site's /credits page when a licence asks for them.`
+    : "";
+  return `${lines.join("\n")}${how}`;
 }
 
 /** The media file that came from this source, if one did. */

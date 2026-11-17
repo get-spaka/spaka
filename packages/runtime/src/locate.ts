@@ -280,9 +280,11 @@ function liquidBalanced(inside: Token[]): boolean {
  * A record's field an element shows: `field` of the record `variable` stands
  * for. Inside a loop over a record's list of links (`{% for link in
  * item.links %}`), `field` is that list and `sub` the link's own value it
- * shows (`label`); which link it is comes from the element's trace.
+ * shows (`label`); which link it is comes from the element's trace. Inside a
+ * loop over a list of images (`{% for photo in record.photos %}`), `item` says
+ * the element shows the list's item itself, an image's address (Q355).
  */
-export type RecordField = { field: string; variable: string; datasource?: string; sub?: string };
+export type RecordField = { field: string; variable: string; datasource?: string; sub?: string; item?: true };
 
 /** The datasource a loop goes over: `data.team`, `data["home-faq"]`. */
 export function loopDatasource(iterable: string): string | undefined {
@@ -290,7 +292,7 @@ export function loopDatasource(iterable: string): string | undefined {
   return m ? (m[1] ?? m[2]) : undefined;
 }
 
-const LONE_OUTPUT = /^\{\{-?\s*([a-z_]\w*)\.([a-z_]\w*)\s*-?\}\}$/i;
+const LONE_OUTPUT = /^\{\{-?\s*([a-z_]\w*)(?:\.([a-z_]\w*))?\s*-?\}\}$/i;
 
 /**
  * Whether the element at `offset` shows a record's field and nothing else, in
@@ -318,7 +320,7 @@ export function recordFieldAt(src: string, offset: number, attribute?: string): 
   }
   const m = output ? LONE_OUTPUT.exec(output) : null;
   if (!m) return undefined;
-  const [, variable, field] = m as unknown as [string, string, string];
+  const [, variable, field] = m as unknown as [string, string, string | undefined];
   // The loops around the element, innermost last.
   type Loop = { variable: string; datasource?: string; list?: { of: string; field: string } };
   const loops: Loop[] = [];
@@ -339,15 +341,18 @@ export function recordFieldAt(src: string, offset: number, attribute?: string): 
   // The trace names the record of the innermost loop, or the page's record outside any.
   const innermost = loops.at(-1);
   // A link of a record's list of links: the record is the loop's around it, or the page's.
+  // An image of a record's list of images, the same way, showing the item itself.
   if (innermost?.list && innermost.variable === variable) {
     const parent = loops.at(-2);
     const { of, field: list } = innermost.list;
+    const shows = field ? { sub: field } : { item: true as const };
     if (parent)
       return parent.variable === of && parent.datasource
-        ? { field: list, variable: of, datasource: parent.datasource, sub: field }
+        ? { field: list, variable: of, datasource: parent.datasource, ...shows }
         : undefined;
-    return of === "record" ? { field: list, variable: of, sub: field } : undefined;
+    return of === "record" ? { field: list, variable: of, ...shows } : undefined;
   }
+  if (!field) return undefined;
   if (innermost)
     return innermost.variable === variable && innermost.datasource
       ? { field, variable, datasource: innermost.datasource }

@@ -69,11 +69,13 @@ export {
 } from "./media.ts";
 export {
   addDefinitionFields,
+  moveRecordItem,
   newRecordText,
   RecordWriteRefused,
   readRecordFile,
   recordIdFrom,
   recordTitle,
+  removeRecordItem,
   renameInOrder,
   setOrder,
   setRecordValue,

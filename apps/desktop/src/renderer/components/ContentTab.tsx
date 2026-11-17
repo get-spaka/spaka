@@ -6,6 +6,8 @@
 import {
   AlertTriangle,
   ArrowDown,
+  ArrowLeft,
+  ArrowRight,
   ArrowUp,
   ChevronLeft,
   ChevronRight,
@@ -20,7 +22,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ContentDatasource, ContentField, ContentRecord, ContentRecordSummary } from "../../shared/ipc";
 import { upstart } from "../lib/bridge";
 import { messageOf } from "../lib/errors";
-import { pickImage } from "../lib/picker";
+import { pickImage, pickImages } from "../lib/picker";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { CollectedView } from "./CollectedView";
@@ -743,6 +745,17 @@ function FieldInput({
         />
       );
       break;
+    case "images":
+      input = (
+        <ImagesInput
+          name={field.name}
+          label={label}
+          value={Array.isArray(value) ? value.map(String) : typeof value === "string" && value ? [value] : []}
+          disabled={disabled}
+          onChange={onChange}
+        />
+      );
+      break;
     case "image":
       input = (
         <div className="flex items-center gap-2">
@@ -794,6 +807,137 @@ function FieldInput({
       </span>
       {input}
     </div>
+  );
+}
+
+/**
+ * A list of images as a grid of thumbnails (Q354): "Add…" chooses several in
+ * the media picker; each moves earlier or later, is removed, is replaced by a
+ * click, or is dragged to another place.
+ */
+function ImagesInput({
+  name,
+  label,
+  value,
+  disabled,
+  onChange,
+}: {
+  name: string;
+  label: string;
+  value: string[];
+  disabled: boolean;
+  onChange: (value: string[]) => void;
+}) {
+  const [dragged, setDragged] = useState<number>();
+  const [over, setOver] = useState<number>();
+  const words = t.content.images;
+  const move = (from: number, to: number) => {
+    if (from === to || to < 0 || to >= value.length) return;
+    const next = [...value];
+    const [image] = next.splice(from, 1);
+    next.splice(to, 0, image!);
+    onChange(next);
+  };
+  return (
+    <fieldset className="min-w-0 space-y-2" data-testid={`field-${name}`} aria-label={label}>
+      {value.length ? (
+        <ul className="grid grid-cols-3 gap-2">
+          {value.map((path, i) => (
+            <li
+              // biome-ignore lint/suspicious/noArrayIndexKey: an image may be in the list twice; its place is its identity.
+              key={`${i}-${path}`}
+              data-testid="image-item"
+              data-path={path}
+              draggable={!disabled}
+              onDragStart={(e) => {
+                setDragged(i);
+                e.dataTransfer.effectAllowed = "move";
+              }}
+              onDragOver={(e) => {
+                if (dragged === undefined) return;
+                e.preventDefault();
+                setOver(i);
+              }}
+              onDragLeave={() => setOver((o) => (o === i ? undefined : o))}
+              onDrop={(e) => {
+                e.preventDefault();
+                if (dragged !== undefined) move(dragged, i);
+                setDragged(undefined);
+                setOver(undefined);
+              }}
+              onDragEnd={() => {
+                setDragged(undefined);
+                setOver(undefined);
+              }}
+              className={cn(
+                "group space-y-1 rounded-md",
+                dragged === i && "opacity-50",
+                over === i && dragged !== i && "ring-2 ring-primary",
+              )}
+            >
+              <Tip text={words.replaceTip}>
+                <button
+                  type="button"
+                  disabled={disabled}
+                  data-testid="image-replace"
+                  className="block w-full overflow-hidden rounded-md border"
+                  onClick={() =>
+                    void pickImage().then((chosen) => chosen && onChange(value.map((p, j) => (j === i ? chosen : p))))
+                  }
+                >
+                  <MediaThumb path={path} className="aspect-[4/3] w-full" />
+                </button>
+              </Tip>
+              <div className="flex items-center justify-center">
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  disabled={disabled || i === 0}
+                  tip={words.earlier}
+                  data-testid="image-earlier"
+                  onClick={() => move(i, i - 1)}
+                >
+                  <ArrowLeft />
+                </Button>
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  disabled={disabled || i === value.length - 1}
+                  tip={words.later}
+                  data-testid="image-later"
+                  onClick={() => move(i, i + 1)}
+                >
+                  <ArrowRight />
+                </Button>
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  disabled={disabled}
+                  tip={words.remove}
+                  data-testid="image-remove"
+                  onClick={() => onChange(value.filter((_, j) => j !== i))}
+                >
+                  <X />
+                </Button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-xs text-muted-foreground">{words.empty}</p>
+      )}
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={disabled}
+        tip={words.addTip}
+        data-testid="images-add"
+        onClick={() => void pickImages().then((chosen) => chosen && onChange([...value, ...chosen]))}
+      >
+        <Plus />
+        {words.add}
+      </Button>
+    </fieldset>
   );
 }
 

@@ -327,7 +327,14 @@ export type EditAction =
    * record's image field when the template shows one. `from`: a file dropped
    * from the disk, added to media/ first, its address then used.
    */
-  | { type: "image"; file: string; at: number; src: string; record?: string; from?: string };
+  | { type: "image"; file: string; at: number; src: string; record?: string; from?: string }
+  /**
+   * An image of a record's list of images taken out of the list, or moved to
+   * another place in it (`to`, its place once moved) (Q356). `record` names
+   * the record and the image: "homes/wren#2".
+   */
+  | { type: "record-item"; file: string; at: number; record: string; op: "remove" }
+  | { type: "record-item"; file: string; at: number; record: string; op: "move"; to: number };
 
 /** What the preview needs to know before the maker edits an element. */
 export type EditInfo = {
@@ -343,8 +350,12 @@ export type EditInfo = {
   field?: string;
   /** Its text is a record's value of another kind, changed in the Content tab. */
   fromRecord?: boolean;
-  /** An image the maker can replace: its address is in the template, or in a record's field (Q159). */
-  image?: { field?: string };
+  /**
+   * An image the maker can replace: its address is in the template, or in a
+   * record's field (Q159). `list`: it is one of a record's list of images,
+   * which holds `count` images when the record was named (Q355, Q356).
+   */
+  image?: { field?: string; list?: { count?: number } };
 };
 
 /** A project's conversation, as shown. */
@@ -408,6 +419,7 @@ export type ContentField = {
     | "date"
     | "choice"
     | "image"
+    | "images"
     | "link"
     | "list"
     | "links"
@@ -1059,7 +1071,8 @@ export type FromPreview =
 /** Calls from the preview's script that get an answer (the edits it asks for). */
 export type PreviewInvokes = {
   "preview:edit": (action: EditAction) => { label: string; files: string[] };
-  "preview:edit-info": (file: string, at: number) => EditInfo;
+  /** `record`: the record the element's trace names, for an image of a list of images (Q356). */
+  "preview:edit-info": (file: string, at: number, record?: string) => EditInfo;
   /** Opens the app's media picker over the window (Q159): the chosen image's address, or null. */
   "preview:pick-image": () => string | null;
   /** A block or an image file dragged into the page in another mode: the preview goes to edit mode (Q254). */

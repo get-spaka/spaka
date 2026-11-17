@@ -1,9 +1,11 @@
 import { describe, expect, test } from "vitest";
 import {
+  moveRecordItem,
   newRecordText,
   RecordWriteRefused,
   readRecordFile,
   recordIdFrom,
+  removeRecordItem,
   renameInOrder,
   setOrder,
   setRecordValue,
@@ -90,5 +92,34 @@ describe("a list of links in a record (Q212)", () => {
   test("refused for a link that is not there", () => {
     expect(() => setRecordValueAt(text, ["links", 5, "label"], "x")).toThrow(RecordWriteRefused);
     expect(() => setRecordValueAt("---\nlabel: x\n---\n", ["links", 0, "label"], "x")).toThrow(RecordWriteRefused);
+  });
+});
+
+describe("a list of images in a record (Q354-Q356)", () => {
+  const text =
+    "---\naddress: Wren # the bungalow\nphotos:\n  - /media/a.jpg\n  - /media/b.jpg\n  - /media/c.jpg\nbeds: 3\n---\nThe house.\n";
+  test("one image replaced, the rest of the file as it was", () => {
+    expect(setRecordValueAt(text, ["photos", 1], "/media/x.jpg")).toBe(text.replace("b.jpg", "x.jpg"));
+  });
+  test("one taken out, and the field left out once empty", () => {
+    expect(removeRecordItem(text, "photos", 0)).toBe(text.replace("  - /media/a.jpg\n", ""));
+    const one = "---\naddress: Wren\nphotos: [/media/a.jpg]\n---\n";
+    expect(removeRecordItem(one, "photos", 0)).toBe("---\naddress: Wren\n---\n");
+  });
+  test("one moved to another place, a list on one line kept on one line", () => {
+    expect(moveRecordItem(text, "photos", 2, 0)).toBe(
+      text.replace("a.jpg\n  - /media/b.jpg\n  - /media/c.jpg", "c.jpg\n  - /media/a.jpg\n  - /media/b.jpg"),
+    );
+    expect(moveRecordItem("---\nphotos: [/media/a.jpg, /media/b.jpg]\n---\n", "photos", 0, 1)).toBe(
+      "---\nphotos: [/media/b.jpg, /media/a.jpg]\n---\n",
+    );
+  });
+  test("refused for an image that is not there", () => {
+    expect(() => setRecordValueAt(text, ["photos", 3], "/media/x.jpg")).toThrow(
+      "This image is not in the record any more.",
+    );
+    expect(() => removeRecordItem(text, "photos", 3)).toThrow(RecordWriteRefused);
+    expect(() => moveRecordItem(text, "photos", 0, 3)).toThrow(RecordWriteRefused);
+    expect(() => removeRecordItem("---\naddress: Wren\n---\n", "photos", 0)).toThrow(RecordWriteRefused);
   });
 });

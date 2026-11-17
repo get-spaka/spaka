@@ -310,3 +310,57 @@ test("an empty field is false in a template: no image for a record without one",
   expect(html).toContain('src="/media/bo.jpg"');
   expect(html).not.toContain('src=""');
 });
+
+describe("a list of images (Q352, Q353)", () => {
+  const homes = `label: Homes
+fields:
+  - name: address
+    kind: text
+  - name: photos
+    kind: images
+`;
+  test("each image is its address, in order; one in media/ is given its slash, an empty one left out", () => {
+    const data = new Datasources(
+      memorySource({
+        "data/homes/_datasource.yaml": homes,
+        "data/homes/wren.md":
+          "---\naddress: Wren\nphotos:\n  - /media/a.jpg\n  - media/b.jpg\n  - ''\n  - ' /media/c.jpg '\n---\n",
+        "data/homes/ivy.md": "---\naddress: Ivy\nphotos: /media/one.jpg\n---\n",
+        "data/homes/elm.md": "---\naddress: Elm\n---\n",
+        "data/homes/odd.md": "---\naddress: Odd\nphotos:\n  - src: /media/a.jpg\n---\n",
+      }),
+    );
+    const ds = data.get("homes");
+    const byId = Object.fromEntries(ds.records.map((r) => [r.id, r]));
+    expect(byId.wren?.photos).toEqual(["/media/a.jpg", "/media/b.jpg", "/media/c.jpg"]);
+    expect(byId.ivy?.photos).toEqual(["/media/one.jpg"]);
+    expect(byId.elm?.photos).toEqual([]);
+    expect(byId.odd?.photos).toEqual([]);
+    expect(ds.problems.map((p) => [p.id, p.problems])).toEqual([
+      ["odd", ["photos is not a list of images' addresses"]],
+    ]);
+  });
+  test("looped over in a page, with three grey stand-ins while the agent writes", () => {
+    const files = {
+      "data/homes/_datasource.yaml": homes,
+      "pages/index.liquid": page(
+        '{% for home in data.homes %}<div>{% for photo in home.photos %}<img src="{{ photo }}">{% endfor %}</div>{% endfor %}',
+      ),
+    };
+    const overlay = new Overlay(memorySource(files));
+    overlay.set("theme.css", ":root{}");
+    const shown = new Runtime(overlay, { standIns: true }).renderRoute("/").html;
+    expect(shown.match(/<img [^>]*src="data:image\/svg\+xml/g)?.length).toBe(9);
+  });
+  test("a collected datasource has none: visitors cannot send files", () => {
+    const data = new Datasources(
+      memorySource({
+        "data/requests/_datasource.yaml":
+          "label: Requests\ncollected: true\nfields:\n  - name: name\n    kind: text\n  - name: photos\n    kind: images\n",
+      }),
+    );
+    const { definition, problem } = data.definition("requests");
+    expect(definition?.fields.map((f) => f.name)).toEqual(["name"]);
+    expect(problem).toContain("photos");
+  });
+});

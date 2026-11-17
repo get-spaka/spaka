@@ -3,7 +3,17 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import sharp from "sharp";
 import { describe, expect, test } from "vitest";
-import { addImage, freeName, replaceUses, slug, useFoundImage, usesLabel, usesOf, webpCopies } from "./library";
+import {
+  addFoundImages,
+  addImage,
+  freeName,
+  replaceUses,
+  slug,
+  useFoundImage,
+  usesLabel,
+  usesOf,
+  webpCopies,
+} from "./library";
 import {
   commonsThumb,
   FixtureImages,
@@ -315,6 +325,38 @@ describe("the media library", () => {
     expect(again).toContain("already in the project as /media/croissants.jpg");
     expect(readdirSync(join(root, "media")).sort()).toEqual(["croissants.jpg", "croissants.json"]);
     expect(JSON.parse(readFileSync(join(root, "media/croissants.json"), "utf8")).alt).toBe("Fresh croissants");
+  });
+
+  test("use_image with several: each added in turn, their addresses answered in that order (Q357)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "images-"));
+    writeFileSync(join(dir, "a.jpg"), await jpeg(1200, 800));
+    writeFileSync(join(dir, "b.jpg"), await jpeg(900, 600));
+    const [first, second] = fromCommons(commons);
+    writeFileSync(
+      join(dir, "images.json"),
+      JSON.stringify([
+        { ...first!, url: "a.jpg" },
+        { ...second!, url: "b.jpg" },
+      ]),
+    );
+    const finder = new FixtureImages(dir);
+    const root = project();
+    const text = await addFoundImages(finder, root, [
+      { id: second!.id, name: "kitchen", alt: "The kitchen" },
+      { id: "commons:99", name: "x", alt: "y" },
+      { id: first!.id, name: "living", alt: "The living room" },
+    ]);
+    expect(text.split("\n").slice(0, 3)).toEqual([
+      "1. /media/kitchen.jpg (900×600)",
+      expect.stringMatching(/^2\. commons:99: not added\. No image with the id commons:99/),
+      "3. /media/living.jpg (1200×800)",
+    ]);
+    expect(text).toContain("`[/media/kitchen.jpg, /media/living.jpg]`");
+    expect(JSON.parse(readFileSync(join(root, "media/living.json"), "utf8")).alt).toBe("The living room");
+    // One alone is answered as before.
+    expect(await addFoundImages(finder, root, [{ id: first!.id, name: "again", alt: "Again" }])).toMatch(
+      /^Added as \/media\/again\.jpg \(1200×800\)\. Write <img/,
+    );
   });
 });
 

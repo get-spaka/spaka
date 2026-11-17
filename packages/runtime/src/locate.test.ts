@@ -138,3 +138,23 @@ describe("a link of a record's list of links (Q212)", () => {
     expect(recordFieldAt(src, at(src, "<b>"))).toEqual({ field: "links", variable: "record", sub: "label" });
   });
 });
+
+describe("an image of a record's list of images (Q355)", () => {
+  const src = `{% for home in data.homes %}<div>{% for photo in home.photos %}<img src="{{ photo }}">{% endfor %}</div>{% endfor %}<p>{% for photo in record.photos offset: 1 %}<img class="x" src="{{ photo }}">{% endfor %}</p><img class="y" src="{{ cover }}">`;
+  test("names the list, and that the element shows the item itself", () => {
+    expect(recordFieldAt(src, at(src, '<img src="{{ photo'), "src")).toEqual({
+      field: "photos",
+      variable: "home",
+      datasource: "homes",
+      item: true,
+    });
+    expect(recordFieldAt(src, at(src, '<img class="x"'), "src")).toEqual({
+      field: "photos",
+      variable: "record",
+      item: true,
+    });
+  });
+  test("a lone variable outside such a loop is not a record's field", () => {
+    expect(recordFieldAt(src, at(src, '<img class="y"'), "src")).toBeUndefined();
+  });
+});

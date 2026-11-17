@@ -261,6 +261,18 @@ export function repairTemplate(src: string): Repair {
 }
 
 /**
+ * The Liquid that gives a loop's item its index in the whole list: `offset: 1`
+ * starts one further, `reversed` counts from the end. Undefined when the
+ * offset is not a number written in the template.
+ */
+function placeIn(args: string): string | undefined {
+  const offset = /\boffset\s*:\s*([^\s,]+)/.exec(args)?.[1];
+  if (offset !== undefined && !/^\d+$/.test(offset)) return undefined;
+  const index = /\sreversed\b/.test(args) ? "forloop.rindex0" : "forloop.index0";
+  return offset && offset !== "0" ? `${index} | plus: ${offset}` : index;
+}
+
+/**
  * Add the trace attributes. `src` must be complete (run repairTemplate first).
  * Line numbers refer to the file as written, since the repair only cuts the tail.
  */
@@ -268,7 +280,8 @@ export function injectTrace(src: string, file: string): string {
   const { tokens } = scan(src);
   const inserts: { at: number; text: string }[] = [];
   // A loop's item, and for a loop over a record's own list (`item.links`), the record it belongs to.
-  const loops: { name: string; item: string | null; of?: string }[] = [];
+  // `place` is the Liquid giving the item's index in the list, when it can be known.
+  const loops: { name: string; item: string | null; of?: string; place?: string }[] = [];
   // Outside a loop, an element of a shared part belongs to the record its caller was looping over
   // (handed down as __rec), and an element of a fragment to the record it was rendered for.
   // So does an element of a record's page, named after its datasource in brackets (Q147).
@@ -295,7 +308,9 @@ export function injectTrace(src: string, file: string): string {
     const inner = loops.at(-1);
     if (inner?.of) {
       const owner = inner.of === "record" ? "record.__ref" : `${inner.of}.__ref`;
-      return `{{ ${owner} }}#{{ forloop.index0 }}`;
+      // An offset the loop starts at, or its reversed order, kept in the item's place in the list.
+      if (inner.place === undefined) return `{{ ${owner} }}`;
+      return `{{ ${owner} }}#{{ ${inner.place} }}`;
     }
     const rec = record();
     return rec ? `{{ ${rec} }}` : undefined;
@@ -310,7 +325,7 @@ export function injectTrace(src: string, file: string): string {
           list && list[1] !== "data" && (list[1] === "record" || loops.some((l) => l.item === list[1]))
             ? list[1]
             : undefined;
-        loops.push({ name: t.name, item: m ? m[1]! : null, ...(of ? { of } : {}) });
+        loops.push({ name: t.name, item: m ? m[1]! : null, ...(of ? { of, place: placeIn(t.args) } : {}) });
       } else if (t.name === "endfor" || t.name === "endtablerow") loops.pop();
       else if (t.name === "render" || t.name === "include") {
         const marked = !inText;

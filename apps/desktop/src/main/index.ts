@@ -74,7 +74,7 @@ import { Thumbnails } from "./gallery/thumbnails";
 import { History } from "./history/history";
 import { createIpc } from "./ipc";
 import { FileTap } from "./live/tap";
-import { libraryFiles, mediaKind, useFoundImage, usesLabel, usesOf, usingFiles } from "./media/library";
+import { addFoundImages, libraryFiles, mediaKind, usesLabel, usesOf, usingFiles } from "./media/library";
 import { FixtureImages, type ImageFinder, ImageSearch, imagesAnswer } from "./media/search";
 import { buildMenu } from "./menu";
 import { Preview } from "./preview/preview";
@@ -315,7 +315,7 @@ async function main() {
     },
     invokes: {
       "preview:edit": (action) => editor.edit(action),
-      "preview:edit-info": (file, at) => editor.info(file, at),
+      "preview:edit-info": (file, at, record) => editor.info(file, at, record),
       "preview:pick-image": () => pickImage(),
       "preview:to-edit": () => preview.setMode("edit"),
       "preview:comment-save": (comment) => commentsChanged(current && comments.save(current.id, comment)),
@@ -404,7 +404,7 @@ async function main() {
         look: (route, options) => preview.look(route, options),
         findBlocks: findBlocksIn(project.path),
         findImages: async (query, count) => imagesAnswer(query, await images.search(query, count)),
-        useImage: (id, name, alt) => useFoundImage(images, project.path, id, name, alt),
+        useImage: (wanted) => addFoundImages(images, project.path, wanted),
         useBlocks: (input) => {
           const { text, samples, files } = useBlocks(project.path, input, (id) =>
             new ProjectBlocks(gallery, () => project.path).get(id),
@@ -1351,11 +1351,15 @@ async function main() {
         ...(definition.review ? { review: true } : {}),
       };
     const ds = data.get(name);
-    const image = definition?.fields.find((f) => f.kind === "image")?.name;
+    // A record's thumbnail: its first image field, or else the first image of its first list of images.
+    const image = (
+      definition?.fields.find((f) => f.kind === "image") ?? definition?.fields.find((f) => f.kind === "images")
+    )?.name;
     const problems = new Map(ds.problems.map((p) => [p.id, p]));
     const records = ds.records.map((record): ContentRecordSummary => {
       const file = recordFile(name, record.id);
-      const picture = image ? record[image] : undefined;
+      const value = image ? record[image] : undefined;
+      const picture = Array.isArray(value) ? value[0] : value;
       return {
         id: record.id,
         file,

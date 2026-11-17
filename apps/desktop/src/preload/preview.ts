@@ -29,7 +29,7 @@ const editor =
     : new Editor(
         {
           edit: (action) => invoke("preview:edit", action),
-          info: (file, at) => invoke("preview:edit-info", file, at),
+          info: (file, at, record) => invoke("preview:edit-info", file, at, record),
           pickImage: () => invoke("preview:pick-image"),
           toEdit: () => void invoke("preview:to-edit"),
           pathOf: (file) => webUtils.getPathForFile(file),

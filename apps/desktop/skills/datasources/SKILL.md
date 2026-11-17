@@ -57,6 +57,7 @@ Kinds of field:
 | date | `date: 2026-11-01` | "2026-11-01", use the date filter |
 | choice | `status: published` | one of `choices` |
 | image | `cover: /media/croissants.jpg` | its address |
+| images | `photos:` then one `- /media/kitchen.jpg` per image | the addresses, in order: a home's photos, a project's pictures, a dish's gallery; loop with `{% for photo in record.photos %}<img src="{{ photo }}">{% endfor %}`, `record.photos.first` for the first, `limit: 4` for a few |
 | link | `url: https://…` or `/contact` | the address |
 | list | `tags: [news, bakery]` | a list of texts |
 | links | `links:` then one `- label: Bread` / `  href: /bread` per link | links with a label and an address each: a menu's own links, a footer column; loop with `{% for link in item.links %}<a href="{{ link.href }}">{{ link.label }}</a>{% endfor %}` |
@@ -84,7 +85,8 @@ Sourdough loaves, viennoiseries, and coffee from a local roaster.
 - The id is the file's name: lowercase words with dashes, made from the title, in the site's language (`opening-day.md` for "Opening day"; on an English site about a Lyon bistro, `pike-quenelle.md` for "Pike quenelle", not `quenelle-de-brochet.md`). It is the record page's address, so keep it short. Write the title first in your head, then name the file after it.
 - Write believable records, three to six unless asked otherwise, each complete: every required field, a real text.
 - A value of the wrong kind shows empty, and a file whose fields do not read as YAML is left out of the site. Upstart says so right after you write it: fix it at once.
-- Images: find them with find_images and add them with use_image, then write the address it gives (`/media/…`) in the field. Never an external address.
+- Images: find them with find_images and add them with use_image, then write the address it gives (`/media/…`) in the field. Never an external address. For an images field, give use_image all of a record's images at once (`images: [{id, name, alt}, …]`) and write the addresses it answers, in that order.
+- Several pictures of one record go in one `images` field, never in numbered fields (`photo_1`, `photo_2`…): the maker adds, removes and reorders them in the Content tab and in the page, and the template shows as many as it has. Keep an `image` field for a picture with its own role (a cover, a portrait, a floor plan).
 
 ## YAML that does not read
 
@@ -195,7 +197,7 @@ fields:
 - `review: true` holds each record until the maker approves it: always for what a page shows publicly (a guestbook, reviews), never for a form whose records no page shows (contact).
 - `answer`: the fragment a valid submission is answered with (`fragments/guestbook-thanks.liquid`), the new record in `record`. Without one, Upstart answers with `messages.sent`.
 - `messages`: the sentences of the alert Upstart shows when what was sent is wrong, in the site's language; `{field}` is the field's label. Give every field a `label` in the site's language too.
-- Kinds: text, markdown (a long text, shown as plain paragraphs: what visitors type is never read as HTML or Markdown), number, boolean (a checkbox), date, choice, list (checkboxes with `choices`), link, email, phone. No image: visitors cannot send files.
+- Kinds: text, markdown (a long text, shown as plain paragraphs: what visitors type is never read as HTML or Markdown), number, boolean (a checkbox), date, choice, list (checkboxes with `choices`), link, email, phone. No image or images: visitors cannot send files.
 - Upstart adds the record's `id` and `submitted` (when it was sent, an ISO date and time): never declare them as fields.
 
 The form posts to `/_data/<name>`, each input named after a field:

@@ -28,8 +28,9 @@ export type FindBlocks = (query: string, kind: string | undefined, limit: number
 export type Wanted = { kind?: string; query: string };
 /** Answers find_images, in text (Q167). */
 export type FindImages = (query: string, count: number) => Promise<string>;
-/** Adds an image found to media/ and answers with its path, or says why not. */
-export type UseImage = (id: string, name: string, alt: string) => Promise<string>;
+type ImageWanted = { id: string; name: string; alt: string };
+/** Adds the images found to media/, in order, and answers with their paths, or says why not (Q357). */
+export type UseImage = (images: ImageWanted[]) => Promise<string>;
 /** Puts gallery blocks into a page and answers with what was written, or says why not (Q213-Q216). */
 export type UseBlocks = (input: Placing) => string;
 /** Shows the card of pages of a template's adaptation, waits for the maker and answers with their choice (Q302). */
@@ -124,7 +125,7 @@ export function upstartTools({
   look,
   findBlocks,
   findImages,
-  useImage,
+  useImage: addImages,
   useBlocks,
   choosePages,
 }: UpstartTools): UpstartToolDef[] {
@@ -189,18 +190,32 @@ export function upstartTools({
     {
       name: "use_image",
       description:
-        "Adds an image found with find_images to the project's media/ folder, at most 2400 px wide, with its alternative text and its credits kept beside it, and answers with its address.",
+        "Adds an image found with find_images to the project's media/ folder, at most 2400 px wide, with its alternative text and its credits kept beside it, and answers with its address. For several at once (the photos of a list of images), give `images` instead: they are added in turn and their addresses answered in that order.",
       shape: {
-        id: z.string().describe("The id find_images gave"),
-        name: z.string().describe('A short file name for it, without extension, e.g. "croissants"'),
+        id: z.string().optional().describe("The id find_images gave"),
+        name: z.string().optional().describe('A short file name for it, without extension, e.g. "croissants"'),
         alt: z
           .string()
+          .optional()
           .describe(
             "What the image shows, for those who cannot see it, in the language of the maker's message (the site's)",
           ),
+        images: z
+          .array(z.object({ id: z.string(), name: z.string(), alt: z.string() }))
+          .max(24)
+          .optional()
+          .describe("Several images, each with its id, name and alt as above, in the order they will show"),
       },
       openWorld: true,
-      run: async ({ id, name, alt }: { id: string; name: string; alt: string }) => text(await useImage(id, name, alt)),
+      run: async (input: { id?: string; name?: string; alt?: string; images?: ImageWanted[] }) => {
+        const wanted = input.images?.length
+          ? input.images
+          : input.id
+            ? [{ id: input.id, name: input.name || "image", alt: input.alt ?? "" }]
+            : [];
+        if (!wanted.length) return text("Give the id, name and alt of an image, or `images` for several.");
+        return text(await addImages(wanted));
+      },
     },
     {
       name: PAGES_TOOL_NAME,

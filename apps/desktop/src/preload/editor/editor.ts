@@ -30,7 +30,8 @@ const t = en.editor;
 
 export type EditorBridge = CommentsBridge & {
   edit(action: EditAction): Promise<unknown>;
-  info(file: string, at: number): Promise<EditInfo>;
+  /** `record`: the record the element's trace names, for an image of a list of images (Q356). */
+  info(file: string, at: number, record?: string): Promise<EditInfo>;
   /** Opens the app's media picker (Q159): the chosen image's address, or null. */
   pickImage(): Promise<string | null>;
   /** A dropped file's path on the disk, or "" when it has none. */
@@ -44,10 +45,29 @@ function recordOf(el: Element): string | undefined {
   return el.closest("[data-up-rec]")?.getAttribute("data-up-rec") || undefined;
 }
 
+/** An image of a record's list of images: the record ("homes/wren") and its place in the list, from its trace. */
+function listItemOf(el: Element): { record: string; index: number } | undefined {
+  const m = /^(.+)#(\d+)$/.exec(el.getAttribute("data-up-rec") ?? "");
+  return m ? { record: m[1]!, index: Number(m[2]) } : undefined;
+}
+
+/** The image of the same list (same place in the template, same record) under a point, if any. */
+function listImageAt(x: number, y: number, of: HTMLElement): HTMLElement | undefined {
+  const mine = listItemOf(of);
+  if (!mine) return undefined;
+  for (const el of document.elementsFromPoint(x, y)) {
+    if (el.localName !== "img" || el.getAttribute("data-up-src") !== of.getAttribute("data-up-src")) continue;
+    if (listItemOf(el)?.record === mine.record) return el as HTMLElement;
+  }
+  return undefined;
+}
+
 const ICONS = {
   drag: '<circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/>',
   up: '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
   down: '<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>',
+  earlier: '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+  later: '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
   duplicate:
     '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
   delete:
@@ -114,6 +134,8 @@ export class Editor {
   private readonly line: HTMLElement;
   private readonly tour: PageTourLayer;
   private hovered: HTMLElement | undefined;
+  /** An image of a list being dragged by its handle: the outline shows where it goes, not what the pointer is over. */
+  private draggingItem = false;
   private selected: Selected | undefined;
   private editing: { el: HTMLElement; before: string; origin: Origin; field?: string } | undefined;
   private toastTimer: ReturnType<typeof setTimeout> | undefined;
@@ -227,6 +249,7 @@ export class Editor {
     window.addEventListener(
       "mousemove",
       (e) => {
+        if (this.draggingItem) return;
         if (!(this.active || this.commenting) || ours(e) || this.editing) return this.setHover(undefined);
         this.setHover(tracedFrom(e.target));
       },
@@ -345,7 +368,7 @@ export class Editor {
     this.hovered = undefined;
     this.place();
     const [info, sectionInfo] = await Promise.all([
-      this.bridge.info(origin.file, origin.at).catch(() => undefined),
+      this.bridge.info(origin.file, origin.at, listItemOf(el) ? recordOf(el) : undefined).catch(() => undefined),
       section && (section.file !== origin.file || section.at !== origin.at)
         ? this.bridge.info(section.file, section.at).catch(() => undefined)
         : undefined,
@@ -363,7 +386,15 @@ export class Editor {
   }
 
   private canDelete(): boolean {
-    return !!this.selected?.sectionInfo?.movable;
+    return !!this.selected?.sectionInfo?.movable || !!this.listItem();
+  }
+
+  /** The selected image's place in a record's list of images, and how many the list holds (Q356). */
+  private listItem(): { record: string; index: number; count?: number } | undefined {
+    const s = this.selected;
+    const list = s?.info?.image?.list;
+    const item = s && list ? listItemOf(s.el) : undefined;
+    return item && { ...item, count: list?.count };
   }
 
   private drawBar() {
@@ -386,8 +417,17 @@ export class Editor {
       buttons.push('<span class="sep"></span>');
     }
     const movable = !!s.sectionInfo?.movable;
+    // An image of a record's list of images: moved in its list, or taken out of it (Q356).
+    const item = this.listItem();
+    if (item) {
+      const last = item.count === undefined ? false : item.index >= item.count - 1;
+      button("item-drag", "drag", t.dragImage);
+      button("earlier", "earlier", t.earlier, item.index > 0);
+      button("later", "later", t.later, !last);
+      buttons.push('<span class="sep"></span>');
+    }
     button("duplicate", "duplicate", t.duplicate, movable);
-    button("delete", "delete", t.delete, movable);
+    button(item ? "remove" : "delete", "delete", item ? t.removeImage : t.delete, movable || !!item);
     if (s.info?.text) button("text", "text", t.editText);
     if (s.el.localName === "a") button("link", "link", t.link);
     if (s.info?.image) button("replace", "image", t.replace);
@@ -396,6 +436,7 @@ export class Editor {
     this.bar.innerHTML = buttons.join("");
     for (const b of this.bar.querySelectorAll<HTMLButtonElement>("button[data-act]"))
       if (b.dataset.act === "drag") this.dragFrom(b);
+      else if (b.dataset.act === "item-drag") this.dragImageFrom(b);
       else b.addEventListener("click", () => void this.act(b.dataset.act!));
   }
 
@@ -427,6 +468,54 @@ export class Editor {
       handle.addEventListener("pointermove", move);
       handle.addEventListener("pointerup", up);
     });
+  }
+
+  /**
+   * An image of a list dragged by its handle onto another image of the same
+   * list, which it takes the place of (Q356): the image under the pointer is
+   * outlined as it goes.
+   */
+  private dragImageFrom(handle: HTMLElement) {
+    handle.addEventListener("pointerdown", (e) => {
+      const s = this.selected;
+      const item = this.listItem();
+      if (!s || !item) return;
+      e.preventDefault();
+      handle.setPointerCapture(e.pointerId);
+      this.draggingItem = true;
+      let over: HTMLElement | undefined;
+      const move = (ev: PointerEvent) => {
+        over = listImageAt(ev.clientX, ev.clientY, s.el);
+        this.setHover(over);
+      };
+      const up = async () => {
+        handle.removeEventListener("pointermove", move);
+        handle.removeEventListener("pointerup", up);
+        this.draggingItem = false;
+        this.setHover(undefined);
+        const to = over && listItemOf(over)?.index;
+        if (to === undefined || to === item.index) return;
+        await this.moveItem(to);
+      };
+      handle.addEventListener("pointermove", move);
+      handle.addEventListener("pointerup", up);
+    });
+  }
+
+  /** Moves the selected image of a list to another place in it, the selection following it. */
+  private async moveItem(to: number) {
+    const s = this.selected;
+    const item = this.listItem();
+    if (!s || !item) return;
+    const ok = await this.run({
+      type: "record-item",
+      file: s.origin.file,
+      at: s.origin.at,
+      record: `${item.record}#${item.index}`,
+      op: "move",
+      to,
+    });
+    if (ok) this.select(undefined);
   }
 
   /**
@@ -550,7 +639,7 @@ export class Editor {
   private async replaceImage(el: HTMLElement, chosen?: { from: string }) {
     const origin = originOf(el);
     if (!origin) return;
-    const info = await this.bridge.info(origin.file, origin.at).catch(() => undefined);
+    const info = await this.bridge.info(origin.file, origin.at, recordOf(el)).catch(() => undefined);
     if (!info?.image) return this.toast(t.notReplaceable);
     const record = info.image.field ? recordOf(el) : undefined;
     if (info.image.field && !record) return this.toast(t.notReplaceable);
@@ -573,6 +662,14 @@ export class Editor {
     if (act === "parent") return this.select(tracedFrom(s.el.parentElement));
     if (act === "link") return this.openPop();
     if (act === "replace") return this.replaceImage(s.el);
+    const item = this.listItem();
+    if (item && (act === "earlier" || act === "later")) return this.moveItem(item.index + (act === "earlier" ? -1 : 1));
+    if (item && (act === "remove" || act === "delete")) {
+      const record = `${item.record}#${item.index}`;
+      if (await this.run({ type: "record-item", file: s.origin.file, at: s.origin.at, record, op: "remove" }))
+        this.select(undefined);
+      return;
+    }
     if (act === "up" || act === "down") {
       const sections = sectionList();
       const i = sections.findIndex((x) => x.target.file === target.file && x.target.at === target.at);

@@ -21,6 +21,8 @@ export const FIELD_KINDS = [
   "date",
   "choice",
   "image",
+  // An ordered list of images, each its address (Q352, Q353).
+  "images",
   "link",
   "list",
   // Label-and-address pairs: a menu's links, a footer column (Q208, Q212).
@@ -297,7 +299,7 @@ function readDefinition(name: string, value: unknown): { definition?: Definition
     const field = f as Record<string, unknown>;
     if (typeof field.name !== "string" || !field.name) continue;
     const kind = FIELD_KINDS.includes(field.kind as FieldKind) ? (field.kind as FieldKind) : "text";
-    if (v.collected === true && kind === "image") {
+    if (v.collected === true && (kind === "image" || kind === "images")) {
       refused.push(field.name);
       continue;
     }
@@ -378,7 +380,19 @@ function readRecord(
 
 /** What a field holds when a record gives it no value: a list is empty, anything else an empty text. */
 function emptyOf(field: Field): unknown {
-  return field.kind === "list" || field.kind === "links" ? [] : "";
+  return field.kind === "list" || field.kind === "links" || field.kind === "images" ? [] : "";
+}
+
+/** An image's address as a template uses it: `media/x.jpg` is the site's `/media/x.jpg`. */
+function imageAddress(raw: string): string {
+  return raw.startsWith("media/") ? `/${raw}` : raw;
+}
+
+/** A list of images' addresses, in order; an empty item is left out, anything but an address makes it wrong (Q353). */
+function readImages(raw: unknown): string[] | undefined {
+  const items = typeof raw === "string" ? [raw] : Array.isArray(raw) ? raw : undefined;
+  if (!items || items.some((x) => x !== null && x !== undefined && typeof x !== "string")) return undefined;
+  return items.filter((x): x is string => typeof x === "string" && !!x.trim()).map((x) => imageAddress(x.trim()));
 }
 
 /** Each link with its label and its address; one that lacks either is left out. */
@@ -417,10 +431,10 @@ function coerce(field: Field, raw: unknown): unknown {
     }
     case "choice":
       return typeof raw === "string" && (!field.choices || field.choices.includes(raw)) ? raw : undefined;
-    case "image": {
-      if (typeof raw !== "string") return undefined;
-      return raw.startsWith("media/") ? `/${raw}` : raw;
-    }
+    case "image":
+      return typeof raw === "string" ? imageAddress(raw) : undefined;
+    case "images":
+      return readImages(raw);
     case "list":
       if (Array.isArray(raw)) return raw.every((x) => typeof x !== "object") ? raw.map(String) : undefined;
       return typeof raw === "string" ? [raw] : undefined;
@@ -447,6 +461,7 @@ function kindName(field: Field): string {
     date: "a date",
     choice: `one of ${(field.choices ?? []).join(", ")}`,
     image: "an image's address",
+    images: "a list of images' addresses",
     link: "an address",
     list: "a list of texts",
     links: "a list of links, each with a label and an address",
@@ -507,6 +522,8 @@ function standInValue(field: Field, i: number): unknown {
       return field.choices?.[0] ?? "";
     case "image":
       return STAND_IN_IMAGE;
+    case "images":
+      return [STAND_IN_IMAGE, STAND_IN_IMAGE, STAND_IN_IMAGE];
     case "link":
       return "#";
     case "list":

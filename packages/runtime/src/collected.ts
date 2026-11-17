@@ -118,6 +118,7 @@ function submitted(field: Field, sent: string[]): unknown {
     case "list":
       return field.choices && sent.some((v) => !field.choices!.includes(v)) ? undefined : sent;
     case "image":
+    case "images":
     case "links":
       return undefined;
   }
