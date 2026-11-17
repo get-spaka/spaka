@@ -1,7 +1,7 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { memorySource } from "@upstart/runtime";
+import { LAYER_ORDER, layersOf, memorySource } from "@upstart/runtime";
 import { afterEach, beforeEach, expect, test } from "vitest";
 import { buildStatic, candidates, copyAddress, imagesIn, withSrcset } from "./index.ts";
 
@@ -48,6 +48,21 @@ test("pages, fragments, a stylesheet with the classes used, the theme", async ()
   expect(css).not.toContain(".carousel");
   expect(readFileSync(join(out, "theme.css"), "utf8")).toContain("#b45309");
   expect(result.files).toContain("assets/htmx.js");
+});
+
+test("a site's own @layer components rules come after daisyUI's components, the utilities after both, as in the preview", async () => {
+  const source = memorySource({
+    "styles/site.css": "@layer components {\n  .btn {\n    border-radius: 0;\n  }\n}\n",
+    "pages/index.liquid": `<!doctype html><html lang="en"><head><title>Home</title></head><body><a class="btn btn-primary">Book</a><a class="btn rounded-none">Call</a></body></html>`,
+  });
+  await buildStatic({ source, outDir: out });
+  const css = readFileSync(join(out, "assets/site.css"), "utf8");
+  expect(css.startsWith(LAYER_ORDER)).toBe(true);
+  const btn = layersOf(css, ".btn");
+  expect(btn).toContain("components");
+  expect(btn.filter((l) => l !== "components").every((l) => l.startsWith("daisyui > daisyui"))).toBe(true);
+  expect(layersOf(css, ".btn-primary").every((l) => l.startsWith("daisyui > daisyui"))).toBe(true);
+  expect(layersOf(css, ".rounded-none")).toEqual(["utilities"]);
 });
 
 test("a page that fails is left out and said", async () => {

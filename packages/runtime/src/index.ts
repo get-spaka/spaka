@@ -36,6 +36,7 @@ export {
   titleOf,
 } from "./data.ts";
 export { ASSETS, exportHead, previewHead, START_SCRIPT, tailwindStyle, VENDOR } from "./head.ts";
+export { daisyuiBelowComponents, LAYER_ORDER, layersOf } from "./layers.ts";
 export {
   decodeText,
   encodeText,

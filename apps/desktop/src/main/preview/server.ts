@@ -1,17 +1,24 @@
 // The local web server the preview loads its pages from: the project, served
 // by the runtime, on 127.0.0.1 only. A real address keeps forms, cookies and
 // htmx requests working as they will once the site is published.
-import { createReadStream, statSync } from "node:fs";
+import { createReadStream, readFileSync, statSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { createRequire } from "node:module";
 import { extname, join, normalize, sep } from "node:path";
 import type { Runtime } from "@upstart/runtime";
-import { START_JS, START_SCRIPT, VENDOR } from "@upstart/runtime";
+import { daisyuiBelowComponents, START_JS, START_SCRIPT, VENDOR } from "@upstart/runtime";
 
 /** Named so that it does not collide with the `require` electron-vite adds to ESM output. */
 const nodeRequire = createRequire(import.meta.url);
 
 export const VENDOR_BASE = "/__up/vendor";
+
+let daisyui: string | undefined;
+/** daisyui.css with its components below the site's (daisyuiBelowComponents), made once. */
+function layeredDaisyui(file: string): string {
+  daisyui ??= daisyuiBelowComponents(readFileSync(file, "utf8"));
+  return daisyui;
+}
 
 const STATIC_TYPES: Record<string, string> = {
   ".css": "text/css; charset=utf-8",
@@ -91,7 +98,8 @@ export class PreviewServer {
       if (!vendor) return notFound(res);
       const file = nodeRequire.resolve(vendor.module);
       res.writeHead(200, { "content-type": vendor.type, "cache-control": "max-age=3600" });
-      createReadStream(file).pipe(res);
+      if (name === "daisyui.css") res.end(layeredDaisyui(file));
+      else createReadStream(file).pipe(res);
       return;
     }
 

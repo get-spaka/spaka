@@ -9,8 +9,10 @@ import {
   ASSETS,
   BRIDGE_CSS,
   copyAddress,
+  daisyuiBelowComponents,
   imagesIn,
   infoFile,
+  LAYER_ORDER,
   type ProjectSource,
   Runtime,
   START_JS,
@@ -167,7 +169,7 @@ export function isStatic(path: string, files: Set<string>) {
 export async function writeAssets(project: BuildProject, out: Output, texts: string[]) {
   const { assets } = siteAssets(project.source);
   const styles = assets.styles.map((p) => project.source.read(p) ?? "").join("\n");
-  out.write(`${ASSETS}/site.css`, `${BRIDGE_CSS}\n${await tailwind(candidates(texts.join("\n")), styles)}`);
+  out.write(`${ASSETS}/site.css`, await siteStylesheet(candidates(texts.join("\n")), styles));
   out.write(`${ASSETS}/htmx.js`, readFileSync(resolveFrom.resolve("htmx.org/dist/htmx.min.js")));
   if (assets.modules.length) out.write(`${ASSETS}/${START_SCRIPT}`, START_JS);
   const theme = project.source.read("theme.css");
@@ -224,6 +226,15 @@ export function slug(name: string, fallback = "website"): string {
 /** Every token of the HTML that could be a Tailwind class; Tailwind ignores the others. */
 export function candidates(html: string): string[] {
   return [...new Set(html.split(/[\s"'`<>=]+/).filter((t) => t && t.length < 200))];
+}
+
+/**
+ * The site's stylesheet: the layers' order first, so that daisyUI's components
+ * come before the site's own (LAYER_ORDER, as in the preview), the bridge to
+ * the theme, then Tailwind's and daisyUI's compiled for these classes.
+ */
+export async function siteStylesheet(classes: string[], styles = ""): Promise<string> {
+  return `${LAYER_ORDER}\n${BRIDGE_CSS}\n${daisyuiBelowComponents(await tailwind(classes, styles))}`;
 }
 
 let base: string | undefined;

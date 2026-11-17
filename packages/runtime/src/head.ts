@@ -1,10 +1,15 @@
 // What the runtime puts into the <head> of every page of the preview: the
 // libraries a project is written for (ADR 0004, ADR 0006) and its theme.
 // Projects never load them themselves.
+import { LAYER_ORDER } from "./layers.ts";
 import { NO_ASSETS, type SiteAssets, STILL_CSS, scriptTags } from "./scripts.ts";
 import { BRIDGE_CSS, TAILWIND_THEME, themeStyle } from "./theme.ts";
 
-/** The libraries the preview serves, by file name, with the package file each comes from. */
+/**
+ * The libraries the preview serves, by file name, with the package file each
+ * comes from. daisyui.css is served with its components in the daisyui layer
+ * (daisyuiBelowComponents), as in an export.
+ */
 export const VENDOR = {
   "daisyui.css": { module: "daisyui/daisyui.css", type: "text/css" },
   "tailwind.js": { module: "@tailwindcss/browser", type: "text/javascript" },
@@ -45,15 +50,6 @@ export function previewHead({
     ...scriptTags(assets, `${base}/${START_SCRIPT}`, { wait: true }),
   ].join("");
 }
-
-/**
- * The cascade layers' order, declared before daisyui.css: that file declares
- * base, utilities and then its own layer, which would put Tailwind's
- * components after its utilities, so that a site's `@layer components` rule
- * beat a class such as text-[3rem]. As in an export, where daisyUI's
- * components and the site's come before the utilities.
- */
-export const LAYER_ORDER = "@layer theme, base, daisyui, components, utilities;";
 
 /** What the preview's Tailwind compiles beside the classes: the theme's names, then the site's stylesheets. */
 export function tailwindStyle(styles: string): string {
