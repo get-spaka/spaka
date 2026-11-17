@@ -1,7 +1,13 @@
 import { cpSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { shotPages, writeAnimatedWebp, writeWebp } from "../apps/desktop/src/main/templates/pictures.ts";
+import {
+  fixedClockScript,
+  shootClock,
+  shotPages,
+  writeAnimatedWebp,
+  writeWebp,
+} from "../apps/desktop/src/main/templates/pictures.ts";
 import { projectFiles, readTemplateFolder } from "../apps/desktop/src/main/templates/reader.ts";
 import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
 import { previewDriver } from "./preview-driver.ts";
@@ -10,7 +16,9 @@ import { previewDriver } from "./preview-driver.ts";
 // app, in the background, as visitors see it, moving — each page at desktop and phone
 // width, whole, the home page's first screen as its cover, and a short
 // animated sequence of it for the start screen's hover — written into its
-// pictures/, and a review sheet in e2e/.runs/template-sheets/.
+// pictures/, and a review sheet in e2e/.runs/template-sheets/. A template whose
+// look follows the time is photographed at its own clock (shootClock: `--clock`,
+// or `shoot.clock` in its template.json), whatever the day of the shoot.
 const dir = process.env.UPSTART_TEMPLATE_SHOOT ?? "";
 const DEVICES = [
   { name: "desktop", width: 1440, height: 900, out: 1200 },
@@ -26,7 +34,15 @@ describe.skipIf(!dir)("a template's pictures", () => {
   let origin: string;
   const { invoke, until } = previewDriver(() => launched);
   const files = dir ? readTemplateFolder(dir) : new Map();
-  const id = JSON.parse(files.get("template.json")?.toString("utf8") ?? "{}").id as string;
+  const manifest = JSON.parse(files.get("template.json")?.toString("utf8") ?? "{}");
+  const id = manifest.id as string;
+  const at = dir ? shootClock(manifest, process.env.UPSTART_TEMPLATE_SHOOT_CLOCK) : undefined;
+  /** The clock's script, the windows' preload (the DevTools protocol hangs a window not yet loaded). */
+  const clock = at === undefined ? undefined : join(runsDir, `template-shoot-clock-${id}.js`);
+  if (clock && at !== undefined) {
+    mkdirSync(runsDir, { recursive: true });
+    writeFileSync(clock, fixedClockScript(at));
+  }
 
   /**
    * A page in a window of its own, never shown (the app's checks keep hidden
@@ -34,14 +50,18 @@ describe.skipIf(!dir)("a template's pictures", () => {
    */
   const inWindow = (route: string, device: { width: number; height: number }, act: string) =>
     launched.app.evaluate(
-      async ({ BrowserWindow }, { url, device, act }) => {
+      async ({ BrowserWindow }, { url, device, act, clock }) => {
         const win = new BrowserWindow({
           show: false,
           width: device.width,
           height: device.height,
           useContentSize: true,
           enableLargerThanScreen: true,
-          webPreferences: { backgroundThrottling: false },
+          // The clock's preload runs in the page's own world, before its scripts.
+          webPreferences: {
+            backgroundThrottling: false,
+            ...(clock ? { preload: clock, contextIsolation: false, sandbox: false } : {}),
+          },
         });
         const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
         const js = (code: string) => win.webContents.executeJavaScript(code);
@@ -64,7 +84,7 @@ describe.skipIf(!dir)("a template's pictures", () => {
           win.destroy();
         }
       },
-      { url: new URL(route, origin).toString(), device, act },
+      { url: new URL(route, origin).toString(), device, act, clock },
     );
 
   beforeAll(async () => {

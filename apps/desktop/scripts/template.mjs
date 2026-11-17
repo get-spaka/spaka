@@ -75,9 +75,12 @@ if (command === "check") {
   await releaseScript(join(templates, "scripts/release.mjs"));
   console.log("✓ apps/desktop/templates/scripts/release.mjs: commit it in the templates' repository.");
 } else if (command === "shoot") {
-  const target = args.find((a) => !a.startsWith("--"));
-  if (!target) {
-    console.error("Usage: pnpm template:shoot <template folder> [--no-build]");
+  // --clock <instant>: the time the pages are photographed at (else the template's own, or now).
+  const clockAt = args.indexOf("--clock");
+  const clock = clockAt >= 0 ? args[clockAt + 1] : undefined;
+  const target = args.find((a, i) => !a.startsWith("--") && (clockAt < 0 || i !== clockAt + 1));
+  if (!target || (clockAt >= 0 && !clock)) {
+    console.error("Usage: pnpm template:shoot <template folder> [--no-build] [--clock 2027-04-14T09:30:00-05:00]");
     process.exit(2);
   }
   const run = (cmd, argv, env = {}) =>
@@ -91,6 +94,7 @@ if (command === "check") {
       {
         UPSTART_BACKGROUND: "1",
         UPSTART_TEMPLATE_SHOOT: resolve(target),
+        ...(clock ? { UPSTART_TEMPLATE_SHOOT_CLOCK: clock } : {}),
       },
     ),
   );

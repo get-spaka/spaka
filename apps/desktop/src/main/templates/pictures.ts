@@ -18,6 +18,42 @@ export function shotPages(files: TemplateFiles): { route: string; name: string }
     .map((r) => ({ route: r.route, name: pageName(r.route) }));
 }
 
+/**
+ * The clock a template's pages are photographed at, for a template whose look
+ * follows the time (a café's door card open or closed): `--clock` given to
+ * template:shoot, else `shoot.clock` in its template.json, an instant with its
+ * offset ("2027-04-14T09:30:00-05:00"). Without either, the real clock. The
+ * pages keep the zone of the computer that shoots: a script that shows the
+ * time reads it in its business's zone (Saucer's data-tz), not the visitor's.
+ */
+export function shootClock(manifest: unknown, flag?: string): number | undefined {
+  const shoot = (manifest as { shoot?: { clock?: unknown } } | null)?.shoot;
+  const clock = flag || (typeof shoot?.clock === "string" ? shoot.clock : undefined);
+  if (!clock) return undefined;
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?(Z|[+-]\d{2}:\d{2})$/.test(clock))
+    throw new Error(
+      `The shoot's clock "${clock}" is not an instant with its offset, such as 2027-04-14T09:30:00-05:00.`,
+    );
+  return Date.parse(clock);
+}
+
+/**
+ * A script run in a page before its own (the shoot's window's preload, in the
+ * page's world): its Date reads `at` when the page opens, and goes on from there (timers and animations keep real time).
+ */
+export function fixedClockScript(at: number): string {
+  return `(() => {
+  const RealDate = Date;
+  const shift = ${at} - RealDate.now();
+  const now = () => RealDate.now() + shift;
+  globalThis.Date = new Proxy(RealDate, {
+    construct: (target, args, newTarget) => Reflect.construct(target, args.length ? args : [now()], newTarget),
+    apply: () => new RealDate(now()).toString(),
+    get: (target, key, receiver) => (key === "now" ? now : Reflect.get(target, key, receiver)),
+  });
+})();`;
+}
+
 async function sharp() {
   return (await import("sharp")).default;
 }
