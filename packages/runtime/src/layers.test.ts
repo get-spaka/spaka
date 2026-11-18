@@ -37,23 +37,22 @@ test("daisyUI's components leave the utilities layer for the daisyui layer, in t
   );
 });
 
-test("a Tailwind utility named as a daisyUI component goes with it; other utilities stay", () => {
+test("daisyUI's revert-layer answer to a Tailwind utility of the same name stays in the utilities layer too", () => {
   const css = [
     "@layer utilities{",
     ".collapse:not(td, tr, colgroup){visibility:revert-layer;@layer daisyui.l1.l2.l3{display:grid}}",
     ".collapse{visibility:collapse}",
-    ".hidden{display:none}",
-    ".collapse-title{@layer daisyui.l1{padding:1rem}}",
+    "@media (width>=640px){.sm\\:collapse:not(td,tr,colgroup){visibility:revert-layer;@layer daisyui.l1{display:grid}}}",
     "}",
   ].join("");
   expect(daisyuiBelowComponents(css)).toBe(
     [
       "@layer daisyui{",
       ".collapse:not(td, tr, colgroup){visibility:revert-layer;@layer daisyui.l1.l2.l3{display:grid}}",
-      ".collapse{visibility:collapse}",
       "}",
-      "@layer utilities{.hidden{display:none}}",
-      "@layer daisyui{.collapse-title{@layer daisyui.l1{padding:1rem}}}",
+      "@layer utilities{.collapse{visibility:collapse}}",
+      "@layer daisyui{@media (width>=640px){.sm\\:collapse:not(td,tr,colgroup){visibility:revert-layer;@layer daisyui.l1{display:grid}}}}",
+      "@layer utilities{.collapse:not(td, tr, colgroup){visibility:revert-layer}@media (width>=640px){.sm\\:collapse:not(td,tr,colgroup){visibility:revert-layer}}}",
     ].join(""),
   );
 });
@@ -74,6 +73,8 @@ test("in daisyui.css, the button is in the daisyui layer only; a utility of dais
   expect(btn.length).toBeGreaterThan(0);
   expect(btn.every((l) => l.startsWith("daisyui > daisyui"))).toBe(true);
   expect(layersOf(layered, ".rounded-box")).toEqual(["utilities"]);
+  // The collapse's answer to Tailwind's .collapse (visibility: collapse) stays where it wins.
+  expect(layersOf(layered, ".collapse:not(td,tr,colgroup)")).toContain("utilities");
   // Only moved: every brace still paired.
   expect(layered.split("{").length).toBe(layered.split("}").length);
 });

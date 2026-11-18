@@ -14,10 +14,12 @@ export const LAYER_ORDER = "@layer theme, base, daisyui, components, utilities;"
  * by Tailwind with `@plugin "daisyui"`; there they beat every rule of a
  * site's `@layer components`. Each part of a utilities layer that holds a
  * `@layer daisyui…` goes, in its place and order, into `@layer daisyui`; the
- * rest stays a utility. A Tailwind utility named as one of daisyUI's
- * components (`.collapse`, `visibility: collapse`) goes with them: daisyUI
- * answers it from beside it (`visibility: revert-layer`, a more precise
- * selector), which only works in the same layer. Nothing else is changed.
+ * rest stays a utility. Where daisyUI answers a Tailwind utility of the same
+ * name with `revert-layer` (`.collapse:not(td, tr, colgroup)` against
+ * Tailwind's `.collapse`, `visibility: collapse`), that answer is also kept
+ * in the utilities layer, where its more precise selector still wins: from
+ * the daisyui layer alone it would lose, and every collapse would vanish.
+ * Nothing else is changed.
  */
 export function daisyuiBelowComponents(css: string): string {
   return statements(css, 0, css.length)
@@ -25,26 +27,50 @@ export function daisyuiBelowComponents(css: string): string {
       const utilities = /^((?:\s|\/\*[\s\S]*?\*\/)*)@layer\s+utilities\s*\{([\s\S]*)\}\s*$/.exec(statement);
       if (!utilities) return statement;
       const [, lead, inner] = utilities as unknown as [string, string, string];
-      const parts = statements(inner, 0, inner.length).map((part) => ({
-        part,
-        daisyui: /@layer\s+daisyui\b/.test(part.replace(/\/\*[\s\S]*?\*\//g, "")),
-      }));
-      const components = new Set<string>();
-      for (const { part, daisyui } of parts)
-        if (daisyui)
-          for (const [, name] of part.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/(?:^|[{};])\s*\.([a-zA-Z][\w-]*)/g))
-            components.add(name as string);
       const groups: { daisyui: boolean; text: string }[] = [];
-      for (const { part, daisyui: inDaisyui } of parts) {
-        const bare = /^\s*\.([a-zA-Z][\w-]*)\s*\{/.exec(part.replace(/\/\*[\s\S]*?\*\//g, ""));
-        const daisyui = inDaisyui || (bare !== null && components.has(bare[1] as string));
+      const answers: string[] = [];
+      for (const part of statements(inner, 0, inner.length)) {
+        const plain = part.replace(/\/\*[\s\S]*?\*\//g, "");
+        const daisyui = /@layer\s+daisyui\b/.test(plain);
+        if (daisyui) answers.push(...revertLayerAnswers(plain));
         const last = groups.at(-1);
         if (last && (last.daisyui === daisyui || !part.trim())) last.text += part;
         else groups.push({ daisyui, text: part });
       }
-      return lead + groups.map((g) => `@layer ${g.daisyui ? "daisyui" : "utilities"}{${g.text}}`).join("");
+      if (!groups.some((g) => g.daisyui)) return statement;
+      const kept = answers.length > 0 ? `@layer utilities{${answers.join("")}}` : "";
+      return lead + groups.map((g) => `@layer ${g.daisyui ? "daisyui" : "utilities"}{${g.text}}`).join("") + kept;
     })
     .join("");
+}
+
+/**
+ * A rule's own `property: revert-layer` declarations, as rules of their own
+ * (`.collapse:not(td,tr,colgroup){visibility:revert-layer}`), inside the same
+ * `@media` blocks when the rule is a breakpoint's (`sm:collapse`).
+ */
+function revertLayerAnswers(part: string): string[] {
+  const media = /^\s*(@media[^{]*)\{([\s\S]*)\}\s*$/.exec(part);
+  if (media) {
+    const [, head, inner] = media as unknown as [string, string, string];
+    const answers = statements(inner, 0, inner.length).flatMap(revertLayerAnswers);
+    return answers.length > 0 ? [`${head.trim()}{${answers.join("")}}`] : [];
+  }
+  const rule = /^\s*([^@{};][^{};]*)\{([\s\S]*)\}\s*$/.exec(part);
+  if (!rule) return [];
+  const [, head, body] = rule as unknown as [string, string, string];
+  let own = "";
+  let depth = 0;
+  for (const c of body) {
+    if (c === "{") depth++;
+    else if (c === "}") depth--;
+    else if (depth === 0) own += c;
+  }
+  const declarations = own
+    .split(";")
+    .map((d) => d.trim())
+    .filter((d) => /^[a-z-]+\s*:\s*revert-layer$/.test(d));
+  return declarations.length > 0 ? [`${head.trim()}{${declarations.join(";")}}`] : [];
 }
 
 /**
