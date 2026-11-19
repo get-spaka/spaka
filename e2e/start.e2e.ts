@@ -55,7 +55,7 @@ describe("the start screen", () => {
     expect(chips).toEqual(["all", "business", "portfolio", "blog", "launch", "event", "app"]);
     await w.locator('[data-testid="template-chip"][data-category="event"]').click();
     const events = await cards.evaluateAll((els) => els.map((el) => el.getAttribute("data-template")));
-    expect(events.sort()).toEqual(["marquee", "plinth"]);
+    expect(events.sort()).toEqual(["kindly", "marquee", "plinth"]);
     await w.locator('[data-testid="template-chip"][data-category="all"]').click();
     await expect(cards.count()).resolves.toBe(ids.length);
     await launched.capture("start");
