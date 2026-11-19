@@ -50,7 +50,10 @@ export function previewDriver(app: () => LaunchedApp) {
     }, events);
   const center = async (selector: string, inShadow = false) => {
     const root = inShadow ? "document.querySelector('upstart-editor').shadowRoot" : "document";
-    const r = await page(`(() => { const r = ${root}.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();
+    // Scrolled into sight first, as one would before clicking: a small window shows less of the page.
+    const r = await page(`(() => { const el = ${root}.querySelector(${JSON.stringify(selector)});
+      el.scrollIntoView({ block: "nearest", inline: "nearest" });
+      const r = el.getBoundingClientRect();
       return { x: Math.round(r.left + Math.min(r.width / 2, 40)), y: Math.round(r.top + r.height / 2) }; })()`);
     return r as { x: number; y: number };
   };

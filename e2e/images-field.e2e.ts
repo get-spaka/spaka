@@ -128,7 +128,7 @@ describe("a list of images", () => {
         async (error) => {
           const at = await center(img(n));
           const hit = await page(
-            `(() => { const e = document.elementFromPoint(${at.x}, ${at.y}); return e ? e.outerHTML.slice(0, 120) : null; })()`,
+            `(() => { const e = document.elementFromPoint(${at.x}, ${at.y}); return \`\${e ? e.outerHTML.slice(0, 120) : null} in \${innerWidth}×\${innerHeight}\`; })()`,
           );
           throw new Error(`${error.message}; clicked at ${JSON.stringify(at)} on ${hit}`);
         },
