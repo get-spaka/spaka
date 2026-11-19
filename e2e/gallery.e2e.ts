@@ -5,6 +5,9 @@ import { PALETTES } from "../apps/desktop/src/shared/palettes.ts";
 import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
 import { previewDriver } from "./preview-driver.ts";
 
+/** The checks that place or capture the preview's native view: a CI runner's hidden window does not lay it out as a screen does. */
+const ON_A_SCREEN = !process.env.CI;
+
 // The gallery (Q92, Q100, Q101), with the recorded agent: the Blocks tab lists
 // the blocks drawn with the project's theme; a block added or dropped into
 // the page becomes a shared part of its own, included there, undone alone.
@@ -96,105 +99,108 @@ describe("the gallery of blocks", () => {
     await until(async () => (await cards.count()) === closed());
   });
 
-  test("resting on a block shows it large over the top of the preview, rendered for real (Q109)", async () => {
-    const hero = blocks.find((b) => b.kind === "hero")!;
-    const peek = () =>
-      launched.app.evaluate(() => {
-        // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-        const u = (globalThis as any).upstart;
-        const v = u.peek.view;
-        return {
-          shown: u.peek.shown as string | undefined,
-          visible: !!v?.getVisible(),
-          bounds: v?.getBounds(),
-          preview: u.preview.view.getBounds(),
-          top: u.win.contentView.children.at(-1) === v,
-        };
-      });
-    await launched.window.locator(`[data-block="${hero.id}"]`).hover();
-    await until(async () => (await peek()).shown === hero.id, 10_000);
-    const p = await peek();
-    expect(p.visible).toBe(true);
-    expect(p.top).toBe(true);
-    // Over the preview's column, the block on a backdrop, almost the column's width, whole and centered.
-    expect(p.bounds).toEqual(p.preview);
-    const card = await launched.app.evaluate(async () => {
-      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      const contents = (globalThis as any).upstart.peek.view.webContents as Electron.WebContents;
-      const zoom = contents.getZoomFactor();
-      const r = await contents.executeJavaScript(
-        "(() => { const r = document.getElementById('up-peek-card').getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height, vw: innerWidth, vh: innerHeight, backdrop: getComputedStyle(document.documentElement).backgroundColor }; })()",
-      );
-      return { ...r, zoom };
-    });
-    expect(card.width).toBeGreaterThan(card.vw * card.zoom - 80);
-    expect(card.y).toBeGreaterThanOrEqual(0);
-    expect(card.y + card.height).toBeLessThanOrEqual(card.vh + 1);
-    expect(Math.abs(card.x - (card.vw - card.width - card.x))).toBeLessThan(2);
-    expect(card.backdrop).toMatch(/rgba\(9, 9, 11, 0\.55\)/);
-    writeFileSync(
-      join(runsDir, "peek.png"),
-      Buffer.from(
-        await launched.app.evaluate(async () =>
+  test.runIf(ON_A_SCREEN)(
+    "resting on a block shows it large over the top of the preview, rendered for real (Q109)",
+    async () => {
+      const hero = blocks.find((b) => b.kind === "hero")!;
+      const peek = () =>
+        launched.app.evaluate(() => {
           // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-          ((await (globalThis as any).upstart.peek.view.webContents.capturePage()) as Electron.NativeImage)
-            .toPNG()
-            .toString("base64"),
+          const u = (globalThis as any).upstart;
+          const v = u.peek.view;
+          return {
+            shown: u.peek.shown as string | undefined,
+            visible: !!v?.getVisible(),
+            bounds: v?.getBounds(),
+            preview: u.preview.view.getBounds(),
+            top: u.win.contentView.children.at(-1) === v,
+          };
+        });
+      await launched.window.locator(`[data-block="${hero.id}"]`).hover();
+      await until(async () => (await peek()).shown === hero.id, 10_000);
+      const p = await peek();
+      expect(p.visible).toBe(true);
+      expect(p.top).toBe(true);
+      // Over the preview's column, the block on a backdrop, almost the column's width, whole and centered.
+      expect(p.bounds).toEqual(p.preview);
+      const card = await launched.app.evaluate(async () => {
+        // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+        const contents = (globalThis as any).upstart.peek.view.webContents as Electron.WebContents;
+        const zoom = contents.getZoomFactor();
+        const r = await contents.executeJavaScript(
+          "(() => { const r = document.getElementById('up-peek-card').getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height, vw: innerWidth, vh: innerHeight, backdrop: getComputedStyle(document.documentElement).backgroundColor }; })()",
+        );
+        return { ...r, zoom };
+      });
+      expect(card.width).toBeGreaterThan(card.vw * card.zoom - 80);
+      expect(card.y).toBeGreaterThanOrEqual(0);
+      expect(card.y + card.height).toBeLessThanOrEqual(card.vh + 1);
+      expect(Math.abs(card.x - (card.vw - card.width - card.x))).toBeLessThan(2);
+      expect(card.backdrop).toMatch(/rgba\(9, 9, 11, 0\.55\)/);
+      writeFileSync(
+        join(runsDir, "peek.png"),
+        Buffer.from(
+          await launched.app.evaluate(async () =>
+            // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+            ((await (globalThis as any).upstart.peek.view.webContents.capturePage()) as Electron.NativeImage)
+              .toPNG()
+              .toString("base64"),
+          ),
+          "base64",
         ),
-        "base64",
-      ),
-    );
-    // The block keeps its own colors on its card, as its thumbnail shows them.
-    const banner = await launched.app.evaluate(async () => {
-      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      const { peek } = (globalThis as any).upstart;
-      await peek.show("banner-dark-event");
-      return peek.view.webContents.executeJavaScript(
-        "(() => { const b = document.getElementById('up-peek-card').firstElementChild; const probe = document.createElement('div'); probe.style.background = 'var(--color-neutral)'; document.body.append(probe); const want = getComputedStyle(probe).backgroundColor; probe.remove(); return { got: getComputedStyle(b).backgroundColor, want }; })()",
       );
-    });
-    expect(banner.got).toBe(banner.want);
-    // A block taller than the column is scaled down to fit it, whole.
-    const scaled = await launched.app.evaluate(async (_electron, id) => {
-      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      const { peek } = (globalThis as any).upstart;
-      const area = peek.view.getBounds();
-      peek.setArea({ ...area, height: 200 });
-      await peek.show(id);
-      const contents = peek.view.webContents as Electron.WebContents;
-      const r = await contents.executeJavaScript(
-        "(() => { const r = document.getElementById('up-peek-card').getBoundingClientRect(); return { top: r.y, bottom: r.bottom, vh: innerHeight }; })()",
+      // The block keeps its own colors on its card, as its thumbnail shows them.
+      const banner = await launched.app.evaluate(async () => {
+        // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+        const { peek } = (globalThis as any).upstart;
+        await peek.show("banner-dark-event");
+        return peek.view.webContents.executeJavaScript(
+          "(() => { const b = document.getElementById('up-peek-card').firstElementChild; const probe = document.createElement('div'); probe.style.background = 'var(--color-neutral)'; document.body.append(probe); const want = getComputedStyle(probe).backgroundColor; probe.remove(); return { got: getComputedStyle(b).backgroundColor, want }; })()",
+        );
+      });
+      expect(banner.got).toBe(banner.want);
+      // A block taller than the column is scaled down to fit it, whole.
+      const scaled = await launched.app.evaluate(async (_electron, id) => {
+        // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+        const { peek } = (globalThis as any).upstart;
+        const area = peek.view.getBounds();
+        peek.setArea({ ...area, height: 200 });
+        await peek.show(id);
+        const contents = peek.view.webContents as Electron.WebContents;
+        const r = await contents.executeJavaScript(
+          "(() => { const r = document.getElementById('up-peek-card').getBoundingClientRect(); return { top: r.y, bottom: r.bottom, vh: innerHeight }; })()",
+        );
+        peek.setArea(area);
+        return { ...r, zoom: contents.getZoomFactor() };
+      }, hero.id);
+      expect(scaled.zoom).toBeLessThan(1);
+      expect(scaled.top).toBeGreaterThanOrEqual(0);
+      expect(scaled.bottom).toBeLessThanOrEqual(scaled.vh + 1);
+      const text = await launched.app.evaluate(() =>
+        // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+        (globalThis as any).upstart.peek.view.webContents.executeJavaScript("document.body.innerText"),
       );
-      peek.setArea(area);
-      return { ...r, zoom: contents.getZoomFactor() };
-    }, hero.id);
-    expect(scaled.zoom).toBeLessThan(1);
-    expect(scaled.top).toBeGreaterThanOrEqual(0);
-    expect(scaled.bottom).toBeLessThanOrEqual(scaled.vh + 1);
-    const text = await launched.app.evaluate(() =>
-      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      (globalThis as any).upstart.peek.view.webContents.executeJavaScript("document.body.innerText"),
-    );
-    expect(text.trim().length).toBeGreaterThan(20);
-    // The site under it is untouched.
-    expect(await page("document.body.innerText")).not.toContain(text.trim().slice(0, 40));
-    await launched.window.getByTestId("tab-blocks").hover();
-    await until(async () => !(await peek()).visible, 5_000);
+      expect(text.trim().length).toBeGreaterThan(20);
+      // The site under it is untouched.
+      expect(await page("document.body.innerText")).not.toContain(text.trim().slice(0, 40));
+      await launched.window.getByTestId("tab-blocks").hover();
+      await until(async () => !(await peek()).visible, 5_000);
 
-    // In the "All pages" view too, where the page itself is parked out of sight.
-    await launched.window.getByTestId("view-pages").click();
-    await launched.window.getByTestId("pages-grid").waitFor();
-    await launched.window.locator(`[data-block="${hero.id}"]`).hover();
-    await until(async () => (await peek()).shown === hero.id, 10_000);
-    const g = await peek();
-    expect(g.visible).toBe(true);
-    expect(g.top).toBe(true);
-    const column = await launched.window.getByTestId("pages-grid").evaluate((el) => el.getBoundingClientRect().x);
-    expect(g.bounds.x).toBeGreaterThanOrEqual(column);
-    await launched.window.getByTestId("tab-blocks").hover();
-    await until(async () => !(await peek()).visible, 5_000);
-    await launched.window.getByTestId("view-page").click();
-  });
+      // In the "All pages" view too, where the page itself is parked out of sight.
+      await launched.window.getByTestId("view-pages").click();
+      await launched.window.getByTestId("pages-grid").waitFor();
+      await launched.window.locator(`[data-block="${hero.id}"]`).hover();
+      await until(async () => (await peek()).shown === hero.id, 10_000);
+      const g = await peek();
+      expect(g.visible).toBe(true);
+      expect(g.top).toBe(true);
+      const column = await launched.window.getByTestId("pages-grid").evaluate((el) => el.getBoundingClientRect().x);
+      expect(g.bounds.x).toBeGreaterThanOrEqual(column);
+      await launched.window.getByTestId("tab-blocks").hover();
+      await until(async () => !(await peek()).visible, 5_000);
+      await launched.window.getByTestId("view-page").click();
+    },
+  );
 
   test("a block added goes where its kind usually goes, as a part of its own", async () => {
     const before = home();

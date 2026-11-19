@@ -5,6 +5,9 @@ import { extname, join, normalize } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
 
+/** The checks that place or capture the preview's native view: a CI runner's hidden window does not lay it out as a screen does. */
+const ON_A_SCREEN = !process.env.CI;
+
 // The static export (decisions): the recorded project is exported, the folder
 // served by a plain static file server, and its pages look like the preview.
 // With a blog written beside it: its record pages and the credits page, no
@@ -105,7 +108,7 @@ describe("exporting the website", () => {
     await invoke("export:run", out, "static");
   });
 
-  test("the exported page, served as files, looks like the preview", async () => {
+  test.runIf(ON_A_SCREEN)("the exported page, served as files, looks like the preview", async () => {
     await main((u) => u.preview.navigate("/"));
     await until(() => inPreview("location.pathname === '/' && !!document.querySelector('h1')"));
     await new Promise((r) => setTimeout(r, 800));

@@ -31,8 +31,16 @@ beforeEach(() => {
   dataDir = join(dir, "data");
   for (const d of [project.path, dataDir]) mkdirSync(d, { recursive: true });
 });
-// Windows lets a folder go only once the programs started in it (a connector) have let it go.
-afterEach(() => rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }));
+// Windows lets a folder go only once the programs started in it (a connector)
+// have let it go, which the connector's closing does not wait for: there the
+// temporary folder may stay behind.
+afterEach(() => {
+  try {
+    rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+  } catch (error) {
+    if (process.platform !== "win32") throw error;
+  }
+});
 
 /** A faux OpenAI that answers with the replies given, one per request. */
 function faux(provider = "openai", models = [{ id: "gpt-6.1-terra", reasoning: true }]) {

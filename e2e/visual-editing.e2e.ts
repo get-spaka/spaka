@@ -4,6 +4,9 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { type LaunchedApp, launchApp } from "./app.ts";
 import { previewDriver } from "./preview-driver.ts";
 
+/** The checks that place or capture the preview's native view: a CI runner's hidden window does not lay it out as a screen does. */
+const ON_A_SCREEN = !process.env.CI;
+
 // Editing in the preview (Q90, Q91, Q99), with the recorded agent and the
 // pointer and keyboard sent to the preview as input events, in the
 // background: hover, select, act, edit a text in place, the shared part's
@@ -193,66 +196,72 @@ describe("editing in the preview", () => {
     }
   });
 
-  test("a phone and a tablet at their own size, whole in the column, upright or sideways (Q110)", async () => {
-    // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-    const bounds = () => launched.app.evaluate(() => (globalThis as any).upstart.preview.view.getBounds());
-    const wide = await bounds();
-    const sized = async (w: number, h: number) => {
-      await until(async () => (await page("innerWidth")) === w && (await page("innerHeight")) === h, 5_000);
-      const b = await bounds();
-      // Drawn smaller to fit, keeping the device's proportions, centred.
-      expect(Math.abs(b.width / b.height - w / h)).toBeLessThan(0.02);
-      expect(b.width).toBeLessThanOrEqual(w);
-      expect(b.height).toBeLessThan(wide.height);
-      expect(Math.abs(b.x + b.width / 2 - (wide.x + wide.width / 2))).toBeLessThanOrEqual(1);
-    };
-    await launched.window.getByTestId("width-phone").click();
-    await sized(393, 852);
-    await launched.window.getByTestId("rotate").click();
-    await sized(852, 393);
-    await launched.capture("preview-phone-sideways");
-    await launched.window.getByTestId("width-tablet").click();
-    await sized(1180, 820);
-    await launched.window.getByTestId("rotate").click();
-    await sized(820, 1180);
-    // A page loaded anew keeps the device's size.
-    await invoke("preview:reload");
-    await new Promise((r) => setTimeout(r, 300));
-    await sized(820, 1180);
-    await launched.capture("preview-tablet");
-    await launched.window.getByTestId("width-desktop").click();
-    await until(async () => (await bounds()).width === wide.width);
-    await until(async () => (await page("innerWidth")) === wide.width);
-  });
-
-  test("while the agent works nothing is selected; a capture for the agent leaves the drawings out", async () => {
-    await invoke("preview:navigate", "/");
-    await until(() => page("location.pathname === '/'"));
-    // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-    await launched.app.evaluate(() => (globalThis as any).upstart.preview.setPaused(true));
-    await click("h1");
-    await new Promise((r) => setTimeout(r, 200));
-    expect(await drawn(".bar")).toBe(false);
-    // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-    await launched.app.evaluate(() => (globalThis as any).upstart.preview.setPaused(false));
-    await click("h1");
-    await until(() => drawn(".bar"));
-    const started = Date.now();
-    const shown = await launched.app.evaluate(async () => {
+  test.runIf(ON_A_SCREEN)(
+    "a phone and a tablet at their own size, whole in the column, upright or sideways (Q110)",
+    async () => {
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      const preview = (globalThis as any).upstart.preview;
-      let during = "";
-      const send = preview.send.bind(preview);
-      preview.send = (m: { type: string }) => {
-        send(m);
-        if (m.type === "chrome") during += m.type;
+      const bounds = () => launched.app.evaluate(() => (globalThis as any).upstart.preview.view.getBounds());
+      const wide = await bounds();
+      const sized = async (w: number, h: number) => {
+        await until(async () => (await page("innerWidth")) === w && (await page("innerHeight")) === h, 5_000);
+        const b = await bounds();
+        // Drawn smaller to fit, keeping the device's proportions, centred.
+        expect(Math.abs(b.width / b.height - w / h)).toBeLessThan(0.02);
+        expect(b.width).toBeLessThanOrEqual(w);
+        expect(b.height).toBeLessThan(wide.height);
+        expect(Math.abs(b.x + b.width / 2 - (wide.x + wide.width / 2))).toBeLessThanOrEqual(1);
       };
-      await preview.capture();
-      preview.send = send;
-      return during;
-    });
-    expect(shown).toBe("chromechrome");
-    expect(Date.now() - started).toBeLessThan(1000);
-    await until(() => drawn(".bar"));
-  });
+      await launched.window.getByTestId("width-phone").click();
+      await sized(393, 852);
+      await launched.window.getByTestId("rotate").click();
+      await sized(852, 393);
+      await launched.capture("preview-phone-sideways");
+      await launched.window.getByTestId("width-tablet").click();
+      await sized(1180, 820);
+      await launched.window.getByTestId("rotate").click();
+      await sized(820, 1180);
+      // A page loaded anew keeps the device's size.
+      await invoke("preview:reload");
+      await new Promise((r) => setTimeout(r, 300));
+      await sized(820, 1180);
+      await launched.capture("preview-tablet");
+      await launched.window.getByTestId("width-desktop").click();
+      await until(async () => (await bounds()).width === wide.width);
+      await until(async () => (await page("innerWidth")) === wide.width);
+    },
+  );
+
+  test.runIf(ON_A_SCREEN)(
+    "while the agent works nothing is selected; a capture for the agent leaves the drawings out",
+    async () => {
+      await invoke("preview:navigate", "/");
+      await until(() => page("location.pathname === '/'"));
+      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+      await launched.app.evaluate(() => (globalThis as any).upstart.preview.setPaused(true));
+      await click("h1");
+      await new Promise((r) => setTimeout(r, 200));
+      expect(await drawn(".bar")).toBe(false);
+      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+      await launched.app.evaluate(() => (globalThis as any).upstart.preview.setPaused(false));
+      await click("h1");
+      await until(() => drawn(".bar"));
+      const started = Date.now();
+      const shown = await launched.app.evaluate(async () => {
+        // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+        const preview = (globalThis as any).upstart.preview;
+        let during = "";
+        const send = preview.send.bind(preview);
+        preview.send = (m: { type: string }) => {
+          send(m);
+          if (m.type === "chrome") during += m.type;
+        };
+        await preview.capture();
+        preview.send = send;
+        return during;
+      });
+      expect(shown).toBe("chromechrome");
+      expect(Date.now() - started).toBeLessThan(1000);
+      await until(() => drawn(".bar"));
+    },
+  );
 });
