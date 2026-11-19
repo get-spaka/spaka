@@ -64,7 +64,18 @@ describe("a template's adaptation, page by page", () => {
           /index\.html|localhost:5\d{3}/.test(w.webContents.getURL()),
         )!.webContents;
         const answers = await Promise.race([
-          contents.executeJavaScript("document.body.innerText.slice(0, 600)").catch((e: Error) => `error ${e.message}`),
+          contents
+            .executeJavaScript(`(async () => {
+              const card = document.querySelector('[data-testid="pages-card"]');
+              const r = card?.getBoundingClientRect();
+              const frame = await Promise.race([
+                new Promise((ok) => requestAnimationFrame(() => ok("a frame came"))),
+                new Promise((ok) => setTimeout(() => ok("no frame in 1 second"), 1000)),
+              ]);
+              return { state: card?.getAttribute("data-state"), rect: r && [r.x, r.y, r.width, r.height],
+                visibility: document.visibilityState, focus: document.hasFocus(), frame };
+            })()`)
+            .catch((e: Error) => `error ${e.message}`),
           new Promise((r) => setTimeout(() => r("no answer in 5 seconds"), 5000)),
         ]);
         return { crashed: contents.isCrashed(), loading: contents.isLoading(), answers };
