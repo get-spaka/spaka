@@ -71,7 +71,7 @@ describe("the accounts", () => {
     await until(async () => (await w.getByTestId("sign-in").count()) === 0);
     const status = await invoke("agent:status");
     expect(status.accounts).toEqual({ chatgpt: false, openai: false, gemini: true, vertex: false });
-    expect(await groups()).toEqual(["Gemini: Gemini 4 Hydrogen, Gemini 4 Carbon"]);
+    expect(await groups()).toEqual(["Gemini: Gemini 4 Hydrogen, Gemini 4 Carbon, Gemini 4 Neon, Gemini 3.8 Flash"]);
     expect(await w.getByTestId("model-select").inputValue()).toBe("gemini/gemini-4-hydrogen");
     expect(await w.getByTestId("send").isDisabled()).toBe(false);
     // Kept encrypted, never as typed.
@@ -105,7 +105,7 @@ describe("the accounts", () => {
     await until(async () => (await invoke("agent:status")).accounts.openai === true);
     await w.getByTestId("settings-close").click();
     await until(async () => (await w.getByTestId("sign-in").count()) === 0);
-    expect(await groups()).toEqual(["OpenAI: GPT-6.1 Terra, GPT-6.1 Sol"]);
+    expect(await groups()).toEqual(["OpenAI: GPT-6.1 Terra, GPT-6.1 Sol, GPT-6.2 Sol, GPT-6.2 Astra"]);
     await w.getByTestId("model-select").selectOption("connect-another-account");
     await until(async () => (await w.getByTestId("settings-title").textContent()) === "Accounts");
     await invoke("agent:set-key", "openai", null);
@@ -119,7 +119,7 @@ describe("the accounts", () => {
     await until(async () => (await invoke("agent:status")).accounts.vertex === true);
     await w.getByTestId("settings-close").click();
     await until(async () => (await w.getByTestId("sign-in").count()) === 0);
-    expect(await groups()).toEqual(["Vertex AI: Gemini 4 Hydrogen, Gemini 4 Carbon"]);
+    expect(await groups()).toEqual(["Vertex AI: Gemini 4 Hydrogen, Gemini 4 Carbon, Gemini 4 Neon, Gemini 3.8 Flash"]);
     expect(await w.getByTestId("model-select").inputValue()).toBe("vertex/gemini-4-hydrogen");
     expect(readFileSync(join(launched.dataDir, "accounts/keys.bin"), "utf8")).not.toContain("AQ.e2e");
 

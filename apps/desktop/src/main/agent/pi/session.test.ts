@@ -275,11 +275,28 @@ test("the harness's models for the accounts connected, with the efforts each acc
   expect(choices.map((c) => c.id)).toEqual([
     "chatgpt/gpt-6.1-terra",
     "chatgpt/gpt-6.1-sol",
+    "chatgpt/gpt-6.2-sol",
+    "chatgpt/gpt-6.2-astra",
     "gemini/gemini-4-hydrogen",
     "gemini/gemini-4-carbon",
+    "gemini/gemini-4-neon",
+    "gemini/gemini-3.8-flash",
   ]);
   expect(choices[0]).toMatchObject({ name: "GPT-6.1 Terra", account: "chatgpt" });
   expect(choices.find((c) => c.id === "gemini/gemini-4-hydrogen")?.efforts).toEqual(["low", "medium", "high"]);
+});
+
+test("every model of models.json is one pi-ai can call: its own, or declared like one of its own", async () => {
+  const { PI_MODELS, piModel } = await import("./models");
+  for (const m of PI_MODELS) {
+    const model = piModel(m.account, m.id);
+    expect(model, `${m.account}/${m.id}`).toMatchObject({ id: m.id, name: m.name });
+  }
+  // A declared one has its own prices, and the API of the one it is like.
+  expect(piModel("openai", "gpt-6.2-astra")).toMatchObject({ api: "openai-responses", cost: { input: 8, output: 40 } });
+  expect(piModel("vertex", "gemini-4-neon")).toMatchObject({ api: "google-vertex", cost: { input: 3, output: 15 } });
+  // A model no longer offered that a project names is still found in pi-ai's catalog.
+  expect(piModel("openai", "gpt-6-luna")?.id).toBe("gpt-6-luna");
 });
 
 test("a switch between Claude and the harness: what was said so far, for the new agent", async () => {

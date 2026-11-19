@@ -9,25 +9,28 @@ import { GOOGLE_MODELS } from "@earendil-works/pi-ai/providers/google.models";
 import { GOOGLE_VERTEX_MODELS } from "@earendil-works/pi-ai/providers/google-vertex.models";
 import { OPENAI_MODELS } from "@earendil-works/pi-ai/providers/openai.models";
 import { accountOf, type Effort } from "../../../shared/ipc";
+import config from "./models.json";
 
 export const PI_ACCOUNTS = ["chatgpt", "openai", "gemini", "vertex"] as const;
 export type PiAccount = (typeof PI_ACCOUNTS)[number];
 /** Which instructions a model gets: Gemini writes long files in parts (Q273). */
 export type PiFamily = "openai" | "gemini";
 
-type Offered = { account: PiAccount; id: string; name: string };
+/**
+ * One model of models.json. One that pi-ai's catalog does not have yet is
+ * declared `like` one it has: that one's API, address and thinking levels,
+ * with the prices models.dev lists for it.
+ */
+type Configured = { id: string; name: string; like?: string; cost?: Model<Api>["cost"] };
+type Offered = Configured & { account: PiAccount };
 
-/** The models Upstart offers per account, the faster one first, which is the default (Q270). */
-export const PI_MODELS: Offered[] = [
-  { account: "chatgpt", id: "gpt-6.1-terra", name: "GPT-6.1 Terra" },
-  { account: "chatgpt", id: "gpt-6.1-sol", name: "GPT-6.1 Sol" },
-  { account: "openai", id: "gpt-6.1-terra", name: "GPT-6.1 Terra" },
-  { account: "openai", id: "gpt-6.1-sol", name: "GPT-6.1 Sol" },
-  { account: "gemini", id: "gemini-4-hydrogen", name: "Gemini 4 Hydrogen" },
-  { account: "gemini", id: "gemini-4-carbon", name: "Gemini 4 Carbon" },
-  { account: "vertex", id: "gemini-4-hydrogen", name: "Gemini 4 Hydrogen" },
-  { account: "vertex", id: "gemini-4-carbon", name: "Gemini 4 Carbon" },
-];
+/**
+ * The models Upstart offers per account, from models.json, in its order: the
+ * first of an account is its default (Q270, Q383-Q386).
+ */
+export const PI_MODELS: Offered[] = PI_ACCOUNTS.flatMap((account) =>
+  (config as Record<PiAccount, Configured[]>)[account].map((m) => ({ ...m, account })),
+);
 
 export const piModelId = (account: PiAccount, id: string) => `${account}/${id}`;
 
@@ -44,31 +47,24 @@ export function parseModelId(id: string): { account: "claude"; model: string } |
  */
 export const familyOf = (account: PiAccount): PiFamily => (account === "gemini" ? "gemini" : "openai");
 
-/**
- * Gemini 4 Hydrogen and Carbon are not in pi-ai's catalog yet: declared here
- * after Argon, at the prices Google lists (spike 3), on the Gemini API or on
- * Vertex AI.
- */
-function geminiModel(id: string, catalog: Record<string, unknown>): Model<Api> | undefined {
-  const argon = catalog["gemini-4-argon"] as Model<Api> | undefined;
-  if (!argon) return undefined;
-  if (id === "gemini-4-hydrogen")
-    return {
-      ...argon,
-      id,
-      name: "Gemini 4 Hydrogen",
-      cost: { input: 1.5, output: 7.5, cacheRead: 0.075, cacheWrite: 0 },
-    };
-  if (id === "gemini-4-carbon")
-    return { ...argon, id, name: "Gemini 4 Carbon", cost: { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 0 } };
-  return (catalog as Record<string, Model<Api>>)[id];
-}
+const CATALOGS: Record<PiAccount, Record<string, Model<Api>>> = {
+  chatgpt: OPENAI_MODELS as Record<string, Model<Api>>,
+  openai: OPENAI_MODELS as Record<string, Model<Api>>,
+  gemini: GOOGLE_MODELS as Record<string, Model<Api>>,
+  vertex: GOOGLE_VERTEX_MODELS as Record<string, Model<Api>>,
+};
 
-/** The provider's model for an account's model id. */
+/**
+ * The provider's model for an account's model id: as models.json declares it,
+ * or, for a model no longer offered that a project still names, as pi-ai has it.
+ */
 export function piModel(account: PiAccount, id: string): Model<Api> | undefined {
-  if (account === "gemini") return geminiModel(id, GOOGLE_MODELS);
-  if (account === "vertex") return geminiModel(id, GOOGLE_VERTEX_MODELS);
-  return (OPENAI_MODELS as Record<string, Model<Api>>)[id];
+  const catalog = CATALOGS[account];
+  const offered = PI_MODELS.find((m) => m.account === account && m.id === id);
+  if (!offered) return catalog[id];
+  const base = catalog[offered.like ?? id];
+  if (!base) return undefined;
+  return { ...base, id, name: offered.name, ...(offered.cost ? { cost: offered.cost } : {}) };
 }
 
 const EFFORT_LEVELS: Effort[] = ["low", "medium", "high", "xhigh", "max"];
