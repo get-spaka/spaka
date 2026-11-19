@@ -2,7 +2,8 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, expect, test } from "vitest";
-import { runShell, sandboxProfile, shellAvailable } from "./shell";
+import { findGitBash } from "../git-bash";
+import { runShell, sandboxAvailable, sandboxProfile } from "./shell";
 
 let dir: string | undefined;
 afterEach(() => {
@@ -25,7 +26,7 @@ test("the profile lets the shell write the project and the temporary folders, an
   expect(profile).toContain('(deny file-write* (subpath "/tmp/skills"))');
 });
 
-test.runIf(shellAvailable())(
+test.runIf(sandboxAvailable())(
   "in the sandbox, a command writes in the project only, and reads none of the maker's other files",
   async () => {
     dir = mkdtempSync(join(tmpdir(), "upstart-shell-"));
@@ -44,8 +45,23 @@ test.runIf(shellAvailable())(
   },
 );
 
-test.runIf(shellAvailable())("a command that runs too long is stopped", async () => {
+test.runIf(sandboxAvailable())("a command that runs too long is stopped", async () => {
   dir = mkdtempSync(join(tmpdir(), "upstart-shell-"));
   const result = await runShell("sleep 5", { projectDir: dir, readable: [] }, env, { timeoutMs: 200 });
   expect(result.timedOut).toBe(true);
 });
+
+/** Git Bash on Windows (on CI's runners too); bash elsewhere, to run the same way. */
+const bash = process.platform === "win32" ? findGitBash() : "/bin/bash";
+
+test.skipIf(!bash)(
+  "with Git Bash given, as on Windows, a command runs in it in the project folder, with no sandbox (Q381)",
+  async () => {
+    dir = mkdtempSync(join(tmpdir(), "upstart-shell-"));
+    const ran = await runShell("echo bonjour > note.txt && cat note.txt", { projectDir: dir, readable: [], bash }, {
+      ...process.env,
+    } as Record<string, string>);
+    expect(ran).toMatchObject({ code: 0, output: "bonjour\n" });
+    expect(readFileSync(join(dir, "note.txt"), "utf8")).toBe("bonjour\n");
+  },
+);

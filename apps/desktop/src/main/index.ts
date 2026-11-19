@@ -520,6 +520,8 @@ async function main() {
         instructions: (family, listed) => instructionsFor(settings.get().replyStyle, family, listed),
         env: agentEnv,
         readable: launcher.readable,
+        // On Windows, the shell is Git Bash, behind a gate (Q381, Q382).
+        gitBash: () => gitBash.path,
         skills,
         // The maker's connectors, which Upstart connects itself for these models (Q277).
         connectorServers: connectors,

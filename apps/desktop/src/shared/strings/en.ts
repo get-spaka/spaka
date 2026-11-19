@@ -210,6 +210,16 @@ export const en = {
     yourWords: "In your words",
     previewMissing: "No preview",
   },
+  /** The card that asks before a command of the agent's that is not a plain file command, on Windows (Q382). */
+  command: {
+    header: "Command",
+    question: (command: string, description?: string) =>
+      `${description ? `${description}. ` : ""}The agent wants to run this command on your computer, outside its usual file commands:\n\n${command}`,
+    run: "Run it",
+    runHint: "The command runs in the website's folder, without a sandbox: it can reach your other files.",
+    dontRun: "Don't run it",
+    dontRunHint: "The agent goes on without it.",
+  },
   start: {
     title: "Start a new website",
     text: "Describe it below, or pick a template to start from: the agent rewrites it for you.",

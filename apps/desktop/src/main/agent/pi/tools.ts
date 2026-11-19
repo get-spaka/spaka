@@ -30,6 +30,7 @@ import {
   readQuestions,
 } from "../questions";
 import { type UpstartToolDef, upstartToolName } from "../upstart-tools";
+import { safeCommand } from "./bash-gate";
 import type { PiFamily } from "./models";
 import { runShell, type ShellPlace } from "./shell";
 
@@ -39,8 +40,22 @@ export type PiToolsOptions = {
   /** Folders Read may read besides the project: the assembled skills. */
   readable: string[];
   family: PiFamily;
-  /** The sandboxed shell's place and environment; no shell without it (Q278). */
-  shell?: { place: ShellPlace; env: () => Record<string, string> };
+  /**
+   * The shell's place and environment; no shell without it (Q278). Sandboxed
+   * on macOS; on Windows, Git Bash with `gate`, which asks the maker about a
+   * command that is not a plain file command on the project's files (Q381,
+   * Q382) and resolves with why it did not run, or undefined to run it.
+   */
+  shell?: {
+    place: ShellPlace;
+    env: () => Record<string, string>;
+    gate?: (
+      callId: string,
+      command: string,
+      description: string | undefined,
+      signal?: AbortSignal,
+    ) => Promise<string | undefined>;
+  };
   /** The provider's web search (web-search.ts); no WebSearch without it (Q276). */
   search?: (query: string, signal?: AbortSignal) => Promise<string>;
 };
@@ -304,13 +319,18 @@ export function piFileTools({ root, readable, family, shell, search }: PiToolsOp
     tools.push({
       name: "Bash",
       label: "Bash",
-      description:
-        "Runs a shell command (bash) in the project folder, in Upstart's sandbox: it may write in the project and the temporary folder only. For what the file tools cannot do, such as deleting or moving files.",
+      description: shell.gate
+        ? "Runs a shell command (bash) in the project folder. A plain file command on the project's files (rm, mv, cp, mkdir, ls, cat, with paths inside the project) runs at once; any other waits for the maker's approval. For what the file tools cannot do, such as deleting or moving files."
+        : "Runs a shell command (bash) in the project folder, in Upstart's sandbox: it may write in the project and the temporary folder only. For what the file tools cannot do, such as deleting or moving files.",
       parameters: fileSchema(
         { command: str("The command"), description: str("What it does, in a few words, for the maker") },
         ["command"],
       ),
-      async execute(_id, { command }: { command: string }, signal) {
+      async execute(id, { command, description }: { command: string; description?: string }, signal) {
+        if (shell.gate && !safeCommand(command, root)) {
+          const refused = await shell.gate(id, command, description, signal);
+          if (refused) throw new Error(refused);
+        }
         const result = await runShell(command, shell.place, shell.env(), { signal });
         const output = result.output.trim() || "(no output)";
         if (result.timedOut) throw new Error(`The command took too long and was stopped.\n${output}`);

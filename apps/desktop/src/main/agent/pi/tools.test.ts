@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, expect, test } from "vitest";
+import { findGitBash } from "../git-bash";
 import { instructionsFor } from "../instructions";
 import { upstartTools } from "../upstart-tools";
 import { canonicalTool, type HarnessTool, pageText, piFileTools, piUpstartTools } from "./tools";
@@ -185,3 +186,39 @@ test("a page's text, without its scripts and tags", () => {
     "Fleur & Loire\n Bouquets",
   );
 });
+
+/** Git Bash on Windows (on CI's runners too); bash elsewhere, to run the same way. */
+const bash = process.platform === "win32" ? findGitBash() : "/bin/bash";
+
+test.skipIf(!bash)(
+  "with Git Bash and its gate (Q382): file commands run at once, others wait for the maker",
+  async () => {
+    const asked: string[] = [];
+    let refusal: string | undefined = "The maker did not run this command.";
+    const list = piFileTools({
+      root,
+      readable: [],
+      family: "openai",
+      shell: {
+        place: { projectDir: root, readable: [], bash },
+        env: () => ({ ...process.env }) as Record<string, string>,
+        gate: async (_id, command) => {
+          asked.push(command);
+          return refusal;
+        },
+      },
+    });
+    const run = async (command: string) => {
+      const result = await list.find((t) => t.name === "Bash")!.execute("id", { command });
+      return result.content.map((c) => (c.type === "text" ? c.text : "")).join("");
+    };
+    writeFileSync(join(root, "pages/old.liquid"), "x");
+    expect(await run("rm -f pages/old.liquid && ls pages")).toBe("(no output)");
+    expect(asked).toEqual([]);
+    await expect(run("echo hi > pages/new.liquid")).rejects.toThrow("The maker did not run this command.");
+    expect(asked).toEqual(["echo hi > pages/new.liquid"]);
+    refusal = undefined;
+    expect(await run("echo hi > pages/new.liquid && cat pages/new.liquid")).toBe("hi");
+    expect(asked).toHaveLength(2);
+  },
+);

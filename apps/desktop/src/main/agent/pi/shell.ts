@@ -2,8 +2,9 @@
 // sandbox-exec profile of Upstart's own, which lets it write in the project
 // and the temporary folders only, and read the project, the system and
 // Upstart's own Node, not the maker's other files: the same confinement as
-// the official binary's sandbox gives Claude (confinement.ts). macOS only:
-// elsewhere the harness has no shell.
+// the official binary's sandbox gives Claude (confinement.ts). On macOS only:
+// on Windows the shell is Git Bash with no sandbox (Q381), behind the gate of
+// bash-gate.ts (Q382).
 import { spawn } from "node:child_process";
 import { realpathSync } from "node:fs";
 import { systemTmp } from "../confinement";
@@ -14,10 +15,12 @@ export type ShellPlace = {
   readable: string[];
   /** The assembled skills: readable, never written. */
   skillsDir?: string;
+  /** On Windows, Git Bash's bash.exe, which runs the commands with no sandbox (Q381). */
+  bash?: string;
 };
 
-/** Whether this system has the sandbox the shell runs in. */
-export const shellAvailable = (platform = process.platform) => platform === "darwin";
+/** Whether this system has the sandbox the shell runs in: macOS. */
+export const sandboxAvailable = (platform = process.platform) => platform === "darwin";
 
 const real = (path: string) => {
   try {
@@ -47,7 +50,10 @@ export function sandboxProfile({ projectDir, readable, skillsDir }: ShellPlace):
 
 export type ShellResult = { code: number | null; output: string; timedOut: boolean };
 
-/** Runs one command in the project folder, in the sandbox; its output, cut to the last 30,000 characters. */
+/**
+ * Runs one command in the project folder, in the sandbox on macOS, in Git
+ * Bash on Windows; its output, cut to the last 30,000 characters.
+ */
 export function runShell(
   command: string,
   place: ShellPlace,
@@ -55,11 +61,21 @@ export function runShell(
   { signal, timeoutMs = 120_000 }: { signal?: AbortSignal; timeoutMs?: number } = {},
 ): Promise<ShellResult> {
   return new Promise((resolve) => {
-    const child = spawn("/usr/bin/sandbox-exec", ["-p", sandboxProfile(place), "/bin/bash", "-c", command], {
+    const [file, args] = place.bash
+      ? [place.bash, ["-c", command]]
+      : ["/usr/bin/sandbox-exec", ["-p", sandboxProfile(place), "/bin/bash", "-c", command]];
+    const child = spawn(file, args, {
       cwd: real(place.projectDir),
-      env: { ...env, PWD: real(place.projectDir) },
+      env: place.bash ? env : { ...env, PWD: real(place.projectDir) },
       stdio: ["ignore", "pipe", "pipe"],
+      windowsHide: true,
     });
+    // On Windows a command's own processes live on once bash is stopped: its whole tree is.
+    const stop = () => {
+      if (process.platform === "win32" && child.pid)
+        spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], { windowsHide: true }).on("error", () => {});
+      else child.kill("SIGKILL");
+    };
     let output = "";
     const add = (chunk: Buffer) => {
       output = (output + chunk.toString("utf8")).slice(-30_000);
@@ -69,9 +85,9 @@ export function runShell(
     let timedOut = false;
     const timer = setTimeout(() => {
       timedOut = true;
-      child.kill("SIGKILL");
+      stop();
     }, timeoutMs);
-    const abort = () => child.kill("SIGKILL");
+    const abort = () => stop();
     signal?.addEventListener("abort", abort, { once: true });
     child.on("close", (code) => {
       clearTimeout(timer);

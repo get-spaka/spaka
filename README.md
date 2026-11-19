@@ -24,7 +24,7 @@ The app updates itself.
 - Export as a static site, a Node app or a Cloudflare Worker, each with a guide to putting it online.
 - Skills and connectors to extend the agent.
 
-On macOS the agent runs its shell inside the operating system's sandbox: it writes only in the website's folder and the system's temporary folder, and never asks for permissions, since what it may not do is refused. On Windows, which has no such sandbox, the agent runs in its auto mode, which judges each risky command.
+On macOS the agent runs its shell inside the operating system's sandbox: it writes only in the website's folder and the system's temporary folder, and never asks for permissions, since what it may not do is refused. On Windows, which has no such sandbox, Claude runs in its auto mode, which judges each risky command; with the other models, plain file commands on the website's files (deleting, moving, copying) run at once, and any other command is asked of you on a card first.
 
 ## Working on it
 

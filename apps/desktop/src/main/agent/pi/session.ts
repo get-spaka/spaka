@@ -20,6 +20,7 @@ import { parsePartialInput } from "../partial-input";
 import {
   ASK_TOOL,
   CLOSED_UNANSWERED,
+  NOT_ANSWERED,
   NOT_PLANNING,
   PLAN_APPROVED,
   PLAN_REFUSED,
@@ -36,7 +37,7 @@ import { upstartTools } from "../upstart-tools";
 import { PiConnectors, type VaultSignIns } from "./connectors";
 import { familyOf, type PiAccount, parseModelId, piModel, thinkingFor } from "./models";
 import type { PiRecorder } from "./replay";
-import { shellAvailable } from "./shell";
+import { sandboxAvailable } from "./shell";
 import {
   type Answered,
   canonicalTool,
@@ -63,8 +64,10 @@ export type PiDeps = {
   skills?: SessionDeps["skills"];
   /** How requests name the app to providers. */
   identity?: ClientIdentity;
-  /** Whether the agent gets a shell: only where Upstart's sandbox holds (Q278). */
+  /** Whether the agent gets a shell: in Upstart's sandbox on macOS (Q278), in Git Bash behind a gate on Windows (Q381). */
   shell?: boolean;
+  /** On Windows, Git Bash's bash.exe, once Git for Windows is found. */
+  gitBash?: () => string | undefined;
   /** The maker's connectors that are on for a project (ADR 0010, Q277), with their secrets. */
   connectorServers?: {
     servers(project: { id: string; path: string }): Record<string, McpConfig>;
@@ -167,13 +170,7 @@ export class PiSession implements AgentRunner {
         root: this.project.path,
         readable: skills ? [skills.dir] : [],
         family,
-        shell:
-          this.deps.shell !== false && shellAvailable()
-            ? {
-                place: { projectDir: this.project.path, readable: this.deps.readable, skillsDir: skills?.dir },
-                env: this.deps.env,
-              }
-            : undefined,
+        shell: this.shell(skills?.dir),
         search: canSearch(model) ? (query, signal) => this.search(query, signal) : undefined,
       }),
       ...piUpstartTools(upstart),
@@ -243,11 +240,62 @@ export class PiSession implements AgentRunner {
     this.loop.abort();
   }
 
+  /**
+   * The agent's shell: in Upstart's sandbox on macOS (Q278); on Windows, Git
+   * Bash with no sandbox, a command that is not a plain file command on the
+   * project's files asked of the maker first (Q381, Q382); elsewhere none.
+   */
+  private shell(skillsDir: string | undefined) {
+    if (this.deps.shell === false) return undefined;
+    const place = { projectDir: this.project.path, readable: this.deps.readable, skillsDir };
+    if (sandboxAvailable()) return { place, env: this.deps.env };
+    const bash = process.platform === "win32" ? this.deps.gitBash?.() : undefined;
+    if (!bash) return undefined;
+    return {
+      place: { ...place, bash },
+      env: this.deps.env,
+      gate: (callId: string, command: string, description: string | undefined, signal?: AbortSignal) =>
+        this.askToRun(callId, command, description, signal),
+    };
+  }
+
+  /** Asks the maker before a command (Q382): undefined to run it, else what the agent is told instead. */
+  private async askToRun(callId: string, command: string, description: string | undefined, signal?: AbortSignal) {
+    const t = en.command;
+    const question = t.question(command, description?.trim().replace(/\.$/, ""));
+    const got = await this.ask(
+      callId,
+      [
+        {
+          question,
+          header: t.header,
+          options: [
+            { label: t.run, description: t.runHint },
+            { label: t.dontRun, description: t.dontRunHint },
+          ],
+          multiSelect: false,
+        },
+      ],
+      signal,
+      "Bash",
+    );
+    if (!got) return NOT_ANSWERED;
+    const { answer } = got;
+    if (answer.kind === "choices" && answer.answers[question] === t.run) return undefined;
+    if (answer.kind === "words") return `The maker did not run this command, and said: ${answer.text}`;
+    return "The maker did not run this command. Go on without it, or ask them about it first.";
+  }
+
   /** Shows the agent's questions and waits for the maker's answer, or for the turn to stop (Q283). */
-  private async ask(callId: string, questions: AgentQuestion[], signal?: AbortSignal): Promise<Answered | undefined> {
+  private async ask(
+    callId: string,
+    questions: AgentQuestion[],
+    signal?: AbortSignal,
+    tool = ASK_TOOL,
+  ): Promise<Answered | undefined> {
     if (!this.working) return undefined;
     const id = newId();
-    this.openCards.set(callId, ASK_TOOL);
+    this.openCards.set(callId, tool);
     this.conversation({ type: "question", card: { id, questions, state: "waiting" } });
     const answer = await this.waits.wait(id, signal);
     this.openCards.delete(callId);
