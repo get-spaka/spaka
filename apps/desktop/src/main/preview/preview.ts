@@ -114,6 +114,8 @@ export class Preview {
   private lastPush = 0;
   /** Whether the preview moves to the page the agent writes; off once the maker navigates. */
   private following = true;
+  /** The address a navigation is going to, until the page has loaded. */
+  private going: string | undefined;
   readonly errors: { message: string; source?: string; at: number }[] = [];
   /**
    * How the page answers the pointer (Q99), and whether editing waits for the
@@ -256,11 +258,18 @@ export class Preview {
     this.loading = true;
     this.shownHtml = undefined;
     this.emit();
-    await this.view.webContents.loadURL(new URL(route, this.origin).toString()).catch(() => {});
+    const url = new URL(route, this.origin).toString();
+    this.going = url;
+    await this.view.webContents.loadURL(url).catch(() => {});
   }
 
+  /**
+   * Loads the page again; a page being navigated to is loaded instead, as
+   * webContents.reload() would cancel that navigation and load the one before.
+   */
   reload() {
-    this.view.webContents.reload();
+    if (this.going) void this.view.webContents.loadURL(this.going).catch(() => {});
+    else this.view.webContents.reload();
   }
 
   setBounds(rect: Rect | null, device?: DeviceView, parked = false) {
@@ -597,7 +606,7 @@ export class Preview {
       const scripts = scriptsKey(site.runtime);
       if (scripts !== this.loadedScripts) {
         this.loadedScripts = undefined;
-        this.view.webContents.reload();
+        this.reload();
         return;
       }
     }
@@ -727,6 +736,7 @@ export class Preview {
     contents.on("did-navigate-in-page", (_event, url) => navigated(url));
     contents.on("did-stop-loading", () => {
       this.loading = false;
+      this.going = undefined;
       this.title = contents.getTitle();
       this.emit();
       // Loading a page takes the keyboard from the interface (ADR 0008): give it back.

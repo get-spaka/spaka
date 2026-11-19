@@ -104,6 +104,19 @@ describe("a project folder in the preview", () => {
     await until("location.pathname === '/' && document.querySelector('h1')?.textContent === 'Bread since 1952'");
   });
 
+  test("a reload while a page is being opened, as new scripts ask, opens that page rather than the one before", async () => {
+    await launched.app.evaluate(async () => {
+      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+      const preview = (globalThis as any).upstart.preview;
+      const going = preview.navigate("/menu", true);
+      preview.reload();
+      await going;
+    });
+    await until("location.pathname === '/menu' && document.querySelector('h1')?.textContent === 'Our breads'");
+    await launched.window.getByTestId("page-select").selectOption("/");
+    await until("location.pathname === '/' && document.querySelector('h1')?.textContent === 'Bread since 1952'");
+  });
+
   test("the agent looks at a page in a view of its own: the maker's preview does not move (Q314, Q315)", async () => {
     const look = (route?: string, options: object = {}) =>
       launched.app.evaluate(
