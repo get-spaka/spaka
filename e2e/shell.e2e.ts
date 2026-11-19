@@ -71,14 +71,17 @@ describe("the app's shell, launched in the background", () => {
     ]);
   });
 
-  test("the app menu's About Upstart opens the settings at About Upstart (Q339)", async () => {
+  test("the menus' About Upstart opens the settings at About Upstart (Q339)", async () => {
     const { window } = launched;
-    const first = await launched.app.evaluate(({ Menu }) => {
-      const item = Menu.getApplicationMenu()?.items[0]?.submenu?.items[0];
+    // The app menu's first item on macOS, Help's last elsewhere.
+    const about = await launched.app.evaluate(({ Menu }, mac) => {
+      const menus = Menu.getApplicationMenu()?.items ?? [];
+      const items = (mac ? menus[0] : menus.at(-1))?.submenu?.items ?? [];
+      const item = mac ? items[0] : items.at(-1);
       item?.click();
       return item?.label;
-    });
-    expect(first).toBe("About Upstart");
+    }, MAC);
+    expect(about).toBe("About Upstart");
     await window.getByTestId("settings-title").filter({ hasText: "About Upstart" }).waitFor();
     await window.keyboard.press("Escape");
     await window.getByTestId("settings-title").waitFor({ state: "detached" });
