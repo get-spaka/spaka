@@ -8,14 +8,10 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp, SHOWN, SLOW } from "./app.ts";
+import { type LaunchedApp, launchApp, SLOW } from "./app.ts";
 import { ENDS, writeAdaptationRecording } from "./fixtures/adaptation-recording.ts";
 
-// Not on Windows' CI runners: there, one run in two, the window stops drawing
-// once the card of pages is shown (it answers, but no frame comes, so no wait
-// for a visible element ends). The card itself is checked there by
-// start.e2e.ts; the adaptation is to see on a Windows computer.
-describe.skipIf(SHOWN)("a template's adaptation, page by page", () => {
+describe("a template's adaptation, page by page", () => {
   let launched: LaunchedApp;
   let root = "";
   const main = <T>(code: string): Promise<T> =>

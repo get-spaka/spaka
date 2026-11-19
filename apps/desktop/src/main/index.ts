@@ -127,6 +127,9 @@ if (env.background) {
   app.commandLine.appendSwitch("disable-features", "MacWebContentsOcclusion,CalculateNativeWinOcclusion");
   app.commandLine.appendSwitch("disable-backgrounding-occluded-windows");
   app.commandLine.appendSwitch("disable-renderer-backgrounding");
+  // On Windows a machine without a graphics card (a CI runner) stalls the GPU process at times, and the window stops
+  // drawing: a background run draws in software there.
+  if (process.platform === "win32") app.disableHardwareAcceleration();
 }
 
 // An exception at start-up would otherwise open a modal dialog that waits for
