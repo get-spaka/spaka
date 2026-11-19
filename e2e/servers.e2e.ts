@@ -1,10 +1,12 @@
-import { type ChildProcess, spawn } from "node:child_process";
+import { type ChildProcess, spawn, spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 import { previewDriver } from "./preview-driver.ts";
+
+const WINDOWS = process.platform === "win32";
 
 // The Node and Cloudflare exports, run (Q175, Q176, Q186): the recorded
 // bakery with a guestbook is exported with each; the Node server runs with
@@ -42,14 +44,25 @@ describe("the Node and Cloudflare exports, run", () => {
   const { invoke, until } = previewDriver(() => launched);
   const answers = async (url: string) => (await fetch(url).catch(() => undefined))?.ok;
   const run = (command: string, args: string[], cwd: string, env: Record<string, string> = {}) => {
-    const child = spawn(command, args, { cwd, env: { ...process.env, ...env }, stdio: ["ignore", "pipe", "pipe"] });
+    // On Windows a package's command is a .cmd, which only a shell runs.
+    const child = spawn(command, args, {
+      cwd,
+      env: { ...process.env, ...env },
+      stdio: ["ignore", "pipe", "pipe"],
+      shell: WINDOWS && command.endsWith(".cmd"),
+    });
     let output = "";
     child.stdout?.on("data", (d) => (output += d));
     child.stderr?.on("data", (d) => (output += d));
     children.push(child);
     return { child, output: () => output };
   };
-  const done = (child: ChildProcess) => new Promise<number | null>((resolve) => child.on("exit", resolve));
+  // A command that could not start ends at once, as a failure.
+  const done = (child: ChildProcess) =>
+    new Promise<number | null>((resolve) => {
+      child.on("exit", resolve);
+      child.on("error", () => resolve(-1));
+    });
 
   beforeAll(async () => {
     launched = await launchApp();
@@ -68,7 +81,10 @@ describe("the Node and Cloudflare exports, run", () => {
     token = (await invoke("site:token")) as string;
   }, 90_000 * SLOW);
   afterAll(async () => {
-    for (const child of children) child.kill("SIGTERM");
+    // On Windows the shell's command lives on once the shell is stopped: its whole tree is.
+    for (const child of children)
+      if (WINDOWS && child.pid) spawnSync("taskkill", ["/pid", String(child.pid), "/T", "/F"]);
+      else child.kill("SIGTERM");
     await launched?.close();
   });
 
@@ -168,7 +184,7 @@ describe("the Node and Cloudflare exports, run", () => {
         "migrate",
         "address",
       ]);
-      const wrangler = join(import.meta.dirname, "../node_modules/.bin/wrangler");
+      const wrangler = join(import.meta.dirname, `../node_modules/.bin/wrangler${WINDOWS ? ".cmd" : ""}`);
       const quiet = { WRANGLER_SEND_METRICS: "false", CI: "1", NO_UPDATE_NOTIFIER: "1" };
       const migrate = run(wrangler, ["d1", "migrations", "apply", "DB", "--local"], out, quiet);
       expect(await done(migrate.child), migrate.output()).toBe(0);
