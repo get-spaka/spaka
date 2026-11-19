@@ -3,7 +3,7 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { extname, join, normalize } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
+import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 
 // A site that styles daisyUI's buttons in its own `@layer components` looks
 // the same in the preview and once exported: its rules beat daisyUI's
@@ -93,7 +93,7 @@ describe("a site's own button styles", () => {
 </html>
 `,
     );
-  }, 60_000);
+  }, 60_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
     server?.close();

@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { PALETTES } from "../apps/desktop/src/shared/palettes.ts";
-import { type LaunchedApp, launchApp } from "./app.ts";
+import { type LaunchedApp, launchApp, SLOW } from "./app.ts";
 import { previewDriver } from "./preview-driver.ts";
 
 // Palettes clicked one after another (the page follows each), with a theme
@@ -39,7 +39,7 @@ describe("the palettes", () => {
     await until(() => page("location.pathname === '/'"));
     await launched.window.getByTestId("tab-theme").click();
     await launched.window.getByTestId("theme").waitFor();
-  }, 60_000);
+  }, 60_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
   });

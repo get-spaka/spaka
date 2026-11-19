@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp } from "./app.ts";
+import { type LaunchedApp, launchApp, SLOW } from "./app.ts";
 import { previewDriver } from "./preview-driver.ts";
 
 /** The checks that place or capture the preview's native view: a CI runner's hidden window does not lay it out as a screen does. */
@@ -28,7 +28,7 @@ describe("editing in the preview", () => {
     await until(() => page("!!document.querySelector('upstart-editor') && location.pathname === '/'"));
     // Edit mode: the preview opens in visitor mode (Q253).
     await invoke("preview:set-mode", "edit");
-  }, 60_000);
+  }, 60_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
   });

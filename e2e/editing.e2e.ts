@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp } from "./app.ts";
+import { type LaunchedApp, launchApp, SLOW } from "./app.ts";
 
 // Edits by hand (Q90, Q91, Q94), with the recorded agent: written by the app
 // into the files, each a version of its own that can be undone alone, folded
@@ -40,7 +40,7 @@ describe("edits by hand", () => {
     path = (await invoke("projects:current")).path;
     // Edit mode: the preview opens in visitor mode (Q253).
     await invoke("preview:set-mode", "edit");
-  }, 60_000);
+  }, 60_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
   });

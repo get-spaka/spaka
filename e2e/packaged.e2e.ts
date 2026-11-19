@@ -7,7 +7,7 @@ import { extname, join, normalize } from "node:path";
 import { describe, expect, test } from "vitest";
 import { parse } from "yaml";
 import { PALETTES } from "../apps/desktop/src/shared/palettes.ts";
-import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
+import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 import { buildBlog } from "./blog-check.ts";
 import { buildGuestbook, sampleValues } from "./guestbook-check.ts";
 import { previewDriver } from "./preview-driver.ts";
@@ -82,46 +82,50 @@ async function load(launched: LaunchedApp, url: string) {
 
 // Run after `pnpm --filter @upstart/desktop package`.
 describe.runIf(built && (process.platform === "darwin" || process.platform === "win32"))("the packaged app", () => {
-  test("starts in the background, with Upstart's skills, and exports a website", async () => {
-    const launched = await launchApp({ packaged: true });
-    try {
-      const invoke = invokeIn(launched);
-      await launched.window.getByTestId("message-input").waitFor();
-      expect(await launched.app.evaluate(({ app }) => app.isPackaged)).toBe(true);
-      // Upstart's templates, from the release's catalogue shipped with the app (Q247), their covers with it.
-      const templates = await invoke("templates:list");
-      expect(templates.map((t: { id: string }) => t.id)).toEqual(expect.arrayContaining(["reel", "ember", "beacon"]));
-      expect(await invoke("templates:picture", "reel", "cover")).toMatch(/^data:image\/webp;base64,/);
-      await invoke("conversation:send", "A bakery in Lyon. Warm colours please.");
-      await done(launched, 1, 30_000);
-      // The skills shipped outside the archive, assembled for the agent.
-      expect((await invoke("skills:list")).map((s: { name: string }) => s.name)).toEqual([
-        "datasources",
-        "gallery",
-        "htmx-patterns",
-        "site-scripts",
-        "upstart-help",
-        "writing-skills",
-      ]);
-      // The builder finds Tailwind, daisyUI and htmx inside the archive.
-      const out = join(runsDir, "packaged-export");
-      rmSync(out, { recursive: true, force: true });
-      const result = await invoke("export:run", out, "static");
-      expect(result.pages.sort()).toEqual(["/", "/menu"]);
-      const site = await serve(out);
+  test(
+    "starts in the background, with Upstart's skills, and exports a website",
+    async () => {
+      const launched = await launchApp({ packaged: true });
       try {
-        const page = await load(launched, `${site.origin}/`);
-        expect(page.text).toContain("Chez Margot");
-        expect(page.styled).toBe(true);
-        // text-5xl applied: not the browser's default size for a heading.
-        expect(page.font).toBe("48px");
+        const invoke = invokeIn(launched);
+        await launched.window.getByTestId("message-input").waitFor();
+        expect(await launched.app.evaluate(({ app }) => app.isPackaged)).toBe(true);
+        // Upstart's templates, from the release's catalogue shipped with the app (Q247), their covers with it.
+        const templates = await invoke("templates:list");
+        expect(templates.map((t: { id: string }) => t.id)).toEqual(expect.arrayContaining(["reel", "ember", "beacon"]));
+        expect(await invoke("templates:picture", "reel", "cover")).toMatch(/^data:image\/webp;base64,/);
+        await invoke("conversation:send", "A bakery in Lyon. Warm colours please.");
+        await done(launched, 1, 30_000);
+        // The skills shipped outside the archive, assembled for the agent.
+        expect((await invoke("skills:list")).map((s: { name: string }) => s.name)).toEqual([
+          "datasources",
+          "gallery",
+          "htmx-patterns",
+          "site-scripts",
+          "upstart-help",
+          "writing-skills",
+        ]);
+        // The builder finds Tailwind, daisyUI and htmx inside the archive.
+        const out = join(runsDir, "packaged-export");
+        rmSync(out, { recursive: true, force: true });
+        const result = await invoke("export:run", out, "static");
+        expect(result.pages.sort()).toEqual(["/", "/menu"]);
+        const site = await serve(out);
+        try {
+          const page = await load(launched, `${site.origin}/`);
+          expect(page.text).toContain("Chez Margot");
+          expect(page.styled).toBe(true);
+          // text-5xl applied: not the browser's default size for a heading.
+          expect(page.font).toBe("48px");
+        } finally {
+          site.close();
+        }
       } finally {
-        site.close();
+        await launched.close();
       }
-    } finally {
-      await launched.close();
-    }
-  }, 90_000);
+    },
+    90_000 * SLOW,
+  );
 
   // The whole of build step 1 with the real agent, in the packaged app:
   // a first message makes the website, a change, undo, export, served.

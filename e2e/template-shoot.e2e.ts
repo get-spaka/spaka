@@ -11,7 +11,7 @@ import {
   writeWebp,
 } from "../apps/desktop/src/main/templates/pictures.ts";
 import { projectFiles, readTemplateFolder } from "../apps/desktop/src/main/templates/reader.ts";
-import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
+import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 import { previewDriver } from "./preview-driver.ts";
 
 // `pnpm template:shoot <folder>` (Q232): the template's pictures, taken in the
@@ -122,39 +122,41 @@ describe.skipIf(!dir)("a template's pictures", () => {
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
       launched.app.evaluate(() => (globalThis as any).upstart.preview.origin as string),
     )) as string;
-  }, 60_000);
+  }, 60_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
   });
 
-  test("each page at desktop and phone width, its cover and its hover sequence", async () => {
-    const routes = shotPages(files);
-    expect(routes.length).toBeGreaterThan(0);
-    const pictures = join(dir, "pictures");
-    rmSync(pictures, { recursive: true, force: true });
-    mkdirSync(join(pictures, "pages"), { recursive: true });
-    const webp = (png: string | string[], width: number, path: string) =>
-      writeWebp(
-        Array.isArray(png) ? png.map((p) => Buffer.from(p, "base64")) : Buffer.from(png, "base64"),
-        width,
-        join(dir, path),
-      );
+  test(
+    "each page at desktop and phone width, its cover and its hover sequence",
+    async () => {
+      const routes = shotPages(files);
+      expect(routes.length).toBeGreaterThan(0);
+      const pictures = join(dir, "pictures");
+      rmSync(pictures, { recursive: true, force: true });
+      mkdirSync(join(pictures, "pages"), { recursive: true });
+      const webp = (png: string | string[], width: number, path: string) =>
+        writeWebp(
+          Array.isArray(png) ? png.map((p) => Buffer.from(p, "base64")) : Buffer.from(png, "base64"),
+          width,
+          join(dir, path),
+        );
 
-    const shots: { route: string; desktop: string; phone: string }[] = [];
-    for (const { route, name } of routes) {
-      const shot = { route, desktop: "", phone: "" };
-      for (const device of DEVICES) {
-        // The page whole, in slices (a window, and a capture, have a largest
-        // size): the window a slice tall, scrolled down the page a slice at a
-        // time, each part given time to rise; writeWebp puts them back together.
-        // What stays in place while the page scrolls (sticky) is let go, or it
-        // would be in every slice; what floats over it (fixed) is set where it
-        // stands on the first screen, before the window grows.
-        const slices = (await inWindow(
-          route,
-          device,
-          "page",
-          `async ({ wait, js, png, resize }) => {
+      const shots: { route: string; desktop: string; phone: string }[] = [];
+      for (const { route, name } of routes) {
+        const shot = { route, desktop: "", phone: "" };
+        for (const device of DEVICES) {
+          // The page whole, in slices (a window, and a capture, have a largest
+          // size): the window a slice tall, scrolled down the page a slice at a
+          // time, each part given time to rise; writeWebp puts them back together.
+          // What stays in place while the page scrolls (sticky) is let go, or it
+          // would be in every slice; what floats over it (fixed) is set where it
+          // stands on the first screen, before the window grows.
+          const slices = (await inWindow(
+            route,
+            device,
+            "page",
+            `async ({ wait, js, png, resize }) => {
             await wait(600);
             await js("for (const el of document.querySelectorAll('*')) if (getComputedStyle(el).position === 'sticky') el.style.position = 'static'");
             await js("__upStill.pin()");
@@ -173,29 +175,29 @@ describe.skipIf(!dir)("a template's pictures", () => {
             }
             return slices;
           }`,
-        )) as string[];
-        const path = `pictures/pages/${name}-${device.name}.webp`;
-        await webp(slices, device.out, path);
-        shot[device.name] = path;
+          )) as string[];
+          const path = `pictures/pages/${name}-${device.name}.webp`;
+          await webp(slices, device.out, path);
+          shot[device.name] = path;
+        }
+        shots.push(shot);
       }
-      shots.push(shot);
-    }
 
-    // The cover: the home page's first screen, once it has moved.
-    const cover = (await inWindow(
-      "/",
-      DEVICES[0],
-      "screen",
-      "async ({ wait, png }) => { await wait(2400); return png(); }",
-    )) as string;
-    await webp(cover, 1200, "pictures/cover.webp");
+      // The cover: the home page's first screen, once it has moved.
+      const cover = (await inWindow(
+        "/",
+        DEVICES[0],
+        "screen",
+        "async ({ wait, png }) => { await wait(2400); return png(); }",
+      )) as string;
+      await webp(cover, 1200, "pictures/cover.webp");
 
-    // The hover: the first screen as it comes in, then a slow scroll down it.
-    const frames = (await inWindow(
-      "/",
-      DEVICES[0],
-      "screen",
-      `async ({ wait, js, png }) => {
+      // The hover: the first screen as it comes in, then a slow scroll down it.
+      const frames = (await inWindow(
+        "/",
+        DEVICES[0],
+        "screen",
+        `async ({ wait, js, png }) => {
         const frames = [];
         for (let i = 0; i < ${HOVER.frames}; i++) { frames.push(await png()); await wait(${HOVER.every}); }
         const end = Math.max(0, Math.min(await js("document.documentElement.scrollHeight - innerHeight"), 2400));
@@ -206,47 +208,51 @@ describe.skipIf(!dir)("a template's pictures", () => {
         }
         return frames;
       }`,
-    )) as string[];
-    const count = await writeAnimatedWebp(
-      frames.map((f) => Buffer.from(f, "base64")),
-      HOVER.width,
-      HOVER.every,
-      join(pictures, "hover.webp"),
-    );
-    // Frames alike in a row are merged by the encoder: it moves if it has more than one.
-    expect(count).toBeGreaterThan(1);
+      )) as string[];
+      const count = await writeAnimatedWebp(
+        frames.map((f) => Buffer.from(f, "base64")),
+        HOVER.width,
+        HOVER.every,
+        join(pictures, "hover.webp"),
+      );
+      // Frames alike in a row are merged by the encoder: it moves if it has more than one.
+      expect(count).toBeGreaterThan(1);
 
-    // The review sheet: the cover, then every page side by side, at desktop
-    // and phone width, in one row (a screenshot of a very tall page repeats
-    // parts of it, so the sheet stays wide rather than tall).
-    const sheets = join(runsDir, "template-sheets");
-    mkdirSync(sheets, { recursive: true });
-    cpSync(pictures, join(sheets, id), { recursive: true });
-    const columns = shots
-      .map(
-        (s) => `<div class="page"><p><b>${s.route}</b></p><div class="cols">
+      // The review sheet: the cover, then every page side by side, at desktop
+      // and phone width, in one row (a screenshot of a very tall page repeats
+      // parts of it, so the sheet stays wide rather than tall).
+      const sheets = join(runsDir, "template-sheets");
+      mkdirSync(sheets, { recursive: true });
+      cpSync(pictures, join(sheets, id), { recursive: true });
+      const columns = shots
+        .map(
+          (s) => `<div class="page"><p><b>${s.route}</b></p><div class="cols">
 <img class="desktop" src="${id}/${s.desktop.slice("pictures/".length)}"><img class="phone" src="${id}/${s.phone.slice("pictures/".length)}">
 </div></div>`,
-      )
-      .join("\n");
-    const sheet = join(sheets, `${id}.html`);
-    writeFileSync(
-      sheet,
-      `<!doctype html><html><head><meta charset="utf-8"><style>
+        )
+        .join("\n");
+      const sheet = join(sheets, `${id}.html`);
+      writeFileSync(
+        sheet,
+        `<!doctype html><html><head><meta charset="utf-8"><style>
 body{margin:0;padding:24px;font:14px system-ui;background:#e5e5e5;color:#111;width:max-content}
 h1{font-size:20px;margin:0 0 12px} .pages{display:flex;gap:40px;align-items:flex-start;margin-top:24px} .page p{margin:0 0 6px}
 .cols{display:flex;gap:12px;align-items:flex-start} img{display:block;border:1px solid #bbb;background:#fff}
 .cover{width:960px} .desktop{width:420px} .phone{width:140px}
 </style></head><body><h1>${id}: cover, then each page at desktop and phone width (hover: ${id}/hover.webp)</h1>
 <img class="cover" src="${id}/cover.webp"><div class="pages">${columns}</div></body></html>`,
-    );
-    const opened = launched.app.waitForEvent("window", (page) => page.url().endsWith(`/${id}.html`));
-    await launched.app.evaluate(async ({ BrowserWindow }, target) => {
-      await new BrowserWindow({ show: false, width: 2600, height: 900, enableLargerThanScreen: true }).loadFile(target);
-    }, sheet);
-    const page = await opened;
-    await page.waitForLoadState("load");
-    await page.screenshot({ path: join(sheets, `${id}.png`), fullPage: true });
-    await page.close();
-  }, 240_000);
+      );
+      const opened = launched.app.waitForEvent("window", (page) => page.url().endsWith(`/${id}.html`));
+      await launched.app.evaluate(async ({ BrowserWindow }, target) => {
+        await new BrowserWindow({ show: false, width: 2600, height: 900, enableLargerThanScreen: true }).loadFile(
+          target,
+        );
+      }, sheet);
+      const page = await opened;
+      await page.waitForLoadState("load");
+      await page.screenshot({ path: join(sheets, `${id}.png`), fullPage: true });
+      await page.close();
+    },
+    240_000 * SLOW,
+  );
 });

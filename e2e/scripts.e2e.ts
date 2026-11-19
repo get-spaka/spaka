@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp } from "./app.ts";
+import { type LaunchedApp, launchApp, SLOW } from "./app.ts";
 import { previewDriver } from "./preview-driver.ts";
 
 // A site's own JavaScript and stylesheet (ADR 0011), with the recorded agent's
@@ -56,7 +56,7 @@ export function stop() {
     write("pages/index.liquid", home("Bread since 1952"));
     await invoke("preview:navigate", "/");
     await until(() => page("document.querySelector('h1')?.textContent === 'Bread since 1952'"));
-  }, 60_000);
+  }, 60_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
   });
@@ -78,7 +78,7 @@ export function stop() {
       await page("document.querySelector('#load')?.click()");
       await new Promise((r) => setTimeout(r, 700));
       return page("document.querySelector('.more')?.dataset.started === 'yes'");
-    }, 15_000);
+    }, 15_000 * SLOW);
   });
 
   test("a new rendering stops the modules and starts them again", async () => {

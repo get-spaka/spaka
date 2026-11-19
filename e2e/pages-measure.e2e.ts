@@ -9,7 +9,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
+import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 import { writePagesRecording } from "./fixtures/pages-recording.ts";
 
 const results: Record<string, unknown> = {};
@@ -106,16 +106,24 @@ describe.skipIf(process.env.UPSTART_MEASURE_GRID !== "1")("the cost of the All p
     }
   }
 
-  test("one page", async () => {
-    await build("page");
-  }, 120_000);
+  test(
+    "one page",
+    async () => {
+      await build("page");
+    },
+    120_000 * SLOW,
+  );
 
-  test("every page as thumbnails, the agent still able to look", async () => {
-    const r = await build("pages");
-    writeFileSync(join(runsDir, "pages-measure.json"), JSON.stringify(results, null, 2));
-    console.log(JSON.stringify(results, null, 2));
-    expect(r.liveThumbnails).toBe(1);
-    expect(r.lookPngBytes).toBeGreaterThan(1000);
-    expect(r.smallestPictureBytes).toBeGreaterThan(1000);
-  }, 120_000);
+  test(
+    "every page as thumbnails, the agent still able to look",
+    async () => {
+      const r = await build("pages");
+      writeFileSync(join(runsDir, "pages-measure.json"), JSON.stringify(results, null, 2));
+      console.log(JSON.stringify(results, null, 2));
+      expect(r.liveThumbnails).toBe(1);
+      expect(r.lookPngBytes).toBeGreaterThan(1000);
+      expect(r.smallestPictureBytes).toBeGreaterThan(1000);
+    },
+    120_000 * SLOW,
+  );
 });

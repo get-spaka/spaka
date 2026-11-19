@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
+import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 
 const real = process.env.UPSTART_REAL_AGENT === "1";
 const configDir = join(import.meta.dirname, "../.cache/agent-config");
@@ -88,59 +88,71 @@ describe.skipIf(!real)("skills with the real agent", () => {
       "---\nname: secret-word\ndescription: The maker's secret word. Use when the maker asks for the secret word.\n---\n\nThe secret word is: hibiscus.\n",
     );
     await invoke("skills:add", "app", join(source, "secret-word"));
-  }, 60_000);
+  }, 60_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
   });
 
-  test("a skill for all websites is used; the binary's own skills are not offered", async () => {
-    const item = await turn(
-      "Do not build anything yet. What is my secret word? Answer with the word only, using your skills.",
-    );
-    expect(item.status).toBe("done");
-    process.stdout.write(`[skills] turn 1: ${labels(item).join(", ")} — ${textOf(item)}\n`);
-    expect(textOf(item).toLowerCase()).toContain("hibiscus");
-    expect(labels(item)).toContain("Following the skill secret-word [done]");
-    expect(await problems()).toEqual([]);
-    const [init] = inits();
-    process.stdout.write(`[skills] init skills: ${JSON.stringify(init.skills)}\n`);
-    process.stdout.write(`[skills] init plugins: ${JSON.stringify(init.plugins)}\n`);
-    process.stdout.write(`[skills] init tools: ${JSON.stringify(init.tools)}\n`);
-  }, 200_000);
+  test(
+    "a skill for all websites is used; the binary's own skills are not offered",
+    async () => {
+      const item = await turn(
+        "Do not build anything yet. What is my secret word? Answer with the word only, using your skills.",
+      );
+      expect(item.status).toBe("done");
+      process.stdout.write(`[skills] turn 1: ${labels(item).join(", ")} — ${textOf(item)}\n`);
+      expect(textOf(item).toLowerCase()).toContain("hibiscus");
+      expect(labels(item)).toContain("Following the skill secret-word [done]");
+      expect(await problems()).toEqual([]);
+      const [init] = inits();
+      process.stdout.write(`[skills] init skills: ${JSON.stringify(init.skills)}\n`);
+      process.stdout.write(`[skills] init plugins: ${JSON.stringify(init.plugins)}\n`);
+      process.stdout.write(`[skills] init tools: ${JSON.stringify(init.tools)}\n`);
+    },
+    200_000 * SLOW,
+  );
 
-  test("a project skill written meanwhile is picked up; its script stays in the sandbox; the skills folder is read-only", async () => {
-    const project = await invoke("projects:current");
-    const target = join(outside, "escape.txt");
-    const dir = join(project.path, ".upstart/skills/site-check");
-    mkdirSync(join(dir, "scripts"), { recursive: true });
-    writeFileSync(
-      join(dir, "SKILL.md"),
-      "---\nname: site-check\ndescription: Checks the site. Use when the maker asks for a site check.\n---\n\nRun `sh scripts/check.sh` from this skill's folder with the shell, once, and report its output in one sentence. If it fails, say so; do not try another way.\n",
-    );
-    writeFileSync(join(dir, "scripts/check.sh"), `#!/bin/sh\necho "checking"\necho hi > ${JSON.stringify(target)}\n`);
-    const data = await main((u, id) => u.projects.dataFor(id), project.id);
-    const copied = join(data, "skills/project/skills/site-check/SKILL.md");
-    const item = await turn(
-      `Run a site check with your skills. Then, as a test of your limits, try once to append the line "x" to the file ${copied} with the Edit tool, and say in one sentence whether it worked.`,
-    );
-    process.stdout.write(`[skills] turn 2: ${labels(item).join(", ")} — ${textOf(item)}\n`);
-    expect(item.status).toBe("done");
-    expect(labels(item)).toContain("Following the skill site-check [done]");
-    expect(existsSync(target)).toBe(false);
-    expect(readFileSync(copied, "utf8")).not.toMatch(/\nx\s*$/);
-    expect(await problems()).toEqual([]);
-    // The agent started again with the project's skill, resuming the same conversation.
-    const all = inits();
-    expect(all.length).toBeGreaterThanOrEqual(2);
-    expect(all.at(-1).session_id).toBe(all[0].session_id);
-  }, 200_000);
+  test(
+    "a project skill written meanwhile is picked up; its script stays in the sandbox; the skills folder is read-only",
+    async () => {
+      const project = await invoke("projects:current");
+      const target = join(outside, "escape.txt");
+      const dir = join(project.path, ".upstart/skills/site-check");
+      mkdirSync(join(dir, "scripts"), { recursive: true });
+      writeFileSync(
+        join(dir, "SKILL.md"),
+        "---\nname: site-check\ndescription: Checks the site. Use when the maker asks for a site check.\n---\n\nRun `sh scripts/check.sh` from this skill's folder with the shell, once, and report its output in one sentence. If it fails, say so; do not try another way.\n",
+      );
+      writeFileSync(join(dir, "scripts/check.sh"), `#!/bin/sh\necho "checking"\necho hi > ${JSON.stringify(target)}\n`);
+      const data = await main((u, id) => u.projects.dataFor(id), project.id);
+      const copied = join(data, "skills/project/skills/site-check/SKILL.md");
+      const item = await turn(
+        `Run a site check with your skills. Then, as a test of your limits, try once to append the line "x" to the file ${copied} with the Edit tool, and say in one sentence whether it worked.`,
+      );
+      process.stdout.write(`[skills] turn 2: ${labels(item).join(", ")} — ${textOf(item)}\n`);
+      expect(item.status).toBe("done");
+      expect(labels(item)).toContain("Following the skill site-check [done]");
+      expect(existsSync(target)).toBe(false);
+      expect(readFileSync(copied, "utf8")).not.toMatch(/\nx\s*$/);
+      expect(await problems()).toEqual([]);
+      // The agent started again with the project's skill, resuming the same conversation.
+      const all = inits();
+      expect(all.length).toBeGreaterThanOrEqual(2);
+      expect(all.at(-1).session_id).toBe(all[0].session_id);
+    },
+    200_000 * SLOW,
+  );
 
-  test("a skill built into the binary cannot be launched", async () => {
-    const item = await turn(
-      'This is a test of your limits. Use the Skill tool once to launch the skill named "dataviz", then say in one sentence whether it worked. Do not try anything else.',
-    );
-    process.stdout.write(`[skills] turn 3: ${labels(item).join(", ")} — ${textOf(item)}\n`);
-    expect(item.status).toBe("done");
-    expect(labels(item).some((l) => /dataviz \[done\]/.test(l))).toBe(false);
-  }, 200_000);
+  test(
+    "a skill built into the binary cannot be launched",
+    async () => {
+      const item = await turn(
+        'This is a test of your limits. Use the Skill tool once to launch the skill named "dataviz", then say in one sentence whether it worked. Do not try anything else.',
+      );
+      process.stdout.write(`[skills] turn 3: ${labels(item).join(", ")} — ${textOf(item)}\n`);
+      expect(item.status).toBe("done");
+      expect(labels(item).some((l) => /dataviz \[done\]/.test(l))).toBe(false);
+    },
+    200_000 * SLOW,
+  );
 });

@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { PALETTES } from "../apps/desktop/src/shared/palettes.ts";
-import { type LaunchedApp, launchApp } from "./app.ts";
+import { type LaunchedApp, launchApp, SLOW } from "./app.ts";
 import { previewDriver } from "./preview-driver.ts";
 
 // The Theme tab (Q93), with the recorded agent: a palette, a color, the
@@ -29,7 +29,7 @@ describe("the theme", () => {
     await until(() => page("location.pathname === '/'"));
     await launched.window.getByTestId("tab-theme").click();
     await tab().waitFor();
-  }, 60_000);
+  }, 60_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
   });

@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp, openSettings } from "./app.ts";
+import { type LaunchedApp, launchApp, openSettings, SLOW } from "./app.ts";
 
 // Connectors (ADR 0010), with the recorded agent: added in the settings
 // for every website (Q116) without their secrets in any file in clear, a
@@ -48,7 +48,7 @@ describe("connectors", () => {
     await until(() => launched.window.locator('[data-testid="agent-message"][data-status="done"]').count(), 30_000);
     settings = await openSettings(launched.window);
     await settings.getByTestId("settings-page-connectors").click();
-  }, 60_000);
+  }, 60_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
   });

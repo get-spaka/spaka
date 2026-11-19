@@ -13,7 +13,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
+import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 
 const configDir = join(import.meta.dirname, "../.cache/agent-config");
 const keysFile = join(import.meta.dirname, "../spikes/harnesses/homes/keys.env");
@@ -189,73 +189,77 @@ for (const { agent, run } of CASES)
           before?.(id, e);
         };
       });
-    }, 120_000);
+    }, 120_000 * SLOW);
     afterAll(async () => {
       writeFileSync(join(runsDir, `agent-looks-${agent}.json`), JSON.stringify(report, null, 2));
       await launched?.close();
     });
 
-    test("it looks on a phone, opens the menu, fixes the header and the menu, and looks again", async () => {
-      const started = Date.now();
-      // The website exists already: its model is set as the maker sets it, effort medium by default.
-      if (agent === "pi") await invoke("agent:set-model", "gemini/gemini-4-hydrogen");
-      await invoke("conversation:send", MESSAGE);
-      const item = (await until(async () => {
-        const { items } = await invoke("conversation:get");
-        const last = items.at(-1);
-        return last?.kind === "agent" && last.status !== "working" ? last : undefined;
-      }, 900_000)) as { status: string; parts: { kind: string; text?: string; activity?: { label: string } }[] };
-      report.turnMs = Date.now() - started;
-      report.status = item.status;
-      report.lines = item.parts.flatMap((p) => (p.activity ? [p.activity.label] : []));
-      report.answer = item.parts
-        .filter((p) => p.kind === "text")
-        .map((p) => p.text)
-        .join("\n");
-      const looks = (await main(() => (globalThis as unknown as { agentLooks: Look[] }).agentLooks)) as Look[];
-      const log = (await main(() => (globalThis as unknown as { agentLog: Logged[] }).agentLog)) as Logged[];
-      report.looks = looks.map((l) => ({ ...l, at: l.at - started }));
-      report.writes = log
-        .filter((e) => /^(Write|Edit|Append)$/.test(e.name ?? ""))
-        .map((e) => ({ at: e.t - started, name: e.name, path: e.path }));
-      const lastWrite = Math.max(0, ...log.filter((e) => /^(Write|Edit|Append)$/.test(e.name ?? "")).map((e) => e.t));
+    test(
+      "it looks on a phone, opens the menu, fixes the header and the menu, and looks again",
+      async () => {
+        const started = Date.now();
+        // The website exists already: its model is set as the maker sets it, effort medium by default.
+        if (agent === "pi") await invoke("agent:set-model", "gemini/gemini-4-hydrogen");
+        await invoke("conversation:send", MESSAGE);
+        const item = (await until(async () => {
+          const { items } = await invoke("conversation:get");
+          const last = items.at(-1);
+          return last?.kind === "agent" && last.status !== "working" ? last : undefined;
+        }, 900_000)) as { status: string; parts: { kind: string; text?: string; activity?: { label: string } }[] };
+        report.turnMs = Date.now() - started;
+        report.status = item.status;
+        report.lines = item.parts.flatMap((p) => (p.activity ? [p.activity.label] : []));
+        report.answer = item.parts
+          .filter((p) => p.kind === "text")
+          .map((p) => p.text)
+          .join("\n");
+        const looks = (await main(() => (globalThis as unknown as { agentLooks: Look[] }).agentLooks)) as Look[];
+        const log = (await main(() => (globalThis as unknown as { agentLog: Logged[] }).agentLog)) as Logged[];
+        report.looks = looks.map((l) => ({ ...l, at: l.at - started }));
+        report.writes = log
+          .filter((e) => /^(Write|Edit|Append)$/.test(e.name ?? ""))
+          .map((e) => ({ at: e.t - started, name: e.name, path: e.path }));
+        const lastWrite = Math.max(0, ...log.filter((e) => /^(Write|Edit|Append)$/.test(e.name ?? "")).map((e) => e.t));
 
-      // The website as it is now, looked at on a phone from scratch.
-      const after = (await main(async () => {
-        // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-        const p = (globalThis as any).upstart.preview;
-        p.endTurn();
-        const plain = await p.look("/", { screen: "phone", fresh: true });
-        const opened = await p.look("/", { screen: "phone", steps: [{ action: "click", target: "#menu summary" }] });
-        const shown = await p.agentView.run(
-          `(() => { const a = [...document.querySelectorAll('#menu a')].find((a) => a.getBoundingClientRect().height > 0); if (!a) return false; const r = a.getBoundingClientRect(); return r.right <= ${393} && r.bottom <= innerHeight && getComputedStyle(a).visibility !== 'hidden'; })()`,
+        // The website as it is now, looked at on a phone from scratch.
+        const after = (await main(async () => {
+          // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+          const p = (globalThis as any).upstart.preview;
+          p.endTurn();
+          const plain = await p.look("/", { screen: "phone", fresh: true });
+          const opened = await p.look("/", { screen: "phone", steps: [{ action: "click", target: "#menu summary" }] });
+          const shown = await p.agentView.run(
+            `(() => { const a = [...document.querySelectorAll('#menu a')].find((a) => a.getBoundingClientRect().height > 0); if (!a) return false; const r = a.getBoundingClientRect(); return r.right <= ${393} && r.bottom <= innerHeight && getComputedStyle(a).visibility !== 'hidden'; })()`,
+          );
+          return { problems: plain.problems as string[], menu: opened.steps?.[0]?.line as string, shown: !!shown };
+        })) as { problems: string[]; menu: string; shown: boolean };
+        report.after = after;
+
+        const checks: Record<string, boolean> = {
+          "the turn ended": item.status === "done",
+          "looked on a phone": looks.some((l) => l.screen === "phone"),
+          "clicked something before a look": looks.some((l) => l.steps.some((s) => s.startsWith("clicked"))),
+          "saw the header too wide": looks.some((l) => l.problems.some((p) => p.startsWith("The page is wider"))),
+          "changed a file": lastWrite > 0,
+          "looked again after the last change": looks.some((l) => l.at > lastWrite),
+          "the page fits a phone now": !after.problems.some((p) => p.startsWith("The page is wider")),
+          "the menu opens on a phone now": after.shown,
+          "a line named the click": (report.lines as string[]).some((l) => / after clicking “/.test(l)),
+        };
+        report.checks = checks;
+        const times = looks.map((l) => l.ms);
+        report.lookMs = { count: times.length, max: Math.max(0, ...times), each: times };
+        process.stdout.write(
+          `[looks ${agent}] turn ${Math.round((report.turnMs as number) / 1000)} s; ${looks.length} looks: ${looks
+            .map(
+              (l) =>
+                `${l.screen} ${l.route}${l.steps.length ? ` +${l.steps.length} steps` : ""} ${(l.ms / 1000).toFixed(1)} s`,
+            )
+            .join("; ")}\n[looks ${agent}] ${JSON.stringify(checks)}\n`,
         );
-        return { problems: plain.problems as string[], menu: opened.steps?.[0]?.line as string, shown: !!shown };
-      })) as { problems: string[]; menu: string; shown: boolean };
-      report.after = after;
-
-      const checks: Record<string, boolean> = {
-        "the turn ended": item.status === "done",
-        "looked on a phone": looks.some((l) => l.screen === "phone"),
-        "clicked something before a look": looks.some((l) => l.steps.some((s) => s.startsWith("clicked"))),
-        "saw the header too wide": looks.some((l) => l.problems.some((p) => p.startsWith("The page is wider"))),
-        "changed a file": lastWrite > 0,
-        "looked again after the last change": looks.some((l) => l.at > lastWrite),
-        "the page fits a phone now": !after.problems.some((p) => p.startsWith("The page is wider")),
-        "the menu opens on a phone now": after.shown,
-        "a line named the click": (report.lines as string[]).some((l) => / after clicking “/.test(l)),
-      };
-      report.checks = checks;
-      const times = looks.map((l) => l.ms);
-      report.lookMs = { count: times.length, max: Math.max(0, ...times), each: times };
-      process.stdout.write(
-        `[looks ${agent}] turn ${Math.round((report.turnMs as number) / 1000)} s; ${looks.length} looks: ${looks
-          .map(
-            (l) =>
-              `${l.screen} ${l.route}${l.steps.length ? ` +${l.steps.length} steps` : ""} ${(l.ms / 1000).toFixed(1)} s`,
-          )
-          .join("; ")}\n[looks ${agent}] ${JSON.stringify(checks)}\n`,
-      );
-      expect(checks).toEqual(Object.fromEntries(Object.keys(checks).map((k) => [k, true])));
-    }, 1_000_000);
+        expect(checks).toEqual(Object.fromEntries(Object.keys(checks).map((k) => [k, true])));
+      },
+      1_000_000 * SLOW,
+    );
   });

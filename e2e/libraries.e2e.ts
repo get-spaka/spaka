@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp } from "./app.ts";
+import { type LaunchedApp, launchApp, SLOW } from "./app.ts";
 import { previewDriver } from "./preview-driver.ts";
 
 // The libraries the site-scripts skill lists, loaded from their addresses in
@@ -78,7 +78,7 @@ export function stop() {
     );
     await invoke("preview:navigate", "/");
     await until(() => page("document.querySelector('h1')?.textContent.includes('Fresh')"));
-  }, 60_000);
+  }, 60_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
   });

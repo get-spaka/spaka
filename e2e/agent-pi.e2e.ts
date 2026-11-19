@@ -10,7 +10,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp } from "./app.ts";
+import { type LaunchedApp, launchApp, SLOW } from "./app.ts";
 
 const keysFile = join(import.meta.dirname, "../spikes/harnesses/homes/keys.env");
 const real = process.env.UPSTART_REAL_PI === "1";
@@ -92,7 +92,7 @@ describe.skipIf(!real)(`Upstart's own harness, with Gemini on ${account}`, () =>
         before?.(id, e);
       };
     });
-  }, 60_000);
+  }, 60_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
   });
@@ -105,69 +105,81 @@ describe.skipIf(!real)(`Upstart's own harness, with Gemini on ${account}`, () =>
     );
   });
 
-  test("Gemini 4 Hydrogen builds a site, the preview following it", async () => {
-    const started = Date.now();
-    await invoke(
-      "conversation:send",
-      "Un site d'une page pour un fleuriste à Nantes, Fleur de Loire : le thème et la page d'accueil avec trois sections.",
-      { model: hydrogen, effort: "medium" },
-    );
-    await turnEnded(0, 400_000);
-    const done = Date.now();
-    const { items } = await invoke("conversation:get");
-    const item = items.at(-1);
-    const project = await invoke("projects:current");
-    const log = (await main(() => (globalThis as { piLog?: Logged[] }).piLog ?? [])) as Logged[];
-    const at = (e?: Logged) => (e ? `${((e.t - started) / 1000).toFixed(1)} s` : "-");
-    // The first change the maker sees: a file being written, or a block placed (ADR 0009).
-    const firstWrite = log.find((e) => e.kind === "tool-input" && e.length);
-    const firstBlock = log.find((e) => e.kind === "tool-result" && e.name === "mcp__upstart__use_block");
-    const calls = log.filter((e) => e.kind === "tool-input-end");
-    // How finely the home page reached the preview: each piece is a new rendering of it.
-    const pagePieces = log.filter((e) => e.kind === "tool-input" && e.path === "pages/index.liquid" && e.length);
-    say(
-      `[pi] pages/index.liquid: ${pagePieces.length} pieces, first at ${at(pagePieces[0])}, last at ${at(pagePieces.at(-1))}`,
-    );
-    say(
-      `[pi] turn ${((done - started) / 1000).toFixed(1)} s; first text written at ${at(firstWrite)} (${firstWrite?.path}); first block placed at ${at(firstBlock)}; ${calls.length} tool calls`,
-    );
-    say(`[pi] calls: ${calls.map((e) => `${at(e)} ${e.name}${e.path ? ` ${e.path}` : ""}`).join("; ")}`);
-    say(`[pi] problems: ${JSON.stringify(await problems())}`);
-    expect(item).toMatchObject({ kind: "agent", status: "done" });
-    expect(existsSync(join(project.path, "theme.css"))).toBe(true);
-    const page = readFileSync(join(project.path, "pages/index.liquid"), "utf8");
-    expect(page).toMatch(/<html|render/);
-    expect(firstWrite ?? firstBlock).toBeDefined();
-  }, 420_000);
+  test(
+    "Gemini 4 Hydrogen builds a site, the preview following it",
+    async () => {
+      const started = Date.now();
+      await invoke(
+        "conversation:send",
+        "Un site d'une page pour un fleuriste à Nantes, Fleur de Loire : le thème et la page d'accueil avec trois sections.",
+        { model: hydrogen, effort: "medium" },
+      );
+      await turnEnded(0, 400_000);
+      const done = Date.now();
+      const { items } = await invoke("conversation:get");
+      const item = items.at(-1);
+      const project = await invoke("projects:current");
+      const log = (await main(() => (globalThis as { piLog?: Logged[] }).piLog ?? [])) as Logged[];
+      const at = (e?: Logged) => (e ? `${((e.t - started) / 1000).toFixed(1)} s` : "-");
+      // The first change the maker sees: a file being written, or a block placed (ADR 0009).
+      const firstWrite = log.find((e) => e.kind === "tool-input" && e.length);
+      const firstBlock = log.find((e) => e.kind === "tool-result" && e.name === "mcp__upstart__use_block");
+      const calls = log.filter((e) => e.kind === "tool-input-end");
+      // How finely the home page reached the preview: each piece is a new rendering of it.
+      const pagePieces = log.filter((e) => e.kind === "tool-input" && e.path === "pages/index.liquid" && e.length);
+      say(
+        `[pi] pages/index.liquid: ${pagePieces.length} pieces, first at ${at(pagePieces[0])}, last at ${at(pagePieces.at(-1))}`,
+      );
+      say(
+        `[pi] turn ${((done - started) / 1000).toFixed(1)} s; first text written at ${at(firstWrite)} (${firstWrite?.path}); first block placed at ${at(firstBlock)}; ${calls.length} tool calls`,
+      );
+      say(`[pi] calls: ${calls.map((e) => `${at(e)} ${e.name}${e.path ? ` ${e.path}` : ""}`).join("; ")}`);
+      say(`[pi] problems: ${JSON.stringify(await problems())}`);
+      expect(item).toMatchObject({ kind: "agent", status: "done" });
+      expect(existsSync(join(project.path, "theme.css"))).toBe(true);
+      const page = readFileSync(join(project.path, "pages/index.liquid"), "utf8");
+      expect(page).toMatch(/<html|render/);
+      expect(firstWrite ?? firstBlock).toBeDefined();
+    },
+    420_000 * SLOW,
+  );
 
-  test("a second message continues the same conversation", async () => {
-    const before = await launched.window.getByTestId("agent-message").count();
-    await invoke("conversation:send", "Mets le nom du fleuriste en titre de l'onglet, sans rien changer d'autre.");
-    await turnEnded(before, 240_000);
-    const { items } = await invoke("conversation:get");
-    expect(items.at(-1)).toMatchObject({ kind: "agent", status: "done" });
-    const project = await invoke("projects:current");
-    expect(readFileSync(join(project.path, "pages/index.liquid"), "utf8")).toMatch(/<title>[^<]*Fleur de Loire/);
-  }, 260_000);
+  test(
+    "a second message continues the same conversation",
+    async () => {
+      const before = await launched.window.getByTestId("agent-message").count();
+      await invoke("conversation:send", "Mets le nom du fleuriste en titre de l'onglet, sans rien changer d'autre.");
+      await turnEnded(before, 240_000);
+      const { items } = await invoke("conversation:get");
+      expect(items.at(-1)).toMatchObject({ kind: "agent", status: "done" });
+      const project = await invoke("projects:current");
+      expect(readFileSync(join(project.path, "pages/index.liquid"), "utf8")).toMatch(/<title>[^<]*Fleur de Loire/);
+    },
+    260_000 * SLOW,
+  );
 
-  test("the agent searches the web with Google Search, then writes what it found", async () => {
-    const before = await launched.window.getByTestId("agent-message").count();
-    const from = ((await main(() => (globalThis as { piLog?: Logged[] }).piLog ?? [])) as Logged[]).length;
-    await invoke(
-      "conversation:send",
-      "Le fleuriste est en face du Jardin des Plantes de Nantes : cherche sur le web les horaires d'ouverture du jardin en hiver, et ajoute-les dans le pied de page, sous « Le jardin d'en face ».",
-    );
-    await turnEnded(before, 300_000);
-    const { items } = await invoke("conversation:get");
-    expect(items.at(-1)).toMatchObject({ kind: "agent", status: "done" });
-    const log = ((await main(() => (globalThis as { piLog?: Logged[] }).piLog ?? [])) as Logged[]).slice(from);
-    const searches = log.filter((e) => e.kind === "tool-result" && e.name === "WebSearch");
-    say(`[pi] searches: ${searches.length}; problems: ${JSON.stringify(await problems())}`);
-    expect(searches.length).toBeGreaterThan(0);
-    const project = await invoke("projects:current");
-    const footer = ["parts/footer.liquid", "pages/index.liquid"]
-      .map((f) => (existsSync(join(project.path, f)) ? readFileSync(join(project.path, f), "utf8") : ""))
-      .join("\n");
-    expect(footer).toMatch(/jardin d.en face/i);
-  }, 320_000);
+  test(
+    "the agent searches the web with Google Search, then writes what it found",
+    async () => {
+      const before = await launched.window.getByTestId("agent-message").count();
+      const from = ((await main(() => (globalThis as { piLog?: Logged[] }).piLog ?? [])) as Logged[]).length;
+      await invoke(
+        "conversation:send",
+        "Le fleuriste est en face du Jardin des Plantes de Nantes : cherche sur le web les horaires d'ouverture du jardin en hiver, et ajoute-les dans le pied de page, sous « Le jardin d'en face ».",
+      );
+      await turnEnded(before, 300_000);
+      const { items } = await invoke("conversation:get");
+      expect(items.at(-1)).toMatchObject({ kind: "agent", status: "done" });
+      const log = ((await main(() => (globalThis as { piLog?: Logged[] }).piLog ?? [])) as Logged[]).slice(from);
+      const searches = log.filter((e) => e.kind === "tool-result" && e.name === "WebSearch");
+      say(`[pi] searches: ${searches.length}; problems: ${JSON.stringify(await problems())}`);
+      expect(searches.length).toBeGreaterThan(0);
+      const project = await invoke("projects:current");
+      const footer = ["parts/footer.liquid", "pages/index.liquid"]
+        .map((f) => (existsSync(join(project.path, f)) ? readFileSync(join(project.path, f), "utf8") : ""))
+        .join("\n");
+      expect(footer).toMatch(/jardin d.en face/i);
+    },
+    320_000 * SLOW,
+  );
 });

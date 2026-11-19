@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
+import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 import { writeAdaptationRecording } from "./fixtures/adaptation-recording.ts";
 import { writePlanRecording, writeQuestionsRecording } from "./fixtures/questions-recording.ts";
 
@@ -129,193 +129,203 @@ body{margin:0;background:#808080;display:flex;gap:16px;padding:16px;width:max-co
     return file;
   };
 
-  test("a template's website: the start screen, the adaptation, the tabs, the preview, publishing, the settings, the tour", async () => {
-    rmSync(outDir, { recursive: true, force: true });
-    mkdirSync(outDir, { recursive: true });
-    const launched = await launchApp({
-      followAppearance: true,
-      tour: true,
-      env: { UPSTART_AGENT_REPLAY: recording(writeAdaptationRecording) },
-    });
-    const w = launched.window;
-    try {
-      await w.getByTestId("start").waitFor();
-      await until(() => w.getByTestId("template-card").count());
-      await step(launched, "start", async () => {});
-      await step(launched, "start-template-chosen", () =>
-        w.locator('[data-testid="template-card"][data-template="reel"] button[aria-pressed]').click(),
-      );
-      await w.getByTestId("message-input").fill("A website for Terra Lenta, a ceramics studio in Lisbon, with a shop.");
-      await w.getByTestId("message-input").press("Enter");
-      const card = w.locator('[data-testid="pages-card"][data-state="waiting"]');
-      await step(launched, "pages-card", async () => {
-        await card.waitFor();
-        await until(() => card.locator('[data-route="/work"] img').count());
+  test(
+    "a template's website: the start screen, the adaptation, the tabs, the preview, publishing, the settings, the tour",
+    async () => {
+      rmSync(outDir, { recursive: true, force: true });
+      mkdirSync(outDir, { recursive: true });
+      const launched = await launchApp({
+        followAppearance: true,
+        tour: true,
+        env: { UPSTART_AGENT_REPLAY: recording(writeAdaptationRecording) },
       });
-      // As the recording has it: the studio kept, then the contact page taken off.
-      await card.locator('[data-testid="pages-choice"][data-route="/studio"]').click();
-      await w.getByTestId("pages-keep").click();
-      await turnsDone(launched, 1);
-      await w
-        .locator('[data-testid="adaptation-step"][data-route="/contact"] [data-testid="adaptation-remove"]')
-        .click();
-      await step(launched, "adaptation-bar", () => w.getByTestId("adaptation-bar").waitFor());
-      await step(launched, "publish-during-adaptation", async () => {
-        await w.getByTestId("export-open").click();
-        await w.getByTestId("export-dialog").waitFor();
-      });
-      await w.keyboard.press("Escape");
-      await w.getByTestId("export-dialog").waitFor({ state: "detached" });
-      // The rest of the adaptation, then the tour.
-      for (let n = 2; n <= 4; n++) {
-        if (!(await w.getByTestId("adaptation-continue").count())) break;
-        await w.getByTestId("adaptation-continue").click();
-        await turnsDone(launched, n);
-        // The agent removes the contact page in that turn, which the recording only says.
-        if (n === 2) {
-          const { path } = await invoke<{ path: string }>(launched, "projects:current");
-          rmSync(join(path, "pages/contact.liquid"), { force: true });
-        }
-      }
-      await w.getByTestId("tour").waitFor({ timeout: 20_000 });
-      for (let i = 0; i < 5; i++) {
-        const name = await w.getByTestId("tour").getAttribute("data-step");
-        await step(launched, `tour-${i + 1}-${name}`, async () => {});
-        if (i < 4) {
-          if (await w.getByTestId("tour-next").count()) await w.getByTestId("tour-next").click();
-          else
-            await launched.app.evaluate(() =>
-              // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-              (globalThis as any).upstart.preview.view.webContents.executeJavaScript(
-                `document.querySelector("upstart-editor").shadowRoot.querySelector('[data-testid="page-tour-next"]').click()`,
-              ),
-            );
-          await until(async () => (await w.getByTestId("tour").getAttribute("data-step")) !== name);
-        }
-      }
-      await w.keyboard.press("Escape");
-      await w.getByTestId("tour").waitFor({ state: "detached" });
-
-      await step(launched, "conversation", () => w.getByTestId("tab-conversation").click());
-      await step(launched, "blocks", async () => {
-        await w.getByTestId("tab-blocks").click();
-        await until(() => w.locator('[data-testid="block"] img').count());
-      });
-      await step(launched, "theme", () => w.getByTestId("tab-theme").click());
-      await step(launched, "content", async () => {
-        await w.getByTestId("tab-content").click();
-        await w.getByTestId("datasource").first().waitFor();
-      });
-      await step(launched, "content-records", async () => {
-        await w.getByTestId("datasource").first().click();
-        await w.getByTestId("record").first().waitFor();
-      });
-      await step(launched, "content-record", async () => {
-        await w.getByTestId("record").first().click();
-        await w.getByTestId("record-form").waitFor();
-      });
-      await w.getByTestId("tab-content").click();
-      if (await w.getByTestId("content-back").count()) await w.getByTestId("content-back").first().click();
-      await step(launched, "content-media", async () => {
-        if (await w.getByTestId("content-back").count()) await w.getByTestId("content-back").first().click();
-        await w.getByTestId("content-media").click();
-        await w.getByTestId("media").waitFor();
-      });
-      await w.getByTestId("tab-conversation").click();
-
-      await step(launched, "preview-edit", () => w.getByTestId("mode-edit").click());
-      await step(launched, "preview-comment", () => w.getByTestId("mode-comment").click());
-      await step(launched, "preview-visitor", () => w.getByTestId("mode-visitor").click());
-      await w.getByTestId("mode-edit").click();
-      await step(launched, "preview-tablet", () => w.getByTestId("width-tablet").click());
-      await step(launched, "preview-phone", () => w.getByTestId("width-phone").click());
-      await w.getByTestId("width-desktop").click();
-      await step(launched, "all-pages", async () => {
-        await w.getByTestId("view-pages").click();
-        await w.getByTestId("pages-grid").waitFor();
-        await new Promise((r) => setTimeout(r, 1500));
-      });
-      await w.getByTestId("view-page").click();
-      // The zoom back to the page lands once the page is drawn.
-      await new Promise((r) => setTimeout(r, 2000));
-      await step(launched, "history", async () => {
-        await w.getByTestId("history").click();
-        await w.getByTestId("history-entry").first().waitFor();
-        await new Promise((r) => setTimeout(r, 600));
-      });
-      await w.keyboard.press("Escape");
-      await step(launched, "publish", async () => {
-        await w.getByTestId("export-open").click();
-        await w.getByTestId("export-dialog").waitFor();
-        await until(() => w.getByTestId("publish-choice").count());
-      });
-      await w.keyboard.press("Escape");
-      await w.getByTestId("export-dialog").waitFor({ state: "detached" });
-      // A first export into a folder, as the folder's dialog would give it; then Publish exports again there.
-      await invoke(launched, "export:run", mkdtempSync(join(tmpdir(), "upstart-screens-export-")), "static");
-      await step(launched, "publish-done", async () => {
-        await w.getByTestId("export-open").click();
-        await w.locator('[data-testid="publish-choice"][data-id="static"]').click();
-        await w.getByTestId("export-again").click();
-        await w.getByTestId("export-result").waitFor({ timeout: 30_000 });
-      });
-      await w.keyboard.press("Escape");
-      await w
-        .getByTestId("export-dialog")
-        .waitFor({ state: "detached" })
-        .catch(() => {});
-
-      for (const page of ["general", "agent", "skills", "connectors", "privacy", "about"]) {
-        await step(launched, `settings-${page}`, async () => {
-          await invoke(launched, "settings:open", page);
-          await w.getByTestId("settings").waitFor();
-          await new Promise((r) => setTimeout(r, 300));
-        });
-      }
-      await w.keyboard.press("Escape");
-      await w.getByTestId("settings").waitFor({ state: "detached" });
-      await step(launched, "site-settings", async () => {
-        await w.getByTestId("project-settings").first().click();
-        await w.getByTestId("site-settings").waitFor();
-      });
-      await w.keyboard.press("Escape");
-      await step(launched, "shortcuts", async () => {
-        await launched.app.evaluate(({ Menu }) => {
-          const help = Menu.getApplicationMenu()?.items.find((m) => m.role === "help");
-          help?.submenu?.items.find((i) => i.label === "Keyboard Shortcuts")?.click();
-        });
-        await w.getByTestId("shortcuts").waitFor();
-      });
-      await w.keyboard.press("Escape");
-      await step(launched, "start-with-websites", async () => {
-        await invoke(launched, "projects:close");
-        await w.getByTestId("start").waitFor();
-      });
-    } finally {
-      await launched.close();
-    }
-  }, 900_000);
-
-  test("the agent's cards: a question and a plan", async () => {
-    for (const [name, write, plan] of [
-      ["question-card", writeQuestionsRecording, false],
-      ["plan-card", writePlanRecording, true],
-    ] as const) {
-      const launched = await launchApp({ followAppearance: true, env: { UPSTART_AGENT_REPLAY: recording(write) } });
       const w = launched.window;
       try {
-        await w.getByTestId("message-input").waitFor();
-        if (plan) await w.getByTestId("mode-select").selectOption("plan");
-        await w.getByTestId("message-input").fill("A bakery in Lyon.");
-        await w.getByTestId("message-input").press("Enter");
-        await step(launched, name, () =>
-          w.locator(`[data-testid="${name}"][data-state="${plan ? "proposed" : "waiting"}"]`).waitFor(),
+        await w.getByTestId("start").waitFor();
+        await until(() => w.getByTestId("template-card").count());
+        await step(launched, "start", async () => {});
+        await step(launched, "start-template-chosen", () =>
+          w.locator('[data-testid="template-card"][data-template="reel"] button[aria-pressed]').click(),
         );
+        await w
+          .getByTestId("message-input")
+          .fill("A website for Terra Lenta, a ceramics studio in Lisbon, with a shop.");
+        await w.getByTestId("message-input").press("Enter");
+        const card = w.locator('[data-testid="pages-card"][data-state="waiting"]');
+        await step(launched, "pages-card", async () => {
+          await card.waitFor();
+          await until(() => card.locator('[data-route="/work"] img').count());
+        });
+        // As the recording has it: the studio kept, then the contact page taken off.
+        await card.locator('[data-testid="pages-choice"][data-route="/studio"]').click();
+        await w.getByTestId("pages-keep").click();
+        await turnsDone(launched, 1);
+        await w
+          .locator('[data-testid="adaptation-step"][data-route="/contact"] [data-testid="adaptation-remove"]')
+          .click();
+        await step(launched, "adaptation-bar", () => w.getByTestId("adaptation-bar").waitFor());
+        await step(launched, "publish-during-adaptation", async () => {
+          await w.getByTestId("export-open").click();
+          await w.getByTestId("export-dialog").waitFor();
+        });
+        await w.keyboard.press("Escape");
+        await w.getByTestId("export-dialog").waitFor({ state: "detached" });
+        // The rest of the adaptation, then the tour.
+        for (let n = 2; n <= 4; n++) {
+          if (!(await w.getByTestId("adaptation-continue").count())) break;
+          await w.getByTestId("adaptation-continue").click();
+          await turnsDone(launched, n);
+          // The agent removes the contact page in that turn, which the recording only says.
+          if (n === 2) {
+            const { path } = await invoke<{ path: string }>(launched, "projects:current");
+            rmSync(join(path, "pages/contact.liquid"), { force: true });
+          }
+        }
+        await w.getByTestId("tour").waitFor({ timeout: 20_000 });
+        for (let i = 0; i < 5; i++) {
+          const name = await w.getByTestId("tour").getAttribute("data-step");
+          await step(launched, `tour-${i + 1}-${name}`, async () => {});
+          if (i < 4) {
+            if (await w.getByTestId("tour-next").count()) await w.getByTestId("tour-next").click();
+            else
+              await launched.app.evaluate(() =>
+                // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+                (globalThis as any).upstart.preview.view.webContents.executeJavaScript(
+                  `document.querySelector("upstart-editor").shadowRoot.querySelector('[data-testid="page-tour-next"]').click()`,
+                ),
+              );
+            await until(async () => (await w.getByTestId("tour").getAttribute("data-step")) !== name);
+          }
+        }
+        await w.keyboard.press("Escape");
+        await w.getByTestId("tour").waitFor({ state: "detached" });
+
+        await step(launched, "conversation", () => w.getByTestId("tab-conversation").click());
+        await step(launched, "blocks", async () => {
+          await w.getByTestId("tab-blocks").click();
+          await until(() => w.locator('[data-testid="block"] img').count());
+        });
+        await step(launched, "theme", () => w.getByTestId("tab-theme").click());
+        await step(launched, "content", async () => {
+          await w.getByTestId("tab-content").click();
+          await w.getByTestId("datasource").first().waitFor();
+        });
+        await step(launched, "content-records", async () => {
+          await w.getByTestId("datasource").first().click();
+          await w.getByTestId("record").first().waitFor();
+        });
+        await step(launched, "content-record", async () => {
+          await w.getByTestId("record").first().click();
+          await w.getByTestId("record-form").waitFor();
+        });
+        await w.getByTestId("tab-content").click();
+        if (await w.getByTestId("content-back").count()) await w.getByTestId("content-back").first().click();
+        await step(launched, "content-media", async () => {
+          if (await w.getByTestId("content-back").count()) await w.getByTestId("content-back").first().click();
+          await w.getByTestId("content-media").click();
+          await w.getByTestId("media").waitFor();
+        });
+        await w.getByTestId("tab-conversation").click();
+
+        await step(launched, "preview-edit", () => w.getByTestId("mode-edit").click());
+        await step(launched, "preview-comment", () => w.getByTestId("mode-comment").click());
+        await step(launched, "preview-visitor", () => w.getByTestId("mode-visitor").click());
+        await w.getByTestId("mode-edit").click();
+        await step(launched, "preview-tablet", () => w.getByTestId("width-tablet").click());
+        await step(launched, "preview-phone", () => w.getByTestId("width-phone").click());
+        await w.getByTestId("width-desktop").click();
+        await step(launched, "all-pages", async () => {
+          await w.getByTestId("view-pages").click();
+          await w.getByTestId("pages-grid").waitFor();
+          await new Promise((r) => setTimeout(r, 1500));
+        });
+        await w.getByTestId("view-page").click();
+        // The zoom back to the page lands once the page is drawn.
+        await new Promise((r) => setTimeout(r, 2000));
+        await step(launched, "history", async () => {
+          await w.getByTestId("history").click();
+          await w.getByTestId("history-entry").first().waitFor();
+          await new Promise((r) => setTimeout(r, 600));
+        });
+        await w.keyboard.press("Escape");
+        await step(launched, "publish", async () => {
+          await w.getByTestId("export-open").click();
+          await w.getByTestId("export-dialog").waitFor();
+          await until(() => w.getByTestId("publish-choice").count());
+        });
+        await w.keyboard.press("Escape");
+        await w.getByTestId("export-dialog").waitFor({ state: "detached" });
+        // A first export into a folder, as the folder's dialog would give it; then Publish exports again there.
+        await invoke(launched, "export:run", mkdtempSync(join(tmpdir(), "upstart-screens-export-")), "static");
+        await step(launched, "publish-done", async () => {
+          await w.getByTestId("export-open").click();
+          await w.locator('[data-testid="publish-choice"][data-id="static"]').click();
+          await w.getByTestId("export-again").click();
+          await w.getByTestId("export-result").waitFor({ timeout: 30_000 });
+        });
+        await w.keyboard.press("Escape");
+        await w
+          .getByTestId("export-dialog")
+          .waitFor({ state: "detached" })
+          .catch(() => {});
+
+        for (const page of ["general", "agent", "skills", "connectors", "privacy", "about"]) {
+          await step(launched, `settings-${page}`, async () => {
+            await invoke(launched, "settings:open", page);
+            await w.getByTestId("settings").waitFor();
+            await new Promise((r) => setTimeout(r, 300));
+          });
+        }
+        await w.keyboard.press("Escape");
+        await w.getByTestId("settings").waitFor({ state: "detached" });
+        await step(launched, "site-settings", async () => {
+          await w.getByTestId("project-settings").first().click();
+          await w.getByTestId("site-settings").waitFor();
+        });
+        await w.keyboard.press("Escape");
+        await step(launched, "shortcuts", async () => {
+          await launched.app.evaluate(({ Menu }) => {
+            const help = Menu.getApplicationMenu()?.items.find((m) => m.role === "help");
+            help?.submenu?.items.find((i) => i.label === "Keyboard Shortcuts")?.click();
+          });
+          await w.getByTestId("shortcuts").waitFor();
+        });
+        await w.keyboard.press("Escape");
+        await step(launched, "start-with-websites", async () => {
+          await invoke(launched, "projects:close");
+          await w.getByTestId("start").waitFor();
+        });
       } finally {
         await launched.close();
       }
-    }
-  }, 300_000);
+    },
+    900_000 * SLOW,
+  );
+
+  test(
+    "the agent's cards: a question and a plan",
+    async () => {
+      for (const [name, write, plan] of [
+        ["question-card", writeQuestionsRecording, false],
+        ["plan-card", writePlanRecording, true],
+      ] as const) {
+        const launched = await launchApp({ followAppearance: true, env: { UPSTART_AGENT_REPLAY: recording(write) } });
+        const w = launched.window;
+        try {
+          await w.getByTestId("message-input").waitFor();
+          if (plan) await w.getByTestId("mode-select").selectOption("plan");
+          await w.getByTestId("message-input").fill("A bakery in Lyon.");
+          await w.getByTestId("message-input").press("Enter");
+          await step(launched, name, () =>
+            w.locator(`[data-testid="${name}"][data-state="${plan ? "proposed" : "waiting"}"]`).waitFor(),
+          );
+        } finally {
+          await launched.close();
+        }
+      }
+    },
+    300_000 * SLOW,
+  );
 
   test("the index", () => {
     const rows = shots

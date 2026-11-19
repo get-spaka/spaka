@@ -6,7 +6,7 @@
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
+import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 import { type BlogReport, buildBlog } from "./blog-check.ts";
 
 const real = process.env.UPSTART_REAL_AGENT === "1";
@@ -24,23 +24,27 @@ describe.skipIf(!real)("a blog with the real agent", () => {
       env: { UPSTART_AGENT_REPLAY: "", UPSTART_AGENT_CONFIG_DIR: configDir, UPSTART_AGENT_RECORD: record },
     });
     await launched.window.getByTestId("message-input").waitFor();
-  }, 60_000);
+  }, 60_000 * SLOW);
   afterAll(async () => {
     writeFileSync(join(runsDir, "real-agent-blog.json"), JSON.stringify(report ?? {}, null, 2));
     await launched?.close();
   });
 
-  test("a blog of three posts with photos and their credits", async () => {
-    report = await buildBlog(launched, record);
-    process.stdout.write(`[blog] ${JSON.stringify(report)}\n`);
-    await launched.capture("real-agent-blog");
-    const problems = await launched.app.evaluate(() =>
-      [
-        ...(
-          globalThis as { upstart?: { agent: { sessions: Map<string, { problems: string[] }> } } }
-        ).upstart!.agent.sessions.values(),
-      ].flatMap((s) => s.problems),
-    );
-    expect(problems).toEqual([]);
-  }, 960_000);
+  test(
+    "a blog of three posts with photos and their credits",
+    async () => {
+      report = await buildBlog(launched, record);
+      process.stdout.write(`[blog] ${JSON.stringify(report)}\n`);
+      await launched.capture("real-agent-blog");
+      const problems = await launched.app.evaluate(() =>
+        [
+          ...(
+            globalThis as { upstart?: { agent: { sessions: Map<string, { problems: string[] }> } } }
+          ).upstart!.agent.sessions.values(),
+        ].flatMap((s) => s.problems),
+      );
+      expect(problems).toEqual([]);
+    },
+    960_000 * SLOW,
+  );
 });

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp } from "./app.ts";
+import { type LaunchedApp, launchApp, SLOW } from "./app.ts";
 
 // The accounts (Q269, Q275): at first launch the panel offers Claude, ChatGPT
 // or an API key; a key connects its account, whose models the selector then
@@ -46,7 +46,7 @@ describe("the accounts", () => {
     await w.getByTestId("message-input").waitFor();
     // A fresh installation: Claude's binary is not signed in.
     await until(async () => (await invoke("agent:status")).auth === "signed-out", 30_000);
-  }, 60_000);
+  }, 60_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
   });

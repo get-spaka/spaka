@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
+import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 import { previewDriver } from "./preview-driver.ts";
 
 // The agent's words as Markdown in the conversation, rendered while they
@@ -60,7 +60,7 @@ describe("the agent's Markdown in the conversation", () => {
     await w().getByTestId("message-input").waitFor();
     await invoke("conversation:send", "A bakery in Lyon. Warm colours please.");
     await until(() => w().locator('[data-testid="agent-message"][data-status="done"]').count(), 30_000);
-  }, 60_000);
+  }, 60_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
   });

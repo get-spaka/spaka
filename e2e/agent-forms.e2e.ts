@@ -3,7 +3,7 @@
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, test } from "vitest";
-import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
+import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 import { buildGuestbook } from "./guestbook-check.ts";
 
 const real = process.env.UPSTART_REAL_AGENT === "1";
@@ -20,14 +20,18 @@ describe.skipIf(!real)("forms with the real agent", () => {
       env: { UPSTART_AGENT_REPLAY: "", UPSTART_AGENT_CONFIG_DIR: configDir, UPSTART_AGENT_RECORD: record },
     });
     await launched.window.getByTestId("message-input").waitFor();
-  }, 60_000);
+  }, 60_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
   });
 
-  test("a guestbook shown once approved and a contact form", async () => {
-    const report = await buildGuestbook(launched);
-    writeFileSync(join(runsDir, "real-agent-forms.json"), JSON.stringify(report, null, 2));
-    writeFileSync(join(runsDir, "real-agent-forms.png"), await launched.window.screenshot());
-  }, 960_000);
+  test(
+    "a guestbook shown once approved and a contact form",
+    async () => {
+      const report = await buildGuestbook(launched);
+      writeFileSync(join(runsDir, "real-agent-forms.json"), JSON.stringify(report, null, 2));
+      writeFileSync(join(runsDir, "real-agent-forms.png"), await launched.window.screenshot());
+    },
+    960_000 * SLOW,
+  );
 });

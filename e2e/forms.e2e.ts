@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp } from "./app.ts";
+import { type LaunchedApp, launchApp, SLOW } from "./app.ts";
 import { previewDriver } from "./preview-driver.ts";
 
 // Forms in the preview (Q171-Q189), on the recorded bakery with a guestbook
@@ -93,7 +93,7 @@ describe("forms in the preview", () => {
     await invoke("preview:set-mode", "visitor");
     // Until the page has it, the editor keeps the page's own submits and clicks.
     await until(() => page(`document.querySelector("upstart-editor")?.dataset.mode === "visitor"`));
-  }, 90_000);
+  }, 90_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
   });

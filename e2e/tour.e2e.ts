@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
+import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 import { previewDriver } from "./preview-driver.ts";
 
 // The tour (Q328-Q340), for a new maker, on the recorded bakery: it opens once
@@ -37,7 +37,7 @@ describe("the tour", () => {
   beforeAll(async () => {
     launched = await launchApp({ tour: true });
     await w().getByTestId("message-input").waitFor();
-  }, 60_000);
+  }, 60_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
   });

@@ -1,7 +1,7 @@
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp } from "./app.ts";
+import { type LaunchedApp, launchApp, SLOW } from "./app.ts";
 import { previewDriver } from "./preview-driver.ts";
 
 const FIXTURE = join(import.meta.dirname, "fixtures/images");
@@ -57,7 +57,7 @@ describe("a list of images", () => {
       '<!doctype html><html><head><title>Home</title></head><body><h1>{{ record.address }}</h1><div class="strip" style="display:flex;gap:16px">{% for photo in record.photos %}<img src="{{ photo }}" alt="" width="160" height="120">{% endfor %}</div></body></html>',
     );
     await w().getByTestId("tab-content").click();
-  }, 60_000);
+  }, 60_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
   });

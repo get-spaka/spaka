@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp } from "./app.ts";
+import { type LaunchedApp, launchApp, SLOW } from "./app.ts";
 import { previewDriver } from "./preview-driver.ts";
 
 // Comments for the agent (Q95), with the recorded agent: written on several
@@ -27,7 +27,7 @@ describe("comments on the page", () => {
     await invoke("preview:set-view", "page");
     await invoke("preview:navigate", "/");
     await until(() => page("!!document.querySelector('upstart-editor') && location.pathname === '/'"));
-  }, 60_000);
+  }, 60_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
   });

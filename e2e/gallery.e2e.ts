@@ -2,7 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { PALETTES } from "../apps/desktop/src/shared/palettes.ts";
-import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
+import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 import { previewDriver } from "./preview-driver.ts";
 
 /** The checks that place or capture the preview's native view: a CI runner's hidden window does not lay it out as a screen does. */
@@ -30,7 +30,7 @@ describe("the gallery of blocks", () => {
     await invoke("preview:navigate", "/");
     await until(() => page("!!document.querySelector('upstart-editor') && location.pathname === '/'"));
     blocks = await invoke("gallery:list");
-  }, 60_000);
+  }, 60_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
   });
@@ -41,20 +41,24 @@ describe("the gallery of blocks", () => {
     return [...kinds].reduce((n, k) => n + Math.min(2, blocks.filter((b) => b.kind === k).length), 0);
   };
 
-  test("the Blocks tab shows the kinds as groups, their count and first blocks, drawn with the project's theme (Q204)", async () => {
-    await launched.window.getByTestId("tab-blocks").click();
-    const cards = launched.window.getByTestId("block");
-    const groups = launched.window.getByTestId("blocks-group");
-    await until(async () => (await cards.count()) === closed());
-    expect(blocks.length).toBeGreaterThanOrEqual(24);
-    expect(await groups.count()).toBe(new Set(blocks.map((b) => b.kind)).size);
-    // The first ones on screen are drawn.
-    const first = launched.window.locator('[data-testid="block"] img').first();
-    await first.waitFor({ timeout: 20_000 });
-    expect(await first.getAttribute("src")).toMatch(/^data:image\/png;base64,/);
-    await until(async () => (await launched.window.locator('[data-testid="block"] img').count()) >= 4, 20_000);
-    await launched.window.screenshot({ path: join(__dirname, ".runs/gallery-tab.png") });
-  }, 40_000);
+  test(
+    "the Blocks tab shows the kinds as groups, their count and first blocks, drawn with the project's theme (Q204)",
+    async () => {
+      await launched.window.getByTestId("tab-blocks").click();
+      const cards = launched.window.getByTestId("block");
+      const groups = launched.window.getByTestId("blocks-group");
+      await until(async () => (await cards.count()) === closed());
+      expect(blocks.length).toBeGreaterThanOrEqual(24);
+      expect(await groups.count()).toBe(new Set(blocks.map((b) => b.kind)).size);
+      // The first ones on screen are drawn.
+      const first = launched.window.locator('[data-testid="block"] img').first();
+      await first.waitFor({ timeout: 20_000 });
+      expect(await first.getAttribute("src")).toMatch(/^data:image\/png;base64,/);
+      await until(async () => (await launched.window.locator('[data-testid="block"] img').count()) >= 4, 20_000);
+      await launched.window.screenshot({ path: join(__dirname, ".runs/gallery-tab.png") });
+    },
+    40_000 * SLOW,
+  );
 
   test("a group opened shows all its blocks; a kind's chip narrows to that kind (Q204)", async () => {
     const w = launched.window;
@@ -257,44 +261,53 @@ describe("the gallery of blocks", () => {
     expect(existsSync(join(path, `parts/${hero.id}.liquid`))).toBe(false);
   });
 
-  test("every block reads well with a light, a warm and a dark palette", async () => {
-    const failures: string[] = [];
-    for (const id of ["paper", "bakery", "midnight"]) {
-      const colors = PALETTES.find((p) => p.id === id)!.colors;
-      const css = `:root {\n${Object.entries(colors)
-        .map(([k, v]) => `  ${k}: ${v};`)
-        .join(
-          "\n",
-        )}\n  --theme-font-heading: Georgia, serif;\n  --theme-font-body: system-ui, sans-serif;\n  --theme-radius: 0.75rem;\n}\n`;
-      writeFileSync(join(path, "theme.css"), css);
-      const origin = await launched.app.evaluate(
-        // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-        () => (globalThis as any).upstart.preview.origin as string,
-      );
-      await until(async () =>
-        (await (await fetch(`${origin}/theme.css`)).text()).includes(colors["--theme-color-primary"]),
-      );
-      const found = (await launched.app.evaluate(
-        async ({ BrowserWindow }, { ids, origin, check }) => {
-          const win = new BrowserWindow({ show: false, width: 1280, height: 900, webPreferences: { offscreen: true } });
-          const out: string[] = [];
-          try {
-            for (const id of ids) {
-              await win.loadURL(`${origin}/__up/block/${id}`);
-              out.push(...((await win.webContents.executeJavaScript(check)) as string[]).map((f) => `${id}: ${f}`));
+  test(
+    "every block reads well with a light, a warm and a dark palette",
+    async () => {
+      const failures: string[] = [];
+      for (const id of ["paper", "bakery", "midnight"]) {
+        const colors = PALETTES.find((p) => p.id === id)!.colors;
+        const css = `:root {\n${Object.entries(colors)
+          .map(([k, v]) => `  ${k}: ${v};`)
+          .join(
+            "\n",
+          )}\n  --theme-font-heading: Georgia, serif;\n  --theme-font-body: system-ui, sans-serif;\n  --theme-radius: 0.75rem;\n}\n`;
+        writeFileSync(join(path, "theme.css"), css);
+        const origin = await launched.app.evaluate(
+          // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+          () => (globalThis as any).upstart.preview.origin as string,
+        );
+        await until(async () =>
+          (await (await fetch(`${origin}/theme.css`)).text()).includes(colors["--theme-color-primary"]),
+        );
+        const found = (await launched.app.evaluate(
+          async ({ BrowserWindow }, { ids, origin, check }) => {
+            const win = new BrowserWindow({
+              show: false,
+              width: 1280,
+              height: 900,
+              webPreferences: { offscreen: true },
+            });
+            const out: string[] = [];
+            try {
+              for (const id of ids) {
+                await win.loadURL(`${origin}/__up/block/${id}`);
+                out.push(...((await win.webContents.executeJavaScript(check)) as string[]).map((f) => `${id}: ${f}`));
+              }
+            } finally {
+              win.destroy();
             }
-          } finally {
-            win.destroy();
-          }
-          return out;
-        },
-        { ids: blocks.map((b) => b.id), origin, check: CONTRAST_CHECK },
-      )) as string[];
-      failures.push(...found.map((f) => `[${id}] ${f}`));
-    }
-    writeFileSync(join(__dirname, ".runs/gallery-contrast.txt"), failures.join("\n"));
-    expect(failures).toEqual([]);
-  }, 120_000);
+            return out;
+          },
+          { ids: blocks.map((b) => b.id), origin, check: CONTRAST_CHECK },
+        )) as string[];
+        failures.push(...found.map((f) => `[${id}] ${f}`));
+      }
+      writeFileSync(join(__dirname, ".runs/gallery-contrast.txt"), failures.join("\n"));
+      expect(failures).toEqual([]);
+    },
+    120_000 * SLOW,
+  );
 });
 
 /**

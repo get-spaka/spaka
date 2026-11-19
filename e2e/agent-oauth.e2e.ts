@@ -8,7 +8,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
+import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 
 const trial = process.env.UPSTART_REAL_AGENT === "1" && process.env.UPSTART_OAUTH_TRIAL === "1";
 const configDir = join(import.meta.dirname, "../.cache/agent-config");
@@ -70,49 +70,53 @@ describe.skipIf(!trial)("signing in to a connector with the real agent", () => {
     });
     await launched.window.getByTestId("message-input").waitFor();
     await until(async () => (await invoke("agent:status")).auth === "signed-in", 30_000);
-  }, 60_000);
+  }, 60_000 * SLOW);
   afterAll(async () => {
     writeFileSync(join(runsDir, "real-agent-oauth.json"), JSON.stringify(report, null, 2));
     await launched?.close();
   });
 
-  test("the connector asks to sign in; once signed in in the browser, its tools are the agent's", async () => {
-    await invoke("connectors:add", "app", { name: NAME, kind: "remote", target: TARGET });
-    const first = await turn("Do not build anything yet. Reply with the single word: ready");
-    expect(first.status).toBe("done");
-    await until(async () => (await status())?.status === "needs-auth", 60_000);
-    report.before = await status();
+  test(
+    "the connector asks to sign in; once signed in in the browser, its tools are the agent's",
+    async () => {
+      await invoke("connectors:add", "app", { name: NAME, kind: "remote", target: TARGET });
+      const first = await turn("Do not build anything yet. Reply with the single word: ready");
+      expect(first.status).toBe("done");
+      await until(async () => (await status())?.status === "needs-auth", 60_000);
+      report.before = await status();
 
-    // The button's channel: the kit answers the sign-in page; the test opens it in the browser.
-    const started = Date.now();
-    const { url } = (await invoke("connectors:sign-in", NAME)) as { url?: string };
-    expect(url).toMatch(/^https:\/\//);
-    report.signInHost = new URL(url!).host;
-    execFileSync("open", [url!]);
-    process.stdout.write(`[oauth] sign-in page opened at ${report.signInHost}; waiting up to 5 minutes\n`);
-    await until(async () => (await status())?.status === "connected", 300_000);
-    report.signedInMs = Date.now() - started;
-    report.after = await status();
+      // The button's channel: the kit answers the sign-in page; the test opens it in the browser.
+      const started = Date.now();
+      const { url } = (await invoke("connectors:sign-in", NAME)) as { url?: string };
+      expect(url).toMatch(/^https:\/\//);
+      report.signInHost = new URL(url!).host;
+      execFileSync("open", [url!]);
+      process.stdout.write(`[oauth] sign-in page opened at ${report.signInHost}; waiting up to 5 minutes\n`);
+      await until(async () => (await status())?.status === "connected", 300_000);
+      report.signedInMs = Date.now() - started;
+      report.after = await status();
 
-    // The agent has the connector's tools now.
-    const item = await turn(
-      `Without calling any tool, list the names of the tools you have whose names start with mcp__${NAME}__, one per line, nothing else.`,
-    );
-    const text = item.parts
-      .filter((p: { kind: string }) => p.kind === "text")
-      .map((p: { text: string }) => p.text)
-      .join("");
-    report.tools = text.split("\n").filter((l: string) => l.includes(`mcp__${NAME}__`));
-    expect((report.tools as string[]).length).toBeGreaterThan(0);
+      // The agent has the connector's tools now.
+      const item = await turn(
+        `Without calling any tool, list the names of the tools you have whose names start with mcp__${NAME}__, one per line, nothing else.`,
+      );
+      const text = item.parts
+        .filter((p: { kind: string }) => p.kind === "text")
+        .map((p: { text: string }) => p.text)
+        .join("");
+      report.tools = text.split("\n").filter((l: string) => l.includes(`mcp__${NAME}__`));
+      expect((report.tools as string[]).length).toBeGreaterThan(0);
 
-    // Nothing of the token in the project or in Upstart's own data.
-    const project = (await invoke("projects:current")).path as string;
-    const leaks = [...files(project), ...files(dataDir)].filter((f) => {
-      if (statSync(f).size > 2_000_000) return false;
-      const text = readFileSync(f, "utf8");
-      return /access_token|refresh_token|mcpOAuth/.test(text);
-    });
-    report.leaks = leaks;
-    expect(leaks).toEqual([]);
-  }, 480_000);
+      // Nothing of the token in the project or in Upstart's own data.
+      const project = (await invoke("projects:current")).path as string;
+      const leaks = [...files(project), ...files(dataDir)].filter((f) => {
+        if (statSync(f).size > 2_000_000) return false;
+        const text = readFileSync(f, "utf8");
+        return /access_token|refresh_token|mcpOAuth/.test(text);
+      });
+      report.leaks = leaks;
+      expect(leaks).toEqual([]);
+    },
+    480_000 * SLOW,
+  );
 });

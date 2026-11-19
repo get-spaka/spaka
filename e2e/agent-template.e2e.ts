@@ -12,7 +12,7 @@ import { join, relative } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { sentencesOf, templateTexts } from "../apps/desktop/src/main/templates/adapt.ts";
 import { readTemplateFolder } from "../apps/desktop/src/main/templates/reader.ts";
-import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
+import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 
 const real = process.env.UPSTART_REAL_AGENT === "1";
 const configDir = join(import.meta.dirname, "../.cache/agent-config");
@@ -106,131 +106,137 @@ describe.skipIf(!real).each(CASES.filter((c) => !only || c.name === only))(
         },
       });
       await launched.window.getByTestId("start").waitFor();
-    }, 90_000);
+    }, 90_000 * SLOW);
     afterAll(async () => {
       writeFileSync(join(runsDir, `real-agent-template-${name}.json`), JSON.stringify(report, null, 2));
       await launched?.close();
     });
 
-    test("a business of the maker's: rewritten, in the maker's language, its design and effects kept", async () => {
-      const w = launched.window;
-      // Chosen on the start screen, then described, as a maker does.
-      await w.locator(`[data-testid="template-card"][data-template="${TEMPLATE}"] button[aria-pressed]`).click();
-      await w.getByTestId("message-input").fill(message);
-      const started = Date.now();
-      await w.getByTestId("message-input").press("Enter");
-      await w.getByTestId("conversation").waitFor({ timeout: 120_000 });
-      for (;;) {
-        const state = await invoke("conversation:get");
-        const last = state?.items.at(-1);
-        if (last?.kind === "agent" && last.status !== "working") break;
-        if (Date.now() - started > 1_800_000) throw new Error("the agent did not finish in 30 minutes");
-        await new Promise((r) => setTimeout(r, 1000));
-      }
-      report.turnMs = Date.now() - started;
-      const project = await invoke("projects:current");
-      const path: string = project.path;
-      report.project = path;
-      const read = (file: string) => (existsSync(join(path, file)) ? readFileSync(join(path, file), "utf8") : "");
-      const checks: Record<string, boolean> = {};
+    test(
+      "a business of the maker's: rewritten, in the maker's language, its design and effects kept",
+      async () => {
+        const w = launched.window;
+        // Chosen on the start screen, then described, as a maker does.
+        await w.locator(`[data-testid="template-card"][data-template="${TEMPLATE}"] button[aria-pressed]`).click();
+        await w.getByTestId("message-input").fill(message);
+        const started = Date.now();
+        await w.getByTestId("message-input").press("Enter");
+        await w.getByTestId("conversation").waitFor({ timeout: 120_000 });
+        for (;;) {
+          const state = await invoke("conversation:get");
+          const last = state?.items.at(-1);
+          if (last?.kind === "agent" && last.status !== "working") break;
+          if (Date.now() - started > 1_800_000) throw new Error("the agent did not finish in 30 minutes");
+          await new Promise((r) => setTimeout(r, 1000));
+        }
+        report.turnMs = Date.now() - started;
+        const project = await invoke("projects:current");
+        const path: string = project.path;
+        report.project = path;
+        const read = (file: string) => (existsSync(join(path, file)) ? readFileSync(join(path, file), "utf8") : "");
+        const checks: Record<string, boolean> = {};
 
-      // The template, downloaded from the release into the app's cache, recorded in the project.
-      const version: string = project.template?.version ?? "";
-      const cached = join(dataDir(), "template-cache/templates", TEMPLATE, version);
-      checks["started from the template"] = project.template?.id === TEMPLATE;
-      checks["downloaded into the cache"] = existsSync(join(cached, "template.json"));
-      const files = readTemplateFolder(cached);
-      const original = (file: string) => files.get(file)?.toString("utf8") ?? "";
+        // The template, downloaded from the release into the app's cache, recorded in the project.
+        const version: string = project.template?.version ?? "";
+        const cached = join(dataDir(), "template-cache/templates", TEMPLATE, version);
+        checks["started from the template"] = project.template?.id === TEMPLATE;
+        checks["downloaded into the cache"] = existsSync(join(cached, "template.json"));
+        const files = readTemplateFolder(cached);
+        const original = (file: string) => files.get(file)?.toString("utf8") ?? "";
 
-      // Every text rewritten: none of the template's sentences, nor its invented business, left.
-      const template = new Set(templateTexts(files).map((s) => s.toLowerCase().replace(/\s+/g, " ")));
-      const siteFiles = walk(path)
-        .map((f) => relative(path, f))
-        .filter((f) => TEXT_FILE.test(f));
-      const left = siteFiles.flatMap((file) =>
-        sentencesOf(file, read(file))
-          .filter((s) => template.has(s.toLowerCase().replace(/\s+/g, " ")))
-          .map((s) => `${file}: ${s}`),
-      );
-      report.templateTextsLeft = left;
-      checks["no template text left"] = left.length === 0;
-      report.inventedLeft = siteFiles.filter((f) => invented.test(read(f)));
-      checks["no invented business left"] = (report.inventedLeft as string[]).length === 0;
-      checks["about the maker's business"] = business.test(siteFiles.map(read).join("\n"));
-      // Upstart named what was left at the end of a turn, if anything was (Q246).
-      report.toldOfTemplateTexts = messages().filter(
-        (m) => m?.type === "user" && JSON.stringify(m).includes("of the template's invented business"),
-      ).length;
-
-      // The images replaced, with their credits; none of the template's still shown.
-      report.findImages = calls("mcp__upstart__find_images").length;
-      report.useImage = calls("mcp__upstart__use_image").length;
-      const templateMedia = [...files.keys()].filter((f) => f.startsWith("media/") && !f.endsWith(".json"));
-      const shown = siteFiles.map(read).join("\n") + read("theme.css");
-      report.templateImagesShown = templateMedia.filter((f) => shown.includes(f.slice("media/".length)));
-      report.templateImagesKept = templateMedia.filter((f) => existsSync(join(path, f)));
-      checks["images found"] = (report.useImage as number) >= 3;
-      checks["no template image shown"] = (report.templateImagesShown as string[]).length === 0;
-
-      // The design kept: the theme, the scripts and the effects' attributes.
-      checks["theme kept"] = read("theme.css") === original("theme.css");
-      const scripts = [...files.keys()].filter((f) => f.startsWith("scripts/"));
-      report.scriptsChanged = scripts.filter((f) => read(f) !== original(f));
-      checks["scripts kept"] = (report.scriptsChanged as string[]).length === 0;
-      const markup = siteFiles.map(read).join("\n");
-      report.effects = Object.fromEntries(effects.map((a) => [a, markup.includes(a)]));
-      checks["effects kept"] = Object.values(report.effects as Record<string, boolean>).every(Boolean);
-      report.lang = /<html[^>]*lang="([\w-]+)/.exec(read("pages/index.liquid"))?.[1];
-      checks["in the maker's language"] = String(report.lang).startsWith(lang);
-
-      // Its pages, each linked in the navigation.
-      const pages = walk(join(path, "pages")).map((f) => relative(path, f));
-      report.pages = pages;
-      const routes = pages
-        .filter((p) => !p.includes("["))
-        .map((p) => p.replace(/^pages/, "").replace(/(\/index)?\.liquid$/, "") || "/");
-      const nav = walk(join(path, "data/navigation"))
-        .map((f) => readFileSync(f, "utf8"))
-        .join("\n");
-      report.routes = routes;
-      report.unlinked = routes.filter((r) => r !== "/" && !new RegExp(`href:\\s*["']?${r}/?["']?\\s*$`, "m").test(nav));
-      checks["every page linked"] = (report.unlinked as string[]).length === 0;
-
-      // Moving in the preview, in visitor mode; a picture of each page and of one record's page.
-      await invoke("preview:navigate", "/");
-      await new Promise((r) => setTimeout(r, 3_000));
-      checks["moving in the preview"] = await preview<boolean>(
-        "document.documentElement.hasAttribute('data-up-moving')",
-      ).catch(() => false);
-      const recordPages = pages.filter((p) => p.includes("["));
-      const recordRoutes = recordPages.flatMap((p) => {
-        const ds = /\[([^\]]+)\]/.exec(p)?.[1] ?? "";
-        const first = walk(join(path, "data", ds)).find(
-          (f) => f.endsWith(".md") && !f.split("/").at(-1)!.startsWith("_"),
+        // Every text rewritten: none of the template's sentences, nor its invented business, left.
+        const template = new Set(templateTexts(files).map((s) => s.toLowerCase().replace(/\s+/g, " ")));
+        const siteFiles = walk(path)
+          .map((f) => relative(path, f))
+          .filter((f) => TEXT_FILE.test(f));
+        const left = siteFiles.flatMap((file) =>
+          sentencesOf(file, read(file))
+            .filter((s) => template.has(s.toLowerCase().replace(/\s+/g, " ")))
+            .map((s) => `${file}: ${s}`),
         );
-        return first
-          ? [`/${p.split("/").slice(1, -1).join("/")}/${first.split("/").at(-1)!.replace(/\.md$/, "")}`]
-          : [];
-      });
-      report.recordRoutes = recordRoutes;
-      const errors: Record<string, string[]> = {};
-      for (const route of [...routes, ...recordRoutes]) {
-        await invoke("preview:navigate", route);
-        await new Promise((r) => setTimeout(r, 3_000));
-        await preview("window.scrollTo(0, 0)").catch(() => {});
-        const name = route === "/" ? "home" : route.slice(1).replaceAll("/", "_");
-        writeFileSync(join(shots, `${name}.png`), Buffer.from(await capture(), "base64"));
-        // The page the runtime answers with when a page cannot be rendered.
-        const error = await preview<string | null>(
-          "document.title === 'Render error' ? document.body.textContent.trim().slice(0, 300) : null",
-        ).catch(() => null);
-        if (error) errors[route] = [error];
-      }
-      report.pageErrors = errors;
-      checks["no page errors"] = Object.keys(errors).length === 0;
+        report.templateTextsLeft = left;
+        checks["no template text left"] = left.length === 0;
+        report.inventedLeft = siteFiles.filter((f) => invented.test(read(f)));
+        checks["no invented business left"] = (report.inventedLeft as string[]).length === 0;
+        checks["about the maker's business"] = business.test(siteFiles.map(read).join("\n"));
+        // Upstart named what was left at the end of a turn, if anything was (Q246).
+        report.toldOfTemplateTexts = messages().filter(
+          (m) => m?.type === "user" && JSON.stringify(m).includes("of the template's invented business"),
+        ).length;
 
-      report.checks = checks;
-      expect(Object.entries(checks).filter(([, ok]) => !ok)).toEqual([]);
-    }, 2_000_000);
+        // The images replaced, with their credits; none of the template's still shown.
+        report.findImages = calls("mcp__upstart__find_images").length;
+        report.useImage = calls("mcp__upstart__use_image").length;
+        const templateMedia = [...files.keys()].filter((f) => f.startsWith("media/") && !f.endsWith(".json"));
+        const shown = siteFiles.map(read).join("\n") + read("theme.css");
+        report.templateImagesShown = templateMedia.filter((f) => shown.includes(f.slice("media/".length)));
+        report.templateImagesKept = templateMedia.filter((f) => existsSync(join(path, f)));
+        checks["images found"] = (report.useImage as number) >= 3;
+        checks["no template image shown"] = (report.templateImagesShown as string[]).length === 0;
+
+        // The design kept: the theme, the scripts and the effects' attributes.
+        checks["theme kept"] = read("theme.css") === original("theme.css");
+        const scripts = [...files.keys()].filter((f) => f.startsWith("scripts/"));
+        report.scriptsChanged = scripts.filter((f) => read(f) !== original(f));
+        checks["scripts kept"] = (report.scriptsChanged as string[]).length === 0;
+        const markup = siteFiles.map(read).join("\n");
+        report.effects = Object.fromEntries(effects.map((a) => [a, markup.includes(a)]));
+        checks["effects kept"] = Object.values(report.effects as Record<string, boolean>).every(Boolean);
+        report.lang = /<html[^>]*lang="([\w-]+)/.exec(read("pages/index.liquid"))?.[1];
+        checks["in the maker's language"] = String(report.lang).startsWith(lang);
+
+        // Its pages, each linked in the navigation.
+        const pages = walk(join(path, "pages")).map((f) => relative(path, f));
+        report.pages = pages;
+        const routes = pages
+          .filter((p) => !p.includes("["))
+          .map((p) => p.replace(/^pages/, "").replace(/(\/index)?\.liquid$/, "") || "/");
+        const nav = walk(join(path, "data/navigation"))
+          .map((f) => readFileSync(f, "utf8"))
+          .join("\n");
+        report.routes = routes;
+        report.unlinked = routes.filter(
+          (r) => r !== "/" && !new RegExp(`href:\\s*["']?${r}/?["']?\\s*$`, "m").test(nav),
+        );
+        checks["every page linked"] = (report.unlinked as string[]).length === 0;
+
+        // Moving in the preview, in visitor mode; a picture of each page and of one record's page.
+        await invoke("preview:navigate", "/");
+        await new Promise((r) => setTimeout(r, 3_000));
+        checks["moving in the preview"] = await preview<boolean>(
+          "document.documentElement.hasAttribute('data-up-moving')",
+        ).catch(() => false);
+        const recordPages = pages.filter((p) => p.includes("["));
+        const recordRoutes = recordPages.flatMap((p) => {
+          const ds = /\[([^\]]+)\]/.exec(p)?.[1] ?? "";
+          const first = walk(join(path, "data", ds)).find(
+            (f) => f.endsWith(".md") && !f.split("/").at(-1)!.startsWith("_"),
+          );
+          return first
+            ? [`/${p.split("/").slice(1, -1).join("/")}/${first.split("/").at(-1)!.replace(/\.md$/, "")}`]
+            : [];
+        });
+        report.recordRoutes = recordRoutes;
+        const errors: Record<string, string[]> = {};
+        for (const route of [...routes, ...recordRoutes]) {
+          await invoke("preview:navigate", route);
+          await new Promise((r) => setTimeout(r, 3_000));
+          await preview("window.scrollTo(0, 0)").catch(() => {});
+          const name = route === "/" ? "home" : route.slice(1).replaceAll("/", "_");
+          writeFileSync(join(shots, `${name}.png`), Buffer.from(await capture(), "base64"));
+          // The page the runtime answers with when a page cannot be rendered.
+          const error = await preview<string | null>(
+            "document.title === 'Render error' ? document.body.textContent.trim().slice(0, 300) : null",
+          ).catch(() => null);
+          if (error) errors[route] = [error];
+        }
+        report.pageErrors = errors;
+        checks["no page errors"] = Object.keys(errors).length === 0;
+
+        report.checks = checks;
+        expect(Object.entries(checks).filter(([, ok]) => !ok)).toEqual([]);
+      },
+      2_000_000 * SLOW,
+    );
   },
 );

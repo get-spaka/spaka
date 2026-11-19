@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { memorySource, RECORDS_SCHEMA, Runtime, SqlStore } from "../packages/runtime/src/index.ts";
-import { type LaunchedApp, launchApp } from "./app.ts";
+import { type LaunchedApp, launchApp, SLOW } from "./app.ts";
 import { previewDriver } from "./preview-driver.ts";
 
 // What a published site collected, in the Content tab (Q177, Q183-Q185): a
@@ -80,7 +80,7 @@ describe("what a published site collected", () => {
       "---\nname: Test person\nsubmitted: 2026-11-11T08:00:00.000Z\n---\nA test.\n",
     );
     token = (await invoke("site:token")) as string;
-  }, 90_000);
+  }, 90_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
     server?.close();

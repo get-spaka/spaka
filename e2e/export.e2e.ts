@@ -3,7 +3,7 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { basename, extname, join, normalize } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
+import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 
 /** The checks that place or capture the preview's native view: a CI runner's hidden window does not lay it out as a screen does. */
 const ON_A_SCREEN = !process.env.CI;
@@ -69,7 +69,7 @@ describe("exporting the website", () => {
     await until(() => launched.window.locator('[data-testid="agent-message"][data-status="done"]').count(), 30_000);
     // The bakery has two pages: the preview went to all of them (Q131); these checks are on one.
     await invoke("preview:set-view", "page");
-  }, 60_000);
+  }, 60_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
     server?.close();

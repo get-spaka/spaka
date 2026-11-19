@@ -27,7 +27,7 @@ import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
+import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 import { maker, say, siteText, walk } from "./real-maker.ts";
 
 const realClaude = process.env.UPSTART_REAL_AGENT === "1";
@@ -186,7 +186,7 @@ describe.skipIf(!realClaude || !CLAUDE_CASES.length)(
         },
       });
       await launched.window.getByTestId("start").waitFor();
-    }, 120_000);
+    }, 120_000 * SLOW);
     afterAll(async () => {
       writeFileSync(join(runsDir, "real-agent-questions.json"), JSON.stringify(report, null, 2));
       await launched?.close();
@@ -299,7 +299,7 @@ describe.skipIf(!realPi || !PI_CASES.length)(
         (_electron, k) => (globalThis as any).upstart.piAccounts.setKey("gemini", k),
         gemini,
       );
-    }, 60_000);
+    }, 60_000 * SLOW);
     afterAll(async () => {
       mkdirSync(runsDir, { recursive: true });
       writeFileSync(join(runsDir, "real-pi-questions.json"), JSON.stringify(report, null, 2));

@@ -2,7 +2,7 @@ import { existsSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp } from "./app.ts";
+import { type LaunchedApp, launchApp, SLOW } from "./app.ts";
 import { previewDriver } from "./preview-driver.ts";
 
 // The anonymous statistics (Q331, Q334), read from the log the checks get in
@@ -25,7 +25,7 @@ describe("anonymous statistics", () => {
   beforeAll(async () => {
     launched = await launchApp({ tour: true, env: { UPSTART_STATS_LOG: log } });
     await w().getByTestId("message-input").waitFor();
-  }, 60_000);
+  }, 60_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
   });

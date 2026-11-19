@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp } from "./app.ts";
+import { type LaunchedApp, launchApp, SLOW } from "./app.ts";
 import { previewDriver } from "./preview-driver.ts";
 
 // The Content tab (Q148, Q162-Q166), on the recorded bakery with a blog and
@@ -60,7 +60,7 @@ describe("the Content tab", () => {
     );
     await w().getByTestId("tab-content").click();
     await until(async () => (await w().getByTestId("datasource").count()) === 2);
-  }, 60_000);
+  }, 60_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
   });

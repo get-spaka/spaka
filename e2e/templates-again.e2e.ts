@@ -3,7 +3,7 @@ import { basename, join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { shotPages } from "../apps/desktop/src/main/templates/pictures.ts";
 import { projectFiles, readTemplateFolder } from "../apps/desktop/src/main/templates/reader.ts";
-import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
+import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 import { previewDriver } from "./preview-driver.ts";
 
 // Each of Upstart's templates in the preview, moving as visitors see it, then
@@ -72,7 +72,7 @@ describe("Upstart's templates, rendered again in the preview", () => {
   beforeAll(async () => {
     launched = await launchApp();
     await launched.window.getByTestId("message-input").waitFor();
-  }, 60_000);
+  }, 60_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
   });

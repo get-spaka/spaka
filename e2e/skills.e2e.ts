@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp, openSettings } from "./app.ts";
+import { type LaunchedApp, launchApp, openSettings, SLOW } from "./app.ts";
 
 // Skills (ADR 0010), with the recorded agent: the settings window lists
 // Upstart's and the maker's skills for every website (Q116), a website's own
@@ -50,7 +50,7 @@ describe("skills", () => {
     await until(() => launched.window.locator('[data-testid="agent-message"][data-status="done"]').count(), 30_000);
     // The bakery has two pages: the preview went to all of them (Q131); these checks are on one.
     await invoke("preview:set-view", "page");
-  }, 60_000);
+  }, 60_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
   });

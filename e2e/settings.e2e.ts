@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp } from "./app.ts";
+import { type LaunchedApp, launchApp, SLOW } from "./app.ts";
 
 // The settings (Q116–Q119, Q123, Q125): a panel over the window, opened and
 // closed with ⌘, from the app's menu, closed with Escape, its close button or a
@@ -50,7 +50,7 @@ describe("the settings panel", () => {
     launched = await launchApp({ followAppearance: true });
     w = launched.window;
     await w.getByTestId("message-input").waitFor();
-  }, 60_000);
+  }, 60_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
   });

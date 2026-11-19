@@ -2,7 +2,7 @@ import { mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { projectFiles, readTemplateFolder } from "../apps/desktop/src/main/templates/reader.ts";
-import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
+import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 
 // The problems the agent's look measures (Q318), over every template: each
 // page, at each of the three screens, screen after screen down to its
@@ -32,7 +32,7 @@ describe.skipIf(!names.length)("the looks' measures over the templates", () => {
   beforeAll(async () => {
     launched = await launchApp();
     await launched.window.getByTestId("message-input").waitFor();
-  }, 60_000);
+  }, 60_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
   });

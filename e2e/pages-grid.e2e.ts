@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp } from "./app.ts";
+import { type LaunchedApp, launchApp, SLOW } from "./app.ts";
 import { writePagesRecording } from "./fixtures/pages-recording.ts";
 
 // The preview's "All pages" view (Q128–Q141), with a recording that writes
@@ -90,7 +90,7 @@ describe("all pages as thumbnails", () => {
     const project = await invoke("projects:current");
     path = project.path;
     projectId = project.id;
-  }, 90_000);
+  }, 90_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
   });

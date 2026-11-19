@@ -2,7 +2,7 @@ import { existsSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp } from "./app.ts";
+import { type LaunchedApp, launchApp, SLOW } from "./app.ts";
 import { writePlanRecording } from "./fixtures/questions-recording.ts";
 
 // Plan mode (Q286, Q290, Q296), on a made-up recording
@@ -49,7 +49,7 @@ describe("plan mode", () => {
     writePlanRecording(file);
     launched = await launchApp({ env: { UPSTART_AGENT_REPLAY: file } });
     await launched.window.getByTestId("message-input").waitFor();
-  }, 60_000);
+  }, 60_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
   });
