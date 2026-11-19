@@ -1,0 +1,83 @@
+# Each tag vX.Y.Z builds the app for macOS (Apple silicon, signed and
+# notarized) and Windows (x64, NSIS installer, beta and unsigned), attaches
+# them to a draft release, then publishes it once both are there (Q364). Its
+# notes are docs/releases/X.Y.Z.md. A tag with a dash (v0.2.0-rc.1) is a
+# pre-release. The app updates itself from these releases (latest-mac.yml,
+# latest.yml).
+#
+# Secrets, entered by the maintainer: CSC_LINK (the Developer ID Application
+# certificate as a base64 .p12), CSC_KEY_PASSWORD, APPLE_API_KEY (the App Store
+# Connect key's .p8 content), APPLE_API_KEY_ID, APPLE_API_ISSUER.
+name: Release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write
+jobs:
+  build:
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: macos-latest
+            args: --mac --arm64
+          - os: windows-latest
+            args: --win --x64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: The tag is the app's version
+        shell: bash
+        run: |
+          version=$(node -p "require('./apps/desktop/package.json').version")
+          test "$GITHUB_REF_NAME" = "v$version" || { echo "Tag $GITHUB_REF_NAME, app $version"; exit 1; }
+      - name: The notarization key, as a file
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/keys"
+          printf '%s' "$APPLE_API_KEY_CONTENT" > "$RUNNER_TEMP/keys/notarize.p8"
+          echo "APPLE_API_KEY=$RUNNER_TEMP/keys/notarize.p8" >> "$GITHUB_ENV"
+        env:
+          APPLE_API_KEY_CONTENT: ${{ secrets.APPLE_API_KEY }}
+      - name: Build, sign and attach to the draft release
+        working-directory: apps/desktop
+        shell: bash
+        run: |
+          pnpm build
+          node scripts/template.mjs snapshot
+          pnpm exec electron-builder ${{ matrix.args }} --publish always
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CSC_LINK: ${{ runner.os == 'macOS' && secrets.CSC_LINK || '' }}
+          CSC_KEY_PASSWORD: ${{ runner.os == 'macOS' && secrets.CSC_KEY_PASSWORD || '' }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          # Windows is not signed yet (Q365).
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ runner.os == 'macOS' && 'true' || 'false' }}
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Publish the release with its notes
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          notes="docs/releases/${version%%-*}.md"
+          args=(--draft=false --title "Upstart $version")
+          [ -f "$notes" ] && args+=(--notes-file "$notes")
+          if [[ "$version" == *-* ]]; then args+=(--prerelease); else args+=(--latest); fi
+          gh release edit "$GITHUB_REF_NAME" "${args[@]}"
+        env:
+          GH_TOKEN: ${{ github.token }}
