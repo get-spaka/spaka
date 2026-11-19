@@ -32,6 +32,7 @@ const editor =
           info: (file, at, record) => invoke("preview:edit-info", file, at, record),
           pickImage: () => invoke("preview:pick-image"),
           toEdit: () => void invoke("preview:to-edit"),
+          stop: () => send({ type: "stop" }),
           pathOf: (file) => webUtils.getPathForFile(file),
           save: (comment) => invoke("preview:comment-save", comment),
           remove: (id) => invoke("preview:comment-remove", id),

@@ -470,6 +470,10 @@ export const en = {
     dropOnImage: "Drop an image file onto an image to replace it.",
     notReplaceable: "This image's address is computed: ask the agent to change it.",
     paused: "The agent is working: editing resumes when it is done.",
+    working: "Agent working",
+    workingPaused: "editing paused",
+    stop: "Stop",
+    stopTip: "Stop the agent",
   },
   comments: {
     placeholder: "What should the agent change here?",

@@ -346,8 +346,11 @@ async function main() {
       else if (action === "menu") pageMenu(route);
     },
     onPicture: (route, url) => ipc.emit("preview:picture", { route, url }),
-    // Next or Skip on the tour's bubble in the page (Q337).
-    onPageEvent: (event) => event.type === "tour" && ipc.emit("tour:action", event.action),
+    // Next or Skip on the tour's bubble in the page (Q337); Stop on the pill of the agent at work (Q391).
+    onPageEvent: (event) => {
+      if (event.type === "tour") ipc.emit("tour:action", event.action);
+      if (event.type === "stop" && current) void agent.stop(current.id);
+    },
     onView: (view) => writeViewData({ ...viewData(), view }),
     onZoom: (zoom) => ipc.emit("preview:zoom", zoom),
     onZoomReady: (ready) => ipc.emit("preview:zoom-ready", ready),

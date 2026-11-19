@@ -1087,7 +1087,9 @@ export type FromPreview =
   /** A thumbnail of the "All pages" view was clicked, right-clicked, or the pointer came or left (Q132). */
   | { type: "thumb"; action: "click" | "menu" | "enter" | "leave" }
   /** Next or Skip on the tour's bubble drawn in the page. */
-  | { type: "tour"; action: TourAction };
+  | { type: "tour"; action: TourAction }
+  /** Stop on the pill that says the agent is working (Q391). */
+  | { type: "stop" };
 
 /** Calls from the preview's script that get an answer (the edits it asks for). */
 export type PreviewInvokes = {

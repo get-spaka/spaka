@@ -231,6 +231,40 @@ describe("editing in the preview", () => {
     },
   );
 
+  test("while the agent works, a pill says so at the bottom of the page, and its Stop stops the agent (Q391)", async () => {
+    // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+    await launched.app.evaluate(() => (globalThis as any).upstart.preview.setPaused(true));
+    await until(() => drawn(".working"));
+    expect(
+      await page("document.querySelector('upstart-editor').shadowRoot.querySelector('.working').textContent"),
+    ).toBe("Agent working· editing pausedStop");
+    await new Promise((r) => setTimeout(r, 400)); // its rise
+    await picture("agent-working-pill");
+    const stopped = await launched.app.evaluate(async () => {
+      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+      const { agent } = (globalThis as any).upstart;
+      const stop = agent.stop;
+      let id: string | undefined;
+      agent.stop = async (projectId: string) => {
+        id = projectId;
+      };
+      (globalThis as { stopWait?: () => Promise<boolean> }).stopWait = async () => {
+        for (let i = 0; i < 100 && !id; i++) await new Promise((r) => setTimeout(r, 50));
+        agent.stop = stop;
+        return typeof id === "string" && id.length > 0;
+      };
+      return true;
+    });
+    expect(stopped).toBe(true);
+    await click(".working button", true);
+    expect(await launched.app.evaluate(() => (globalThis as { stopWait?: () => Promise<boolean> }).stopWait!())).toBe(
+      true,
+    );
+    // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+    await launched.app.evaluate(() => (globalThis as any).upstart.preview.setPaused(false));
+    await until(async () => !(await drawn(".working")));
+  });
+
   test.runIf(ON_A_SCREEN)(
     "while the agent works nothing is selected; a capture for the agent leaves the drawings out",
     async () => {

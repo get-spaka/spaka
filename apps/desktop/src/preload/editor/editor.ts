@@ -38,6 +38,8 @@ export type EditorBridge = CommentsBridge & {
   pathOf(file: File): string;
   /** Asks for edit mode, for a block or an image dragged in from another mode (Q254). */
   toEdit(): void;
+  /** Stop on the pill that says the agent is working (Q391). */
+  stop(): void;
 };
 
 /** The record the trace names for an element: its own, or the one around it. */
@@ -114,6 +116,24 @@ const STYLE = `
 .line { position: fixed; left: 0; right: 0; height: 3px; margin-top: -1px; background: #4f46e5; border-radius: 2px; display: none;
   box-shadow: 0 0 0 2px rgb(255 255 255 / .8); }
 .bar button[data-act="drag"] { cursor: grab; }
+.working { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); display: none; align-items: center; gap: 10px;
+  height: 40px; padding: 0 6px 0 16px; border-radius: 999px; background: #1c1b2e; color: #f4f4f5; font-size: 13px;
+  white-space: nowrap; box-shadow: 0 8px 24px rgb(28 27 46 / .28); pointer-events: auto; animation: up-rise .25s ease-out both; }
+.working.shown { display: flex; }
+.working b { font-weight: 600; }
+.working .sub { color: #a1a1c9; }
+.working .bars { display: flex; gap: 2px; align-items: center; height: 12px; }
+.working .bars i { display: block; width: 3px; height: 12px; border-radius: 2px; background: #b9b8ec; animation: up-bar .9s ease-in-out infinite; }
+.working .bars i:nth-child(2) { animation-delay: .15s; } .working .bars i:nth-child(3) { animation-delay: .3s; }
+.working .bars i:nth-child(4) { animation-delay: .45s; }
+.working button { all: unset; display: flex; align-items: center; gap: 5px; height: 28px; padding: 0 12px; border-radius: 999px;
+  background: rgb(255 255 255 / .12); color: #fff; font-size: 12px; font-weight: 500; cursor: default; }
+.working button:hover { background: rgb(255 255 255 / .2); }
+.working button svg { width: 9px; height: 9px; }
+.layer.busy .toast { bottom: 68px; }
+@keyframes up-bar { 0%, 100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
+@keyframes up-rise { from { transform: translate(-50%, 16px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .working, .working .bars i { animation: none; } }
 .editing-note { position: fixed; display: none; padding: 3px 7px; background: var(--up-note); color: var(--up-note-text); border-radius: 5px; white-space: nowrap; }
 `;
 
@@ -132,6 +152,8 @@ export class Editor {
   private readonly toastEl: HTMLElement;
   private readonly note: HTMLElement;
   private readonly line: HTMLElement;
+  /** The pill at the bottom of the page while the agent works (Q391). */
+  private readonly working: HTMLElement;
   private readonly tour: PageTourLayer;
   private hovered: HTMLElement | undefined;
   /** An image of a list being dragged by its handle: the outline shows where it goes, not what the pointer is over. */
@@ -160,7 +182,8 @@ export class Editor {
       <div class="pop"><input type="text"><button class="secondary" data-act="cancel" data-tip="${t.cancelTip}"></button><button data-act="save" data-tip="${t.saveTip}"></button></div>
       <div class="editing-note"></div>
       <div class="line" data-testid="insertion-line"></div>
-      <div class="toast" role="status"></div></div>`;
+      <div class="toast" role="status"></div>
+      <div class="working" role="status" data-testid="agent-working"><span class="bars"><i></i><i></i><i></i><i></i></span><b></b><span class="sub"></span><button type="button" data-act="stop" data-tip="${t.stopTip}"><svg viewBox="0 0 10 10" aria-hidden="true"><rect width="10" height="10" rx="2" fill="currentColor"></rect></svg><span></span></button></div></div>`;
     const q = <T extends HTMLElement>(sel: string) => this.root.querySelector(sel) as T;
     this.hover = q(".hover");
     this.selectedBox = q(".selected");
@@ -169,6 +192,11 @@ export class Editor {
     this.toastEl = q(".toast");
     this.note = q(".editing-note");
     this.line = q(".line");
+    this.working = q(".working");
+    q(".working b").textContent = t.working;
+    q(".working .sub").textContent = `· ${t.workingPaused}`;
+    q(".working button span").textContent = t.stop;
+    q(".working button").addEventListener("click", () => bridge.stop());
     q<HTMLButtonElement>('[data-act="cancel"]').textContent = t.cancel;
     q<HTMLButtonElement>('[data-act="save"]').textContent = t.save;
     this.comments = new CommentLayer(q(".layer"), bridge, (text) => this.toast(text));
@@ -209,12 +237,21 @@ export class Editor {
       this.select(undefined);
       this.setHover(undefined);
     }
-    if (paused && mode === "edit") this.toast(t.paused);
+    // The pill says it (Q391); the toast is for a click or a drop meanwhile.
+    this.showWorking();
   }
 
   setHidden(hidden: boolean) {
     this.hidden = hidden;
     this.host.style.display = hidden ? "none" : "";
+    this.showWorking();
+  }
+
+  /** The pill shows while the agent works, in every mode, with Stop (Q391). */
+  private showWorking() {
+    const shown = this.paused && !this.hidden;
+    this.working.classList.toggle("shown", shown);
+    this.working.parentElement?.classList.toggle("busy", shown);
   }
 
   /** After a new rendering: the selected element may have been replaced, found again by its origin. */
