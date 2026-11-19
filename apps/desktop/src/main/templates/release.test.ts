@@ -53,7 +53,8 @@ function snapshotOf(out: string, catalogue: Catalogue): string {
   return dir;
 }
 
-describe("a release", () => {
+// A release checks and zips whole templates: longer than a test's usual time on a slow runner.
+describe("a release", { timeout: 60_000 }, () => {
   test("each template checked, as a .zip with its sha256 and size, its pictures beside it, in the catalogue", () => {
     const { out, catalogue } = release("v3");
     expect(catalogue.release).toBe("v3");
@@ -74,8 +75,7 @@ describe("a release", () => {
     const a = release().catalogue;
     const b = release().catalogue;
     expect(b.templates.map((t) => t.zip.sha256)).toEqual(a.templates.map((t) => t.zip.sha256));
-    // Two whole releases: longer than a test's usual time on a slow runner.
-  }, 60_000);
+  });
 
   test("a template with an error stops the release", () => {
     const root = scratch();
@@ -102,7 +102,7 @@ describe("a release", () => {
   });
 });
 
-describe("the templates of a packaged app", () => {
+describe("the templates of a packaged app", { timeout: 60_000 }, () => {
   test("listed from the catalogue shipped, their pictures with it, offline", async () => {
     const { out, catalogue } = release();
     const { fetch, asked, state } = server({ v1: out }, "v1");
