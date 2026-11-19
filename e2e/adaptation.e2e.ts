@@ -57,13 +57,17 @@ describe("a template's adaptation, page by page", () => {
     await w.getByTestId("message-input").press("Enter");
     const card = w.locator('[data-testid="pages-card"][data-state="waiting"]');
     await card.waitFor().catch(async (error) => {
-      await launched.capture("adaptation-no-card");
-      const { items } = await w.evaluate(() =>
-        // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-        (window as any).upstart.invoke("conversation:get"),
-      );
+      // From the main process, which answers even when the interface does not.
+      const ui = await launched.app.evaluate(async ({ BrowserWindow }) => {
+        const contents = BrowserWindow.getAllWindows()[0]!.webContents;
+        const answers = await Promise.race([
+          contents.executeJavaScript("document.body.innerText.slice(0, 600)").catch((e: Error) => `error ${e.message}`),
+          new Promise((r) => setTimeout(() => r("no answer in 5 seconds"), 5000)),
+        ]);
+        return { crashed: contents.isCrashed(), loading: contents.isLoading(), answers };
+      });
       throw new Error(
-        `${error.message}; the conversation: ${JSON.stringify(items).slice(0, 3000)}; the agent got ${JSON.stringify(await received()).slice(0, 500)}`,
+        `${error.message}; the interface: ${JSON.stringify(ui)}; the app's log ends with: ${launched.logs.join("").slice(-3000)}`,
       );
     });
     root = (
