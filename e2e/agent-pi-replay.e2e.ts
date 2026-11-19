@@ -42,7 +42,7 @@ describe.skipIf(!existsSync(fixture))("Upstart's own harness, played back", () =
     const ended = () =>
       launched.window.locator('[data-testid="agent-message"]:not([data-status="working"])').nth(before).count();
     for (const started = Date.now(); !(await ended()); ) {
-      if (Date.now() - started > 120_000) throw new Error("The turn did not end.");
+      if (Date.now() - started > 120_000 * SLOW) throw new Error("The turn did not end.");
       await during?.();
       await new Promise((r) => setTimeout(r, 100));
     }
@@ -80,7 +80,7 @@ describe.skipIf(!existsSync(fixture))("Upstart's own harness, played back", () =
           shownWhileWorking = Math.max(shownWhileWorking, Number(text) || 0);
         },
       );
-      expect(item).toMatchObject({ kind: "agent", status: "done" });
+      expect(item, item.error).toMatchObject({ kind: "agent", status: "done" });
       expect(labels(item)).toContain("Placing blocks on pages/index.liquid");
       expect(shownWhileWorking).toBeGreaterThan(0);
       const path = await project();
@@ -97,7 +97,7 @@ describe.skipIf(!existsSync(fixture))("Upstart's own harness, played back", () =
     "a second message continues the conversation",
     async () => {
       const item = await turn("Mets le nom du fleuriste en titre de l'onglet, sans rien changer d'autre.");
-      expect(item).toMatchObject({ kind: "agent", status: "done" });
+      expect(item, item.error).toMatchObject({ kind: "agent", status: "done" });
       expect(readFileSync(join(await project(), "pages/index.liquid"), "utf8")).toMatch(/<title>[^<]*Fleur de Loire/);
     },
     150_000 * SLOW,
@@ -109,7 +109,7 @@ describe.skipIf(!existsSync(fixture))("Upstart's own harness, played back", () =
       const item = await turn(
         "Le fleuriste est en face du Jardin des Plantes de Nantes : cherche sur le web les horaires d'ouverture du jardin en hiver, et ajoute-les dans le pied de page, sous « Le jardin d'en face ».",
       );
-      expect(item).toMatchObject({ kind: "agent", status: "done" });
+      expect(item, item.error).toMatchObject({ kind: "agent", status: "done" });
       expect(labels(item)).toContain("Searching the web");
       const path = await project();
       const footer = ["parts/footer.liquid", "pages/index.liquid"]
