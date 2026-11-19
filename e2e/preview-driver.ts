@@ -50,9 +50,10 @@ export function previewDriver(app: () => LaunchedApp) {
     }, events);
   const center = async (selector: string, inShadow = false) => {
     const root = inShadow ? "document.querySelector('upstart-editor').shadowRoot" : "document";
-    // Scrolled into sight first, as one would before clicking: a small window shows less of the page.
+    // An element of the page is scrolled into sight first, as one would before clicking: a small window
+    // shows less of the page. The editor's own drawings are where they are drawn.
     const r = await page(`(() => { const el = ${root}.querySelector(${JSON.stringify(selector)});
-      el.scrollIntoView({ block: "nearest", inline: "nearest" });
+      ${inShadow ? "" : 'el.scrollIntoView({ block: "nearest", inline: "nearest" });'}
       const r = el.getBoundingClientRect();
       return { x: Math.round(r.left + Math.min(r.width / 2, 40)), y: Math.round(r.top + r.height / 2) }; })()`);
     return r as { x: number; y: number };
@@ -78,14 +79,17 @@ export function previewDriver(app: () => LaunchedApp) {
   /** A picture of the preview with the editor's drawings (the capture for the agent leaves them out). */
   const picture = async (name: string) => {
     if (!PICTURES) return;
+    // A picture is for people to look at: one that does not come in 10 seconds is not taken.
     const png = await app().app.evaluate(async () => {
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
       const contents = (globalThis as any).upstart.preview.view.webContents as Electron.WebContents;
       if (!contents.debugger.isAttached()) contents.debugger.attach("1.3");
-      const { data } = await contents.debugger.sendCommand("Page.captureScreenshot", { format: "png" });
-      return data as string;
+      const shot = contents.debugger.sendCommand("Page.captureScreenshot", { format: "png" });
+      const late = new Promise<undefined>((r) => setTimeout(() => r(undefined), 10_000));
+      return ((await Promise.race([shot, late])) as { data: string } | undefined)?.data;
     });
-    writeFileSync(join(runsDir, `${name}.png`), Buffer.from(png, "base64"));
+    if (png) writeFileSync(join(runsDir, `${name}.png`), Buffer.from(png, "base64"));
+    else console.warn(`no picture ${name}: the preview did not give one in 10 seconds`);
   };
 
   return { invoke, until, page, input, center, click, typeText, key, drawn, picture };
