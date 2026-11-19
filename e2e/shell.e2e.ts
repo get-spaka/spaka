@@ -96,9 +96,11 @@ describe("the app's shell, launched in the background", () => {
     await launched.capture("shortcuts");
     await window.keyboard.press("Escape");
     await window.getByTestId("shortcuts").waitFor({ state: "detached" });
-    await menuItem("Control+CommandOrControl+S");
+    // ⌃⌘S on macOS; Ctrl+B elsewhere, where ⌃⌘S would be Ctrl+Ctrl+S.
+    const sidebar = MAC ? "Control+CommandOrControl+S" : "CommandOrControl+B";
+    await menuItem(sidebar);
     await window.getByTestId("sidebar").waitFor({ state: "detached" });
-    await menuItem("Control+CommandOrControl+S");
+    await menuItem(sidebar);
     await window.getByTestId("sidebar").waitFor();
   });
 
