@@ -13,10 +13,11 @@
     "dev:live": "node scripts/bundle-hosts.mjs && UPSTART_SHOW_INACTIVE=1 electron-vite dev --watch",
     "build": "electron-vite build && node scripts/bundle-hosts.mjs",
     "start": "pnpm build && electron .",
-    "package": "pnpm build && node scripts/template.mjs snapshot && electron-builder --mac --arm64 --publish never",
+    "package": "pnpm build && node scripts/template.mjs snapshot && electron-builder --mac --arm64 --dir -c.mac.identity=null --publish never",
     "typecheck": "tsc -p tsconfig.node.json && tsc -p tsconfig.web.json",
     "hosts": "node scripts/bundle-hosts.mjs",
-    "icon": "node scripts/icon.mjs"
+    "icon": "node scripts/icon.mjs",
+    "dist:mac": "pnpm build && node scripts/template.mjs snapshot && electron-builder --mac --arm64 --publish never"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "0.3.321",
@@ -78,11 +79,28 @@
     "npmRebuild": false,
     "mac": {
       "target": [
-        "dir"
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64"
+          ]
+        }
       ],
-      "identity": null,
       "icon": "build/icon.icns",
-      "category": "public.app-category.developer-tools"
+      "category": "public.app-category.developer-tools",
+      "hardenedRuntime": true,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "signIgnore": [
+        "claude-agent-sdk-darwin-arm64/claude$"
+      ],
+      "minimumSystemVersion": "13.0"
     },
     "extraResources": [
       {
@@ -113,6 +131,10 @@
         "repo": "upstart-editor",
         "releaseType": "draft"
       }
-    ]
+    ],
+    "dmg": {
+      "artifactName": "Upstart-${version}-${arch}.${ext}"
+    },
+    "artifactName": "Upstart-${version}-${arch}.${ext}"
   }
 }
