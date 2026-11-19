@@ -288,7 +288,21 @@ describe("the start screen", () => {
     // The pages still showing the template's contents are marked in the grid (Q305)…
     const toAdapt = (route: string) =>
       w.locator(`[data-testid="page-thumb"][data-route="${route}"] [data-testid="page-to-adapt"]`).count();
-    await until(async () => (await toAdapt("/work")) === 1);
+    await until(async () => (await toAdapt("/work")) === 1).catch(async (error) => {
+      const thumbs = await w
+        .getByTestId("page-thumb")
+        .evaluateAll((els) =>
+          els.map(
+            (el) =>
+              `${el.getAttribute("data-route")}:${el.querySelector('[data-testid="page-to-adapt"]') ? "to adapt" : "-"}`,
+          ),
+        );
+      const steps = await w.evaluate(() =>
+        // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
+        (window as any).upstart.invoke("adaptation:get"),
+      );
+      throw new Error(`${error.message}; thumbnails ${JSON.stringify(thumbs)}; adaptation ${JSON.stringify(steps)}`);
+    });
     await expect(toAdapt("/contact")).resolves.toBe(1);
     await expect(toAdapt("/")).resolves.toBe(0);
     await expect(toAdapt("/studio")).resolves.toBe(0);
