@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp } from "./app.ts";
+import { type LaunchedApp, launchApp, SLOW } from "./app.ts";
 
 // The agent's look at a page (Q314–Q324): in a view of its own, on a screen
 // it names, after steps done as a person would, the view's state kept until
@@ -145,6 +145,7 @@ describe("the agent's look at a page", () => {
       code,
     );
   const until = async (read: () => Promise<unknown>, timeout = 8000) => {
+    timeout *= SLOW;
     const started = Date.now();
     for (;;) {
       const value = await read().catch(() => undefined);

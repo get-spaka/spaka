@@ -112,6 +112,7 @@ body{margin:0;background:#808080;display:flex;gap:16px;padding:16px;width:max-co
     ) as Promise<T>;
 
   const until = async (read: () => Promise<unknown>, timeout = 20_000) => {
+    timeout *= SLOW;
     const started = Date.now();
     for (;;) {
       if (await read().catch(() => false)) return;

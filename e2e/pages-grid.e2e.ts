@@ -31,6 +31,7 @@ describe("all pages as thumbnails", () => {
       [fn.toString(), arg] as const,
     ) as Promise<Awaited<T>>;
   const until = async (read: () => Promise<unknown>, timeout = 10_000) => {
+    timeout *= SLOW;
     const started = Date.now();
     for (;;) {
       const value = await read().catch(() => undefined);

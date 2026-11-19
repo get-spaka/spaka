@@ -25,6 +25,7 @@ describe("the settings panel", () => {
     ) as Promise<Awaited<T>>;
   const zoom = () => main((u) => u.win.webContents.getZoomFactor());
   const until = async (read: () => Promise<unknown>, timeout = 10_000) => {
+    timeout *= SLOW;
     const started = Date.now();
     for (;;) {
       const value = await read().catch(() => undefined);

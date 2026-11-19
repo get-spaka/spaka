@@ -16,6 +16,7 @@ describe("edits by hand", () => {
       [channel, args] as const,
     );
   const until = async (read: () => Promise<unknown>, timeout = 10_000) => {
+    timeout *= SLOW;
     const started = Date.now();
     for (;;) {
       const value = await read().catch(() => undefined);

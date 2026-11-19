@@ -35,6 +35,7 @@ describe("exporting the website", () => {
       [channel, args] as const,
     );
   const until = async (read: () => Promise<unknown>, timeout = 15_000) => {
+    timeout *= SLOW;
     const started = Date.now();
     for (;;) {
       const value = await read().catch(() => undefined);

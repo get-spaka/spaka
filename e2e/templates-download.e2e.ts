@@ -5,7 +5,7 @@ import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp } from "./app.ts";
+import { type LaunchedApp, launchApp, SLOW } from "./app.ts";
 
 /** A template's version in the repository's templates, of which the release is built. */
 const version = (id: string): string =>
@@ -29,6 +29,7 @@ describe("Upstart's templates, downloaded", () => {
       code,
     ) as Promise<T>;
   const until = async <T>(read: () => Promise<T>, timeout = 20_000): Promise<T> => {
+    timeout *= SLOW;
     const started = Date.now();
     for (;;) {
       const value = await read().catch(() => undefined);

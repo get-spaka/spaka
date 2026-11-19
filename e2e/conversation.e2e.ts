@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp } from "./app.ts";
+import { type LaunchedApp, launchApp, SLOW } from "./app.ts";
 
 // The conversation with a recorded agent (fixtures/bakery.jsonl): the first
 // message creates the project, the agent's words and activity are shown, the
@@ -15,6 +15,7 @@ describe("a conversation with the agent", () => {
       code,
     );
   const until = async (read: () => Promise<unknown>, timeout = 10_000) => {
+    timeout *= SLOW;
     const started = Date.now();
     for (;;) {
       const value = await read().catch(() => undefined);

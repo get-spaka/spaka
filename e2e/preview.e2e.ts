@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
+import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 
 const page = (title: string, body: string) =>
   `<!doctype html>\n<html lang="en">\n<head><title>${title}</title></head>\n<body>\n{% render 'header' %}\n${body}\n</body>\n</html>\n`;
@@ -18,6 +18,7 @@ describe("a project folder in the preview", () => {
       code,
     );
   const until = async (code: string, timeout = 5000) => {
+    timeout *= SLOW;
     const started = Date.now();
     for (;;) {
       const value = await inPage(code).catch(() => undefined);

@@ -2,7 +2,7 @@ import { cpSync, existsSync, mkdtempSync, readFileSync, renameSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
+import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 
 // The start screen (Q245, Q249, Q263, Q264): with no website open, the sidebar
 // and one large panel of templates. Chips filter them, originals first with
@@ -21,6 +21,7 @@ describe("the start screen", () => {
   const viewer = <T>(js: string): Promise<T> =>
     main<T>(`globalThis.upstart.templateViewer.view.webContents.executeJavaScript(${JSON.stringify(js)})`);
   const until = async <T>(read: () => Promise<T>, timeout = 15_000): Promise<T> => {
+    timeout *= SLOW;
     const started = Date.now();
     for (;;) {
       const value = await read().catch(() => undefined);

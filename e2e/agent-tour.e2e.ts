@@ -12,7 +12,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
+import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 import { maker, say } from "./real-maker.ts";
 
 const real = process.env.UPSTART_REAL_AGENT === "1";
@@ -63,6 +63,7 @@ describe.skipIf(!real)("the tour with the real agent, packaged", { timeout: LONG
       ),
     );
   const until = async (read: () => Promise<unknown>, timeout = 15_000) => {
+    timeout *= SLOW;
     for (const started = Date.now(); !(await read()); ) {
       if (Date.now() - started > timeout) throw new Error("timed out");
       await new Promise((r) => setTimeout(r, 200));

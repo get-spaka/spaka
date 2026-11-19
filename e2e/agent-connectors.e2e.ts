@@ -22,6 +22,7 @@ describe.skipIf(!real)("connectors with the real agent", () => {
       [channel, args] as const,
     );
   const until = async (read: () => Promise<unknown>, timeout: number) => {
+    timeout *= SLOW;
     const started = Date.now();
     for (;;) {
       const value = await read().catch(() => undefined);

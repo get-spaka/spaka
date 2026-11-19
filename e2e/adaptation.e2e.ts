@@ -8,7 +8,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp } from "./app.ts";
+import { type LaunchedApp, launchApp, SLOW } from "./app.ts";
 import { ENDS, writeAdaptationRecording } from "./fixtures/adaptation-recording.ts";
 
 describe("a template's adaptation, page by page", () => {
@@ -21,6 +21,7 @@ describe("a template's adaptation, page by page", () => {
       code,
     ) as Promise<T>;
   const until = async <T>(read: () => Promise<T>, timeout = 20_000): Promise<T> => {
+    timeout *= SLOW;
     const started = Date.now();
     for (;;) {
       const value = await read().catch(() => undefined);
