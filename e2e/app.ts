@@ -12,6 +12,9 @@ import { backgroundElectron, backgroundPackagedApp } from "../scripts/background
 const appDir = join(import.meta.dirname, "../apps/desktop");
 export const runsDir = join(import.meta.dirname, ".runs");
 
+/** How much longer every wait is on CI's runners, much slower than a maker's computer. */
+export const SLOW = process.env.CI ? 3 : 1;
+
 export type LaunchedApp = {
   app: ElectronApplication;
   window: Page;
@@ -74,6 +77,7 @@ export async function launchApp({
   app.process().stdout?.on("data", (d) => logs.push(String(d)));
   app.process().stderr?.on("data", (d) => logs.push(String(d)));
   const window = await interfacePage(app);
+  window.setDefaultTimeout(30_000 * SLOW);
   await window.waitForLoadState("domcontentloaded");
   return {
     app,

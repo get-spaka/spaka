@@ -1,6 +1,6 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { type LaunchedApp, runsDir } from "./app.ts";
+import { type LaunchedApp, runsDir, SLOW } from "./app.ts";
 
 /**
  * Driving the preview as the maker would, in the background: input events
@@ -15,6 +15,7 @@ export function previewDriver(app: () => LaunchedApp) {
       [channel, args] as const,
     );
   const until = async (read: () => Promise<unknown>, timeout = 10_000) => {
+    timeout *= SLOW;
     const started = Date.now();
     for (;;) {
       const value = await read().catch(() => undefined);
