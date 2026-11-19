@@ -11,9 +11,9 @@ const MARGIN = 8;
 const PAGE = `<!doctype html><html><head><meta charset="utf-8"><style>
 html, body { margin: 0; background: transparent; overflow: hidden; }
 #tip { position: absolute; left: ${MARGIN}px; top: ${MARGIN}px; box-sizing: border-box; display: flex; align-items: center;
-  gap: 8px; white-space: nowrap; user-select: none; cursor: default; box-shadow: 0 4px 6px -1px rgb(0 0 0 / .1), 0 2px 4px -2px rgb(0 0 0 / .1);
+  gap: 8px; overflow-wrap: break-word; user-select: none; cursor: default; box-shadow: 0 4px 6px -1px rgb(0 0 0 / .1), 0 2px 4px -2px rgb(0 0 0 / .1);
   animation: in .15s ease-out; }
-kbd { font: inherit; letter-spacing: .1em; opacity: .6; }
+kbd { font: inherit; letter-spacing: .1em; opacity: .6; white-space: nowrap; flex-shrink: 0; }
 @keyframes in { from { opacity: 0; } }
 </style></head><body><div id="tip"></div><script>
 window.show = (tip) => {

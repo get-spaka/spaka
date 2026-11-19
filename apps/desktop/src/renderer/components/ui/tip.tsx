@@ -72,7 +72,8 @@ export function Tip({
   }, [overPage, open, text, keys]);
 
   return (
-    <Tooltip.Root open={open} onOpenChange={setOpen}>
+    // Over the page, the tooltip cannot be reached by the pointer: it closes as soon as the pointer leaves the button.
+    <Tooltip.Root open={open} onOpenChange={setOpen} disableHoverableContent={overPage}>
       {/* A button given the keyboard by the app (the tour's Next) shows no tip: only one reached with the keyboard does. */}
       <Tooltip.Trigger
         asChild

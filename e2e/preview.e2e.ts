@@ -224,6 +224,23 @@ describe("a project folder in the preview", () => {
     });
     writeFileSync(join(runsDir, "tooltip-over-page.png"), Buffer.from(tip.png, "base64"));
     expect(tip.bounds.height).toBeGreaterThan(20);
+    // A long one goes onto several lines, as the interface lays it out.
+    await w.getByTestId("mode-edit").hover();
+    await expect
+      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+      .poll(() => launched.app.evaluate(() => (globalThis as any).upstart.tips.shown))
+      .toContain("Edit the page");
+    const long = await launched.app.evaluate(async () => {
+      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+      const { view } = (globalThis as any).upstart.tips;
+      await new Promise((r) => setTimeout(r, 200));
+      const lines = await view.webContents.executeJavaScript(
+        "Math.round(document.querySelector('#tip span').getBoundingClientRect().height / parseFloat(getComputedStyle(document.querySelector('#tip')).lineHeight))",
+      );
+      return { lines, png: (await view.webContents.capturePage()).toPNG().toString("base64") };
+    });
+    writeFileSync(join(runsDir, "tooltip-over-page-long.png"), Buffer.from(long.png, "base64"));
+    expect(long.lines).toBeGreaterThan(1);
     // Radix keeps it while the pointer may be on its way to it: the next move closes it.
     await w.mouse.move(400, 500, { steps: 4 });
     await w.mouse.move(410, 520);
