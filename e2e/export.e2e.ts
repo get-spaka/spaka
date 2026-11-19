@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
-import { extname, join, normalize } from "node:path";
+import { basename, extname, join, normalize } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { type LaunchedApp, launchApp, runsDir } from "./app.ts";
 
@@ -263,5 +263,5 @@ describe("exporting the website", () => {
     expect(shown).toMatch(/\/media\/croissants-\d+w\.webp$/);
   });
 
-  const projectFolderName = async () => (await invoke("projects:current")).path.split("/").at(-1);
+  const projectFolderName = async () => basename((await invoke("projects:current")).path);
 });
