@@ -1,8 +1,8 @@
 # Every push to main and every pull request. Lint and types once, on Linux:
-# they do not depend on the system. The tests and the whole app on macOS
-# (Apple silicon) and on Windows, the two systems Upstart is published for:
-# the packaged app is built unsigned and checked whole, its agent replayed
-# from a recording: no account, no key.
+# they do not depend on the system. On macOS (Apple silicon) and Windows, the
+# two systems Upstart is published for: the unit tests and the packaged app,
+# built unsigned and checked; then the whole-app checks in four parallel
+# shards, the agent replayed from a recording (no account, no key).
 name: CI
 on:
   push:
@@ -11,6 +11,11 @@ on:
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
+# A failing job cancels the whole run (the last step of each job), so that no
+# runner keeps working once the answer is known.
+permissions:
+  contents: read
+  actions: write
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -29,15 +34,20 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck
-  check:
+      - name: Stop the whole run on a failure
+        if: failure()
+        shell: bash
+        run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+  test:
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         os: [macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
+    timeout-minutes: 30
     steps:
-      # LF everywhere, the templates' submodule included, which the repository's .gitattributes does not reach.
       - run: git config --global core.autocrlf false
       - uses: actions/checkout@v5
         with:
@@ -48,19 +58,57 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm test
+      - run: pnpm exec vitest run --bail 1
       - name: Package the app, unsigned
         run: pnpm --filter @upstart/desktop ${{ runner.os == 'Windows' && 'package:win' || 'package' }}
         env:
           GH_TOKEN: ${{ github.token }}
-      - name: Check the whole app
-        run: pnpm e2e
+      - name: Check the packaged app
+        run: pnpm exec vitest run --config e2e/vitest.config.ts e2e/packaged.e2e.ts
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Stop the whole run on a failure
+        if: failure()
+        shell: bash
+        run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+  e2e:
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [macos-latest, windows-latest]
+        shard: [1, 2, 3, 4]
+    name: e2e (${{ matrix.os }}, ${{ matrix.shard }}/4)
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - run: git config --global core.autocrlf false
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build the app
+        run: pnpm --filter @upstart/desktop build && pnpm background-electron
+      - name: Check the whole app, shard ${{ matrix.shard }} of 4
+        run: pnpm exec vitest run --config e2e/vitest.config.ts --exclude "**/packaged.e2e.ts" --shard ${{ matrix.shard }}/4 --bail 1
         env:
           GH_TOKEN: ${{ github.token }}
       - name: Keep the checks' pictures
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-${{ matrix.os }}
+          name: e2e-${{ matrix.os }}-${{ matrix.shard }}
           path: e2e/.runs/*.png
           if-no-files-found: ignore
+      - name: Stop the whole run on a failure
+        if: failure()
+        shell: bash
+        run: gh run cancel ${{ github.run_id }} --repo ${{ github.repository }}
+        env:
+          GH_TOKEN: ${{ github.token }}
