@@ -181,6 +181,18 @@ export type ExportResult = {
 };
 
 export type Rect = { x: number; y: number; width: number; height: number };
+
+/**
+ * A tooltip of the preview's bar, drawn over the page by a view of its own
+ * (Q329): its text and shortcut, where it is in the window in CSS pixels, and
+ * the styles it has in the interface.
+ */
+export type OverTip = {
+  text: string;
+  keys?: string;
+  rect: Rect;
+  style: { background: string; color: string; font: string; padding: string; borderRadius: string };
+};
 /**
  * A tablet or a phone shown in the preview (Q110): the page is laid out at the
  * device's size, drawn at `scale` to fit the column, its corners rounded.
@@ -777,6 +789,9 @@ export type Invokes = {
 /** One-way messages from the interface to the main process. */
 export type Sends = {
   "app:ready": () => void;
+  /** A tooltip of the preview's bar, over the page; tip:hide takes it away. */
+  "tip:show": (tip: OverTip) => void;
+  "tip:hide": () => void;
   /** Where the preview sits in the window, in CSS pixels; null to hide it. */
   /** `area` is the whole of the preview's column, when a device is shown smaller inside it. */
   /** `parked`: the page is not shown (the thumbnails, a zoom) but kept drawn at its place's size, out of sight. */
@@ -967,7 +982,7 @@ export const channels = {
     "media:delete",
     "media:rename",
   ],
-  send: ["app:ready", "preview:bounds", "preview:grid", "gallery:peek", "templates:bounds"],
+  send: ["app:ready", "preview:bounds", "preview:grid", "gallery:peek", "templates:bounds", "tip:show", "tip:hide"],
   events: [
     "projects:changed",
     "project:opened",

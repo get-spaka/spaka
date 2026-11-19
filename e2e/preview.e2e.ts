@@ -211,9 +211,24 @@ describe("a project folder in the preview", () => {
     // The bar's buttons say their shortcut in their tooltip (Q329).
     await w.getByTestId("width-phone").hover();
     await expect.poll(() => w.getByTestId("tip").textContent()).toContain(MAC ? "⌥⌘3" : "Ctrl+Alt+3");
-    // Beside the button: below the bar, the page's native view would cover it.
-    expect(await w.getByTestId("tip").getAttribute("data-side")).toBe("left");
-    await w.mouse.move(400, 500);
+    // Below the button, drawn over the page's native view by a view of its own.
+    expect(await w.getByTestId("tip").getAttribute("data-side")).toBe("bottom");
+    await expect
+      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+      .poll(() => launched.app.evaluate(() => (globalThis as any).upstart.tips.shown))
+      .toContain("Phone");
+    const tip = await launched.app.evaluate(async () => {
+      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+      const { view } = (globalThis as any).upstart.tips;
+      return { bounds: view.getBounds(), png: (await view.webContents.capturePage()).toPNG().toString("base64") };
+    });
+    writeFileSync(join(runsDir, "tooltip-over-page.png"), Buffer.from(tip.png, "base64"));
+    expect(tip.bounds.height).toBeGreaterThan(20);
+    // Radix keeps it while the pointer may be on its way to it: the next move closes it.
+    await w.mouse.move(400, 500, { steps: 4 });
+    await w.mouse.move(410, 520);
+    // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+    await expect.poll(() => launched.app.evaluate(() => (globalThis as any).upstart.tips.shown)).toBeUndefined();
   });
 
   test("a page cannot leave the preview, open windows or reach the app", async () => {

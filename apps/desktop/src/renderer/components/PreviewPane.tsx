@@ -35,7 +35,7 @@ import { HistoryButtons, HistoryList } from "./HistoryPanel";
 import { PagesGrid, pageName } from "./PagesGrid";
 import { Button } from "./ui/button";
 import { NativeSelect } from "./ui/native-select";
-import { Tip, TipSide } from "./ui/tip";
+import { Tip, TipOverPage } from "./ui/tip";
 
 /**
  * The devices the preview can show (Q110), in portrait: an iPad Air and an
@@ -329,8 +329,8 @@ export function PreviewPane({
 
   return (
     <main data-testid="preview" data-tour="page" className="flex min-w-0 flex-1 flex-col bg-muted/40">
-      {/* Beside the bar's buttons, its tips stay above the page's native view, which would cover them below. */}
-      <TipSide.Provider value="left">
+      {/* Below the bar, the page's native view would cover its tips: the main process draws them above it. */}
+      <TipOverPage.Provider value={true}>
         <div className="drag-region flex h-13 shrink-0 items-center gap-2 border-b bg-background px-3 win:pr-36">
           {project && state.routes.length > 0 && (
             <div className="no-drag relative flex items-center">
@@ -529,7 +529,7 @@ export function PreviewPane({
             </Button>
           )}
         </div>
-      </TipSide.Provider>
+      </TipOverPage.Provider>
       <div className="flex min-h-0 flex-1">
         <div
           ref={area}

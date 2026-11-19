@@ -108,6 +108,7 @@ import { pagesAnswered, readPagesCard } from "./templates/pages-card";
 import { TemplateViewer } from "./templates/viewer";
 import { Fonts } from "./theme/fonts";
 import { readTheme, type ThemeValues, themeColors, writeTheme } from "./theme/theme-file";
+import { TipOverlay } from "./tip-overlay";
 import { opensTour, type TourMoment } from "./tour";
 import { Updates, updatedSince } from "./update";
 
@@ -373,6 +374,7 @@ async function main() {
     },
   });
   const peek = new BlockPeek(win, () => preview.origin);
+  const tips = new TipOverlay(win);
   await preview.start();
   // The templates a new website may start from (Q245, Q249): Upstart's, from
   // the public repository's releases once packaged (their catalogue and
@@ -1268,6 +1270,8 @@ async function main() {
   ipc.handle("history:undo", () => goBack(history?.store.undoTarget()?.id));
   ipc.handle("editing:apply", (action) => editor.apply(action));
   const thumbnails = new Thumbnails(join(userData, "gallery-thumbnails"), () => preview.origin);
+  ipc.on("tip:show", (tip) => void tips.show(tip));
+  ipc.on("tip:hide", () => tips.hide());
   ipc.on("gallery:peek", (id) => {
     if (id && blocks.get(id)) void peek.show(id);
     else peek.hide();
@@ -1733,6 +1737,7 @@ async function main() {
         agent,
         piAccounts,
         peek,
+        tips,
         settings,
         pageItems,
         images,
