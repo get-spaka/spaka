@@ -218,7 +218,10 @@ async function main() {
   win.webContents.on("render-process-gone", (_event, details) => {
     console.error("[upstart] interface process gone:", details.reason);
   });
+  // A background run shows its window only if asked to, without the focus: on
+  // Windows a window never shown draws nothing, which checks there need.
   if (!env.background) win.once("ready-to-show", () => (env.showInactive ? win.showInactive() : win.show()));
+  else if (env.showInactive) win.once("ready-to-show", () => win.showInactive());
 
   const ipc = createIpc(() => [win]);
   // On Windows the agent's shell is Git Bash, from Git for Windows (Q375), looked for again on "Check again".

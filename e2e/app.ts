@@ -67,6 +67,8 @@ export async function launchApp({
     env: {
       ...cleanEnv(),
       UPSTART_BACKGROUND: "1",
+      // On Windows a window never shown draws nothing: on CI's runners, where nobody works, it is shown without the focus.
+      ...(process.env.CI && process.platform === "win32" ? { UPSTART_SHOW_INACTIVE: "1" } : {}),
       UPSTART_DATA_DIR: dataDir,
       UPSTART_PROJECTS_DIR: projectsDir,
       // The agent is played back from a recording unless a check asks for the real one ("").
