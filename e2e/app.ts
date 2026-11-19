@@ -15,6 +15,9 @@ export const runsDir = join(import.meta.dirname, ".runs");
 /** How much longer every wait is on CI's runners, much slower than a maker's computer. */
 export const SLOW = process.env.CI ? 3 : 1;
 
+/** Whether the window can be photographed: on Windows' CI runners the hidden window never draws, so a picture waits forever. */
+export const PICTURES = !(process.env.CI && process.platform === "win32");
+
 export type LaunchedApp = {
   app: ElectronApplication;
   window: Page;
@@ -88,7 +91,7 @@ export async function launchApp({
     async capture(name) {
       mkdirSync(runsDir, { recursive: true });
       const file = join(runsDir, `${name}.png`);
-      writeFileSync(file, await window.screenshot());
+      if (PICTURES) writeFileSync(file, await window.screenshot());
       return file;
     },
     async close() {

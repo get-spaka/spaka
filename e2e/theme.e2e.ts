@@ -88,7 +88,7 @@ describe("the theme", () => {
       expect(await pressed(choice.split("-")[0]!)).toBe(choice);
     }
     await tab().getByTestId("style-borders").scrollIntoViewIfNeeded();
-    await launched.window.screenshot({ path: join(__dirname, ".runs/theme-styles.png") });
+    await launched.capture("theme-styles");
     // The status colors and the color scheme follow the background.
     const status = () =>
       page(`(() => { const el = document.createElement("div"); el.style.color = "var(--color-error)";
@@ -114,7 +114,7 @@ describe("the theme", () => {
   });
 
   test("the tab, as the maker sees it", async () => {
-    await launched.window.screenshot({ path: join(__dirname, ".runs/theme-tab.png") });
+    await launched.capture("theme-tab");
   });
 
   test("a shipped font is copied into the project, served, and exported", async () => {

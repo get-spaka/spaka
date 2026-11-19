@@ -55,7 +55,7 @@ describe("the gallery of blocks", () => {
       await first.waitFor({ timeout: 20_000 });
       expect(await first.getAttribute("src")).toMatch(/^data:image\/png;base64,/);
       await until(async () => (await launched.window.locator('[data-testid="block"] img').count()) >= 4, 20_000);
-      await launched.window.screenshot({ path: join(__dirname, ".runs/gallery-tab.png") });
+      await launched.capture("gallery-tab");
     },
     40_000 * SLOW,
   );
@@ -79,7 +79,7 @@ describe("the gallery of blocks", () => {
     await until(async () => (await cards.count()) === ofKind);
     expect(await w.getByTestId("blocks-group").count()).toBe(1);
     expect(await chip.getAttribute("aria-pressed")).toBe("true");
-    await launched.window.screenshot({ path: join(__dirname, ".runs/gallery-chip.png") });
+    await launched.capture("gallery-chip");
     await chip.click();
     await until(async () => (await cards.count()) === closed());
   });
