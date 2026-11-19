@@ -6,12 +6,23 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "vitest";
-import { parseCatalogue, TemplateLibrary } from "./library";
-import { buildRelease, CATALOGUE_FILE, type Catalogue } from "./release";
+import { checkTemplate } from "./check";
+import { TemplateLibrary } from "./library";
+import { MANIFEST } from "./manifest";
+import { readTemplateFolder } from "./reader";
+import {
+  buildRelease,
+  CATALOGUE_FILE,
+  type Catalogue,
+  type CatalogueEntry,
+  earlierOf,
+  parseCatalogue,
+} from "./release";
 
 const BUILT_IN = join(import.meta.dirname, "../../../templates");
 const scratch = () => mkdtempSync(join(tmpdir(), "upstart-release-"));
 const RELEASES = "https://releases.example/upstart-templates/releases";
+const APP = "0.2.0";
 
 /** A release of Beacon and Reel, built as the public repository's CI builds one. */
 function release(tag = "v1"): { out: string; catalogue: Catalogue } {
@@ -108,7 +119,7 @@ describe("the templates of a packaged app", { timeout: 60_000 }, () => {
     const { fetch, asked, state } = server({ v1: out }, "v1");
     state.offline = true;
     const library = new TemplateLibrary(
-      { releases: RELEASES, snapshot: snapshotOf(out, catalogue), cache: scratch(), fetch },
+      { releases: RELEASES, snapshot: snapshotOf(out, catalogue), cache: scratch(), fetch, app: APP },
       scratch(),
     );
     expect(await library.refresh()).toBe(false);
@@ -124,7 +135,7 @@ describe("the templates of a packaged app", { timeout: 60_000 }, () => {
     const { fetch, asked } = server({ v1: out }, "v1");
     const cache = scratch();
     const library = new TemplateLibrary(
-      { releases: RELEASES, snapshot: snapshotOf(out, catalogue), cache, fetch },
+      { releases: RELEASES, snapshot: snapshotOf(out, catalogue), cache, fetch, app: APP },
       scratch(),
     );
     const [first, again] = await Promise.all([library.dir("reel"), library.dir("reel")]);
@@ -144,7 +155,7 @@ describe("the templates of a packaged app", { timeout: 60_000 }, () => {
     state.broken = catalogue.templates[0]!.zip.file;
     const cache = scratch();
     const library = new TemplateLibrary(
-      { releases: RELEASES, snapshot: snapshotOf(out, catalogue), cache, fetch },
+      { releases: RELEASES, snapshot: snapshotOf(out, catalogue), cache, fetch, app: APP },
       scratch(),
     );
     await expect(library.dir("beacon")).rejects.toThrow(/Beacon did not arrive whole/);
@@ -163,7 +174,7 @@ describe("the templates of a packaged app", { timeout: 60_000 }, () => {
     const { fetch, asked, state } = server({ v1: v1.out, v2: v2out }, "v2");
     const cache = scratch();
     const snapshot = snapshotOf(v1.out, v1.catalogue);
-    const library = new TemplateLibrary({ releases: RELEASES, snapshot, cache, fetch }, scratch());
+    const library = new TemplateLibrary({ releases: RELEASES, snapshot, cache, fetch, app: APP }, scratch());
     expect(await library.refresh()).toBe(true);
     expect(asked[0]).toBe(`${RELEASES}/latest/download/catalogue.json`);
     expect(library.list().map((t) => `${t.id}@${t.version}`)).toEqual(["beacon@9.0.0"]);
@@ -173,7 +184,7 @@ describe("the templates of a packaged app", { timeout: 60_000 }, () => {
     expect(await library.dir("beacon")).toBe(join(cache, "templates/beacon/9.0.0"));
     // The next start, offline, has it still.
     state.offline = true;
-    const next = new TemplateLibrary({ releases: RELEASES, snapshot, cache, fetch }, scratch());
+    const next = new TemplateLibrary({ releases: RELEASES, snapshot, cache, fetch, app: APP }, scratch());
     expect(await next.refresh()).toBe(false);
     expect(next.list().map((t) => t.version)).toEqual(["9.0.0"]);
     expect(await next.dir("beacon")).toBe(join(cache, "templates/beacon/9.0.0"));
@@ -184,12 +195,95 @@ describe("the templates of a packaged app", { timeout: 60_000 }, () => {
     const { out, catalogue } = release();
     const { fetch } = server({ v1: out }, "v1");
     const library = new TemplateLibrary(
-      { releases: RELEASES, snapshot: snapshotOf(out, catalogue), cache: scratch(), fetch },
+      { releases: RELEASES, snapshot: snapshotOf(out, catalogue), cache: scratch(), fetch, app: APP },
       scratch(),
     );
     const dir = join(scratch(), "beacon");
     mkdirSync(dir);
     cpSync(join(BUILT_IN, "beacon"), dir, { recursive: true });
     expect(library.read(dir)).toEqual({ problems: [expect.stringMatching(/already has a template named "beacon"/)] });
+  });
+});
+
+describe("earlier versions for older apps (Q368)", () => {
+  const aspect = () => JSON.parse(readFileSync(join(BUILT_IN, "aspect", MANIFEST), "utf8"));
+  /** An entry of a catalogue, its .zip and pictures named as a release names them. */
+  const entry = (id: string, version: string, app?: string): CatalogueEntry => {
+    const { app: _, ...manifest } = aspect();
+    return {
+      ...manifest,
+      id,
+      version,
+      ...(app ? { app } : {}),
+      zip: { file: `${id}-${version}.zip`, sha256: "a".repeat(64), size: 1 },
+      cover: `${id}-${version}-cover.webp`,
+    };
+  };
+
+  test("a template that uses the images field kind says it needs app 0.2.0", () => {
+    const files = readTemplateFolder(join(BUILT_IN, "aspect"));
+    const { app: _, ...manifest } = aspect();
+    files.set(MANIFEST, Buffer.from(JSON.stringify(manifest)));
+    expect(checkTemplate(files).errors).toContainEqual(
+      expect.stringMatching(
+        /^data\/listings\/_datasource\.yaml: the images field kind needs Upstart 0\.2\.0 or later: add "app": "0\.2\.0"/,
+      ),
+    );
+    files.set(MANIFEST, Buffer.from(JSON.stringify({ ...manifest, app: "0.2.0" })));
+    expect(checkTemplate(files).errors.filter((e) => /field kind/.test(e))).toEqual([]);
+  });
+
+  test("Aspect 1.1.0, which needs app 0.2.0, keeps Aspect 1.0.0 of v8, release after release", () => {
+    const root = scratch();
+    cpSync(join(BUILT_IN, "aspect"), join(root, "aspect"), { recursive: true });
+    writeFileSync(join(root, "aspect", MANIFEST), JSON.stringify({ ...aspect(), version: "1.1.0", app: "0.2.0" }));
+    const v8: Catalogue = { format: 1, release: "v8", templates: [entry("aspect", "1.0.0")], earlier: [] };
+    const v10out = scratch();
+    const v10 = buildRelease(root, v10out, "v10", v8);
+    expect(v10.templates.map((t) => `${t.id}@${t.version} app ${t.app}`)).toEqual(["aspect@1.1.0 app 0.2.0"]);
+    expect(v10.earlier).toEqual([{ ...entry("aspect", "1.0.0"), release: "v8" }]);
+    expect(parseCatalogue(readFileSync(join(v10out, CATALOGUE_FILE), "utf8"))).toEqual(v10);
+    // The release after, from v10's catalogue, has it still, from v8.
+    expect(buildRelease(root, scratch(), "v11", v10).earlier).toEqual(v10.earlier);
+  });
+
+  test("an earlier version is kept only while an app takes it", () => {
+    const v1 = (t: CatalogueEntry[], earlier: Catalogue["earlier"] = []): Catalogue => ({
+      format: 1,
+      release: "v1",
+      templates: t,
+      earlier,
+    });
+    const versions = (e: Catalogue["earlier"]) => e.map((t) => `${t.version} ${t.release}`);
+    // A version any app opens needs none before it.
+    expect(earlierOf([entry("aspect", "1.2.0")], v1([entry("aspect", "1.1.0", "0.2.0")]))).toEqual([]);
+    // Each app version takes the newest it opens: 1.1.5 for 0.2.x, 1.0.0 before; 1.1.0 for none.
+    const before = v1(
+      [entry("aspect", "1.1.5", "0.2.0")],
+      [
+        { ...entry("aspect", "1.1.0", "0.2.0"), release: "v0" },
+        { ...entry("aspect", "1.0.0"), release: "v0" },
+      ],
+    );
+    expect(versions(earlierOf([entry("aspect", "1.2.0", "0.3.0")], before))).toEqual(["1.1.5 v1", "1.0.0 v0"]);
+    // A template no longer released keeps none, and no other template's are taken.
+    expect(earlierOf([entry("reel", "2.0.0", "0.3.0")], before)).toEqual([]);
+    expect(earlierOf([entry("aspect", "1.2.0", "0.3.0")], undefined)).toEqual([]);
+  });
+
+  test("a catalogue before Q368 is read with no earlier versions; one with an unsafe release is not trusted", () => {
+    const { catalogue } = release();
+    const { earlier: _, ...old } = catalogue;
+    expect(parseCatalogue(JSON.stringify(old))?.earlier).toEqual([]);
+    const read = parseCatalogue(
+      JSON.stringify({
+        ...catalogue,
+        earlier: [
+          { ...entry("aspect", "1.0.0"), release: "../v8" },
+          { ...entry("aspect", "0.9.0"), release: "v7" },
+        ],
+      }),
+    );
+    expect(read?.earlier.map((t) => t.version)).toEqual(["0.9.0"]);
   });
 });

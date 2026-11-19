@@ -6,10 +6,11 @@
 // the app's own code, bundled here on the fly so that Node runs them as they are.
 // Upstart's own templates live in the public repository
 // upstart-gg/upstart-templates, a submodule at apps/desktop/templates (Q250,
-// Q265, Q267), and are released from it: `pnpm template:release <out> <tag>`
-// builds a release here as its CI does, `pnpm template:release-script` rebuilds
-// the script its CI runs, and `pnpm template:snapshot` takes the latest
-// release's catalogue and pictures to ship with the app (Q247).
+// Q265, Q267), and are released from it: `pnpm template:release <out> <tag>
+// [previous catalogue]` builds a release here as its CI does, `pnpm
+// template:release-script` rebuilds the script its CI runs, and `pnpm
+// template:snapshot` takes the latest release's catalogue and pictures to ship
+// with the app (Q247).
 import { spawnSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -60,13 +61,13 @@ if (command === "check") {
   const { imageMain } = await cli();
   process.exit(await imageMain(args, join(root, "e2e/.runs/template-images")));
 } else if (command === "release") {
-  const [out, tag] = args;
+  const [out, tag, previous] = args;
   if (!out || !tag) {
-    console.error("Usage: pnpm template:release <out folder> <tag>");
+    console.error("Usage: pnpm template:release <out folder> <tag> [previous catalogue.json: path or address]");
     process.exit(2);
   }
   const { releaseMain } = await cli();
-  process.exit(releaseMain([templates, resolve(out), tag]));
+  process.exit(await releaseMain([templates, resolve(out), tag, ...(previous ? [previous] : [])]));
 } else if (command === "snapshot") {
   const { snapshotMain } = await cli();
   process.exit(await snapshotMain(join(desktop, "templates-catalogue"), process.env.UPSTART_TEMPLATES_URL));
@@ -105,7 +106,7 @@ if (command === "check") {
   );
 } else {
   console.error(
-    "Usage: pnpm template:check <folder or .zip> | template:shoot <folder> | template:image find|use … | template:release <out> <tag> | template:snapshot | template:release-script",
+    "Usage: pnpm template:check <folder or .zip> | template:shoot <folder> | template:image find|use … | template:release <out> <tag> [previous] | template:snapshot | template:release-script",
   );
   process.exit(2);
 }

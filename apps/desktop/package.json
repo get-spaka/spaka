@@ -2,7 +2,7 @@
   "name": "@upstart/desktop",
   "productName": "Upstart",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Build websites by talking to an agent, on your own machine.",
   "author": "Upstart",
   "license": "MIT",

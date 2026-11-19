@@ -387,6 +387,7 @@ async function main() {
               ? join(process.resourcesPath, "templates-catalogue")
               : join(here, "../../templates-catalogue")),
           cache: join(app.getPath("userData"), "template-cache"),
+          app: app.getVersion(),
         }
       : { folder: join(here, "../../templates") },
     join(app.getPath("userData"), "templates"),

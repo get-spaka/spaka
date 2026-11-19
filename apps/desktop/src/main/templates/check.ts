@@ -3,10 +3,19 @@
 // warnings are for its author to read. The rules are those of Q231-Q243 and
 // ADR 0011, and the gallery's for its blocks, less the rule that nothing
 // floats (Q256).
-import { infoFile, needsCredit, Runtime, TEST_RECORDS_DIR } from "@upstart/runtime";
+import {
+  Datasources,
+  DEFINITION_FILE,
+  type FieldKind,
+  infoFile,
+  memorySource,
+  needsCredit,
+  Runtime,
+  TEST_RECORDS_DIR,
+} from "@upstart/runtime";
 import { droppedFiles, FIXED_COLOUR } from "../gallery/rules";
 import { parseSkill } from "../skills/skills";
-import { OPEN_LICENCES } from "./manifest";
+import { OPEN_LICENCES, olderVersion } from "./manifest";
 import { guideSections, HOME, PAGES_SECTION, pageTypes, strayPageHeadings } from "./pages";
 import { shotPages } from "./pictures";
 import {
@@ -26,6 +35,9 @@ export type TemplateCheck = { template?: Template; errors: string[]; warnings: s
 
 /** Where libraries may be loaded from: servers that keep every published version. */
 const LIBRARY_HOSTS = new Set(["cdn.jsdelivr.net", "unpkg.com"]);
+
+/** Field kinds an older app reads as text, and the app version that knows them (Q368). */
+export const FIELD_KIND_APP: Partial<Record<FieldKind, string>> = { images: "0.2.0" };
 
 const MEDIA_LIMIT = 3 * 1024 * 1024;
 const TOTAL_LIMIT = 50 * 1024 * 1024;
@@ -68,6 +80,18 @@ export function checkTemplate(files: TemplateFiles, { finished = false } = {}): 
     warnings.push(
       `template.json: licence "${manifest.licence}" is not an open licence Upstart knows (${OPEN_LICENCES.join(", ")}).`,
     );
+
+  // ---- the app it needs (Q368) ------------------------------------------------
+  for (const path of paths.filter((p) => p.endsWith(`/${DEFINITION_FILE}`))) {
+    const definition = new Datasources(memorySource({ [`data/d/${DEFINITION_FILE}`]: text(path) })).get("d").definition;
+    for (const kind of new Set(definition?.fields.map((f) => f.kind))) {
+      const needed = FIELD_KIND_APP[kind];
+      if (needed && olderVersion(manifest.app ?? "0.0.0", needed))
+        errors.push(
+          `${path}: the ${kind} field kind needs Upstart ${needed} or later: add "app": "${needed}" to template.json.`,
+        );
+    }
+  }
 
   // ---- it renders -------------------------------------------------------------
   const source = textSource(files);

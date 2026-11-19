@@ -7,9 +7,9 @@ import { join, resolve } from "node:path";
 import { useFoundImage as addFoundImage, slug } from "../media/library";
 import { type FoundImage, type ImageFinder, ImageSearch, imagesAnswer, USER_AGENT } from "../media/search";
 import { checkTemplate } from "./check";
-import { parseCatalogue, TEMPLATES_RELEASES } from "./library";
+import { TEMPLATES_RELEASES } from "./library";
 import { readTemplateFolder, readTemplateZip } from "./reader";
-import { CATALOGUE_FILE, type Catalogue } from "./release";
+import { CATALOGUE_FILE, type Catalogue, parseCatalogue } from "./release";
 
 export { releaseMain } from "./release-main";
 
@@ -124,7 +124,8 @@ export async function imageMain(args: string[], dir: string): Promise<number> {
 /**
  * `pnpm template:snapshot`: the latest release's catalogue and pictures, into
  * `dir` (apps/desktop/templates-catalogue), shipped with the packaged app
- * (Q247). Offline, a snapshot taken earlier stays, with a warning.
+ * (Q247); the pictures of the earlier versions it keeps too, from their own
+ * releases (Q368). Offline, a snapshot taken earlier stays, with a warning.
  */
 export async function snapshotMain(dir: string, releases = TEMPLATES_RELEASES): Promise<number> {
   const get = async (url: string) => {
@@ -138,9 +139,9 @@ export async function snapshotMain(dir: string, releases = TEMPLATES_RELEASES): 
     const text = (await get(`${releases}/latest/download/${CATALOGUE_FILE}`)).toString("utf8");
     catalogue = parseCatalogue(text);
     if (!catalogue) throw new Error("The latest catalogue is of a format this app does not read.");
-    for (const t of catalogue.templates)
+    for (const t of [...catalogue.templates.map((t) => ({ ...t, release: catalogue!.release })), ...catalogue.earlier])
       for (const name of [t.cover, t.hover])
-        if (name) pictures.set(name, await get(`${releases}/download/${catalogue.release}/${name}`));
+        if (name) pictures.set(name, await get(`${releases}/download/${t.release}/${name}`));
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (existsSync(join(dir, CATALOGUE_FILE))) {

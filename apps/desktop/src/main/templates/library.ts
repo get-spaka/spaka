@@ -5,15 +5,17 @@
 // pictures, reads the latest one when it starts, and downloads a template's
 // .zip, checked against its sha256, into its cache when the maker views it
 // large or chooses it. Each template is then a folder in the template format.
+// Of a template's versions in the catalogue, the app takes the newest one its
+// own version opens, from the release that holds it, or shows none (Q368).
 import { createHash, randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { TemplateImport, TemplateSummary } from "../../shared/ipc";
 import { USER_AGENT } from "../media/search";
 import { checkTemplate } from "./check";
-import { MANIFEST, Manifest } from "./manifest";
+import { MANIFEST, Manifest, olderVersion } from "./manifest";
 import { readTemplateFolder, readTemplateZip, type TemplateFiles } from "./reader";
-import { CATALOGUE_FILE, CATALOGUE_FORMAT, type Catalogue, type CatalogueEntry } from "./release";
+import { CATALOGUE_FILE, type Catalogue, type EarlierEntry, parseCatalogue } from "./release";
 import { ZIP_LIMITS } from "./zip";
 
 /** An imported template waits this long for the maker to add it. */
@@ -33,6 +35,8 @@ export type TemplateSource =
       snapshot: string;
       /** The latest catalogue, pictures and downloaded templates. */
       cache: string;
+      /** The app's version, which picks each template's version (Q368). */
+      app: string;
       fetch?: typeof fetch;
     };
 
@@ -63,7 +67,7 @@ export class TemplateLibrary {
         const summary = readSummary(join(this.source.folder, id), false);
         if (summary?.id === id) add(summary);
       }
-    else for (const entry of this.catalogue()?.templates ?? []) add(summaryOf(entry, false));
+    else for (const entry of this.entries()) add(summaryOf(entry, false));
     for (const id of folders(this.imported)) {
       const summary = readSummary(join(this.imported, id), true);
       if (summary?.id === id) add(summary);
@@ -84,7 +88,7 @@ export class TemplateLibrary {
     if (!summary) throw new Error("Upstart has no such template.");
     if (summary.imported) return join(this.imported, id);
     if ("folder" in this.source) return join(this.source.folder, id);
-    const entry = this.catalogue()?.templates.find((t) => t.id === id);
+    const entry = this.entries().find((t) => t.id === id);
     if (!entry) throw new Error("Upstart has no such template.");
     const dir = join(this.source.cache, "templates", id, entry.version);
     if (existsSync(join(dir, MANIFEST))) return dir;
@@ -105,15 +109,15 @@ export class TemplateLibrary {
       const root = summary.imported ? this.imported : (this.source as { folder: string }).folder;
       return webpFile(join(root, id, "pictures", `${which}.webp`));
     }
-    const catalogue = this.catalogue();
-    const name = catalogue?.templates.find((t) => t.id === id)?.[which];
-    if (!catalogue || !name) return null;
+    const entry = this.entries().find((t) => t.id === id);
+    const name = entry?.[which];
+    if (!entry || !name) return null;
     const shipped = webpFile(join(this.source.snapshot, name));
     if (shipped) return shipped;
     const cached = join(this.source.cache, "pictures", name);
     if (!existsSync(cached)) {
       try {
-        const bytes = await this.fetchBytes(`${this.source.releases}/download/${catalogue.release}/${name}`);
+        const bytes = await this.fetchBytes(`${this.source.releases}/download/${entry.release}/${name}`);
         mkdirSync(dirname(cached), { recursive: true });
         writeFileSync(cached, bytes);
       } catch {
@@ -150,9 +154,15 @@ export class TemplateLibrary {
     return this.latest ?? readCatalogue(join(this.source.snapshot, CATALOGUE_FILE));
   }
 
-  private async download(entry: CatalogueEntry, dir: string): Promise<string> {
+  /** Each template's version this app takes, with the release holding it. */
+  private entries(): EarlierEntry[] {
+    if (!("releases" in this.source)) return [];
+    return compatibleEntries(this.catalogue(), this.source.app);
+  }
+
+  private async download(entry: EarlierEntry, dir: string): Promise<string> {
     const source = this.source as Extract<TemplateSource, { releases: string }>;
-    const release = this.catalogue()!.release;
+    const { release } = entry;
     if (entry.zip.size > ZIP_LIMITS.bytes) throw new Error(`${entry.name} is too large to download.`);
     let zip: Buffer;
     try {
@@ -283,27 +293,19 @@ function readCatalogue(file: string): Catalogue | undefined {
   }
 }
 
-/** A catalogue of a format this app knows, its entries' manifests valid; undefined otherwise. */
-export function parseCatalogue(text: string): Catalogue | undefined {
-  const json = JSON.parse(text) as Partial<Catalogue>;
-  if (json.format !== CATALOGUE_FORMAT || typeof json.release !== "string" || !Array.isArray(json.templates))
-    return undefined;
-  const templates: CatalogueEntry[] = [];
-  for (const t of json.templates) {
-    const manifest = Manifest.safeParse(t);
-    const zip = (t as Partial<CatalogueEntry>).zip;
-    if (
-      !manifest.success ||
-      !zip ||
-      typeof zip.size !== "number" ||
-      !/^[a-f0-9]{64}$/.test(zip.sha256) ||
-      !/^[\w.-]+\.zip$/.test(zip.file)
-    )
-      continue;
-    const pictures = (name: unknown) => (typeof name === "string" && /^[\w.-]+\.webp$/.test(name) ? name : undefined);
-    const cover = pictures((t as CatalogueEntry).cover);
-    const hover = pictures((t as CatalogueEntry).hover);
-    templates.push({ ...manifest.data, zip, ...(cover ? { cover } : {}), ...(hover ? { hover } : {}) });
+/**
+ * Each template's newest version an app of version `app` opens: one whose
+ * `app` is at most its own (Q368), from the catalogue's release or, for an
+ * earlier one, from the release that holds it. A template with none is left out.
+ */
+export function compatibleEntries(catalogue: Catalogue | undefined, app: string): EarlierEntry[] {
+  if (!catalogue) return [];
+  const all = [...catalogue.templates.map((t) => ({ ...t, release: catalogue.release })), ...catalogue.earlier];
+  const chosen = new Map<string, EarlierEntry>();
+  for (const entry of all) {
+    if (entry.app && olderVersion(app, entry.app)) continue;
+    const known = chosen.get(entry.id);
+    if (!known || olderVersion(known.version, entry.version)) chosen.set(entry.id, entry);
   }
-  return { format: CATALOGUE_FORMAT, release: json.release, templates };
+  return [...chosen.values()];
 }
