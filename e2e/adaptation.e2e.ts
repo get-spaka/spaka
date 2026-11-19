@@ -59,7 +59,10 @@ describe("a template's adaptation, page by page", () => {
     await card.waitFor().catch(async (error) => {
       // From the main process, which answers even when the interface does not.
       const ui = await launched.app.evaluate(async ({ BrowserWindow }) => {
-        const contents = BrowserWindow.getAllWindows()[0]!.webContents;
+        // The interface's window, not one of the hidden ones that draw thumbnails.
+        const contents = BrowserWindow.getAllWindows().find((w) =>
+          /index\.html|localhost:5\d{3}/.test(w.webContents.getURL()),
+        )!.webContents;
         const answers = await Promise.race([
           contents.executeJavaScript("document.body.innerText.slice(0, 600)").catch((e: Error) => `error ${e.message}`),
           new Promise((r) => setTimeout(() => r("no answer in 5 seconds"), 5000)),
