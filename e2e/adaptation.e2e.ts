@@ -56,7 +56,16 @@ describe("a template's adaptation, page by page", () => {
     await w.getByTestId("message-input").fill("A website for Terra Lenta, a ceramics studio in Lisbon, with a shop.");
     await w.getByTestId("message-input").press("Enter");
     const card = w.locator('[data-testid="pages-card"][data-state="waiting"]');
-    await card.waitFor();
+    await card.waitFor().catch(async (error) => {
+      await launched.capture("adaptation-no-card");
+      const { items } = await w.evaluate(() =>
+        // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
+        (window as any).upstart.invoke("conversation:get"),
+      );
+      throw new Error(
+        `${error.message}; the conversation: ${JSON.stringify(items).slice(0, 3000)}; the agent got ${JSON.stringify(await received()).slice(0, 500)}`,
+      );
+    });
     root = (
       await w.evaluate(() =>
         // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge

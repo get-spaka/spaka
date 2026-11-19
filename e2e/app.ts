@@ -25,9 +25,6 @@ export const SHOWN = !!process.env.CI && process.platform === "win32";
 /** Whether the app shows macOS's shortcuts (⌘) or the others' (Ctrl). */
 export const MAC = process.platform === "darwin";
 
-/** Whether the window can be photographed: on Windows' CI runners the hidden window never draws, so a picture waits forever. */
-export const PICTURES = !(process.env.CI && process.platform === "win32");
-
 export type LaunchedApp = {
   app: ElectronApplication;
   window: Page;
@@ -102,7 +99,10 @@ export async function launchApp({
     async capture(name) {
       mkdirSync(runsDir, { recursive: true });
       const file = join(runsDir, `${name}.png`);
-      if (PICTURES) writeFileSync(file, await window.screenshot());
+      // A picture is for people to look at: one that does not come in 10 seconds is not taken.
+      const png = await window.screenshot({ timeout: 10_000 }).catch(() => undefined);
+      if (png) writeFileSync(file, png);
+      else console.warn(`no picture ${name}: the window did not give one in 10 seconds`);
       return file;
     },
     async close() {

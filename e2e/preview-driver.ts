@@ -1,6 +1,6 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { type LaunchedApp, PICTURES, runsDir, SLOW } from "./app.ts";
+import { type LaunchedApp, runsDir, SLOW } from "./app.ts";
 
 /**
  * Driving the preview as the maker would, in the background: input events
@@ -78,7 +78,6 @@ export function previewDriver(app: () => LaunchedApp) {
     );
   /** A picture of the preview with the editor's drawings (the capture for the agent leaves them out). */
   const picture = async (name: string) => {
-    if (!PICTURES) return;
     // A picture is for people to look at: one that does not come in 10 seconds is not taken.
     const png = await app().app.evaluate(async () => {
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
