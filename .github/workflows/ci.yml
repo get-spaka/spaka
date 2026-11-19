@@ -95,6 +95,13 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Build the app
         run: pnpm --filter @upstart/desktop build && pnpm background-electron
+      # A Windows runner's screen is 1024×768, smaller than the app's window: Windows shrinks the window to it.
+      - name: Give the Windows screen a computer's size
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Set-DisplayResolution -Width 1920 -Height 1080 -Force
+          Get-CimInstance Win32_VideoController | Select-Object CurrentHorizontalResolution, CurrentVerticalResolution
       - name: Check the whole app, shard ${{ matrix.shard }} of 4
         run: pnpm exec vitest run --config e2e/vitest.config.ts --exclude "**/packaged.e2e.ts" --shard ${{ matrix.shard }}/4 --bail 1
         env:
