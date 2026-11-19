@@ -43,14 +43,15 @@ export function maker(get: () => LaunchedApp) {
       .filter((p) => p.kind === "question" || p.kind === "plan" || p.kind === "pages")
       .map((p) => ({ kind: p.kind as Card["kind"], card: p.card as Record<string, unknown> }));
   };
-  /** Clicks each question's recommended choice, then Answer when there is one. */
+  /** Picks each question's recommended choice, one question at a time, Continue, then Send. */
   const answerRecommended = async () => {
     const card = waitingQuestion();
-    const sets = card.locator("fieldset");
-    const answer = card.getByTestId("question-answer");
-    if (!(await answer.count())) return card.getByTestId("question-choice").first().click();
-    for (let i = 0; i < (await sets.count()); i++) await sets.nth(i).getByTestId("question-choice").first().click();
-    await answer.click();
+    for (;;) {
+      await card.getByTestId("question-choice").first().click();
+      const next = card.getByTestId("question-next");
+      if (!(await next.count())) return card.getByTestId("question-answer").click();
+      await next.click();
+    }
   };
   /**
    * Waits for the agent's turn to end, handing each question and plan it waits

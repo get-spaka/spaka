@@ -80,7 +80,16 @@ export class Waits<T> {
  * question marked skipped (the binary's ask_user_question_unanswered_v1).
  */
 export function claudeAnswer(questions: AgentQuestion[], answer: QuestionAnswer): Record<string, unknown> {
-  if (answer.kind === "choices") return { questions, answers: answer.answers };
+  if (answer.kind === "choices") {
+    // A question the maker skipped among others is marked as the binary marks a skipped card's (Q388).
+    const passed = questions.filter((q) => answer.answers[q.question] === undefined);
+    if (!passed.length) return { questions, answers: answer.answers };
+    return {
+      questions,
+      answers: answer.answers,
+      annotations: Object.fromEntries(passed.map((q) => [q.question, { unanswered: "skipped" }])),
+    };
+  }
   if (answer.kind === "words") return { questions, answers: {}, response: answer.text };
   return {
     questions,
@@ -100,7 +109,11 @@ export function answerResult(questions: AgentQuestion[], answer: QuestionAnswer)
       const a = answer.answers[q.question]!;
       return `"${q.question}"="${Array.isArray(a) ? a.join(",") : a}"`;
     });
-  return `Your questions have been answered: ${pairs.join(", ")}. You can now continue with these answers in mind.`;
+  const passed = questions.filter((q) => answer.answers[q.question] === undefined).map((q) => `"${q.question}"`);
+  const skipped = passed.length
+    ? ` The user did not answer ${passed.join(", ")}: take your recommended choice for ${passed.length > 1 ? "them" : "it"}.`
+    : "";
+  return `Your questions have been answered: ${pairs.join(", ")}.${skipped} You can now continue with these answers in mind.`;
 }
 
 /** Said to the agent when its question's wait ended without an answer. */

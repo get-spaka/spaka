@@ -56,7 +56,7 @@ describe("the agent's questions", () => {
     await launched?.close();
   });
 
-  test("a question waits with its choices, the recommended first; editing comes back; one click answers", async () => {
+  test("a question waits with its choices, the recommended first; editing comes back; a choice, then Send", async () => {
     const w = launched.window;
     await send("A bakery in Lyon.");
     await until(() => waitingCard().count());
@@ -83,7 +83,11 @@ describe("the agent's questions", () => {
       }),
     ).resolves.toMatchObject({ label: "Text changed" });
 
+    // A click picks the choice; Send sends it (Q389).
     await choices.first().click();
+    await expect(choices.first().getAttribute("aria-pressed")).resolves.toBe("true");
+    expect(await waitingCard().getByTestId("question-step").count()).toBe(0);
+    await waitingCard().getByTestId("question-answer").click();
     await until(() => w.locator('[data-testid="agent-message"][data-status="done"]').count());
     await expect(lastTurn().getByTestId("question-card").textContent()).resolves.toContain(
       "Which mood should the bakery's site have? → Warm",
@@ -100,27 +104,38 @@ describe("the agent's questions", () => {
     await until(async () => (await w.getByTestId("project-waiting").count()) === 0);
   });
 
-  test("several questions: choices, then Answer", async () => {
+  test("several questions, one at a time: steps, Back, an answer of one's own, and Skip for one (Q387-Q390)", async () => {
     const w = launched.window;
     await send("Add a page for weddings");
     await until(() => waitingCard().count());
-    const answer = w.getByTestId("question-answer");
-    await expect(answer.isDisabled()).resolves.toBe(true);
-    await waitingCard()
-      .getByRole("button", { name: /Tiered cakes/ })
-      .click();
-    await waitingCard()
-      .getByRole("button", { name: /Croquembouche/ })
-      .click();
-    await waitingCard()
-      .getByRole("button", { name: /No, on request/ })
-      .click();
-    await answer.click();
+    const card = waitingCard();
+    expect(await card.getByTestId("question-step").count()).toBe(2);
+    await expect(card.getByTestId("question-count").textContent()).resolves.toBe("1 of 2");
+    const next = card.getByTestId("question-next");
+    await expect(next.isDisabled()).resolves.toBe(true);
+    await card.getByRole("button", { name: /Tiered cakes/ }).click();
+    await card.getByRole("button", { name: /Croquembouche/ }).click();
+    await card.getByTestId("question-other").fill("Naked cakes");
+    await expect(next.isDisabled()).resolves.toBe(false);
+    await launched.capture("question-steps");
+    await next.click();
+    await expect(card.getByTestId("question-count").textContent()).resolves.toBe("2 of 2");
+    await card.getByRole("button", { name: /No, on request/ }).waitFor();
+    // Back to the first: what was chosen is kept.
+    await card.getByTestId("question-back").click();
+    await expect(card.getByRole("button", { name: /Croquembouche/ }).getAttribute("aria-pressed")).resolves.toBe(
+      "true",
+    );
+    await expect(card.getByTestId("question-other").inputValue()).resolves.toBe("Naked cakes");
+    // The second's step, then Skip: that question only is passed, and the card is sent.
+    await card.getByTestId("question-step").nth(1).click();
+    await card.getByTestId("question-skip").click();
     await until(() => w.locator('[data-testid="agent-message"][data-status="done"]').nth(1).count());
-    expect((await answerOf()).updatedInput.answers).toEqual({
-      "Which wedding cakes do you make?": ["Tiered cakes", "Croquembouche"],
-      "Should the page show prices?": "No, on request (Recommended)",
+    const { updatedInput } = await answerOf();
+    expect(updatedInput.answers).toEqual({
+      "Which wedding cakes do you make?": ["Tiered cakes", "Croquembouche", "Naked cakes"],
     });
+    expect(updatedInput.annotations).toEqual({ "Should the page show prices?": { unanswered: "skipped" } });
   });
 
   test("an answer in the maker's own words, typed in the message box", async () => {
