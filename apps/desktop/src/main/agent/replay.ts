@@ -259,14 +259,16 @@ function readTurns(file: string): Line[][] {
 /** The project folder of the recording, from its first `init` message. */
 /**
  * A recorded message with the recording's folder replaced by this check's in
- * every text: on the values themselves, not in JSON text, where a Windows
- * folder's backslashes would need escaping.
+ * every text: on the values themselves, and, in a streamed tool input
+ * (`partial_json`, JSON text), escaped as JSON, as a Windows folder's
+ * backslashes need.
  */
-export function relocated(value: unknown, from: string, to: string): unknown {
-  if (typeof value === "string") return value.split(from).join(to);
+export function relocated(value: unknown, from: string, to: string, key?: string): unknown {
+  if (typeof value === "string")
+    return value.split(from).join(key === "partial_json" ? JSON.stringify(to).slice(1, -1) : to);
   if (Array.isArray(value)) return value.map((v) => relocated(v, from, to));
   if (value && typeof value === "object")
-    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, relocated(v, from, to)]));
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, relocated(v, from, to, k)]));
   return value;
 }
 
