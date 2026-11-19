@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
+import { type LaunchedApp, launchApp, PICTURES, runsDir, SLOW } from "./app.ts";
 import { previewDriver } from "./preview-driver.ts";
 
 // The tour (Q328-Q340), for a new maker, on the recorded bakery: it opens once
@@ -26,6 +26,7 @@ describe("the tour", () => {
 
   /** The page alone, which the interface's capture does not hold (a native view over it). */
   const capturePage = async (name: string) => {
+    if (!PICTURES) return;
     const png = await launched.app.evaluate(async () => {
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
       const image = await (globalThis as any).upstart.preview.view.webContents.capturePage();
