@@ -314,7 +314,10 @@ describe("a project folder in the preview", () => {
       w.locator('[data-testid="project-order-choice"][data-order="updated"]').getAttribute("aria-checked"),
     ).resolves.toBe("true");
     await new Promise((r) => setTimeout(r, 400));
-    await w.screenshot({ path: join(runsDir, "project-order-menu.png"), clip: { x: 0, y: 0, width: 480, height: 320 } });
+    await w.screenshot({
+      path: join(runsDir, "project-order-menu.png"),
+      clip: { x: 0, y: 0, width: 480, height: 320 },
+    });
     await w.keyboard.press("Escape");
     await choose("name");
     await expect.poll(listed).toEqual(["Chez Margot", "Second"]);
