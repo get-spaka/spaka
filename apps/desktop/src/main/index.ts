@@ -25,6 +25,7 @@ import {
 } from "@upstart/runtime";
 import { diskSource } from "@upstart/runtime/node";
 import { app, BrowserWindow, dialog, Menu, Notification, nativeTheme, net, safeStorage, shell } from "electron";
+import electronUpdater from "electron-updater";
 import { isPlan } from "../shared/conversation";
 import {
   accountOf,
@@ -107,6 +108,7 @@ import { TemplateViewer } from "./templates/viewer";
 import { Fonts } from "./theme/fonts";
 import { readTheme, type ThemeValues, themeColors, writeTheme } from "./theme/theme-file";
 import { opensTour, type TourMoment } from "./tour";
+import { Updates, updatedSince } from "./update";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
 const env = readEnvironment();
@@ -166,6 +168,11 @@ async function main() {
     },
   });
   stats.launched();
+  // The first launch of a new version: an update was installed (Q367).
+  const versionFile = join(app.getPath("userData"), "version");
+  const lastVersion = existsSync(versionFile) ? readFileSync(versionFile, "utf8").trim() : undefined;
+  if (updatedSince(lastVersion, app.getVersion())) stats.track("update_installed");
+  if (lastVersion !== app.getVersion()) writeFileSync(versionFile, app.getVersion());
   const windowBackground = () => (nativeTheme.shouldUseDarkColors ? "#121212" : "#fafafa");
   const win = new BrowserWindow({
     width: 1440,
@@ -760,6 +767,16 @@ async function main() {
     mkdirSync(env.projectsDir, { recursive: true });
     if (!env.background) void shell.openPath(env.projectsDir);
   });
+  // The app's own updates (Q367, Q378), from the editor's GitHub releases.
+  const updates = new Updates({
+    updater: electronUpdater.autoUpdater,
+    enabled: app.isPackaged && !env.background && process.env.UPSTART_UPDATES !== "0",
+    emit: (state) => ipc.emit("app:update", state),
+    log: (message) => console.warn(message),
+  });
+  updates.start();
+  ipc.handle("app:update-state", () => updates.state());
+  ipc.handle("app:restart-to-update", () => updates.restart());
   ipc.handle("app:open-link", (url) => {
     if (typeof url !== "string" || !/^https?:\/\//i.test(url)) throw new Error("Only a web address can be opened.");
     if (!env.background) void shell.openExternal(url);

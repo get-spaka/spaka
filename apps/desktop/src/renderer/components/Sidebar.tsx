@@ -3,6 +3,7 @@ import type { ProjectInfo, ProjectSummary } from "../../shared/ipc";
 import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
+import { UpdateNote } from "./UpdateNote";
 import { Button } from "./ui/button";
 import { Tip } from "./ui/tip";
 
@@ -122,6 +123,7 @@ export function Sidebar({
         )}
       </nav>
       <div className="border-t p-2">
+        <UpdateNote />
         <Button
           variant="ghost"
           size="sm"

@@ -5,7 +5,7 @@
 // a folder or a .zip. The message box stays at the bottom center and says
 // which template the website starts from. The first message creates the
 // website, and the window takes its usual layout.
-import { ArrowLeft, Check, Eye, PanelLeft, Upload, X } from "lucide-react";
+import { ArrowLeft, Check, Eye, Upload, X } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   type AgentStatus,
@@ -21,6 +21,7 @@ import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { MessageBox, modelName, useNewSettings } from "./Conversation";
 import { SignInPanel } from "./SignInPanel";
+import { ExpandSidebarButton } from "./UpdateNote";
 import { Button } from "./ui/button";
 import { NativeSelect } from "./ui/native-select";
 import { Tip } from "./ui/tip";
@@ -109,18 +110,7 @@ export function StartPanel({
   return (
     <section data-testid="start" className="relative flex min-w-0 flex-1 flex-col bg-background">
       <div className={cn("drag-region flex h-13 shrink-0 items-center gap-2", sidebarOpen ? "px-4" : "pr-4 pl-20")}>
-        {!sidebarOpen && (
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="no-drag"
-            onClick={onExpandSidebar}
-            tip={t.sidebar.expand}
-            command="sidebar"
-          >
-            <PanelLeft />
-          </Button>
-        )}
+        {!sidebarOpen && <ExpandSidebarButton onClick={onExpandSidebar} />}
         <div className="ml-auto" />
         <Button
           variant="ghost"

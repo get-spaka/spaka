@@ -36,7 +36,15 @@ import { COMPONENTS, UPSTART_SITE } from "../../shared/open-source";
 import { searchSettings } from "../../shared/settings-search";
 import { Button } from "../components/ui/button";
 import { Tip } from "../components/ui/tip";
-import { useAgentStatus, useAppInfo, useAppSettings, useConnectors, useProjects, useSkills } from "../hooks/useMain";
+import {
+  useAgentStatus,
+  useAppInfo,
+  useAppSettings,
+  useConnectors,
+  useProjects,
+  useSkills,
+  useUpdate,
+} from "../hooks/useMain";
 import { upstart } from "../lib/bridge";
 import { ACCOUNT, CLOSE_BUTTON, CLOSE_CROSS, TILES } from "../lib/colors";
 import { APP_ICON } from "../lib/icon";
@@ -667,6 +675,7 @@ function PrivacyPage() {
 
 function AboutPage() {
   const info = useAppInfo();
+  const update = useUpdate();
   return (
     <section className="flex flex-col items-center gap-2 py-6 text-center" data-setting="version">
       <img src={APP_ICON} alt="" className="size-24" draggable={false} data-testid="about-icon" />
@@ -674,6 +683,13 @@ function AboutPage() {
       {info && (
         <>
           <p data-testid="about-version">{t.settings.about.version(info.version)}</p>
+          {update.state !== "idle" && (
+            <p data-testid="about-update" className="text-xs text-muted-foreground">
+              {update.state === "ready"
+                ? t.settings.about.updateReady(update.version)
+                : t.settings.about.updating(update.version)}
+            </p>
+          )}
           <p className="text-muted-foreground">{t.settings.about.licence}</p>
           <Button
             variant="ghost"

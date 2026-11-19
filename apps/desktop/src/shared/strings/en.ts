@@ -98,6 +98,10 @@ export const en = {
     settings: "Settings",
     settingsTip: "Upstart's settings: accounts, appearance, skills and more",
     waiting: "The agent is waiting for your answer",
+    updateReady: "Update ready",
+    restart: "Restart",
+    restartTip: (version: string) => `Restart Upstart to open version ${version}; it also installs when you quit`,
+    expandUpdate: "Show the sidebar: an update is ready",
   },
   conversation: {
     placeholder: "Describe the website you want…",
@@ -934,6 +938,8 @@ export const en = {
     },
     about: {
       version: (version: string) => `Version ${version}`,
+      updating: (version: string) => `Downloading version ${version}…`,
+      updateReady: (version: string) => `Version ${version} is ready: it installs when you restart Upstart.`,
       licence: "Free software, under the MIT licence.",
       site: "upstart.gg",
       siteTip: "Open Upstart's website in your browser",

@@ -1,4 +1,4 @@
-import { ArrowUp, Check, ChevronRight, CircleSlash, Eraser, Loader2, PanelLeft, Square, X } from "lucide-react";
+import { ArrowUp, Check, ChevronRight, CircleSlash, Eraser, Loader2, Square, X } from "lucide-react";
 import {
   type KeyboardEvent,
   type ReactNode,
@@ -43,6 +43,7 @@ import { PlanCard } from "./PlanCard";
 import { QuestionCard } from "./QuestionCard";
 import { SignInPanel } from "./SignInPanel";
 import { ThemeTab } from "./ThemeTab";
+import { ExpandSidebarButton } from "./UpdateNote";
 import { Button } from "./ui/button";
 import { NativeSelect } from "./ui/native-select";
 import { Tip } from "./ui/tip";
@@ -117,18 +118,7 @@ export function Conversation({
     <section data-testid="conversation" className="relative flex w-[420px] shrink-0 flex-col border-r bg-background">
       {/* Room for the window's buttons when the sidebar is hidden. */}
       <div className={cn("drag-region flex h-13 shrink-0 items-center gap-2", sidebarOpen ? "px-4" : "pr-4 pl-20")}>
-        {!sidebarOpen && (
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="no-drag"
-            onClick={onExpandSidebar}
-            tip={t.sidebar.expand}
-            command="sidebar"
-          >
-            <PanelLeft />
-          </Button>
-        )}
+        {!sidebarOpen && <ExpandSidebarButton onClick={onExpandSidebar} />}
         {project && (
           <span data-testid="project-name" className="truncate text-sm font-medium">
             {project.name}

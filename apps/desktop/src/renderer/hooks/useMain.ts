@@ -13,6 +13,7 @@ import {
   type ProjectInfo,
   type ProjectSummary,
   type SkillInfo,
+  type UpdateState,
 } from "../../shared/ipc";
 import { upstart } from "../lib/bridge";
 
@@ -87,6 +88,38 @@ export function useWaiting() {
     return upstart.on("agent:waiting", setIds);
   }, []);
   return ids;
+}
+
+/** The app's own update, one state for the whole interface: read once, then kept by its events. */
+let lastUpdate: UpdateState = { state: "idle" };
+const updateListeners = new Set<(state: UpdateState) => void>();
+let updateWatched = false;
+function watchUpdate() {
+  if (updateWatched) return;
+  updateWatched = true;
+  const set = (state: UpdateState) => {
+    lastUpdate = state;
+    for (const listener of updateListeners) listener(state);
+  };
+  upstart.on("app:update", set);
+  void upstart.invoke("app:update-state").then((state) => {
+    // An event that came first is the newer.
+    if (lastUpdate.state === "idle") set(state);
+  });
+}
+
+/** Where the app's own update stands (Q367, Q378). */
+export function useUpdate() {
+  const [update, setUpdate] = useState<UpdateState>(lastUpdate);
+  useEffect(() => {
+    watchUpdate();
+    setUpdate(lastUpdate);
+    updateListeners.add(setUpdate);
+    return () => {
+      updateListeners.delete(setUpdate);
+    };
+  }, []);
+  return update;
 }
 
 export function useAgentStatus() {

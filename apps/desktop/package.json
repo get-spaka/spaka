@@ -28,6 +28,7 @@
     "@upstart/builder": "workspace:*",
     "@upstart/runtime": "workspace:*",
     "daisyui": "5.7.50",
+    "electron-updater": "6.8.11",
     "htmx.org": "4.0.1",
     "sharp": "0.35.5",
     "tailwindcss": "4.3.5",
@@ -103,6 +104,14 @@
       {
         "from": "out/hosts",
         "to": "hosts"
+      }
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "upstart-gg",
+        "repo": "upstart-editor",
+        "releaseType": "draft"
       }
     ]
   }

@@ -8,6 +8,12 @@
 import type { ConversationEvent, ConversationItem, QuestionAnswer } from "./conversation";
 import type { Command } from "./shortcuts";
 
+/** Where the app's own update stands (Q367): found and downloading, then ready to restart into. */
+export type UpdateState =
+  | { state: "idle" }
+  | { state: "downloading"; version: string }
+  | { state: "ready"; version: string };
+
 export type AppInfo = {
   version: string;
   platform: string;
@@ -572,6 +578,9 @@ export type Invokes = {
   "app:info": () => AppInfo;
   /** A web address from the agent's message, opened in the maker's browser (http and https only). */
   "app:open-link": (url: string) => void;
+  "app:update-state": () => UpdateState;
+  /** Quits and opens the downloaded version (Q378). */
+  "app:restart-to-update": () => void;
   /** Opens the settings panel over the window (Q123), at a page. */
   "settings:open": (page?: SettingsPage) => void;
   "settings:get": () => AppSettings;
@@ -826,6 +835,7 @@ export type Events = {
   "tour:start": () => void;
   /** Next or Skip, clicked on the tour's bubble drawn in the page. */
   "tour:action": (action: TourAction) => void;
+  "app:update": (state: UpdateState) => void;
 };
 
 export type InvokeChannel = keyof Invokes;
@@ -837,6 +847,8 @@ export const channels = {
   invoke: [
     "app:info",
     "app:open-link",
+    "app:update-state",
+    "app:restart-to-update",
     "settings:open",
     "settings:get",
     "settings:set",
@@ -973,6 +985,7 @@ export const channels = {
     "menu:command",
     "tour:start",
     "tour:action",
+    "app:update",
   ],
 } as const satisfies {
   invoke: readonly InvokeChannel[];

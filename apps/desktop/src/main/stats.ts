@@ -32,6 +32,7 @@ const EVENTS = {
   published: { way: PUBLISH_WAYS },
   tour_finished: {},
   tour_skipped: {},
+  update_installed: {},
   error: { type: ERROR_TYPES },
 } as const satisfies Record<string, Record<string, readonly string[] | "template">>;
 
