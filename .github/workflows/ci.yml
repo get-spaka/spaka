@@ -19,7 +19,7 @@ permissions:
 jobs:
   lint:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
     steps:
       # LF everywhere, the templates' submodule included, which the repository's .gitattributes does not reach.
       - run: git config --global core.autocrlf false
@@ -46,7 +46,7 @@ jobs:
       matrix:
         os: [macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 10
     steps:
       - run: git config --global core.autocrlf false
       - uses: actions/checkout@v7
@@ -81,7 +81,7 @@ jobs:
         shard: [1, 2, 3, 4]
     name: e2e (${{ matrix.os }}, ${{ matrix.shard }}/4)
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 10
     steps:
       - run: git config --global core.autocrlf false
       - uses: actions/checkout@v7

@@ -88,7 +88,9 @@ export async function launchApp({
   app.process().stdout?.on("data", (d) => logs.push(String(d)));
   app.process().stderr?.on("data", (d) => logs.push(String(d)));
   const window = await interfacePage(app);
-  window.setDefaultTimeout(30_000 * SLOW);
+  // An action that waits (a click, a waitFor) gives up in 20 seconds on CI, where a check stuck costs runner time;
+  // 30 on a maker's computer, where the checks with a real agent wait for it.
+  window.setDefaultTimeout(process.env.CI ? 20_000 : 30_000);
   await window.waitForLoadState("domcontentloaded");
   return {
     app,
