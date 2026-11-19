@@ -302,17 +302,27 @@ describe("a project folder in the preview", () => {
       await w.getByTestId("project-order").click();
       const choice = w.locator(`[data-testid="project-order-choice"][data-order="${order}"]`);
       await choice.waitFor();
+      const label = await choice.textContent();
       await choice.click();
+      // The button names the order chosen once it is applied.
+      await expect
+        .poll(() => w.getByTestId("project-order").getAttribute("aria-label"))
+        .toBe(`Sort the projects: ${label}`);
     };
+    // From the default order, also on a retry.
+    await w.evaluate(() =>
+      // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
+      (window as any).upstart.invoke("settings:set", { projectOrder: "updated" }),
+    );
     await w.getByTestId("project-order").click();
     await expect(w.getByTestId("project-order-choice").allTextContents()).resolves.toEqual([
       "Last updated",
       "Name A–Z",
       "Date created",
     ]);
-    await expect(
-      w.locator('[data-testid="project-order-choice"][data-order="updated"]').getAttribute("aria-checked"),
-    ).resolves.toBe("true");
+    await expect
+      .poll(() => w.locator('[data-testid="project-order-choice"][data-order="updated"]').getAttribute("aria-checked"))
+      .toBe("true");
     await new Promise((r) => setTimeout(r, 400));
     await w.screenshot({
       path: join(runsDir, "project-order-menu.png"),
@@ -321,9 +331,6 @@ describe("a project folder in the preview", () => {
     await w.keyboard.press("Escape");
     await choose("name");
     await expect.poll(listed).toEqual(["Chez Margot", "Second"]);
-    await expect(w.getByTestId("project-order").getAttribute("aria-label")).resolves.toBe(
-      "Sort the projects: Name A–Z",
-    );
     await choose("created");
     await expect.poll(listed).toEqual(["Second", "Chez Margot"]);
     // Kept with the app's settings.
