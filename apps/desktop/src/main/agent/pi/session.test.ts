@@ -31,7 +31,8 @@ beforeEach(() => {
   dataDir = join(dir, "data");
   for (const d of [project.path, dataDir]) mkdirSync(d, { recursive: true });
 });
-afterEach(() => rmSync(dir, { recursive: true, force: true }));
+// Windows lets a folder go only once the programs started in it (a connector) have let it go.
+afterEach(() => rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }));
 
 /** A faux OpenAI that answers with the replies given, one per request. */
 function faux(provider = "openai", models = [{ id: "gpt-6.1-terra", reasoning: true }]) {

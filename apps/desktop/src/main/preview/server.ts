@@ -4,7 +4,7 @@
 import { createReadStream, readFileSync, statSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { createRequire } from "node:module";
-import { extname, join, normalize, sep } from "node:path";
+import { extname, join, normalize, resolve, sep } from "node:path";
 import type { Runtime } from "@upstart/runtime";
 import { daisyuiBelowComponents, START_JS, START_SCRIPT, VENDOR } from "@upstart/runtime";
 
@@ -189,6 +189,7 @@ function isFile(path: string) {
 export function safeJoin(root: string, urlPath: string): string | undefined {
   const relative = normalize(urlPath).replace(/^([/\\])+/, "");
   if (relative.split(/[/\\]/).some((part) => part === ".." || part.startsWith("."))) return undefined;
-  const full = join(root, relative);
-  return full.startsWith(root.endsWith(sep) ? root : root + sep) ? full : undefined;
+  const base = resolve(root);
+  const full = join(base, relative);
+  return full.startsWith(base.endsWith(sep) ? base : base + sep) ? full : undefined;
 }

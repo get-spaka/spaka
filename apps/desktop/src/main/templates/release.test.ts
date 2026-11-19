@@ -74,7 +74,8 @@ describe("a release", () => {
     const a = release().catalogue;
     const b = release().catalogue;
     expect(b.templates.map((t) => t.zip.sha256)).toEqual(a.templates.map((t) => t.zip.sha256));
-  });
+    // Two whole releases: longer than a test's usual time on a slow runner.
+  }, 60_000);
 
   test("a template with an error stops the release", () => {
     const root = scratch();

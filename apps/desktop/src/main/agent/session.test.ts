@@ -8,6 +8,7 @@ import { Skills } from "../skills/skills";
 import { activityDetail, activityLabel, lookedLabel } from "./activity";
 import { modelChoices, projectNameFrom } from "./agent";
 import { findSignInUrl, parseAuthStatus } from "./auth";
+import { ruleDir } from "./confinement";
 import { instructionsFor, UPSTART_INSTRUCTIONS } from "./instructions";
 import { ASK_TOOL, NOT_ANSWERED, PLAN_INSTRUCTIONS, PLAN_REFUSED, PLAN_TOOL } from "./questions";
 import { AgentSession, DENY_MESSAGE, isolationProblem, type SessionDeps, TOOLS } from "./session";
@@ -79,7 +80,10 @@ const writeTurn = (dir: string) => [
   stream({
     type: "content_block_delta",
     index: 1,
-    delta: { type: "input_json_delta", partial_json: `{"file_path":"${dir}/pages/ind` },
+    delta: {
+      type: "input_json_delta",
+      partial_json: `{"file_path":${JSON.stringify(`${dir}/pages/ind`).slice(0, -1)}`,
+    },
   }),
   stream({
     type: "content_block_delta",
@@ -91,6 +95,9 @@ const writeTurn = (dir: string) => [
   { type: "user", message: { content: [{ type: "tool_result", tool_use_id: "t1", content: "ok" }] } },
   { type: "result", subtype: "success", is_error: false, result: "Done.", duration_ms: 10 },
 ];
+
+/** Build mode: the sandbox alone on macOS, auto mode elsewhere (ADR 0007). */
+const BUILD_MODE = process.platform === "darwin" ? "acceptEdits" : "auto";
 
 let dir: string;
 let data: string;
@@ -469,8 +476,8 @@ test("the agent gets Upstart's skills only, read-only, and starts again when the
   expect(options.skills).toEqual(["upstart:upstart-help"]);
   expect(options.plugins).toEqual([{ type: "local", path: join(assembled, "upstart"), skipMcpDiscovery: true }]);
   expect(options.additionalDirectories).toContain(assembled);
-  expect(options.settings.permissions.deny).toEqual([`Edit(/${assembled}/**)`]);
-  expect(options.settings.sandbox.filesystem.denyWrite).toEqual([assembled]);
+  expect(options.settings.permissions.deny).toEqual([`Edit(${ruleDir(assembled)}/**)`]);
+  if (process.platform === "darwin") expect(options.settings.sandbox.filesystem.denyWrite).toEqual([assembled]);
   let ended = turnEnd();
   s.send("First");
   await ended;
@@ -691,7 +698,7 @@ test("plan mode: the agent reads, writes nothing, hands in a plan; changes, then
   s.settlePlan(planCard(items())!.id, { approved: true });
   await ended;
   expect(planCard(items())).toMatchObject({ state: "approved", text: "## Pages\n- Home\n- Weddings" });
-  expect(calls).toContainEqual({ permissionMode: "acceptEdits" });
+  expect(calls).toContainEqual({ permissionMode: BUILD_MODE });
   // Back in build mode: what plan mode let through is no longer canUseTool's to grant.
   expect(calls.at(-1)).toEqual({ permission: { behavior: "deny", message: DENY_MESSAGE } });
 });
@@ -701,7 +708,7 @@ test("the Build / Plan selector changes the agent's mode for the next message; o
     [init(), { type: "ask", name: PLAN_TOOL, input: { plan: "x" } }, writeTurn(dir).at(-1)!],
   ]);
   s.start();
-  expect(fake.runs[0]!.options.permissionMode).toBe("acceptEdits");
+  expect(fake.runs[0]!.options.permissionMode).toBe(BUILD_MODE);
   const ended = turnEnd();
   s.send("Hi");
   await ended;

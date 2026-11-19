@@ -15,7 +15,11 @@ test("the agent's environment keeps nothing of the session that launched the app
 });
 
 test("the agent writes only in the project and the temporary folder, and never asks", () => {
-  const options = confinement({ projectDir: "/Users/x/Documents/Upstart/site", readable: ["/Users/x/bin"] });
+  const options = confinement({
+    projectDir: "/Users/x/Documents/Upstart/site",
+    readable: ["/Users/x/bin"],
+    platform: "darwin",
+  });
   expect(options.cwd).toBe("/Users/x/Documents/Upstart/site");
   expect(options.permissionMode).toBe("acceptEdits");
   // Where the sandbox is not known to hold, auto mode stays (Q221).

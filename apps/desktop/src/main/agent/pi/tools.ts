@@ -14,7 +14,7 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
+import { dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import type { AgentTool, AgentToolResult } from "@earendil-works/pi-agent-core";
 import { z } from "zod";
 import type { AgentQuestion, QuestionAnswer } from "../../../shared/conversation";
@@ -78,10 +78,13 @@ function place(path: string, root: string, roots: string[]): { abs: string; show
   for (const r of roots.map(real)) {
     const rel = relative(r, target);
     if (!rel.startsWith("..") && !isAbsolute(rel))
-      return { abs: target, shown: r === real(root) ? rel || "." : target };
+      return { abs: target, shown: r === real(root) ? slashed(rel) || "." : target };
   }
   return undefined;
 }
+
+/** A path inside the project as the agent writes it, with forward slashes on every system. */
+const slashed = (path: string) => path.split(sep).join("/");
 
 const outside = (path: string) =>
   new Error(`${path} is outside the project. Upstart's agent reads and writes the project's files only.`);
@@ -199,6 +202,7 @@ export function piFileTools({ root, readable, family, shell, search }: PiToolsOp
         if (!at) throw outside(path ?? ".");
         const found = globSync(pattern, { cwd: at.abs })
           .filter((p) => !p.split(/[\\/]/).some((part) => SKIPPED.has(part)))
+          .map(slashed)
           .sort();
         if (!found.length) return answer("No file matches.");
         return answer(found.slice(0, 300).join("\n") + (found.length > 300 ? `\n[${found.length - 300} more]` : ""));
@@ -241,7 +245,7 @@ export function piFileTools({ root, readable, family, shell, search }: PiToolsOp
           } catch {
             continue;
           }
-          const rel = relative(real(root), file) || file;
+          const rel = slashed(relative(real(root), file)) || file;
           text.split("\n").forEach((line, i) => {
             if (lines.length < 200 && re.test(line)) lines.push(`${rel}:${i + 1}: ${line.slice(0, 300)}`);
           });

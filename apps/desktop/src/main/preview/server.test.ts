@@ -1,4 +1,5 @@
 import { createRequire } from "node:module";
+import { join, resolve } from "node:path";
 import { VENDOR } from "@upstart/runtime";
 import { expect, test } from "vitest";
 import { safeJoin } from "./server";
@@ -9,10 +10,12 @@ test("every library the preview serves resolves from the app", () => {
 });
 
 test("a project file is served only from inside the project, never from a hidden folder", () => {
-  expect(safeJoin("/p", "/img/a.png")).toBe("/p/img/a.png");
-  expect(safeJoin("/p", "/../etc/passwd")).toBe("/p/etc/passwd");
+  // The project's folder, on this system (C:\p on Windows).
+  const p = resolve("/p");
+  expect(safeJoin("/p", "/img/a.png")).toBe(join(p, "img", "a.png"));
+  expect(safeJoin("/p", "/../etc/passwd")).toBe(join(p, "etc", "passwd"));
   expect(safeJoin("/p", "/.upstart/project.json")).toBeUndefined();
-  expect(safeJoin("/p", "/a/../../b")).toBe("/p/b");
+  expect(safeJoin("/p", "/a/../../b")).toBe(join(p, "b"));
 });
 
 test("a page whose body has not started does not replace the page shown", async () => {

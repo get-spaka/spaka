@@ -6,7 +6,7 @@ describe("readEnvironment", () => {
     const env = readEnvironment({ HOME: "/Users/someone" });
     expect(env.background).toBe(false);
     expect(env.dataDir).toBeUndefined();
-    expect(env.projectsDir).toMatch(/Documents\/Upstart$/);
+    expect(env.projectsDir).toMatch(/Documents[\\/]Upstart$/);
   });
 
   test("a check runs in the background with its own folders", () => {

@@ -65,7 +65,7 @@ test("a received project's local connector stays off until approved, and an edit
   expect(connectors.list(project)[0]!.state).toBe("needs-secret");
   connectors.setSecrets("project", "files", { TOKEN: "t" }, project.id);
   expect(connectors.servers(project)).toEqual({
-    files: { type: "stdio", command: "npx", args: ["-y", "files-server"], env: { TOKEN: "t" } },
+    files: { type: "stdio", ...launchedBy("npx", ["-y", "files-server"]), env: { TOKEN: "t" } },
   });
   const before = connectors.fingerprint(project);
   write(["-y", "files-server", "--evil"]);
