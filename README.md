@@ -1,26 +1,34 @@
 # Upstart
 
-Build websites by talking to an agent, on your own computer. Upstart is a desktop app: you describe the website, the agent writes it, and you watch the page take shape as it writes. MIT licensed, free, no account.
+Build websites by talking to an agent, on your own computer. Upstart is a desktop app: you describe the website, or pick a template, the agent writes it, and you watch the page take shape as it writes. MIT licensed, free, no account.
 
-A website is a folder of plain files (Liquid templates, a theme, Tailwind and daisyUI classes, htmx 4) that Upstart serves in a live preview and exports as a static site any web host can serve.
+A website is a folder of plain files (Liquid templates, records in Markdown and YAML, a theme, Tailwind and daisyUI classes, htmx 4) that Upstart serves in a live preview and exports as a static site, a Node app or a Cloudflare Worker.
 
-## What it does today (build steps 1 and 2)
+## Download
 
-- A conversation with the agent, which runs the official Claude binary, signed in with a Claude subscription through its own sign-in or with an API key. Model and effort can change at any time, per website.
-- A live preview that follows the file being written, before it is saved.
-- A history of every version, with undo.
-- Static export, with a guide to putting the folder online for free.
-- Skills (shipped with Upstart, yours, or the website's) and connectors (remote, or programs on your computer, which stay off in a received website until you turn them on). A remote connector that asks you to sign in does so in your browser, through the agent's own sign-in.
-- Editing by hand in the preview: select an element, change a text in place or a link, duplicate, delete or reorder sections, with a visitor's view and phone and tablet widths. Every change is a version you can undo.
-- Comments on the page's elements, sent to the agent together as one message.
-- A gallery of thirty ready-made sections, dragged into a page; the agent starts new pages from it too.
-- A Theme tab: twelve palettes, each colour with a warning when text would be hard to read, the corner radius, and twenty open fonts copied into the website.
+Get the latest version from the [releases page](https://github.com/upstart-gg/upstart-editor/releases/latest):
 
-The agent starts with nothing of your own Claude setup, writes only in the website's folder and the system's temporary folder, and runs its shell inside the operating system's sandbox. It never asks for permissions: what it may not do is refused.
+- **macOS**, Apple silicon: the `.dmg`, signed and notarized.
+- **Windows**, x64, beta: the `.exe` installer. It is not signed yet, so Windows SmartScreen warns of an unknown publisher at the first launch: choose "More info", then "Run anyway". Upstart needs [Git for Windows](https://git-scm.com/downloads/win), which gives the agent its shell; it asks for it at the first launch.
+
+The app updates itself.
+
+## What it does
+
+- A conversation with the agent: Claude, through the official Claude binary, signed in with a Claude subscription through its own sign-in or with an API key; or other models (ChatGPT, OpenAI, Gemini, Vertex AI) through a harness of Upstart's own. The agent can ask you questions and propose a plan, and looks at the pages it builds.
+- A live preview that follows the file being written, before it is saved, and a history of every version, with undo.
+- Templates to start from, adapted to your business page by page, and a gallery of nearly two hundred ready-made sections.
+- Editing by hand in the preview: texts, links, images, sections, with a visitor's view and phone and tablet widths. Comments on the page's elements, sent to the agent together.
+- Content: collections and lists of records, edited in a Content tab or in place in the page; a media library; forms whose answers are kept in the website.
+- A Theme tab: palettes with contrast warnings, corner radius, open fonts copied into the website.
+- Export as a static site, a Node app or a Cloudflare Worker, each with a guide to putting it online.
+- Skills and connectors to extend the agent.
+
+On macOS the agent runs its shell inside the operating system's sandbox: it writes only in the website's folder and the system's temporary folder, and never asks for permissions, since what it may not do is refused. On Windows, which has no such sandbox, the agent runs in its auto mode, which judges each risky command.
 
 ## Working on it
 
-Requires macOS on Apple silicon (for now), Node 24 and pnpm 10.
+Requires Node 24 and pnpm 10, on macOS (Apple silicon) or Windows.
 
 ```bash
 pnpm install
@@ -36,19 +44,25 @@ pnpm --filter @upstart/desktop dev
 | `pnpm lint` | Biome |
 | `pnpm typecheck` | TypeScript, every package |
 | `pnpm e2e` | Builds the app and checks it whole, launched in the background (no window, never takes the focus), with a recorded agent |
-| `pnpm --filter @upstart/desktop package` | An unsigned macOS app in `apps/desktop/dist` |
+| `pnpm --filter @upstart/desktop package` | The packaged app in `apps/desktop/dist` |
 
 Checks with the real agent spend a little of a Claude subscription, so they run only when asked: sign in once with `CLAUDE_CONFIG_DIR=.cache/agent-config` and the agent binary's `auth login`, then run the e2e checks with `UPSTART_REAL_AGENT=1`.
+
+The templates live in their own repository, [upstart-gg/upstart-templates](https://github.com/upstart-gg/upstart-templates), checked out at `apps/desktop/templates` (`git submodule update --init`).
 
 ## Layout
 
 ```
-apps/desktop/       the Electron app: main process, interface, shipped skills
-packages/runtime/   renders a project: pages, shared parts, fragments, theme
-packages/builder/   exports a project as a static website
+apps/desktop/       the Electron app: main process, interface, shipped skills, gallery
+packages/runtime/   renders a project: pages, shared parts, fragments, records, theme
+packages/builder/   exports a project as a static site, a Node app or a Cloudflare Worker
 e2e/                checks of the whole app
 docs/               decisions (v2.0-decisions.md) and ADRs
-spikes/             the two spikes the design rests on
+spikes/             the spikes the design rests on
 ```
 
 The words used across the code and the docs are defined in [GLOSSARY.md](GLOSSARY.md); what was decided, and what has not been verified yet, is in [docs/v2.0-decisions.md](docs/v2.0-decisions.md).
+
+## License
+
+[MIT](LICENSE).

@@ -1,0 +1,15 @@
+# Text files keep LF everywhere, Windows checkouts included: Biome, the fixtures and the templates expect it.
+* text=auto eol=lf
+*.png binary
+*.webp binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.icns binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.zip binary
+*.sqlite binary
