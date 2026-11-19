@@ -10,7 +10,11 @@ import { type LaunchedApp, launchApp, SLOW } from "./app.ts";
 
 const fixture = join(import.meta.dirname, "fixtures/pi-florist.jsonl");
 
-describe.skipIf(!existsSync(fixture))("Upstart's own harness, played back", () => {
+// macOS only: the recording was made there, where the harness has a shell
+// (sandbox-exec, shell.ts), and its agent deletes the gallery's samples with
+// rm. Elsewhere the harness has no shell, so the samples stay, Upstart sends
+// the agent back to work, and the recording runs out of replies.
+describe.skipIf(!existsSync(fixture) || process.platform !== "darwin")("Upstart's own harness, played back", () => {
   let launched: LaunchedApp;
   // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
   const main = <T>(fn: (upstart: any, arg: any) => T, arg?: unknown) =>
