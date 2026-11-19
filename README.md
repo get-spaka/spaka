@@ -58,7 +58,6 @@ packages/runtime/   renders a project: pages, shared parts, fragments, records, 
 packages/builder/   exports a project as a static site, a Node app or a Cloudflare Worker
 e2e/                checks of the whole app
 docs/               decisions (v2.0-decisions.md) and ADRs
-spikes/             the spikes the design rests on
 ```
 
 The words used across the code and the docs are defined in [GLOSSARY.md](GLOSSARY.md); what was decided, and what has not been verified yet, is in [docs/v2.0-decisions.md](docs/v2.0-decisions.md).

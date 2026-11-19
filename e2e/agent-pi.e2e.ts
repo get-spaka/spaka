@@ -1,7 +1,7 @@
 // Checks of Upstart's own harness with a real model (ADR 0012). They spend a
 // little of the maker's Gemini key, so they run only when asked:
-// UPSTART_REAL_PI=1, with GEMINI_API_KEY in spikes/harnesses/homes/keys.env
-// (ignored by git). The key goes from that file to the app's main process,
+// UPSTART_REAL_PI=1, with GEMINI_API_KEY set in the terminal
+// (Q404: never kept in a file). The key goes from there to the app's main process,
 // never printed. With UPSTART_PI_RECORD=<file>, the model's replies are
 // recorded, for agent-pi-replay.e2e.ts to play back. With
 // UPSTART_REAL_PI_VERTEX_PROJECT=<project>, Gemini runs on Vertex AI instead,
@@ -12,20 +12,13 @@ import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { type LaunchedApp, launchApp, SLOW } from "./app.ts";
 
-const keysFile = join(import.meta.dirname, "../spikes/harnesses/homes/keys.env");
 const real = process.env.UPSTART_REAL_PI === "1";
 const vertexProject = process.env.UPSTART_REAL_PI_VERTEX_PROJECT;
 const account = vertexProject ? "vertex" : "gemini";
 const hydrogen = `${account}/gemini-4-hydrogen`;
 
-function key(name: string): string | undefined {
-  if (!existsSync(keysFile)) return undefined;
-  for (const line of readFileSync(keysFile, "utf8").split("\n")) {
-    const m = /^([A-Z_]+)=(.*)$/.exec(line.trim());
-    if (m?.[1] === name) return m[2]!.replace(/^["']|["']$/g, "") || undefined;
-  }
-  return undefined;
-}
+/** A key of the maker's, set in the terminal for a run with a real model (Q404): never kept in a file. */
+const key = (name: string): string | undefined => process.env[name]?.trim() || undefined;
 
 /** Shown even when the checks pass. */
 const say = (line: string) => process.stdout.write(`${line}\n`);
@@ -71,7 +64,7 @@ describe.skipIf(!real)(`Upstart's own harness, with Gemini on ${account}`, () =>
     if (vertexProject) await main((u, p) => u.piAccounts.setVertexGcloud(p), vertexProject);
     else {
       const gemini = key("GEMINI_API_KEY");
-      if (!gemini) throw new Error(`No GEMINI_API_KEY in ${keysFile}`);
+      if (!gemini) throw new Error("Set GEMINI_API_KEY in the terminal to run these checks with a real Gemini.");
       await main((u, k) => u.piAccounts.setKey("gemini", k), gemini);
     }
     // What the agent streams, with its time, to see the page grow (ADR 0009).

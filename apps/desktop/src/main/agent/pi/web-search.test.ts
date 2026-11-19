@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { type Api, type AssistantMessage, createModels, type Model, type Models } from "@earendil-works/pi-ai";
 import { googleProvider } from "@earendil-works/pi-ai/providers/google";
 import { expect, test } from "vitest";
@@ -112,14 +110,14 @@ test("a refused search fails the tool call, which the agent reads", async () => 
   await expect(providerSearch({ models, model: terra, query: "x" })).rejects.toThrow(/web_search not allowed/);
 });
 
-// With the maker's real Gemini key, when asked: UPSTART_REAL_PI=1 and GEMINI_API_KEY in
-// spikes/harnesses/homes/keys.env (ignored by git), never printed.
+// With the maker's real Gemini key, when asked: UPSTART_REAL_PI=1 and GEMINI_API_KEY set in
+// the terminal (Q404: never kept in a file), never printed.
 const real = process.env.UPSTART_REAL_PI === "1";
 test.skipIf(!real)(
   "Google Search answers with its sources, with a real Gemini key",
   async () => {
-    const env = readFileSync(join(import.meta.dirname, "../../../../../../spikes/harnesses/homes/keys.env"), "utf8");
-    const key = /^GEMINI_API_KEY=(.+)$/m.exec(env)?.[1]?.trim();
+    const key = process.env.GEMINI_API_KEY?.trim();
+    if (!key) throw new Error("Set GEMINI_API_KEY in the terminal to run this check with a real Gemini.");
     const models = createModels({ authContext: { env: async () => undefined, fileExists: async () => false } });
     models.setProvider(googleProvider());
     const started = Date.now();

@@ -14,7 +14,7 @@ daisyUI is the component layer because it is MIT-licensed, ships no JavaScript (
 ## Consequences
 
 - daisyUI has no page sections. The gallery's sections are our own, starting from HyperUI's MIT-licensed sections with their hard-coded colours rewritten to theme colours.
-- daisyUI's variables are pointed at the theme's own, and Tailwind is given the same names, so changing one theme value restyles daisyUI components and Tailwind utilities alike. The live-generation spike confirmed it ([report](../../spikes/live-generation/REPORT.md)).
+- daisyUI's variables are pointed at the theme's own, and Tailwind is given the same names, so changing one theme value restyles daisyUI components and Tailwind utilities alike. The live-generation spike confirmed it ([report](../spikes/live-generation.md)).
 - In the preview the stylesheet is daisyUI's prebuilt one plus Tailwind's in-browser compiler, which showed no unstyled frame in the spike. At export the stylesheet is compiled.
 - daisyUI has no font variables, so fonts come straight from the theme's variables.
 - Beside its colors, fonts and roundness, a theme may set the corners of buttons and fields, relief, density and the width of borders; absent, they keep daisyUI's look. daisyUI's status colors are not theme values: they are derived from the theme's background in the browser, so that they belong to every palette (Q225-Q228).

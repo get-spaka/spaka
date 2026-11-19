@@ -137,7 +137,7 @@ The activity line today reads "Looking at the preview".
 
 ## Verified since
 
-The probe in `spikes/looks/` (REPORT.md, 2026-11-15) checked what this section left open:
+The probe of 2026-11-15 ([report](../spikes/looks.md)) checked what this section left open:
 
 - An offscreen window runs Motion, Lenis and scroll timelines at 60 frames a second, whether or not the maker's window is shown, and `Page.captureScreenshot` works on it. A view parked in the maker's window does not: it drops to 4–6 frames a second once that window is hidden.
 - Wheel events drive Pocket's pinned story, Reel's reel and Ember's scroll timeline as a person's scrolling does.

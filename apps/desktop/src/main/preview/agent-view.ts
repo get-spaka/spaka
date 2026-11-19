@@ -2,7 +2,7 @@
 // hidden from the maker, whose preview no longer moves when the agent looks.
 // A window rendered offscreen, never shown: it draws 60 frames a second
 // whether or not the maker's window is on screen, which a view parked in
-// that window does not (spikes/looks/REPORT.md). It loads the preview's
+// that window does not (docs/spikes/looks.md). It loads the preview's
 // server with the preview's own script in visitor mode, takes the
 // renderings morphed in place as the preview does (ADR 0009), and keeps
 // its page, a menu opened or the scroll, until the end of the agent's turn
@@ -370,7 +370,7 @@ const STARTED = `new Promise((done) => {
 })`;
 
 /**
- * In the page: resolves once it has settled, at most 2 s (spikes/looks): two
+ * In the page: resolves once it has settled, at most 2 s (docs/spikes/looks.md): two
  * frames, the scroll still for 200 ms, no finite animation running (those
  * the scroll drives aside), and no style or class changed for 150 ms, which
  * catches the animations Motion runs in JavaScript. Endless animations draw

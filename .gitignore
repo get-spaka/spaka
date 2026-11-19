@@ -11,6 +11,6 @@ dist/
 # The latest templates release's catalogue and pictures, shipped with the packaged app (pnpm template:snapshot).
 /apps/desktop/templates-catalogue/
 
-# API keys and sign-ins of the spikes: never in git
+# API keys and sign-ins: never in git
 keys.env
-spikes/**/auth.json
+auth.json

@@ -16,8 +16,8 @@
 //   of the templates' repository and served on 127.0.0.1, since the published
 //   one has no guides by page type yet.
 //
-// Upstart's own harness, with Gemini 4 Hydrogen and the AI Studio key of
-// spikes/harnesses/homes/keys.env, in the development build
+// Upstart's own harness, with Gemini 4 Hydrogen and the AI Studio key
+// set in the terminal as GEMINI_API_KEY, in the development build
 // (UPSTART_REAL_PI=1): a website, its card answered, then a plan built, then
 // the same Ember case (UPSTART_QUESTIONS_CASE=ember runs it alone).
 import { spawnSync } from "node:child_process";
@@ -34,16 +34,9 @@ const realClaude = process.env.UPSTART_REAL_AGENT === "1";
 const realPi = process.env.UPSTART_REAL_PI === "1";
 const only = process.env.UPSTART_QUESTIONS_CASE;
 const configDir = join(import.meta.dirname, "../.cache/agent-config");
-const keysFile = join(import.meta.dirname, "../spikes/harnesses/homes/keys.env");
 
-function key(name: string): string | undefined {
-  if (!existsSync(keysFile)) return undefined;
-  for (const line of readFileSync(keysFile, "utf8").split("\n")) {
-    const m = /^([A-Z_]+)=(.*)$/.exec(line.trim());
-    if (m?.[1] === name) return m[2]!.replace(/^["']|["']$/g, "") || undefined;
-  }
-  return undefined;
-}
+/** A key of the maker's, set in the terminal for a run with a real model (Q404): never kept in a file. */
+const key = (name: string): string | undefined => process.env[name]?.trim() || undefined;
 
 /** A real turn takes minutes; an adaptation, up to half an hour. */
 const LONG = 40 * 60_000;
@@ -292,7 +285,7 @@ describe.skipIf(!realPi || !PI_CASES.length)(
       launched = await launchApp({ env: { UPSTART_AGENT_REPLAY: "" } });
       await launched.window.getByTestId("message-input").waitFor();
       const gemini = key("GEMINI_API_KEY");
-      if (!gemini) throw new Error(`No GEMINI_API_KEY in ${keysFile}`);
+      if (!gemini) throw new Error("Set GEMINI_API_KEY in the terminal to run these checks with a real Gemini.");
       // The key goes from the file to the main process, never printed.
       await launched.app.evaluate(
         // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks

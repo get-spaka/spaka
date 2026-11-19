@@ -6,7 +6,6 @@
     "includes": [
       "**",
       "!**/*.md",
-      "!spikes",
       "!**/out",
       "!**/dist",
       "!**/vendor",

@@ -1,8 +1,0 @@
-node_modules/
-runs/
-homes/
-*.log
-.DS_Store
-.agy/
-# The Codex app-server protocol types: codex app-server generate-ts --out gen/codex
-gen/

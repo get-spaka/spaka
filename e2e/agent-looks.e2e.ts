@@ -7,26 +7,19 @@
 //   UPSTART_REAL_AGENT=1: Claude, in the packaged app (`pnpm package` first),
 //     with .cache/agent-config signed in;
 //   UPSTART_REAL_PI=1: Gemini 4 Hydrogen in Upstart's own harness, with
-//     GEMINI_API_KEY in spikes/harnesses/homes/keys.env (never printed).
+//     GEMINI_API_KEY set in the terminal (never printed).
 //
 // Writes e2e/.runs/agent-looks-<agent>.json.
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 
 const configDir = join(import.meta.dirname, "../.cache/agent-config");
-const keysFile = join(import.meta.dirname, "../spikes/harnesses/homes/keys.env");
 const MESSAGE = "Check the website on a phone and fix what is wrong";
 
-function key(name: string): string | undefined {
-  if (!existsSync(keysFile)) return undefined;
-  for (const line of readFileSync(keysFile, "utf8").split("\n")) {
-    const m = /^([A-Z_]+)=(.*)$/.exec(line.trim());
-    if (m?.[1] === name) return m[2]!.replace(/^["']|["']$/g, "") || undefined;
-  }
-  return undefined;
-}
+/** A key of the maker's, set in the terminal for a run with a real model (Q404): never kept in a file. */
+const key = (name: string): string | undefined => process.env[name]?.trim() || undefined;
 
 const page = (title: string, body: string) =>
   `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>${title}</title>\n</head>\n<body class="bg-base-100 text-base-content">\n{% render 'header' %}\n${body}\n</body>\n</html>\n`;
@@ -139,7 +132,7 @@ for (const { agent, run } of CASES)
       if (agent === "claude") await until(async () => (await invoke("agent:status")).auth === "signed-in", 30_000);
       else {
         const gemini = key("GEMINI_API_KEY");
-        if (!gemini) throw new Error(`No GEMINI_API_KEY in ${keysFile}`);
+        if (!gemini) throw new Error("Set GEMINI_API_KEY in the terminal to run these checks with a real Gemini.");
         await main((u, k) => u.piAccounts.setKey("gemini", k), gemini);
       }
       const project = await invoke("projects:create", "The Harbor Bar");

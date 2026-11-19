@@ -11,7 +11,7 @@ Upstart's agent layer has one interface and two adapters:
 
 In that harness the model writes files through tools, as Claude does, never in its reply's text (Q271): OpenAI streams a tool call's arguments as the model writes them, and Gemini, which sends a call whole on the Gemini API, gets a way of its own to keep the live preview (Q273). Its file tools reach the project alone, through an execution environment Upstart provides.
 
-Spike 3 ([report](../../spikes/harnesses/REPORT.md)) tried Codex, opencode, Pi, Gemini CLI and Antigravity. The live preview needs a file's content while it is written:
+Spike 3 ([report](../spikes/harnesses.md)) tried Codex, opencode, Pi, Gemini CLI and Antigravity. The live preview needs a file's content while it is written:
 - Codex passes on nothing of what its code mode writes;
 - opencode publishes a tool's input only once complete;
 - the Gemini API and ACP carry a tool call only whole.

@@ -10,7 +10,7 @@
 /** The screens the agent names (Q315): a laptop, and the tablet and phone of Q110. */
 export const SCREENS = {
   desktop: { width: 1440, height: 900, scale: 1, mobile: false },
-  // At scale 1: a picture Claude reads without shrinking it (spikes/looks/REPORT.md).
+  // At scale 1: a picture Claude reads without shrinking it (docs/spikes/looks.md).
   tablet: { width: 820, height: 1180, scale: 1, mobile: true },
   phone: { width: 393, height: 852, scale: 2, mobile: true },
 } as const;
@@ -240,7 +240,7 @@ async function move(view: StepView, to: Move, height: number) {
  * Scrolls until the marked element is at the top of the screen, or in its
  * middle, as a person would: a jump to the screen before it, then the wheel
  * for the last screen, so that smooth scrolling, pinned sections and scroll
- * timelines see a scroll arriving (spikes/looks/REPORT.md).
+ * timelines see a scroll arriving (docs/spikes/looks.md).
  */
 async function scrollTo(view: StepView, height: number, where: "top" | "middle") {
   const target =

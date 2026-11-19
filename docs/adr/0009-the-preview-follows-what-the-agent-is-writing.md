@@ -4,7 +4,7 @@ status: accepted; measured on macOS under subscription sign-in only, not under a
 
 # The preview follows what the agent is writing, before the files reach the disk
 
-The agent writes plain files ([ADR 0001](0001-project-is-a-folder-of-plain-files.md)), and the app does not wait for them. It reads the content of every file the agent writes or edits while that content is still being streamed, keeps the unfinished file in an overlay above the project folder, cuts it at the last complete point, closes what is still open, renders it with the runtime and morphs the result into the preview, at most every 60 ms. Matt chose this on 2026-11-10, by eye on the recordings of the live-generation spike ([report](../../spikes/live-generation/REPORT.md)).
+The agent writes plain files ([ADR 0001](0001-project-is-a-folder-of-plain-files.md)), and the app does not wait for them. It reads the content of every file the agent writes or edits while that content is still being streamed, keeps the unfinished file in an overlay above the project folder, cuts it at the last complete point, closes what is still open, renders it with the runtime and morphs the result into the preview, at most every 60 ms. Matt chose this on 2026-11-10, by eye on the recordings of the live-generation spike ([report](../spikes/live-generation.md)).
 
 Waiting for the files cannot work: the agent writes all the files of a build in a single response, and they reach the disk only when that response ends. Following the stream, the spike measured a first visible change after a median of 1.9 s (within 3 s in 15 runs of 15), a first section started within 10 s in 15 of 15, a complete home page after a median of 21 s, and never more than 1.9 s without movement on screen.
 
