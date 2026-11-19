@@ -32,7 +32,7 @@ These are **inspiration**: you take ideas that many sites share (a trend), never
 The brief is a page, in the author's language:
 
 - **Concept**: one sentence, and the fictional business its texts are written for (a believable name, place and offer).
-- **Category** (`business`, `portfolio`, `blog`, `launch`, `event`, `app`) and whether it is one of the **original**, animated designs.
+- **Category** (`business`, `portfolio`, `blog`, `launch`, `event`, `app`).
 - **Trends** it draws on, from step 1, and what makes it its own.
 - **Type**: the heading and body fonts (Google Fonts, under the OFL), and the scale.
 - **Palette**: the theme's values (`--theme-color-*` in oklch) and what each is used for.

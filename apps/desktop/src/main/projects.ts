@@ -2,9 +2,9 @@
 // travels in its hidden .upstart/ folder; what belongs to this machine (where
 // the folder is, when it was last opened) is kept in the app's own data.
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
-import type { AgentMode, Effort, ProjectInfo, ProjectSummary } from "../shared/ipc";
+import type { AgentMode, Effort, ListedProject, ProjectInfo } from "../shared/ipc";
 import { replaceFile } from "./replace-file";
 
 export const DEFAULT_MODEL = "claude-sonnet-5-5";
@@ -25,7 +25,8 @@ export type ProjectFile = {
   mode?: AgentMode;
 };
 
-type Entry = { id: string; path: string; name: string; openedAt: number };
+/** `createdAt` is missing from the entries kept before Q394: the folder's own creation stands for it. */
+type Entry = { id: string; path: string; name: string; openedAt: number; createdAt?: number };
 
 export class Projects {
   private readonly registryFile: string;
@@ -37,12 +38,27 @@ export class Projects {
     this.registryFile = join(dataDir, "projects.json");
   }
 
-  /** Known projects whose folder still exists, most recently opened first. */
-  list(): ProjectSummary[] {
+  /**
+   * Known projects whose folder still exists, the one whose website changed
+   * last first (Q393); the sidebar orders them as the maker chose.
+   */
+  list(): ListedProject[] {
     return this.entries()
       .filter((e) => existsSync(e.path))
-      .sort((a, b) => b.openedAt - a.openedAt)
-      .map(({ id, name, path }) => ({ id, name, path }));
+      .map(({ id, name, path, createdAt }) => {
+        const created = createdAt ?? bornAt(path);
+        return { id, name, path, createdAt: created, updatedAt: this.changedAt(id) ?? created };
+      })
+      .sort((a, b) => b.updatedAt - a.updatedAt);
+  }
+
+  /** When the project's website last changed: its history's latest snapshot, if it has one. */
+  private changedAt(id: string): number | undefined {
+    try {
+      return statSync(join(this.dataDir, "projects", id, "history", "snapshots.json")).mtimeMs;
+    } catch {
+      return undefined;
+    }
   }
 
   /** A new, empty project folder in the projects folder, named after `name`. */
@@ -110,10 +126,19 @@ export class Projects {
   }
 
   private remember(folder: string, file: ProjectFile): ProjectInfo {
-    const entries = this.entries().filter((e) => e.id !== file.id && resolve(e.path) !== folder);
+    const all = this.entries();
+    const known = all.find((e) => e.id === file.id);
+    const entries = all.filter((e) => e.id !== file.id && resolve(e.path) !== folder);
     // Strictly after every other, even within the same millisecond.
     const latest = Math.max(0, ...entries.map((e) => e.openedAt));
-    entries.push({ id: file.id, path: folder, name: file.name, openedAt: Math.max(Date.now(), latest + 1) });
+    const now = Math.max(Date.now(), latest + 1);
+    entries.push({
+      id: file.id,
+      path: folder,
+      name: file.name,
+      openedAt: now,
+      createdAt: known ? (known.createdAt ?? bornAt(known.path)) : now,
+    });
     this.save(entries);
     return { ...file, path: folder };
   }
@@ -131,6 +156,16 @@ export class Projects {
     const tmp = `${this.registryFile}.tmp`;
     writeFileSync(tmp, JSON.stringify(entries, null, 2));
     replaceFile(tmp, this.registryFile);
+  }
+}
+
+/** When a folder was made, where the file system knows it; else when it last changed. */
+function bornAt(path: string): number {
+  try {
+    const stat = statSync(path);
+    return stat.birthtimeMs > 0 ? stat.birthtimeMs : stat.mtimeMs;
+  } catch {
+    return 0;
   }
 }
 

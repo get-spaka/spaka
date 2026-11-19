@@ -8,10 +8,10 @@ import {
   type ConversationState,
   DEFAULT_APP_SETTINGS,
   type HistoryEntry,
+  type ListedProject,
   type PageComment,
   type PreviewState,
   type ProjectInfo,
-  type ProjectSummary,
   type SkillInfo,
   type UpdateState,
 } from "../../shared/ipc";
@@ -19,7 +19,7 @@ import { upstart } from "../lib/bridge";
 
 /** The known projects and the open one, kept in step with the main process. */
 export function useProjects() {
-  const [projects, setProjects] = useState<ProjectSummary[]>([]);
+  const [projects, setProjects] = useState<ListedProject[]>([]);
   const [current, setCurrent] = useState<ProjectInfo | null>(null);
   // Until both are known, the window shows the startup view rather than the start screen.
   const [loaded, setLoaded] = useState(false);

@@ -16,7 +16,6 @@ const MANIFEST = {
   name: "Atelier",
   description: "A calm studio site whose sections rise into view, with a large type hero and a grid of work.",
   category: "portfolio",
-  original: true,
   tags: ["studio", "ceramics"],
   author: { name: "Upstart", url: "https://upstart.gg" },
   licence: "MIT",

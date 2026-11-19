@@ -53,7 +53,7 @@ export class TemplateLibrary {
     if ("releases" in source) this.latest = readCatalogue(join(source.cache, CATALOGUE_FILE));
   }
 
-  /** Every template, originals first, then the standard ones, each by name (Q264). */
+  /** Every template, by name (Q396: no longer the originals first). */
   list(): TemplateSummary[] {
     const seen = new Set<string>();
     const all: TemplateSummary[] = [];
@@ -72,7 +72,7 @@ export class TemplateLibrary {
       const summary = readSummary(join(this.imported, id), true);
       if (summary?.id === id) add(summary);
     }
-    return all.sort((a, b) => Number(b.original) - Number(a.original) || a.name.localeCompare(b.name));
+    return all.sort((a, b) => a.name.localeCompare(b.name));
   }
 
   get(id: string): TemplateSummary | undefined {
@@ -275,7 +275,6 @@ function summaryOf(m: Manifest, imported: boolean): TemplateSummary {
     name: m.name,
     description: m.description,
     category: m.category,
-    original: m.original,
     tags: m.tags,
     imported,
   };

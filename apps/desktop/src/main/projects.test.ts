@@ -1,4 +1,13 @@
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  renameSync,
+  utimesSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, test } from "vitest";
@@ -19,7 +28,15 @@ describe("creating a project", () => {
     expect(project.model).toBe("claude-sonnet-5-5");
     expect(project.effort).toBe("medium");
     expect(readProjectFile(project.path)?.id).toBe(project.id);
-    expect(projects.list()).toEqual([{ id: project.id, name: "Chez Margot, boulangerie", path: project.path }]);
+    expect(projects.list()).toEqual([
+      {
+        id: project.id,
+        name: "Chez Margot, boulangerie",
+        path: project.path,
+        createdAt: expect.any(Number),
+        updatedAt: expect.any(Number),
+      },
+    ]);
   });
 
   test("never reuses an existing folder", () => {
@@ -51,11 +68,9 @@ describe("opening a folder", () => {
     expect(projects.openFolder(moved).id).toBe(original.id);
   });
 
-  test("lists the most recently opened first and forgets folders that are gone", () => {
-    const a = projects.create("A");
+  test("forgets folders that are gone", () => {
+    projects.create("A");
     const b = projects.create("B");
-    projects.open(a.id);
-    expect(projects.list().map((p) => p.name)).toEqual(["A", "B"]);
     renameSync(b.path, join(root, "elsewhere"));
     expect(projects.list().map((p) => p.name)).toEqual(["A"]);
   });
@@ -77,4 +92,44 @@ test("a broken project.json is replaced", () => {
 test("slug", () => {
   expect(slug("  Café Ça Va!  ")).toBe("cafe-ca-va");
   expect(slug("🙂")).toBe("");
+});
+
+describe("the order of the list (Q393)", () => {
+  const history = (id: string, at: number) => {
+    const dir = join(root, "data", "projects", id, "history");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "snapshots.json"), "[]");
+    utimesSync(join(dir, "snapshots.json"), at / 1000, at / 1000);
+  };
+
+  test("the website changed last first; opening one does not move it", () => {
+    const a = projects.create("A");
+    projects.create("B");
+    const c = projects.create("C");
+    history(a.id, Date.now() + 60_000);
+    history(c.id, Date.now() - 60_000);
+    // B, changed by nothing yet, counts from its creation.
+    expect(projects.list().map((p) => p.name)).toEqual(["A", "B", "C"]);
+    projects.open(c.id);
+    expect(projects.list().map((p) => p.name)).toEqual(["A", "B", "C"]);
+  });
+
+  test("a project keeps when it was created, opened or renamed since", () => {
+    const a = projects.create("A");
+    const created = projects.list()[0]!.createdAt;
+    projects.open(a.id);
+    projects.update(a.id, { name: "A, renamed" });
+    expect(projects.list()[0]).toMatchObject({ name: "A, renamed", createdAt: created });
+  });
+
+  test("a project listed before Q394 takes its folder's creation", () => {
+    const a = projects.create("A");
+    const registry = join(root, "data", "projects.json");
+    const entries = JSON.parse(readFileSync(registry, "utf8"));
+    delete entries[0].createdAt;
+    writeFileSync(registry, JSON.stringify(entries));
+    expect(projects.list()[0]!.createdAt).toBeGreaterThan(0);
+    projects.open(a.id);
+    expect(JSON.parse(readFileSync(registry, "utf8"))[0].createdAt).toBeGreaterThan(0);
+  });
 });

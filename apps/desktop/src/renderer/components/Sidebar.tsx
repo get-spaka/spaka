@@ -1,10 +1,20 @@
-import { FolderOpen, PanelLeft, Plus, Settings, SlidersHorizontal } from "lucide-react";
-import type { ProjectInfo, ProjectSummary } from "../../shared/ipc";
+import { ArrowDownUp, FolderOpen, PanelLeft, Plus, Settings, SlidersHorizontal } from "lucide-react";
+import { type ListedProject, PROJECT_ORDERS, type ProjectInfo, type ProjectOrder } from "../../shared/ipc";
+import { ordered } from "../../shared/project-order";
+import { useAppSettings } from "../hooks/useMain";
 import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { UpdateNote } from "./UpdateNote";
 import { Button } from "./ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import { Tip } from "./ui/tip";
 
 export function Sidebar({
@@ -16,7 +26,7 @@ export function Sidebar({
   onSettings,
   onSiteSettings,
 }: {
-  projects: ProjectSummary[];
+  projects: ListedProject[];
   /** The websites whose agent waits for the maker's answer (Q292). */
   waiting?: string[];
   current: ProjectInfo | null;
@@ -26,6 +36,7 @@ export function Sidebar({
   /** Opens a website's own settings (Q118). */
   onSiteSettings: (id: string) => void;
 }) {
+  const { projectOrder } = useAppSettings();
   return (
     <aside data-testid="sidebar" className="flex w-60 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
       <div className="drag-region flex h-13 items-center justify-end px-2">
@@ -66,12 +77,42 @@ export function Sidebar({
           {t.sidebar.openFolder}
         </Button>
       </div>
-      <div className="mt-4 px-4 pb-1 text-xs font-medium text-muted-foreground">{t.sidebar.projects}</div>
+      <div className="mt-4 flex items-center justify-between pr-2 pl-4 text-xs font-medium text-muted-foreground">
+        {t.sidebar.projects}
+        {/* The order of the projects (Q394, Q395), kept from one start to the next. */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              data-testid="project-order"
+              className="size-6 text-muted-foreground"
+              tip={t.sidebar.order(t.sidebar.orders[projectOrder])}
+              tipSide="right"
+            >
+              <ArrowDownUp className="size-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" side="right">
+            <DropdownMenuLabel>{t.sidebar.orderBy}</DropdownMenuLabel>
+            <DropdownMenuRadioGroup
+              value={projectOrder}
+              onValueChange={(order) => void upstart.invoke("settings:set", { projectOrder: order as ProjectOrder })}
+            >
+              {PROJECT_ORDERS.map((order) => (
+                <DropdownMenuRadioItem key={order} value={order} data-testid="project-order-choice" data-order={order}>
+                  {t.sidebar.orders[order]}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
       <nav className="flex-1 overflow-y-auto px-2 pb-2" aria-label={t.sidebar.projects}>
         {projects.length === 0 ? (
           <p className="px-2 py-1 text-sm text-muted-foreground">{t.sidebar.noProjects}</p>
         ) : (
-          projects.map((project) => (
+          ordered(projects, projectOrder).map((project) => (
             <div
               key={project.id}
               className={cn(

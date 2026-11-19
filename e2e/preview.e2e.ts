@@ -270,10 +270,65 @@ describe("a project folder in the preview", () => {
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
       (window as any).upstart.invoke("projects:create", "Second"),
     );
+    const listed = () => launched.window.getByTestId("project-item").allTextContents();
+    // The new website, changed by nothing yet, is the latest: it comes first (Q393).
+    await expect.poll(listed).toEqual(["Second", "Chez Margot"]);
     await launched.window.getByTestId("project-item").filter({ hasText: "Chez Margot" }).click();
     await until("document.title.length > 0 && location.pathname === '/'");
     const started = Date.now();
     while (!(await visible()) && Date.now() - started < 3000) await new Promise((r) => setTimeout(r, 50));
     expect(await visible()).toBe(true);
+    // Its pages were written after it first opened: reopened, it records them, and its website is the latest changed.
+    await expect.poll(listed).toEqual(["Chez Margot", "Second"]);
+    // Opening a website changes nothing of it: it does not move.
+    for (const name of ["Second", "Chez Margot"]) {
+      await launched.window.getByTestId("project-item").filter({ hasText: name }).click();
+      await expect
+        .poll(() =>
+          // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
+          launched.window.evaluate(() => (window as any).upstart.invoke("projects:current").then((p: any) => p?.name)),
+        )
+        .toBe(name);
+      await new Promise((r) => setTimeout(r, 300));
+      expect(await listed()).toEqual(["Chez Margot", "Second"]);
+    }
+    await until("document.title.length > 0 && location.pathname === '/'");
+  });
+
+  test("the projects in the order chosen beside their heading (Q394, Q395)", async () => {
+    const w = launched.window;
+    const listed = () => w.getByTestId("project-item").allTextContents();
+    const choose = async (order: string) => {
+      await w.getByTestId("project-order").click();
+      const choice = w.locator(`[data-testid="project-order-choice"][data-order="${order}"]`);
+      await choice.waitFor();
+      await choice.click();
+    };
+    await w.getByTestId("project-order").click();
+    await expect(w.getByTestId("project-order-choice").allTextContents()).resolves.toEqual([
+      "Last updated",
+      "Name A–Z",
+      "Date created",
+    ]);
+    await expect(
+      w.locator('[data-testid="project-order-choice"][data-order="updated"]').getAttribute("aria-checked"),
+    ).resolves.toBe("true");
+    await new Promise((r) => setTimeout(r, 400));
+    await w.screenshot({ path: join(runsDir, "project-order-menu.png"), clip: { x: 0, y: 0, width: 480, height: 320 } });
+    await w.keyboard.press("Escape");
+    await choose("name");
+    await expect.poll(listed).toEqual(["Chez Margot", "Second"]);
+    await expect(w.getByTestId("project-order").getAttribute("aria-label")).resolves.toBe(
+      "Sort the projects: Name A–Z",
+    );
+    await choose("created");
+    await expect.poll(listed).toEqual(["Second", "Chez Margot"]);
+    // Kept with the app's settings.
+    await expect(
+      // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
+      w.evaluate(() => (window as any).upstart.invoke("settings:get").then((s: any) => s.projectOrder)),
+    ).resolves.toBe("created");
+    await choose("updated");
+    await expect.poll(listed).toEqual(["Chez Margot", "Second"]);
   });
 });

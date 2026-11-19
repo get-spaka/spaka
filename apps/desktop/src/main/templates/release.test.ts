@@ -123,7 +123,7 @@ describe("the templates of a packaged app", { timeout: 60_000 }, () => {
       scratch(),
     );
     expect(await library.refresh()).toBe(false);
-    expect(library.list().map((t) => t.id)).toEqual(["reel", "beacon"]);
+    expect(library.list().map((t) => t.id)).toEqual(["beacon", "reel"]);
     expect(await library.picture("reel", "hover")).toMatch(/^data:image\/webp;base64,/);
     expect(asked.filter((u) => u.endsWith(".webp"))).toEqual([]);
     // A template is downloaded only when it is needed, and it cannot be offline.

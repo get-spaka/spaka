@@ -31,13 +31,10 @@ function outsideTemplate(id: string): string {
 }
 
 describe("the templates to start from", () => {
-  test("originals first, then the standard ones, each by name", () => {
+  test("every template, by name (Q396)", () => {
     const list = new TemplateLibrary({ folder: BUILT_IN }, scratch()).list();
-    const originals = list.filter((t) => t.original);
-    expect(originals.length).toBeGreaterThanOrEqual(4);
-    expect(list.slice(0, originals.length).every((t) => t.original)).toBe(true);
-    const names = (ts: typeof list) => ts.map((t) => t.name);
-    expect(names(originals)).toEqual([...names(originals)].sort((a, b) => a.localeCompare(b)));
+    const names = list.map((t) => t.name);
+    expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
     expect(list.every((t) => !t.imported)).toBe(true);
     expect(list.map((t) => t.id)).toContain("reel");
   });

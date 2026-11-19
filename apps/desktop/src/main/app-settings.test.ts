@@ -29,6 +29,7 @@ test("each value is checked; a wrong or missing one is its default", () => {
       notifyDone: "yes",
       appearance: "dim",
       tourSeen: "no",
+      projectOrder: "size",
     }),
   ).toEqual(DEFAULT_SETTINGS);
   const chosen = {
@@ -41,6 +42,7 @@ test("each value is checked; a wrong or missing one is its default", () => {
     outputStyle: "detailed",
     notifyDone: false,
     tourSeen: true,
+    projectOrder: "name",
   };
   expect(settingsFrom(chosen)).toEqual(chosen);
 });

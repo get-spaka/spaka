@@ -309,14 +309,6 @@ function TemplateCard({
           )}
         </button>
         <div className="pointer-events-none absolute inset-x-2 top-2 flex items-start gap-1">
-          {template.original && (
-            <span
-              data-testid="template-original"
-              className="rounded-full bg-background/90 px-2 py-0.5 text-[11px] font-medium shadow-xs backdrop-blur"
-            >
-              {t.start.original}
-            </span>
-          )}
           {template.imported && (
             <span className="rounded-full bg-background/90 px-2 py-0.5 text-[11px] text-muted-foreground shadow-xs backdrop-blur">
               {t.start.imported}

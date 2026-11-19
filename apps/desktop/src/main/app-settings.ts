@@ -1,6 +1,6 @@
 // The app's own settings, for every website (Q117, Q125): the model and effort a
 // new website starts with, the anonymous statistics switch, the appearance (Q330), the text size, the
-// agent's reply style, the conversation's output style, the notification and whether the tour was seen. Kept as a JSON file
+// agent's reply style, the conversation's output style, the notification, whether the tour was seen and the order of the sidebar's projects. Kept as a JSON file
 // in the app's data on this computer; a value missing or unreadable falls back
 // to its default.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -10,6 +10,7 @@ import {
   type AppSettings,
   DEFAULT_APP_SETTINGS,
   OUTPUT_STYLES,
+  PROJECT_ORDERS,
   REPLY_STYLES,
   TEXT_SIZES,
   type TextSize,
@@ -32,6 +33,7 @@ export function settingsFrom(data: unknown): AppSettings {
     outputStyle: oneOf(OUTPUT_STYLES, d.outputStyle) ?? DEFAULT_SETTINGS.outputStyle,
     notifyDone: typeof d.notifyDone === "boolean" ? d.notifyDone : DEFAULT_SETTINGS.notifyDone,
     tourSeen: typeof d.tourSeen === "boolean" ? d.tourSeen : DEFAULT_SETTINGS.tourSeen,
+    projectOrder: oneOf(PROJECT_ORDERS, d.projectOrder) ?? DEFAULT_SETTINGS.projectOrder,
   };
 }
 

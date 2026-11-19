@@ -88,6 +88,9 @@ export const en = {
   },
   sidebar: {
     projects: "Projects",
+    order: (order: string) => `Sort the projects: ${order}`,
+    orderBy: "Sort by",
+    orders: { updated: "Last updated", name: "Name A–Z", created: "Date created" },
     newProject: "New website",
     newProjectTip: "Start a new website, from a description or a template",
     openFolder: "Open a folder…",
@@ -241,7 +244,6 @@ export const en = {
       event: "Event",
       app: "App",
     },
-    original: "Original",
     imported: "Imported",
     view: "View",
     viewTip: "See the template large, page by page",

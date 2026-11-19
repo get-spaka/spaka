@@ -41,8 +41,6 @@ export const Manifest = z.object({
   /** One or two sentences, shown under its name. */
   description: z.string().min(20).max(280),
   category: z.enum(TEMPLATE_CATEGORIES),
-  /** One of the original, animated designs (Q230), shown first. */
-  original: z.boolean().default(false),
   /** Words the start screen and the agent may match a description with. */
   tags: z.array(z.string().min(1)).default([]),
   author: z.object({ name: z.string().min(1), url: z.url().optional() }),

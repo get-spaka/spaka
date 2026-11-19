@@ -39,19 +39,14 @@ describe("the start screen", () => {
     await launched?.close();
   });
 
-  test("the templates, originals first with their badge, and a chip per category they have", async () => {
+  test("the templates, by name, and a chip per category they have", async () => {
     const w = launched.window;
     await w.getByTestId("template-card").first().waitFor();
     const cards = w.getByTestId("template-card");
-    const ids = await cards.evaluateAll((els) => els.map((el) => el.getAttribute("data-template")));
+    const ids = await cards.evaluateAll((els) => els.map((el) => el.getAttribute("data-template") ?? ""));
     expect(ids).toEqual(expect.arrayContaining(["reel", "ember", "corner", "beacon"]));
-    // The originals come first (Q264), each with its badge (Q263).
-    const originals = await cards.evaluateAll((els) =>
-      els.map((el) => !!el.querySelector('[data-testid="template-original"]')),
-    );
-    const firstStandard = originals.indexOf(false);
-    expect(firstStandard).toBeGreaterThan(0);
-    expect(originals.slice(firstStandard).every((o) => !o)).toBe(true);
+    // By name, with no badge for the original designs any more (Q396); each name is its id.
+    expect(ids).toEqual([...ids].sort((a, b) => a.localeCompare(b)));
     const chips = await w.getByTestId("template-chip").evaluateAll((els) => els.map((el) => el.dataset.category));
     expect(chips).toEqual(["all", "business", "portfolio", "blog", "launch", "event", "app"]);
     await w.locator('[data-testid="template-chip"][data-category="event"]').click();

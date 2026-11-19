@@ -35,6 +35,17 @@ export type AgentMode = "build" | "plan";
 /** A project as the sidebar lists it. */
 export type ProjectSummary = { id: string; name: string; path: string };
 
+/**
+ * A project as the sidebar lists it (Q393-Q395): when it was created in
+ * Upstart, and when its website last changed (its history's latest snapshot),
+ * which opening it does not change.
+ */
+export type ListedProject = ProjectSummary & { createdAt: number; updatedAt: number };
+
+/** The orders the sidebar can list the projects in (Q394), the first by default. */
+export const PROJECT_ORDERS = ["updated", "name", "created"] as const;
+export type ProjectOrder = (typeof PROJECT_ORDERS)[number];
+
 /** An open project. `siteUrl` is where the maker put the exported site online. */
 export type ProjectInfo = ProjectSummary & {
   model: string;
@@ -414,6 +425,8 @@ export type AppSettings = {
   notifyDone: boolean;
   /** The tour has been seen, to its end or skipped (Q328, Q340): it no longer opens by itself. */
   tourSeen: boolean;
+  /** The order of the sidebar's projects (Q394). */
+  projectOrder: ProjectOrder;
 };
 export const DEFAULT_APP_SETTINGS: AppSettings = {
   newModel: "claude-sonnet-5-5",
@@ -425,6 +438,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   outputStyle: "discreet",
   notifyDone: true,
   tourSeen: false,
+  projectOrder: "updated",
 };
 
 /** Calls from the interface that get an answer: channel → (args) → answer. */
@@ -567,8 +581,6 @@ export type TemplateSummary = {
   name: string;
   description: string;
   category: TemplateCategory;
-  /** One of the original, animated designs, shown first with a badge (Q263, Q264). */
-  original: boolean;
   tags: string[];
   /** Imported by the maker, rather than one of Upstart's. */
   imported: boolean;
@@ -605,7 +617,7 @@ export type Invokes = {
   "settings:set": (change: Partial<AppSettings>) => AppSettings;
   /** Shows the websites' folder in the Finder. */
   "settings:reveal-projects": () => void;
-  "projects:list": () => ProjectSummary[];
+  "projects:list": () => ListedProject[];
   "projects:create": (name: string) => ProjectInfo;
   "projects:open": (id: string) => ProjectInfo;
   /** Asks the maker for a folder, then opens it. Null when they cancel. */
@@ -717,7 +729,7 @@ export type Invokes = {
   "history:undo": () => HistoryEntry[];
   /** An edit by hand; throws with the reason when it cannot be made. */
   "editing:apply": (action: EditAction) => { label: string; files: string[] };
-  /** The templates to start from, originals first (Q249, Q264). */
+  /** The templates to start from, by name (Q249, Q396). */
   "templates:list": () => TemplateSummary[];
   /** A template's cover or its animated hover sequence, as a data URL. */
   "templates:picture": (id: string, which: "cover" | "hover") => string | null;
@@ -813,7 +825,7 @@ export type Sends = {
 
 /** One-way messages from the main process to the interface. */
 export type Events = {
-  "projects:changed": (projects: ProjectSummary[]) => void;
+  "projects:changed": (projects: ListedProject[]) => void;
   /** A project was opened, or null when none is open any more. */
   "project:opened": (project: ProjectInfo | null) => void;
   "preview:state": (state: PreviewState) => void;

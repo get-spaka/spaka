@@ -656,7 +656,10 @@ async function main() {
     }));
   };
   const emitHistory = () => {
-    if (history) ipc.emit("history:changed", { projectId: history.projectId, entries: historyEntries() });
+    if (!history) return;
+    ipc.emit("history:changed", { projectId: history.projectId, entries: historyEntries() });
+    // The website changed: the sidebar's "Last updated" order follows (Q393).
+    ipc.emit("projects:changed", projects.list());
   };
   const goBack = (id: string | undefined) => {
     if (!history || !current) throw new Error("No project is open.");
