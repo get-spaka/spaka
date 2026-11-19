@@ -37,23 +37,6 @@ export function previewDriver(app: () => LaunchedApp) {
     page("JSON.stringify([location.href, document.title, document.querySelector('h1')?.textContent])").catch(
       () => "nothing that answers",
     );
-  /**
-   * Opens a page the check just wrote and waits until it shows `code`. The
-   * files just written reload the preview meanwhile: a navigation that crossed
-   * that reload is made again, and said in the log.
-   */
-  const open = async (route: string, code: string) => {
-    let asked = 0;
-    await until(async () => {
-      if (await page(code)) return true;
-      if (Date.now() - asked > 5000) {
-        if (asked) console.warn(`navigating to ${route} again; the preview showed ${await shown()}`);
-        asked = Date.now();
-        await invoke("preview:navigate", route);
-      }
-      return false;
-    });
-  };
   /** Input events, as the pointer and the keyboard would send them. */
   const input = (events: object[]) =>
     app().app.evaluate(async (_electron, events) => {
@@ -101,5 +84,5 @@ export function previewDriver(app: () => LaunchedApp) {
     writeFileSync(join(runsDir, `${name}.png`), Buffer.from(png, "base64"));
   };
 
-  return { invoke, until, page, open, input, center, click, typeText, key, drawn, picture };
+  return { invoke, until, page, input, center, click, typeText, key, drawn, picture };
 }

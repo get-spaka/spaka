@@ -414,8 +414,12 @@ export class Preview {
     const route = this.site?.runtime.routeOf(file);
     if (route !== undefined && route !== this.route) {
       this.route = route;
+      // A page still loading runs the script once it has loaded: only the
+      // document shown now takes the address, not one the maker went to since.
       this.view.webContents
-        .executeJavaScript(`history.replaceState(null, "", ${JSON.stringify(route)})`)
+        .executeJavaScript(
+          `if (performance.timeOrigin <= ${Date.now()}) history.replaceState(null, "", ${JSON.stringify(route)})`,
+        )
         .catch(() => {});
     }
   }

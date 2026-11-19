@@ -24,7 +24,7 @@ const online = await fetch(listed[0]!.url, { method: "HEAD" }).then(
 describe.skipIf(!online)("the skill's libraries", () => {
   let launched: LaunchedApp;
   let path: string;
-  const { invoke, until, page, open } = previewDriver(() => launched);
+  const { invoke, until, page } = previewDriver(() => launched);
   const write = (file: string, text: string) => {
     mkdirSync(join(path, file, ".."), { recursive: true });
     writeFileSync(join(path, file), text);
@@ -76,7 +76,8 @@ export function stop() {
 <canvas data-shader aria-hidden="true" width="40" height="40"></canvas>
 </main></body></html>`,
     );
-    await open("/", "document.querySelector('h1')?.textContent.includes('Fresh')");
+    await invoke("preview:navigate", "/");
+    await until(() => page("document.querySelector('h1')?.textContent.includes('Fresh')"));
   }, 60_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
