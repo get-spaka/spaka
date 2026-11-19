@@ -109,7 +109,20 @@ describe.skipIf(!existsSync(fixture))("Upstart's own harness, played back", () =
       const item = await turn(
         "Le fleuriste est en face du Jardin des Plantes de Nantes : cherche sur le web les horaires d'ouverture du jardin en hiver, et ajoute-les dans le pied de page, sous « Le jardin d'en face ».",
       );
-      if (item.status !== "done") console.warn(`the turn failed: ${JSON.stringify(await problems())}`);
+      if (item.status !== "done") {
+        // What the session sent the model as the maker: Upstart's own notes among them.
+        const sent = await main((u) =>
+          [...u.agent.sessions.values()].flatMap(
+            (session: { loop?: { state: { messages: { role: string; content: unknown }[] } } }) =>
+              (session.loop?.state.messages ?? [])
+                .filter((m) => m.role === "user")
+                .map((m) => (typeof m.content === "string" ? m.content : JSON.stringify(m.content)).slice(0, 400)),
+          ),
+        );
+        console.warn(
+          `the turn failed: ${JSON.stringify(await problems())}; sent as the maker: ${JSON.stringify(sent, null, 1)}`,
+        );
+      }
       expect(item, item.error).toMatchObject({ kind: "agent", status: "done" });
       expect(labels(item)).toContain("Searching the web");
       const path = await project();
