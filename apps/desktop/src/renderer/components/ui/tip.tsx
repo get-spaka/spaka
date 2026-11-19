@@ -4,6 +4,7 @@
 // button to the next) and drawn in the app's colors, light or dark.
 import { Tooltip } from "radix-ui";
 import type * as React from "react";
+import { createContext, useContext } from "react";
 import { type Command, shortcutOf } from "../../../shared/shortcuts";
 
 export function TipProvider({ children }: { children: React.ReactNode }) {
@@ -14,21 +15,32 @@ export function TipProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+type Side = "top" | "bottom" | "left" | "right";
+
+/**
+ * Where the tips of a part of the interface open when a button does not say:
+ * the preview's bar has them beside its buttons, the page's native view
+ * covering anything drawn below the bar.
+ */
+export const TipSide = createContext<Side | undefined>(undefined);
+
 export function Tip({
   text,
   command,
-  side = "bottom",
+  side,
   children,
 }: {
   /** What the button does, from en.ts. */
   text: string;
   /** The command whose shortcut the tooltip shows. */
   command?: Command;
-  side?: "top" | "bottom" | "left" | "right";
+  side?: Side;
   /** The one element the tooltip is for. */
   children: React.ReactElement;
 }) {
   const keys = command && shortcutOf(command);
+  const around = useContext(TipSide);
+  const placed = side ?? around ?? "bottom";
   return (
     <Tooltip.Root>
       {/* A button given the keyboard by the app (the tour's Next) shows no tip: only one reached with the keyboard does. */}
@@ -40,7 +52,7 @@ export function Tip({
       </Tooltip.Trigger>
       <Tooltip.Portal>
         <Tooltip.Content
-          side={side}
+          side={placed}
           sideOffset={6}
           collisionPadding={8}
           data-testid="tip"

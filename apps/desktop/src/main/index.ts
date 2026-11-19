@@ -865,6 +865,7 @@ async function main() {
   });
   ipc.handle("preview:navigate", (route) => preview.navigate(route, true));
   ipc.handle("preview:reload", () => preview.reload());
+  ipc.handle("preview:snapshot", () => preview.snapshot());
   // The interface measures in its own pixels, drawn larger or smaller by the text size.
   const scaled = <R extends Rect | null>(r: R): R => {
     const zoom = win.webContents.getZoomFactor();

@@ -195,6 +195,18 @@ describe("exporting the website", () => {
     expect(await w.getByTestId("export-site-url").count()).toBe(0);
     await w.getByTestId("export-close").click();
     await until(() => main((u) => u.preview.view.getVisible()));
+    // A dialog over a picture of the page; Escape, and a click beside it, close it too (Q392).
+    await w.getByTestId("export-open").click();
+    await w.getByTestId("export-dialog").waitFor();
+    if (ON_A_SCREEN) await w.getByTestId("publish-page-picture").waitFor();
+    await w.keyboard.press("Escape");
+    await w.getByTestId("export-dialog").waitFor({ state: "detached" });
+    await w.getByTestId("export-open").click();
+    await w.getByTestId("export-dialog").waitFor();
+    await w.getByTestId("export-backdrop").click({ position: { x: 4, y: 4 } });
+    await w.getByTestId("export-dialog").waitFor({ state: "detached" });
+    expect(await w.getByTestId("publish-page-picture").count()).toBe(0);
+    await until(() => main((u) => u.preview.view.getVisible()));
   });
 
   test("record pages and the credits page; no datasources; the images in WebP with a srcset (Q147, Q156, Q157)", async () => {

@@ -41,8 +41,9 @@ function CopyButton({ text, label, testid }: { text: string; label: string; test
  * changed), the static one refused, saying why, when a page shows what
  * visitors send; the form services' addresses for the static one; the export
  * into a folder, the management token written into it (Q191), then the steps
- * that put it online. Shown over the preview column, whose native
- * view is hidden meanwhile. During a template's adaptation, the page types
+ * that put it online. A dialog centred in the preview column, over a dimmed
+ * picture of the page, the native view hidden meanwhile; Escape or a click
+ * beside it closes it (Q392). During a template's adaptation, the page types
  * still showing its contents are named first (Q311).
  */
 export function ExportDialog({
@@ -110,9 +111,27 @@ export function ExportDialog({
     if (picked) await run(picked);
   };
 
+  // Escape closes it, as a click beside it does (Q392).
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => event.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
   return (
-    <div data-testid="export-dialog" className="absolute inset-0 z-10 overflow-y-auto bg-background text-left">
-      <div className="mx-auto flex max-w-xl flex-col gap-6 px-8 py-8">
+    // biome-ignore lint/a11y/noStaticElementInteractions: a click outside is for the pointer; Escape and the close button do the same from the keyboard
+    <div
+      data-testid="export-backdrop"
+      className="absolute inset-0 z-10 no-drag flex items-center justify-center bg-scrim p-6 text-left animate-in fade-in-0"
+      onMouseDown={(event) => event.target === event.currentTarget && onClose()}
+    >
+      <div
+        data-testid="export-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label={t.export.title}
+        className="flex max-h-full w-full max-w-lg flex-col gap-6 overflow-y-auto rounded-xl border bg-background px-6 py-6 shadow-2xl animate-in fade-in-0 zoom-in-95"
+      >
         <div className="flex items-start gap-3">
           <div className="flex-1">
             <h2 className="text-lg font-semibold">{t.export.title}</h2>

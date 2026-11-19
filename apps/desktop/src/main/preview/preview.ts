@@ -365,6 +365,13 @@ export class Preview {
     this.emit();
   }
 
+  /** A picture of the page shown, for under the publish dialog (Q392); null under the thumbnails or with no page. */
+  async snapshot(): Promise<string | null> {
+    if (!this.bounds || !this.shown || !this.site || this.viewMode !== "page") return null;
+    const image = await this.view.webContents.capturePage().catch(() => undefined);
+    return image && !image.isEmpty() ? `data:image/jpeg;base64,${image.toJPEG(85).toString("base64")}` : null;
+  }
+
   get currentView() {
     return this.viewMode;
   }

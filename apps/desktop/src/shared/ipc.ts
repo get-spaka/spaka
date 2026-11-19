@@ -603,6 +603,8 @@ export type Invokes = {
   "projects:close": () => void;
   "preview:navigate": (route: string) => void;
   "preview:reload": () => void;
+  /** A picture of the page shown, as a data URL, for under the publish dialog (Q392); null when none shows. */
+  "preview:snapshot": () => string | null;
   "preview:set-mode": (mode: PreviewMode) => void;
   /** The tour's step in the page (Q332): its veil, or its bubble on the page; null takes them away. */
   "tour:page": (tour: PageTour | null) => void;
@@ -869,6 +871,7 @@ export const channels = {
     "projects:close",
     "preview:navigate",
     "preview:reload",
+    "preview:snapshot",
     "preview:set-mode",
     "tour:page",
     "tour:seen",

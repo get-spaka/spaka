@@ -211,6 +211,8 @@ describe("a project folder in the preview", () => {
     // The bar's buttons say their shortcut in their tooltip (Q329).
     await w.getByTestId("width-phone").hover();
     await expect.poll(() => w.getByTestId("tip").textContent()).toContain(MAC ? "⌥⌘3" : "Ctrl+Alt+3");
+    // Beside the button: below the bar, the page's native view would cover it.
+    expect(await w.getByTestId("tip").getAttribute("data-side")).toBe("left");
     await w.mouse.move(400, 500);
   });
 

@@ -35,7 +35,7 @@ import { HistoryButtons, HistoryList } from "./HistoryPanel";
 import { PagesGrid, pageName } from "./PagesGrid";
 import { Button } from "./ui/button";
 import { NativeSelect } from "./ui/native-select";
-import { Tip } from "./ui/tip";
+import { Tip, TipSide } from "./ui/tip";
 
 /**
  * The devices the preview can show (Q110), in portrait: an iPad Air and an
@@ -96,6 +96,18 @@ export function PreviewPane({
 }) {
   const area = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
+  // Under the publish dialog, a picture of the page where it was (Q392): the native view, hidden meanwhile, would cover the dialog.
+  const placed = useRef<{ x: number; y: number; width: number; height: number; radius: number }>(undefined);
+  const [picture, setPicture] = useState<{ url: string; at: NonNullable<typeof placed.current> } | null>(null);
+  const openPublish = async () => {
+    const url = await upstart.invoke("preview:snapshot").catch(() => null);
+    setPicture(url && placed.current ? { url, at: placed.current } : null);
+    setExporting(true);
+  };
+  const closePublish = () => {
+    setExporting(false);
+    setPicture(null);
+  };
   // During a template's adaptation, the pages still showing its contents (Q305).
   const adaptation = useAdaptation(project?.id);
   const toAdapt = useMemo(() => new Set(stillToAdapt(adaptation).map((s) => s.route)), [adaptation]);
@@ -184,7 +196,7 @@ export function PreviewPane({
   // The menus' items and their shortcuts (Q335): what the bar's buttons do, when they are shown.
   const shown = !!project && state.routes.length > 0;
   useCommands({
-    publish: () => shown && setExporting(true),
+    publish: () => shown && void openPublish(),
     "screen-desktop": () => shown && setWidth("desktop"),
     "screen-tablet": () => shown && setWidth("tablet"),
     "screen-phone": () => shown && setWidth("phone"),
@@ -215,6 +227,7 @@ export function PreviewPane({
       const device = DEVICES[width];
       if (!device) {
         setFrame(undefined);
+        placed.current = { x: 0, y: 0, width: r.width, height: r.height, radius: 0 };
         upstart.send(
           "preview:bounds",
           {
@@ -231,6 +244,13 @@ export function PreviewPane({
       }
       // A tablet or a phone at its own size, smaller if the column is, centred (Q110).
       const { rect, view } = deviceLayout(r, device, landscape);
+      placed.current = {
+        x: rect.x - r.x,
+        y: rect.y - r.y,
+        width: rect.width,
+        height: rect.height,
+        radius: view.radius,
+      };
       setFrame(
         parked
           ? undefined
@@ -309,204 +329,207 @@ export function PreviewPane({
 
   return (
     <main data-testid="preview" data-tour="page" className="flex min-w-0 flex-1 flex-col bg-muted/40">
-      <div className="drag-region flex h-13 shrink-0 items-center gap-2 border-b bg-background px-3 win:pr-36">
-        {project && state.routes.length > 0 && (
-          <div className="no-drag relative flex items-center">
-            <Globe className="pointer-events-none absolute left-2 z-10 size-3.5 text-muted-foreground" />
-            <NativeSelect
-              aria-label={t.preview.pages}
-              size="xs"
-              data-testid="page-select"
-              value={state.route ?? ""}
-              onChange={(event) => {
-                const route = event.target.value;
-                void upstart.invoke("preview:set-view", "page").then(() => upstart.invoke("preview:navigate", route));
-              }}
-              className="field-sizing-content bg-background pl-7 font-medium hover:bg-accent"
-            >
-              {state.route !== null && !state.routes.some((r) => r.route === state.route) && (
-                <option value={state.route}>{state.route}</option>
-              )}
-              {state.routes
-                .filter((r) => !r.group)
-                .map((r) => (
-                  <option key={r.route} value={r.route}>
-                    {r.route}
-                  </option>
-                ))}
-              {[...new Set(state.routes.flatMap((r) => (r.group ? [r.group] : [])))].map((group) => (
-                <optgroup key={group} label={group}>
-                  {state.routes
-                    .filter((r) => r.group === group)
-                    .map((r) => (
-                      <option key={r.route} value={r.route}>
-                        {r.route}
-                      </option>
-                    ))}
-                </optgroup>
-              ))}
-            </NativeSelect>
-          </div>
-        )}
-        <div className="flex-1" />
-        {deleted && (
-          <div
-            data-testid="page-deleted"
-            className="no-drag flex items-center gap-2 rounded-md bg-foreground py-1 pr-1 pl-2.5 text-xs text-background"
-          >
-            {t.preview.pageDeleted(pageName(deleted.route, deleted.name))}
-            <Tip text={t.preview.undoDelete}>
-              <button
-                type="button"
-                data-testid="page-deleted-undo"
-                onClick={() => {
-                  setDeleted(undefined);
-                  void upstart.invoke("history:undo");
+      {/* Beside the bar's buttons, its tips stay above the page's native view, which would cover them below. */}
+      <TipSide.Provider value="left">
+        <div className="drag-region flex h-13 shrink-0 items-center gap-2 border-b bg-background px-3 win:pr-36">
+          {project && state.routes.length > 0 && (
+            <div className="no-drag relative flex items-center">
+              <Globe className="pointer-events-none absolute left-2 z-10 size-3.5 text-muted-foreground" />
+              <NativeSelect
+                aria-label={t.preview.pages}
+                size="xs"
+                data-testid="page-select"
+                value={state.route ?? ""}
+                onChange={(event) => {
+                  const route = event.target.value;
+                  void upstart.invoke("preview:set-view", "page").then(() => upstart.invoke("preview:navigate", route));
                 }}
-                className="rounded px-1.5 py-0.5 font-medium hover:bg-background/20"
+                className="field-sizing-content bg-background pl-7 font-medium hover:bg-accent"
               >
-                {t.preview.undo}
-              </button>
-            </Tip>
-          </div>
-        )}
-        {project && pageCount >= 2 && (
-          <div className="no-drag flex items-center rounded-md border p-0.5" data-testid="preview-view">
-            {(
-              [
-                ["page", Square, t.preview.pageViewTip, undefined],
-                ["pages", LayoutGrid, t.preview.allPagesTip, "all-pages"],
-              ] as const
-            ).map(([view, Icon, tip, command]) => (
-              <Button
-                key={view}
-                variant="ghost"
-                size="icon-sm"
-                className={cn("size-6", state.view === view && "bg-foreground/10 text-foreground")}
-                tip={tip}
-                command={command}
-                aria-pressed={state.view === view}
-                data-testid={`view-${view}`}
-                onClick={() => void upstart.invoke("preview:set-view", view)}
-              >
-                <Icon />
-              </Button>
-            ))}
-          </div>
-        )}
-        {project && state.routes.length > 0 && (
-          <>
-            <div className="no-drag flex items-center rounded-md border p-0.5" data-testid="preview-mode">
+                {state.route !== null && !state.routes.some((r) => r.route === state.route) && (
+                  <option value={state.route}>{state.route}</option>
+                )}
+                {state.routes
+                  .filter((r) => !r.group)
+                  .map((r) => (
+                    <option key={r.route} value={r.route}>
+                      {r.route}
+                    </option>
+                  ))}
+                {[...new Set(state.routes.flatMap((r) => (r.group ? [r.group] : [])))].map((group) => (
+                  <optgroup key={group} label={group}>
+                    {state.routes
+                      .filter((r) => r.group === group)
+                      .map((r) => (
+                        <option key={r.route} value={r.route}>
+                          {r.route}
+                        </option>
+                      ))}
+                  </optgroup>
+                ))}
+              </NativeSelect>
+            </div>
+          )}
+          <div className="flex-1" />
+          {deleted && (
+            <div
+              data-testid="page-deleted"
+              className="no-drag flex items-center gap-2 rounded-md bg-foreground py-1 pr-1 pl-2.5 text-xs text-background"
+            >
+              {t.preview.pageDeleted(pageName(deleted.route, deleted.name))}
+              <Tip text={t.preview.undoDelete}>
+                <button
+                  type="button"
+                  data-testid="page-deleted-undo"
+                  onClick={() => {
+                    setDeleted(undefined);
+                    void upstart.invoke("history:undo");
+                  }}
+                  className="rounded px-1.5 py-0.5 font-medium hover:bg-background/20"
+                >
+                  {t.preview.undo}
+                </button>
+              </Tip>
+            </div>
+          )}
+          {project && pageCount >= 2 && (
+            <div className="no-drag flex items-center rounded-md border p-0.5" data-testid="preview-view">
               {(
                 [
-                  ["edit", MousePointer2, t.preview.editMode],
-                  ["comment", MessageSquarePlus, t.preview.commentMode],
-                  ["visitor", Eye, t.preview.visitorMode],
+                  ["page", Square, t.preview.pageViewTip, undefined],
+                  ["pages", LayoutGrid, t.preview.allPagesTip, "all-pages"],
                 ] as const
-              ).map(([mode, Icon, tip]) => (
+              ).map(([view, Icon, tip, command]) => (
                 <Button
-                  key={mode}
+                  key={view}
                   variant="ghost"
                   size="icon-sm"
-                  className={cn("size-6", state.mode === mode && "bg-foreground/10 text-foreground")}
+                  className={cn("size-6", state.view === view && "bg-foreground/10 text-foreground")}
                   tip={tip}
-                  command={`mode-${mode}`}
-                  aria-pressed={state.mode === mode}
-                  data-testid={`mode-${mode}`}
-                  onClick={() => void upstart.invoke("preview:set-mode", mode)}
+                  command={command}
+                  aria-pressed={state.view === view}
+                  data-testid={`view-${view}`}
+                  onClick={() => void upstart.invoke("preview:set-view", view)}
                 >
                   <Icon />
                 </Button>
               ))}
             </div>
-            <div className="no-drag flex items-center rounded-md border p-0.5" data-testid="preview-width">
-              {(
-                [
-                  ["desktop", Monitor, t.preview.desktop],
-                  ["tablet", Tablet, t.preview.tablet],
-                  ["phone", Smartphone, t.preview.phone],
-                ] as const
-              ).map(([w, Icon, tip]) => (
-                <Button
-                  key={w}
-                  variant="ghost"
-                  size="icon-sm"
-                  className={cn("size-6", width === w && "bg-foreground/10 text-foreground")}
-                  tip={tip}
-                  command={`screen-${w}`}
-                  aria-pressed={width === w}
-                  data-testid={`width-${w}`}
-                  onClick={() => setWidth(w)}
-                >
-                  <Icon />
-                </Button>
-              ))}
-              {width !== "desktop" && (
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  className={cn("size-6", landscape && "bg-foreground/10 text-foreground")}
-                  tip={landscape ? t.preview.portrait : t.preview.landscape}
-                  aria-pressed={landscape}
-                  data-testid="rotate"
-                  onClick={() => setLandscape((l) => !l)}
-                >
-                  <RotateCwSquare />
-                </Button>
-              )}
-            </div>
-          </>
-        )}
-        {/* At the phone's width the page's own send bar does not fit: it is here instead (Q95). */}
-        {project && width === "phone" && comments.length > 0 && (
-          <Button
-            size="sm"
-            className="no-drag h-7"
-            disabled={working}
-            tip={working ? t.comments.waitForAgent : t.comments.sendTitle}
-            onClick={() => void upstart.invoke("comments:send")}
-            data-testid="comments-send"
-          >
-            <Send />
-            {t.comments.sendShort(comments.length)}
-          </Button>
-        )}
-        {project && state.routes.length > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="no-drag h-7"
-            onClick={() => setExporting(true)}
-            tip={t.preview.publishTip}
-            command="publish"
-            data-testid="export-open"
-            data-tour="publish"
-          >
-            <Upload />
-            {t.preview.publish}
-          </Button>
-        )}
-        {project && (
-          <HistoryButtons
-            entries={history}
-            disabled={working}
-            open={historyOpen}
-            onToggle={() => setHistoryOpen((o) => !o)}
-          />
-        )}
-        {project && (
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="no-drag"
-            tip={t.preview.reload}
-            command="reload-preview"
-            onClick={() => void upstart.invoke("preview:reload")}
-          >
-            <RotateCw className={state.loading ? "animate-spin" : undefined} />
-          </Button>
-        )}
-      </div>
+          )}
+          {project && state.routes.length > 0 && (
+            <>
+              <div className="no-drag flex items-center rounded-md border p-0.5" data-testid="preview-mode">
+                {(
+                  [
+                    ["edit", MousePointer2, t.preview.editMode],
+                    ["comment", MessageSquarePlus, t.preview.commentMode],
+                    ["visitor", Eye, t.preview.visitorMode],
+                  ] as const
+                ).map(([mode, Icon, tip]) => (
+                  <Button
+                    key={mode}
+                    variant="ghost"
+                    size="icon-sm"
+                    className={cn("size-6", state.mode === mode && "bg-foreground/10 text-foreground")}
+                    tip={tip}
+                    command={`mode-${mode}`}
+                    aria-pressed={state.mode === mode}
+                    data-testid={`mode-${mode}`}
+                    onClick={() => void upstart.invoke("preview:set-mode", mode)}
+                  >
+                    <Icon />
+                  </Button>
+                ))}
+              </div>
+              <div className="no-drag flex items-center rounded-md border p-0.5" data-testid="preview-width">
+                {(
+                  [
+                    ["desktop", Monitor, t.preview.desktop],
+                    ["tablet", Tablet, t.preview.tablet],
+                    ["phone", Smartphone, t.preview.phone],
+                  ] as const
+                ).map(([w, Icon, tip]) => (
+                  <Button
+                    key={w}
+                    variant="ghost"
+                    size="icon-sm"
+                    className={cn("size-6", width === w && "bg-foreground/10 text-foreground")}
+                    tip={tip}
+                    command={`screen-${w}`}
+                    aria-pressed={width === w}
+                    data-testid={`width-${w}`}
+                    onClick={() => setWidth(w)}
+                  >
+                    <Icon />
+                  </Button>
+                ))}
+                {width !== "desktop" && (
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className={cn("size-6", landscape && "bg-foreground/10 text-foreground")}
+                    tip={landscape ? t.preview.portrait : t.preview.landscape}
+                    aria-pressed={landscape}
+                    data-testid="rotate"
+                    onClick={() => setLandscape((l) => !l)}
+                  >
+                    <RotateCwSquare />
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
+          {/* At the phone's width the page's own send bar does not fit: it is here instead (Q95). */}
+          {project && width === "phone" && comments.length > 0 && (
+            <Button
+              size="sm"
+              className="no-drag h-7"
+              disabled={working}
+              tip={working ? t.comments.waitForAgent : t.comments.sendTitle}
+              onClick={() => void upstart.invoke("comments:send")}
+              data-testid="comments-send"
+            >
+              <Send />
+              {t.comments.sendShort(comments.length)}
+            </Button>
+          )}
+          {project && state.routes.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="no-drag h-7"
+              onClick={() => void openPublish()}
+              tip={t.preview.publishTip}
+              command="publish"
+              data-testid="export-open"
+              data-tour="publish"
+            >
+              <Upload />
+              {t.preview.publish}
+            </Button>
+          )}
+          {project && (
+            <HistoryButtons
+              entries={history}
+              disabled={working}
+              open={historyOpen}
+              onToggle={() => setHistoryOpen((o) => !o)}
+            />
+          )}
+          {project && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="no-drag"
+              tip={t.preview.reload}
+              command="reload-preview"
+              onClick={() => void upstart.invoke("preview:reload")}
+            >
+              <RotateCw className={state.loading ? "animate-spin" : undefined} />
+            </Button>
+          )}
+        </div>
+      </TipSide.Provider>
       <div className="flex min-h-0 flex-1">
         <div
           ref={area}
@@ -554,7 +577,24 @@ export function PreviewPane({
               onDone={() => setZoom((z) => (z && !z.toGrid ? { ...z, landed: true } : undefined))}
             />
           )}
-          {dialogOpen && <ExportDialog project={project} working={working} onClose={() => setExporting(false)} />}
+          {dialogOpen && picture && (
+            <img
+              data-testid="publish-page-picture"
+              src={picture.url}
+              alt=""
+              aria-hidden
+              draggable={false}
+              className="absolute object-cover object-top"
+              style={{
+                left: picture.at.x,
+                top: picture.at.y,
+                width: picture.at.width,
+                height: picture.at.height,
+                borderRadius: picture.at.radius,
+              }}
+            />
+          )}
+          {dialogOpen && <ExportDialog project={project} working={working} onClose={closePublish} />}
         </div>
         {project && historyOpen && (
           <HistoryList entries={history} disabled={working} onRestore={() => setHistoryOpen(false)} />
