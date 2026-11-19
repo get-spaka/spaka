@@ -54,8 +54,19 @@ export function stop() {
       "@keyframes rise { from { opacity: 0.2; } to { opacity: 1; } }\n.headline { animation: rise 30s infinite; color: rgb(1, 2, 3); }",
     );
     write("pages/index.liquid", home("Bread since 1952"));
-    await invoke("preview:navigate", "/");
-    await until(() => page("document.querySelector('h1')?.textContent === 'Bread since 1952'"));
+    // The files just written reload the page meanwhile: a navigation that crosses that reload is tried again.
+    let asked = 0;
+    await until(async () => {
+      if (await page("document.querySelector('h1')?.textContent === 'Bread since 1952'")) return true;
+      if (Date.now() - asked > 5000) {
+        asked = Date.now();
+        await invoke("preview:navigate", "/");
+      }
+      return false;
+    }).catch(async (error) => {
+      const shown = await page("JSON.stringify([location.href, document.querySelector('h1')?.textContent])");
+      throw new Error(`${error.message}; the preview shows ${shown}`);
+    });
   }, 60_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
