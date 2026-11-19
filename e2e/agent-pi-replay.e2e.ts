@@ -109,6 +109,7 @@ describe.skipIf(!existsSync(fixture))("Upstart's own harness, played back", () =
       const item = await turn(
         "Le fleuriste est en face du Jardin des Plantes de Nantes : cherche sur le web les horaires d'ouverture du jardin en hiver, et ajoute-les dans le pied de page, sous « Le jardin d'en face ».",
       );
+      if (item.status !== "done") console.warn(`the turn failed: ${JSON.stringify(await problems())}`);
       expect(item, item.error).toMatchObject({ kind: "agent", status: "done" });
       expect(labels(item)).toContain("Searching the web");
       const path = await project();
