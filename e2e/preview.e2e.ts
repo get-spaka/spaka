@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
+import { type LaunchedApp, launchApp, MAC, runsDir, SLOW } from "./app.ts";
 
 const page = (title: string, body: string) =>
   `<!doctype html>\n<html lang="en">\n<head><title>${title}</title></head>\n<body>\n{% render 'header' %}\n${body}\n</body>\n</html>\n`;
@@ -210,7 +210,7 @@ describe("a project folder in the preview", () => {
     await w.getByTestId("export-dialog").waitFor({ state: "detached" });
     // The bar's buttons say their shortcut in their tooltip (Q329).
     await w.getByTestId("width-phone").hover();
-    await expect.poll(() => w.getByTestId("tip").textContent()).toContain("⌥⌘3");
+    await expect.poll(() => w.getByTestId("tip").textContent()).toContain(MAC ? "⌥⌘3" : "Ctrl+Alt+3");
     await w.mouse.move(400, 500);
   });
 

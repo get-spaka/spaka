@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp, watchFront } from "./app.ts";
+import { type LaunchedApp, launchApp, MAC, watchFront } from "./app.ts";
 
 describe("the app's shell, launched in the background", () => {
   let launched: LaunchedApp;
@@ -55,7 +55,8 @@ describe("the app's shell, launched in the background", () => {
         items: (m.submenu?.items ?? []).filter((i) => i.type !== "separator").map((i) => [i.label, i.accelerator]),
       })),
     );
-    expect(menus.map((m) => m.label).slice(1)).toEqual(["File", "Edit", "View", "Window", "Help"]);
+    // macOS's first menu is the app's own; elsewhere Settings and About go to File and Help.
+    expect(menus.map((m) => m.label).slice(MAC ? 1 : 0)).toEqual(["File", "Edit", "View", "Window", "Help"]);
     const file = menus.find((m) => m.label === "File")!.items;
     expect(file.slice(0, 3)).toEqual([
       ["New Website", "CommandOrControl+N"],
@@ -66,6 +67,7 @@ describe("the app's shell, launched in the background", () => {
       "Tour of Upstart",
       "Ask the Agent",
       "Keyboard Shortcuts",
+      ...(MAC ? [] : ["About Upstart"]),
     ]);
   });
 
@@ -87,7 +89,7 @@ describe("the app's shell, launched in the background", () => {
     expect(await menuItem("CommandOrControl+/")).toBe("Keyboard Shortcuts");
     await window.getByTestId("shortcuts").waitFor();
     const publish = window.getByTestId("shortcuts-file").locator("div", { hasText: "Publish…" });
-    expect(await publish.locator("kbd").textContent()).toBe("⇧⌘P");
+    expect(await publish.locator("kbd").textContent()).toBe(MAC ? "⇧⌘P" : "Ctrl+Shift+P");
     await launched.capture("shortcuts");
     await window.keyboard.press("Escape");
     await window.getByTestId("shortcuts").waitFor({ state: "detached" });
@@ -102,7 +104,7 @@ describe("the app's shell, launched in the background", () => {
     await window.getByRole("button", { name: "New website" }).hover();
     const tip = window.getByTestId("tip");
     await tip.waitFor();
-    expect(await tip.textContent()).toContain("⌘N");
+    expect(await tip.textContent()).toContain(MAC ? "⌘N" : "Ctrl+N");
     await window.waitForTimeout(250); // its fade-in
     await launched.capture("tooltip");
     // Away from the button, in the sidebar's empty part: the tooltip goes.
