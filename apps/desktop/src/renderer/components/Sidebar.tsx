@@ -1,4 +1,5 @@
 import { ArrowDownUp, FolderOpen, PanelLeft, Plus, Settings, SlidersHorizontal } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { type ListedProject, PROJECT_ORDERS, type ProjectInfo, type ProjectOrder } from "../../shared/ipc";
 import { ordered } from "../../shared/project-order";
 import { useAppSettings } from "../hooks/useMain";
@@ -37,6 +38,8 @@ export function Sidebar({
   onSiteSettings: (id: string) => void;
 }) {
   const { projectOrder } = useAppSettings();
+  // The website whose name is being changed in place (Q397).
+  const [renaming, setRenaming] = useState<string | null>(null);
   return (
     <aside data-testid="sidebar" className="flex w-60 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
       <div className="drag-region flex h-13 items-center justify-end px-2">
@@ -120,31 +123,44 @@ export function Sidebar({
                 current?.id === project.id && "bg-sidebar-accent font-medium",
               )}
             >
-              {/* Its tip also says what the waiting dot means. */}
-              <Tip
-                side="right"
-                text={
-                  waiting.includes(project.id)
-                    ? t.sidebar.openWaiting(project.path)
-                    : t.sidebar.openProject(project.path)
-                }
-              >
-                <button
-                  type="button"
-                  data-testid="project-item"
-                  onClick={() => void upstart.invoke("projects:open", project.id)}
-                  className="min-w-0 flex-1 px-2 py-1.5 text-left text-sm"
+              {renaming === project.id ? (
+                <RenameField
+                  name={project.name}
+                  onDone={(name) => {
+                    setRenaming(null);
+                    const clean = name?.trim();
+                    if (clean && clean !== project.name) void upstart.invoke("projects:rename", project.id, clean);
+                  }}
+                />
+              ) : (
+                // Its tip also says what the waiting dot means, and how to rename it.
+                <Tip
+                  side="right"
+                  text={
+                    waiting.includes(project.id)
+                      ? t.sidebar.openWaiting(project.path)
+                      : t.sidebar.openProject(project.path)
+                  }
                 >
-                  <span className="flex items-center gap-1.5">
-                    <span className="truncate">{project.name}</span>
-                    {waiting.includes(project.id) && (
-                      <span data-testid="project-waiting" className="size-2 shrink-0 rounded-full bg-primary">
-                        <span className="sr-only">{t.sidebar.waiting}</span>
-                      </span>
-                    )}
-                  </span>
-                </button>
-              </Tip>
+                  <button
+                    type="button"
+                    data-testid="project-item"
+                    // The open website is not opened again: a double-click renames it.
+                    onClick={() => current?.id !== project.id && void upstart.invoke("projects:open", project.id)}
+                    onDoubleClick={() => setRenaming(project.id)}
+                    className="min-w-0 flex-1 px-2 py-1.5 text-left text-sm"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <span className="truncate">{project.name}</span>
+                      {waiting.includes(project.id) && (
+                        <span data-testid="project-waiting" className="size-2 shrink-0 rounded-full bg-primary">
+                          <span className="sr-only">{t.sidebar.waiting}</span>
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                </Tip>
+              )}
               <Tip text={t.site.open(project.name)} side="right">
                 <button
                   type="button"
@@ -180,5 +196,43 @@ export function Sidebar({
         </Button>
       </div>
     </aside>
+  );
+}
+
+/** The website's name in a field, in place of its row (Q397): Enter or a click elsewhere keeps it, Escape leaves it. */
+function RenameField({ name, onDone }: { name: string; onDone: (name?: string) => void }) {
+  const [value, setValue] = useState(name);
+  const field = useRef<HTMLInputElement>(null);
+  const done = useRef(false);
+  const finish = (to?: string) => {
+    if (done.current) return;
+    done.current = true;
+    onDone(to);
+  };
+  useEffect(() => {
+    field.current?.focus();
+    field.current?.select();
+  }, []);
+  return (
+    <input
+      ref={field}
+      data-testid="project-rename"
+      aria-label={t.sidebar.rename}
+      value={value}
+      maxLength={120}
+      onChange={(event) => setValue(event.target.value)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          finish(value);
+        } else if (event.key === "Escape") {
+          event.preventDefault();
+          event.stopPropagation();
+          finish();
+        }
+      }}
+      onBlur={() => finish(value)}
+      className="no-drag my-px ml-px min-w-0 flex-1 rounded-sm border bg-background px-[7px] py-[5px] text-sm font-normal outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+    />
   );
 }

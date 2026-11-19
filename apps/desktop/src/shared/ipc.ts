@@ -625,6 +625,8 @@ export type Invokes = {
   "projects:current": () => ProjectInfo | null;
   /** Closes the open project, back to the new-website state. */
   "projects:close": () => void;
+  /** A website's name, changed from the sidebar (Q397); its folder keeps its own. */
+  "projects:rename": (id: string, name: string) => void;
   "preview:navigate": (route: string) => void;
   "preview:reload": () => void;
   /** A picture of the page shown, as a data URL, for under the publish dialog (Q392); null when none shows. */
@@ -896,6 +898,7 @@ export const channels = {
     "projects:choose-folder",
     "projects:current",
     "projects:close",
+    "projects:rename",
     "preview:navigate",
     "preview:reload",
     "preview:snapshot",

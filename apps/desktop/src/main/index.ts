@@ -848,6 +848,13 @@ async function main() {
   ipc.handle("projects:create", (name) => opened(projects.create(name)));
   ipc.handle("projects:open", (id) => opened(projects.open(id)));
   ipc.handle("projects:current", () => current ?? null);
+  ipc.handle("projects:rename", (id, name) => {
+    const clean = name.trim().slice(0, 120);
+    if (!clean) return;
+    const project = projects.update(id, { name: clean });
+    if (current?.id === id) changed({ ...current, name: project.name });
+    ipc.emit("projects:changed", projects.list());
+  });
   ipc.handle("projects:close", () => {
     editor.leaveRecord();
     current = undefined;

@@ -341,4 +341,42 @@ describe("a project folder in the preview", () => {
     await choose("updated");
     await expect.poll(listed).toEqual(["Chez Margot", "Second"]);
   });
+
+  test("a website renamed in place by a double-click on its name (Q397)", async () => {
+    const w = launched.window;
+    const listed = () => w.getByTestId("project-item").allTextContents();
+    const row = (name: string) => w.getByTestId("project-item").filter({ hasText: name });
+    const field = w.getByTestId("project-rename");
+    // Escape leaves the name as it was.
+    await row("Second").dblclick();
+    await field.waitFor();
+    await expect(field.inputValue()).resolves.toBe("Second");
+    await field.fill("Not kept");
+    await field.press("Escape");
+    await field.waitFor({ state: "detached" });
+    expect(await listed()).toEqual(["Chez Margot", "Second"]);
+    // An empty name changes nothing.
+    await row("Second").dblclick();
+    await field.fill("   ");
+    await field.press("Enter");
+    await field.waitFor({ state: "detached" });
+    expect(await listed()).toEqual(["Chez Margot", "Second"]);
+    // Enter keeps the new name, written in the project and shown for the open website; its folder keeps its own.
+    await row("Chez Margot").dblclick();
+    await field.fill("Boulangerie Margot");
+    await w.screenshot({ path: join(runsDir, "project-rename.png"), clip: { x: 0, y: 0, width: 480, height: 320 } });
+    await field.press("Enter");
+    await expect.poll(listed).toEqual(["Boulangerie Margot", "Second"]);
+    const current = await w.evaluate(() =>
+      // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
+      (window as any).upstart.invoke("projects:current"),
+    );
+    expect(current.name).toBe("Boulangerie Margot");
+    expect(current.path).toMatch(/chez-margot$/);
+    // A click elsewhere keeps it too.
+    await row("Boulangerie").dblclick();
+    await field.fill("Chez Margot");
+    await w.getByTestId("project-order").focus();
+    await expect.poll(listed).toEqual(["Chez Margot", "Second"]);
+  });
 });

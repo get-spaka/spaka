@@ -95,8 +95,10 @@ export const en = {
     newProjectTip: "Start a new website, from a description or a template",
     openFolder: "Open a folder…",
     openFolderTip: "Open a website you already have in a folder",
-    openProject: (path: string) => `Open the website, kept in ${path}`,
-    openWaiting: (path: string) => `The agent is waiting for your answer: open the website, kept in ${path}`,
+    openProject: (path: string) => `Open the website, kept in ${path}; double-click to rename it`,
+    openWaiting: (path: string) =>
+      `The agent is waiting for your answer: open the website, kept in ${path}; double-click to rename it`,
+    rename: "The website's name",
     noProjects: "Your websites will be listed here.",
     collapse: "Hide the sidebar",
     expand: "Show the sidebar",
