@@ -61,7 +61,8 @@ describe("all pages as thumbnails", () => {
 
   beforeAll(async () => {
     const recording = join(mkdtempSync(join(tmpdir(), "pages-grid-")), "three.jsonl");
-    writePagesRecording(recording, 3, { chunk: 40, step: 25 });
+    // Written slowly enough for this check's watch to see the live thumbnail change, on a slow runner too.
+    writePagesRecording(recording, 3, { chunk: 40, step: 25 * SLOW });
     launched = await launchApp({ env: { UPSTART_AGENT_REPLAY: recording, UPSTART_AGENT_REPLAY_SPEED: "1" } });
     const w = launched.window;
     await w.getByTestId("message-input").waitFor();
@@ -85,7 +86,7 @@ describe("all pages as thumbnails", () => {
         .catch(() => null);
       if (outlined) seen.writing.add(outlined);
       if (await w.locator('[data-testid="agent-message"][data-status="done"]').count()) break;
-      if (Date.now() - started > 40_000) throw new Error("The turn did not end.");
+      if (Date.now() - started > 40_000 * SLOW) throw new Error("The turn did not end.");
       await new Promise((r) => setTimeout(r, 50));
     }
     const project = await invoke("projects:current");
