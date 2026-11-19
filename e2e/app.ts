@@ -15,6 +15,13 @@ export const runsDir = join(import.meta.dirname, ".runs");
 /** How much longer every wait is on CI's runners, much slower than a maker's computer. */
 export const SLOW = process.env.CI ? 3 : 1;
 
+/**
+ * Whether the checks' window is shown, without the focus: on Windows a window
+ * never shown draws nothing, so on CI's runners there, where nobody works, it
+ * is. Everywhere else a background run stays unseen.
+ */
+export const SHOWN = !!process.env.CI && process.platform === "win32";
+
 /** Whether the app shows macOS's shortcuts (⌘) or the others' (Ctrl). */
 export const MAC = process.platform === "darwin";
 
@@ -70,8 +77,7 @@ export async function launchApp({
     env: {
       ...cleanEnv(),
       UPSTART_BACKGROUND: "1",
-      // On Windows a window never shown draws nothing: on CI's runners, where nobody works, it is shown without the focus.
-      ...(process.env.CI && process.platform === "win32" ? { UPSTART_SHOW_INACTIVE: "1" } : {}),
+      ...(SHOWN ? { UPSTART_SHOW_INACTIVE: "1" } : {}),
       UPSTART_DATA_DIR: dataDir,
       UPSTART_PROJECTS_DIR: projectsDir,
       // The agent is played back from a recording unless a check asks for the real one ("").

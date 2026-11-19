@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp, MAC, watchFront } from "./app.ts";
+import { type LaunchedApp, launchApp, MAC, SHOWN, watchFront } from "./app.ts";
 
 describe("the app's shell, launched in the background", () => {
   let launched: LaunchedApp;
@@ -137,12 +137,12 @@ describe("the app's shell, launched in the background", () => {
     expect(hasNode).toBe("undefined");
   });
 
-  test("the window is never shown and never focused", async () => {
+  test("the window is never shown (but on Windows' CI runners) and never focused", async () => {
     const state = await launched.app.evaluate(({ BrowserWindow }) => {
       const win = BrowserWindow.getAllWindows()[0]!;
       return { visible: win.isVisible(), focused: win.isFocused() };
     });
-    expect(state).toEqual({ visible: false, focused: false });
+    expect(state).toEqual({ visible: SHOWN, focused: false });
   });
 
   test.runIf(process.platform === "darwin")("never comes to the front", async () => {
