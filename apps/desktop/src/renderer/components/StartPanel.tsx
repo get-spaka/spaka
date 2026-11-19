@@ -109,7 +109,12 @@ export function StartPanel({
 
   return (
     <section data-testid="start" className="relative flex min-w-0 flex-1 flex-col bg-background">
-      <div className={cn("drag-region flex h-13 shrink-0 items-center gap-2", sidebarOpen ? "px-4" : "pr-4 pl-20")}>
+      <div
+        className={cn(
+          "drag-region flex h-13 shrink-0 items-center gap-2 win:pr-36",
+          sidebarOpen ? "px-4" : "pr-4 pl-20 win:pl-4",
+        )}
+      >
         {!sidebarOpen && <ExpandSidebarButton onClick={onExpandSidebar} />}
         <div className="ml-auto" />
         <Button

@@ -2,7 +2,7 @@
 // Upstart's own harness after the project's model (ADR 0012), the
 // conversations as shown (kept in the app's data, ADR 0001), the sign-ins and
 // the models on offer.
-import { readFileSync, renameSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ModelInfo } from "@anthropic-ai/claude-agent-sdk";
 import {
@@ -24,6 +24,7 @@ import {
   type SignInMethod,
 } from "../../shared/ipc";
 import { en } from "../../shared/strings/en";
+import { replaceFile } from "../replace-file";
 import type { AgentAuth, AuthState } from "./auth";
 import { handoverNote } from "./handover";
 import type { PiAccounts } from "./pi/accounts";
@@ -457,5 +458,5 @@ function readLog(file: string): ConversationItem[] {
 function writeLog(file: string, items: ConversationItem[]) {
   const tmp = `${file}.tmp`;
   writeFileSync(tmp, JSON.stringify(items));
-  renameSync(tmp, file);
+  replaceFile(tmp, file);
 }

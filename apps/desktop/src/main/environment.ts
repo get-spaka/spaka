@@ -50,12 +50,19 @@ export type Environment = {
   statsLog: string | undefined;
 };
 
-export function readEnvironment(env: NodeJS.ProcessEnv = process.env): Environment {
+/**
+ * `documents` is the system's Documents folder, where it really is (on
+ * Windows, OneDrive may have moved it).
+ */
+export function readEnvironment(
+  env: NodeJS.ProcessEnv = process.env,
+  documents: string = join(homedir(), "Documents"),
+): Environment {
   return {
     background: env.UPSTART_BACKGROUND === "1",
     showInactive: env.UPSTART_SHOW_INACTIVE === "1",
     dataDir: env.UPSTART_DATA_DIR || undefined,
-    projectsDir: env.UPSTART_PROJECTS_DIR || join(homedir(), "Documents", "Upstart"),
+    projectsDir: env.UPSTART_PROJECTS_DIR || join(documents, "Upstart"),
     agentConfigDir: env.UPSTART_AGENT_CONFIG_DIR || undefined,
     agentReplay: env.UPSTART_AGENT_REPLAY || undefined,
     agentReplaySpeed: Number(env.UPSTART_AGENT_REPLAY_SPEED) || 4,

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { isWorking } from "../shared/conversation";
 import type { SettingsPage } from "../shared/ipc";
 import { Conversation } from "./components/Conversation";
+import { GitForWindows, useGitBash } from "./components/GitForWindows";
 import { MediaPicker } from "./components/MediaPicker";
 import { PreviewPane } from "./components/PreviewPane";
 import { ShortcutsDialog } from "./components/ShortcutsDialog";
@@ -28,6 +29,8 @@ import { SettingsPanel } from "./settings/SettingsPanel";
 
 export function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Windows: Git for Windows first (Q375).
+  const [gitBash, setGitBash] = useGitBash();
   const { projects, current, loaded } = useProjects();
   const preview = usePreviewState();
   const items = useConversation(current?.id);
@@ -80,7 +83,13 @@ export function App() {
     shortcuts: () => setShortcutsOpen((open) => !open),
   });
 
-  if (!loaded) return <Startup />;
+  if (!loaded || !gitBash) return <Startup />;
+  if (gitBash.needed)
+    return (
+      <TipProvider>
+        <GitForWindows state={gitBash} onChange={setGitBash} />
+      </TipProvider>
+    );
   return (
     <TipProvider>
       <div className="relative flex h-full">

@@ -309,7 +309,7 @@ export function PreviewPane({
 
   return (
     <main data-testid="preview" data-tour="page" className="flex min-w-0 flex-1 flex-col bg-muted/40">
-      <div className="drag-region flex h-13 shrink-0 items-center gap-2 border-b bg-background px-3">
+      <div className="drag-region flex h-13 shrink-0 items-center gap-2 border-b bg-background px-3 win:pr-36">
         {project && state.routes.length > 0 && (
           <div className="no-drag relative flex items-center">
             <Globe className="pointer-events-none absolute left-2 z-10 size-3.5 text-muted-foreground" />

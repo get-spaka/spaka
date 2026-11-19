@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { cleanEnv, confinement, grantedInSandbox } from "./confinement";
+import { cleanEnv, confinement, grantedInSandbox, ruleDir, withPathFirst } from "./confinement";
 
 test("the agent's environment keeps nothing of the session that launched the app", () => {
   const env = cleanEnv({
@@ -31,7 +31,22 @@ test("the agent writes only in the project and the temporary folder, and never a
     failIfUnavailable: true,
     allowUnsandboxedCommands: false,
   });
-  expect(options.settings.sandbox.filesystem.allowRead).toEqual(["/Users/x/Documents/Upstart/site", "/Users/x/bin"]);
+  expect(options.settings.sandbox).toMatchObject({
+    filesystem: { allowRead: ["/Users/x/Documents/Upstart/site", "/Users/x/bin"] },
+  });
+});
+
+test("on Windows, which has no sandbox for the shell, auto mode guards it, and the rules take Windows paths", () => {
+  const options = confinement({
+    projectDir: "C:\\Users\\x\\Documents\\Upstart\\site",
+    readable: [],
+    skillsDir: "C:\\Users\\x\\AppData\\Roaming\\Upstart\\skills\\site",
+    platform: "win32",
+  });
+  expect(options.permissionMode).toBe("auto");
+  expect(options.settings.sandbox).toEqual({ enabled: false });
+  expect(options.settings.permissions.deny).toEqual(["Edit(//c/Users/x/AppData/Roaming/Upstart/skills/site/**)"]);
+  expect(ruleDir("/Users/x/skills", "darwin")).toBe("//Users/x/skills");
 });
 
 test("without auto mode, a sandboxed command, a connector's tool or a skill is granted; nothing else (Q221)", () => {
@@ -48,4 +63,15 @@ test("without auto mode, a sandboxed command, a connector's tool or a skill is g
   expect(ok("mcp__upstart__use_block", { page: "pages/index.liquid" })).toBe(true);
   expect(ok("mcp__notion__search", { query: "x" })).toBe(true);
   expect(ok("Skill", { skill: "upstart:gallery" })).toBe(true);
+});
+
+test("the app's node launcher comes first on the search path, under one key", () => {
+  expect(withPathFirst({ PATH: "/usr/bin:/bin", HOME: "/h" }, "/data/bin", "darwin")).toEqual({
+    PATH: "/data/bin:/usr/bin:/bin",
+    HOME: "/h",
+  });
+  expect(withPathFirst({ Path: "C:\\Windows" }, "C:\\data\\bin", "win32")).toEqual({
+    Path: "C:\\data\\bin;C:\\Windows",
+  });
+  expect(withPathFirst({}, "/data/bin", "linux")).toEqual({ PATH: "/data/bin" });
 });

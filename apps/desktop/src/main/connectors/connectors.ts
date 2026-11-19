@@ -10,9 +10,10 @@
 //   it on this machine. The approval is kept outside the project and tied to
 //   the exact command: an agent that edits the command turns it off again.
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { ConnectorDraft, ConnectorInfo, ConnectorScope } from "../../shared/ipc";
+import { replaceFile } from "../replace-file";
 
 /** Where a project keeps its connectors. */
 export const PROJECT_CONNECTORS = ".upstart/connectors.json";
@@ -107,8 +108,7 @@ export class Connectors {
               }
             : {
                 type: "stdio",
-                command: def.command,
-                args: def.args ?? [],
+                ...launchedBy(def.command, def.args ?? []),
                 ...(def.env?.length ? { env: pick(def.env) } : {}),
               };
       }
@@ -242,7 +242,7 @@ export class Connectors {
     const file = join(this.dataDir, "connector-secrets.bin");
     mkdirSync(dirname(file), { recursive: true });
     writeFileSync(`${file}.tmp`, this.vault.encrypt(JSON.stringify(secrets)));
-    renameSync(`${file}.tmp`, file);
+    replaceFile(`${file}.tmp`, file);
   }
 }
 
@@ -312,12 +312,34 @@ function commandId(def: ConnectorDef): string {
     .digest("hex");
 }
 
-export function commandLine(def: { command: string; args?: string[] }): string {
-  return [def.command, ...(def.args ?? [])].map((p) => (/[\s"'\\]/.test(p) ? JSON.stringify(p) : p)).join(" ");
+/**
+ * How the binary launches a local connector's program. On Windows a command
+ * such as npx is a .cmd script, which only cmd runs: it goes through `cmd /c`,
+ * as Claude's documentation says; a program named with its .exe runs itself.
+ */
+export function launchedBy(
+  command: string,
+  args: string[],
+  platform: NodeJS.Platform = process.platform,
+): { command: string; args: string[] } {
+  if (platform !== "win32" || /\.exe$/i.test(command)) return { command, args };
+  return { command: "cmd", args: ["/c", command, ...args] };
 }
 
-/** Splits a command line the way a shell would for plain words and quotes; nothing is expanded. */
-export function splitCommand(line: string): string[] {
+export function commandLine(def: { command: string; args?: string[] }, platform = process.platform): string {
+  const parts = [def.command, ...(def.args ?? [])];
+  // Windows: a backslash is a folder's separator, never an escape.
+  if (platform === "win32") return parts.map((p) => (/[\s"']/.test(p) ? `"${p.replace(/"/g, '\\"')}"` : p)).join(" ");
+  return parts.map((p) => (/[\s"'\\]/.test(p) ? JSON.stringify(p) : p)).join(" ");
+}
+
+/**
+ * Splits a command line the way a shell would for plain words and quotes;
+ * nothing is expanded. On Windows a backslash stays a folder's separator, and
+ * escapes only a double quote inside double quotes.
+ */
+export function splitCommand(line: string, platform = process.platform): string[] {
+  const windows = platform === "win32";
   const out: string[] = [];
   let current = "";
   let quote: string | undefined;
@@ -326,7 +348,8 @@ export function splitCommand(line: string): string[] {
     const c = line[i]!;
     if (quote) {
       if (c === quote) quote = undefined;
-      else if (c === "\\" && quote === '"' && i + 1 < line.length) current += line[++i];
+      else if (c === "\\" && quote === '"' && i + 1 < line.length && (!windows || line[i + 1] === '"'))
+        current += line[++i];
       else current += c;
     } else if (c === '"' || c === "'") {
       quote = c;
@@ -336,7 +359,7 @@ export function splitCommand(line: string): string[] {
       current = "";
       started = false;
     } else {
-      if (c === "\\" && i + 1 < line.length) current += line[++i];
+      if (c === "\\" && !windows && i + 1 < line.length) current += line[++i];
       else current += c;
       started = true;
     }
@@ -348,5 +371,5 @@ export function splitCommand(line: string): string[] {
 function writeJson(file: string, value: unknown) {
   mkdirSync(dirname(file), { recursive: true });
   writeFileSync(`${file}.tmp`, `${JSON.stringify(value, null, 2)}\n`);
-  renameSync(`${file}.tmp`, file);
+  replaceFile(`${file}.tmp`, file);
 }

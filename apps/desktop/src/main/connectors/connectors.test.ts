@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, expect, test } from "vitest";
-import { Connectors, PROJECT_CONNECTORS, splitCommand } from "./connectors";
+import { Connectors, commandLine, launchedBy, PROJECT_CONNECTORS, splitCommand } from "./connectors";
 
 // A stand-in for the keychain: reversible, and visibly not plain text.
 const vault = {
@@ -118,7 +118,13 @@ test("a project's connector replaces the app's of the same name; malformed entri
 });
 
 test("a command line splits on spaces, keeping quoted parts whole", () => {
-  expect(splitCommand(`npx -y "@scope/server" 'a b' c\\ d`)).toEqual(["npx", "-y", "@scope/server", "a b", "c d"]);
+  expect(splitCommand(`npx -y "@scope/server" 'a b' c\\ d`, "darwin")).toEqual([
+    "npx",
+    "-y",
+    "@scope/server",
+    "a b",
+    "c d",
+  ]);
   expect(splitCommand("  ")).toEqual([]);
 });
 
@@ -164,4 +170,21 @@ test("a remote connector may sign in as an app declared with its service (Q108);
       .filter((c) => c.scope === "project")
       .map((c) => c.name),
   ).toEqual(["good"]);
+});
+
+test("on Windows a backslash is a folder's separator, and npx goes through cmd", () => {
+  expect(splitCommand(`C:\\tools\\server.exe --root "C:\\My Sites\\a" "say \\"hi\\""`, "win32")).toEqual([
+    "C:\\tools\\server.exe",
+    "--root",
+    "C:\\My Sites\\a",
+    'say "hi"',
+  ]);
+  const def = { command: "C:\\tools\\server.exe", args: ["--root", "C:\\My Sites\\a"] };
+  expect(splitCommand(commandLine(def, "win32"), "win32")).toEqual([def.command, ...def.args]);
+  expect(launchedBy("npx", ["-y", "@scope/server"], "win32")).toEqual({
+    command: "cmd",
+    args: ["/c", "npx", "-y", "@scope/server"],
+  });
+  expect(launchedBy("C:\\tools\\server.exe", [], "win32")).toEqual({ command: "C:\\tools\\server.exe", args: [] });
+  expect(launchedBy("npx", ["x"], "darwin")).toEqual({ command: "npx", args: ["x"] });
 });

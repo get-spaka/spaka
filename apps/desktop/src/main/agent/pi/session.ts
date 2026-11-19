@@ -4,7 +4,7 @@
 // the live preview follows what it writes, and the conversation shows it the
 // same way. Its memory of the conversation is kept in the app's data, between
 // launches; switching between its models keeps it (Q274).
-import { existsSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { type AgentMessage, Agent as Loop, type AgentEvent as LoopEvent } from "@earendil-works/pi-agent-core";
 import type { Api, AssistantMessage, ClientIdentity, Model, Models, ToolCall } from "@earendil-works/pi-ai";
@@ -12,6 +12,7 @@ import type { AgentQuestion, ConversationEvent, QuestionAnswer } from "../../../
 import type { AgentMode, Effort, ProjectInfo } from "../../../shared/ipc";
 import { en } from "../../../shared/strings/en";
 import type { McpConfig } from "../../connectors/connectors";
+import { replaceFile } from "../../replace-file";
 import { type AssembledSkills, readSkill } from "../../skills/skills";
 import { Activities } from "../activity";
 import type { InstructionsFamily, SkillListing } from "../instructions";
@@ -592,7 +593,7 @@ export class PiSession implements AgentRunner {
     const saved: Saved = { messages: messages.filter((m) => m.role !== "system") };
     const tmp = `${this.savedFile()}.tmp`;
     writeFileSync(tmp, JSON.stringify(saved));
-    renameSync(tmp, this.savedFile());
+    replaceFile(tmp, this.savedFile());
   }
 }
 

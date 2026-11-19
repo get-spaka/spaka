@@ -25,6 +25,25 @@ export function cleanEnv(env: NodeJS.ProcessEnv = process.env): Record<string, s
   return out;
 }
 
+/**
+ * The environment with `dir` first on its search path, under one key: Windows
+ * names it `Path` and reads it whatever its case, so a second `PATH` beside
+ * it would leave the agent with two.
+ */
+export function withPathFirst(
+  env: Record<string, string>,
+  dir: string,
+  platform: NodeJS.Platform = process.platform,
+): Record<string, string> {
+  const out = { ...env };
+  const keys = Object.keys(out).filter((k) => (platform === "win32" ? k.toUpperCase() === "PATH" : k === "PATH"));
+  const key = keys[0] ?? "PATH";
+  const rest = keys.map((k) => out[k]).filter(Boolean);
+  for (const k of keys) delete out[k];
+  out[key] = [dir, ...rest].join(platform === "win32" ? ";" : ":");
+  return out;
+}
+
 export type ConfinementInput = {
   projectDir: string;
   /** Folders the sandboxed shell may read although they are in a denied place (the `node` launcher, the app). */
@@ -33,6 +52,17 @@ export type ConfinementInput = {
   skillsDir?: string;
   platform?: NodeJS.Platform;
 };
+
+/**
+ * A folder as the binary's permission rules write an absolute path: `//` then
+ * the path with forward slashes, a Windows drive as its letter
+ * (`C:\Users\x` is `//c/Users/x`).
+ */
+export function ruleDir(dir: string, platform: NodeJS.Platform = process.platform): string {
+  if (platform !== "win32") return `/${dir}`;
+  const posix = dir.replace(/\\/g, "/").replace(/^([A-Za-z]):/, (_, drive: string) => `/${drive.toLowerCase()}`);
+  return `/${posix}`;
+}
 
 /** The agent's options that confine it. */
 export function confinement({ projectDir, readable, skillsDir, platform = process.platform }: ConfinementInput) {
@@ -70,22 +100,27 @@ export function confinement({ projectDir, readable, skillsDir, platform = proces
         // canUseTool, which refuses all but the agent's questions (ADR 0007).
         // Reading the web, granted rather than asked for (Q257): the maker is never asked (ADR 0007).
         allow: ["WebSearch", "WebFetch"],
-        deny: skills.map((dir) => `Edit(/${dir}/**)`),
+        deny: skills.map((dir) => `Edit(${ruleDir(dir, platform)}/**)`),
       },
-      sandbox: {
-        enabled: true,
-        failIfUnavailable: true,
-        autoAllowBashIfSandboxed: true,
-        allowUnsandboxedCommands: false,
-        filesystem: {
-          allowWrite: [systemTmp],
-          denyRead: ["/Users", "/Volumes"],
-          allowRead: [projectDir, ...readable, ...skills],
-          denyWrite: skills,
-        },
-        network: { allowedDomains: ["*"] },
-      },
+      // Native Windows has no sandbox for the binary's shell (ADR 0007): auto mode is its guard there.
+      sandbox: SANDBOX_HOLDS.includes(platform) ? sandboxFor(projectDir, readable, skills) : { enabled: false },
     },
+  };
+}
+
+function sandboxFor(projectDir: string, readable: string[], skills: string[]) {
+  return {
+    enabled: true,
+    failIfUnavailable: true,
+    autoAllowBashIfSandboxed: true,
+    allowUnsandboxedCommands: false,
+    filesystem: {
+      allowWrite: [systemTmp],
+      denyRead: ["/Users", "/Volumes"],
+      allowRead: [projectDir, ...readable, ...skills],
+      denyWrite: skills,
+    },
+    network: { allowedDomains: ["*"] },
   };
 }
 
@@ -114,7 +149,8 @@ export function grantedInSandbox(toolName: string, input: unknown, platform = pr
 export function agentBinary(): string {
   const appRequire = createRequire(import.meta.url);
   const sdkRequire = createRequire(appRequire.resolve("@anthropic-ai/claude-agent-sdk"));
-  const resolved = sdkRequire.resolve(`@anthropic-ai/claude-agent-sdk-${process.platform}-${process.arch}/claude`);
+  const file = process.platform === "win32" ? "claude.exe" : "claude";
+  const resolved = sdkRequire.resolve(`@anthropic-ai/claude-agent-sdk-${process.platform}-${process.arch}/${file}`);
   // Inside a packaged app the binary sits outside the archive, to be executable.
   return resolved.replace(`${sep}app.asar${sep}`, `${sep}app.asar.unpacked${sep}`);
 }
@@ -124,12 +160,16 @@ export function agentBinary(): string {
  * Node. Returns the folder to put first on the agent's PATH, and the folders
  * the sandbox must let it read.
  */
-export function nodeLauncher(dataDir: string): { binDir: string; readable: string[] } {
+export function nodeLauncher(dataDir: string, platform = process.platform): { binDir: string; readable: string[] } {
   const binDir = join(dataDir, "bin");
   mkdirSync(binDir, { recursive: true });
   const launcher = join(binDir, "node");
+  // A shell script for bash, Git Bash's included on Windows.
   writeFileSync(launcher, `#!/bin/sh\nELECTRON_RUN_AS_NODE=1 exec ${JSON.stringify(process.execPath)} "$@"\n`);
   chmodSync(launcher, 0o755);
+  // And, on Windows, for what runs `node` through cmd (npx and the like).
+  if (platform === "win32")
+    writeFileSync(join(binDir, "node.cmd"), `@echo off\r\nset ELECTRON_RUN_AS_NODE=1\r\n"${process.execPath}" %*\r\n`);
   // The whole app bundle (Electron loads its frameworks from there).
   const bundle =
     process.platform === "darwin"

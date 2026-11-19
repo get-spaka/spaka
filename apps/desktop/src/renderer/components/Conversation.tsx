@@ -117,7 +117,12 @@ export function Conversation({
   return (
     <section data-testid="conversation" className="relative flex w-[420px] shrink-0 flex-col border-r bg-background">
       {/* Room for the window's buttons when the sidebar is hidden. */}
-      <div className={cn("drag-region flex h-13 shrink-0 items-center gap-2", sidebarOpen ? "px-4" : "pr-4 pl-20")}>
+      <div
+        className={cn(
+          "drag-region flex h-13 shrink-0 items-center gap-2",
+          sidebarOpen ? "px-4" : "pr-4 pl-20 win:pl-4",
+        )}
+      >
         {!sidebarOpen && <ExpandSidebarButton onClick={onExpandSidebar} />}
         {project && (
           <span data-testid="project-name" className="truncate text-sm font-medium">

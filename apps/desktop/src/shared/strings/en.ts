@@ -1,6 +1,8 @@
 // Every text the interface shows, in English. The interface reads its texts
 // from here only, so that a translation is one more file of the same shape.
 
+import { FILE_MANAGER, SYSTEM_NAME } from "../system";
+
 export const en = {
   app: {
     name: "Upstart",
@@ -400,7 +402,7 @@ export const en = {
       delete: "Delete",
       ask: "Ask the agent about it",
       browser: "Open in Browser",
-      finder: "Show in Finder",
+      finder: `Show in ${FILE_MANAGER}`,
     },
     pageDeleted: (name: string) => `${name} deleted`,
     undo: "Undo",
@@ -795,13 +797,13 @@ export const en = {
       websites: "Websites",
       folder: "Folder",
       folderHelp: "Where new websites go. A website opened from another folder stays where it is.",
-      reveal: "Show in Finder",
-      revealTip: "Open the websites' folder in Finder",
+      reveal: `Show in ${FILE_MANAGER}`,
+      revealTip: `Open the websites' folder in ${FILE_MANAGER}`,
       interface: "Upstart",
       appearance: "Appearance",
       appearances: { system: "System", light: "Light", dark: "Dark" },
-      appearanceTips: { system: "Light or dark, as macOS is", light: "Always light", dark: "Always dark" },
-      appearanceHelp: "System follows macOS. Your website keeps its own theme.",
+      appearanceTips: { system: `Light or dark, as ${SYSTEM_NAME} is`, light: "Always light", dark: "Always dark" },
+      appearanceHelp: `System follows ${SYSTEM_NAME}. Your website keeps its own theme.`,
       textSize: "Text size",
       textSizes: { small: "Small", medium: "Medium", large: "Large" },
       textSizeTips: {
@@ -947,6 +949,17 @@ export const en = {
       built: (electron: string, chromium: string, node: string) =>
         `Electron ${electron} · Chromium ${chromium} · Node ${node}`,
     },
+  },
+  gitForWindows: {
+    title: "Upstart needs Git for Windows",
+    why: "The agent runs its commands in Git Bash, which comes with Git for Windows. It is free, and installs in a minute.",
+    step1: "Download Git for Windows and run its installer; its default choices are fine.",
+    step2: "Come back here and choose Check again.",
+    download: "Download Git for Windows",
+    downloadTip: "Open Git for Windows' download page in your browser",
+    check: "Check again",
+    checkTip: "Look for Git for Windows again, once it is installed",
+    stillMissing: "Git for Windows is not found yet. Once its installer has finished, check again.",
   },
   notify: {
     done: "The agent is done. Have a look at the preview.",
@@ -1112,7 +1125,7 @@ export const en = {
     running: "Exporting…",
     agentWorking: "The agent is working. You can export once it is done.",
     done: (pages: number) => `Exported ${pages} ${pages === 1 ? "page" : "pages"} into:`,
-    reveal: "Show in Finder",
+    reveal: `Show in ${FILE_MANAGER}`,
     step3: "3. Put it online",
     inFolder: "In a terminal, in the exported folder:",
     guideFile: "README.md, in the folder, has these steps and more.",

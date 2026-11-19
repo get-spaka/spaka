@@ -3,10 +3,12 @@
 // 1024-point canvas, its corners those of macOS's icons, with the system's
 // shadow under it, so that it sits beside the other apps in the Dock. Writes
 // build/icon.png (1024, the Dock's icon in development) and build/icon.icns
-// (electron-builder's, every size macOS asks for). Run it again after the
-// artwork changes: pnpm --filter @upstart/desktop icon.
+// (electron-builder's, every size macOS asks for), and build/icon.ico for
+// Windows, whose icons are the shape alone, filling their square, from 16 to
+// 256 pixels. Run it again after the artwork changes:
+// pnpm --filter @upstart/desktop icon.
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -47,7 +49,7 @@ await sharp(icon).toFile(join(build, "icon.png"));
 
 const work = mkdtempSync(join(tmpdir(), "upstart-icon-"));
 const set = join(work, "icon.iconset");
-execFileSync("mkdir", [set]);
+mkdirSync(set);
 for (const size of [16, 32, 128, 256, 512]) {
   await sharp(icon)
     .resize(size, size)
@@ -56,6 +58,27 @@ for (const size of [16, 32, 128, 256, 512]) {
     .resize(size * 2, size * 2)
     .toFile(join(set, `icon_${size}x${size}@2x.png`));
 }
-execFileSync("iconutil", ["-c", "icns", set, "-o", join(build, "icon.icns")]);
+// iconutil is macOS's own: elsewhere the .icns already in the repository stays.
+if (process.platform === "darwin") execFileSync("iconutil", ["-c", "icns", set, "-o", join(build, "icon.icns")]);
 rmSync(work, { recursive: true, force: true });
-console.log("build/icon.png and build/icon.icns written");
+
+// Windows: an .ico holding one PNG per size (Windows Vista and later read them).
+const sizes = [16, 24, 32, 48, 64, 128, 256];
+const pngs = await Promise.all(sizes.map((size) => sharp(masked).resize(size, size).png().toBuffer()));
+const header = Buffer.alloc(6 + 16 * sizes.length);
+header.writeUInt16LE(0, 0);
+header.writeUInt16LE(1, 2);
+header.writeUInt16LE(sizes.length, 4);
+let offset = header.length;
+sizes.forEach((size, i) => {
+  const at = 6 + 16 * i;
+  header.writeUInt8(size === 256 ? 0 : size, at);
+  header.writeUInt8(size === 256 ? 0 : size, at + 1);
+  header.writeUInt16LE(1, at + 4);
+  header.writeUInt16LE(32, at + 6);
+  header.writeUInt32LE(pngs[i].length, at + 8);
+  header.writeUInt32LE(offset, at + 12);
+  offset += pngs[i].length;
+});
+writeFileSync(join(build, "icon.ico"), Buffer.concat([header, ...pngs]));
+console.log("build/icon.png, build/icon.icns and build/icon.ico written");

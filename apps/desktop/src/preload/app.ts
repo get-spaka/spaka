@@ -36,3 +36,7 @@ const bridge: Bridge = {
 };
 
 contextBridge.exposeInMainWorld("upstart", bridge);
+
+// The interface makes room for the window's own buttons where the system puts them.
+if (process.platform === "win32")
+  window.addEventListener("DOMContentLoaded", () => document.documentElement.classList.add("platform-win"));

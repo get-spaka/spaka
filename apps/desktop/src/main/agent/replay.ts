@@ -115,7 +115,7 @@ export function replayQuery(file: string, speed = 1) {
             yield { type: "result", subtype: "error_during_execution", is_error: true, result: "" };
             break;
           }
-          const m = from ? (JSON.parse(JSON.stringify(line.m).split(from).join(cwd)) as Line["m"]) : line.m;
+          const m = from ? (relocated(line.m, from, cwd) as Line["m"]) : line.m;
           applyWrites(m);
           // A look runs for real, and its answer replaces the recorded one: the page is this check's.
           const look = toolCall(m, LOOK_TOOL);
@@ -257,6 +257,19 @@ function readTurns(file: string): Line[][] {
 }
 
 /** The project folder of the recording, from its first `init` message. */
+/**
+ * A recorded message with the recording's folder replaced by this check's in
+ * every text: on the values themselves, not in JSON text, where a Windows
+ * folder's backslashes would need escaping.
+ */
+export function relocated(value: unknown, from: string, to: string): unknown {
+  if (typeof value === "string") return value.split(from).join(to);
+  if (Array.isArray(value)) return value.map((v) => relocated(v, from, to));
+  if (value && typeof value === "object")
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, relocated(v, from, to)]));
+  return value;
+}
+
 function recordedCwd(turns: Line[][]): string | undefined {
   for (const turn of turns)
     for (const { m } of turn)

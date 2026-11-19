@@ -2,9 +2,10 @@
 // travels in its hidden .upstart/ folder; what belongs to this machine (where
 // the folder is, when it was last opened) is kept in the app's own data.
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import type { AgentMode, Effort, ProjectInfo, ProjectSummary } from "../shared/ipc";
+import { replaceFile } from "./replace-file";
 
 export const DEFAULT_MODEL = "claude-sonnet-5-5";
 export const DEFAULT_EFFORT: Effort = "medium";
@@ -129,7 +130,7 @@ export class Projects {
     mkdirSync(this.dataDir, { recursive: true });
     const tmp = `${this.registryFile}.tmp`;
     writeFileSync(tmp, JSON.stringify(entries, null, 2));
-    renameSync(tmp, this.registryFile);
+    replaceFile(tmp, this.registryFile);
   }
 }
 

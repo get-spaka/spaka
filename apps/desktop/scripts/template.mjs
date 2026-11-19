@@ -84,8 +84,13 @@ if (command === "check") {
     process.exit(2);
   }
   const run = (cmd, argv, env = {}) =>
-    spawnSync(cmd, argv, { cwd: root, stdio: ["ignore", "inherit", "inherit"], env: { ...process.env, ...env } })
-      .status ?? 1;
+    // On Windows pnpm and npx are .cmd scripts, which only a shell runs.
+    spawnSync(cmd, argv, {
+      cwd: root,
+      stdio: ["ignore", "inherit", "inherit"],
+      env: { ...process.env, ...env },
+      shell: process.platform === "win32",
+    }).status ?? 1;
   if (!args.includes("--no-build") && run("pnpm", ["--filter", "@upstart/desktop", "build"]) !== 0) process.exit(1);
   process.exit(
     run(

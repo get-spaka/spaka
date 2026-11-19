@@ -3,7 +3,7 @@
 // agent's reply style, the conversation's output style, the notification and whether the tour was seen. Kept as a JSON file
 // in the app's data on this computer; a value missing or unreadable falls back
 // to its default.
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import {
   APPEARANCES,
@@ -15,6 +15,7 @@ import {
   type TextSize,
 } from "../shared/ipc";
 import { isEffort } from "./projects";
+import { replaceFile } from "./replace-file";
 
 export const DEFAULT_SETTINGS = DEFAULT_APP_SETTINGS;
 
@@ -70,7 +71,7 @@ export class AppSettingsStore {
     const next = settingsFrom({ ...this.get(), ...change });
     mkdirSync(dirname(this.file), { recursive: true });
     writeFileSync(`${this.file}.tmp`, JSON.stringify(next, null, 2));
-    renameSync(`${this.file}.tmp`, this.file);
+    replaceFile(`${this.file}.tmp`, this.file);
     this.cache = next;
     return next;
   }

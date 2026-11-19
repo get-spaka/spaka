@@ -5,7 +5,7 @@
 // Undo and Redo act on the text being typed, in the interface or in the page,
 // and otherwise on the website's history.
 import { app, Menu, type MenuItemConstructorOptions, webContents } from "electron";
-import { ACCELERATORS, type Command } from "../shared/shortcuts";
+import { acceleratorOf, type Command } from "../shared/shortcuts";
 import { en } from "../shared/strings/en";
 
 const t = en;
@@ -26,10 +26,15 @@ export type MenuActions = {
 /** Whether what has the keyboard, in the interface or in the page, is a text being typed. */
 const TYPING = `(() => { const e = document.activeElement; return !!e && (e.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.tagName)); })()`;
 
-export function buildMenu(actions: MenuActions): Menu {
+/**
+ * On Windows there is no app menu: Settings and Exit are in File, About in
+ * Help, as Windows apps have them; the menu bar is hidden under the window's
+ * own title bar and its shortcuts still work.
+ */
+export function buildMenu(actions: MenuActions, mac = process.platform === "darwin"): Menu {
   const item = (command: Command, click?: () => void): MenuItemConstructorOptions => ({
     label: t.commands[command],
-    accelerator: ACCELERATORS[command],
+    accelerator: acceleratorOf(command, mac),
     click: click ?? (() => actions.send(command)),
   });
   /** Undo or redo the text being typed, else the website's change. */
@@ -43,23 +48,28 @@ export function buildMenu(actions: MenuActions): Menu {
       } else if (command === "undo") actions.send("undo");
     });
 
+  const appMenu: MenuItemConstructorOptions[] = mac
+    ? [
+        {
+          label: app.name,
+          submenu: [
+            { label: t.menus.about, click: actions.about },
+            { type: "separator" },
+            item("settings", actions.settings),
+            { type: "separator" },
+            { role: "services" },
+            { type: "separator" },
+            { role: "hide" },
+            { role: "hideOthers" },
+            { role: "unhide" },
+            { type: "separator" },
+            { role: "quit" },
+          ],
+        },
+      ]
+    : [];
   return Menu.buildFromTemplate([
-    {
-      label: app.name,
-      submenu: [
-        { label: t.menus.about, click: actions.about },
-        { type: "separator" },
-        item("settings", actions.settings),
-        { type: "separator" },
-        { role: "services" },
-        { type: "separator" },
-        { role: "hide" },
-        { role: "hideOthers" },
-        { role: "unhide" },
-        { type: "separator" },
-        { role: "quit" },
-      ],
-    },
+    ...appMenu,
     {
       label: t.menus.file,
       submenu: [
@@ -68,7 +78,9 @@ export function buildMenu(actions: MenuActions): Menu {
         { type: "separator" },
         item("publish"),
         { type: "separator" },
-        { role: "close" },
+        ...(mac
+          ? [{ role: "close" } as const]
+          : [item("settings", actions.settings), { type: "separator" } as const, { role: "quit" } as const]),
       ],
     },
     {
@@ -123,7 +135,13 @@ export function buildMenu(actions: MenuActions): Menu {
     {
       role: "help",
       label: t.menus.help,
-      submenu: [item("tour"), item("ask-agent", actions.askAgent), { type: "separator" }, item("shortcuts")],
+      submenu: [
+        item("tour"),
+        item("ask-agent", actions.askAgent),
+        { type: "separator" },
+        item("shortcuts"),
+        ...(mac ? [] : [{ type: "separator" } as const, { label: t.menus.about, click: actions.about }]),
+      ],
     },
   ]);
 }

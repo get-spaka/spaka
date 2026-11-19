@@ -7,7 +7,7 @@
 // maker's shell never reaches the harness unasked. Claude's sign-in stays the
 // official binary's alone (auth.ts).
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import {
@@ -20,6 +20,7 @@ import {
 } from "@earendil-works/pi-ai";
 import { googleProvider } from "@earendil-works/pi-ai/providers/google";
 import { openaiProvider } from "@earendil-works/pi-ai/providers/openai";
+import { replaceFile } from "../../replace-file";
 import type { Vault } from "../auth";
 import { PI_MODELS, type PiAccount, piModel } from "./models";
 import { GCLOUD_SIGN_IN, type VertexConfig, vertexProvider } from "./vertex";
@@ -90,7 +91,7 @@ export class VaultCredentials implements CredentialStore {
   private write(all: Record<string, Credential>) {
     const tmp = `${this.file}.tmp`;
     writeFileSync(tmp, this.vault.encrypt(JSON.stringify(all)));
-    renameSync(tmp, this.file);
+    replaceFile(tmp, this.file);
   }
 }
 

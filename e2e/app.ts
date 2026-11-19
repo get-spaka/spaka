@@ -158,6 +158,8 @@ export function watchFront() {
       // lsappinfo can fail for an instant while apps start or quit.
     }
   };
+  // lsappinfo is macOS's own: elsewhere nothing is watched.
+  if (process.platform !== "darwin") return { stop: () => [...seen] };
   read();
   const timer = setInterval(read, 50);
   return {

@@ -47,7 +47,8 @@ import {
 import { en as t } from "../shared/strings/en";
 import { Agent, projectNameFrom } from "./agent/agent";
 import { AgentAuth } from "./agent/auth";
-import { agentBinary, cleanEnv, nodeLauncher } from "./agent/confinement";
+import { agentBinary, cleanEnv, nodeLauncher, withPathFirst } from "./agent/confinement";
+import { findGitBash, GIT_FOR_WINDOWS_URL, gitBashEnv } from "./agent/git-bash";
 import { instructionsFor } from "./agent/instructions";
 import { PiAccounts } from "./agent/pi/accounts";
 import { VaultSignIns } from "./agent/pi/connectors";
@@ -111,7 +112,7 @@ import { opensTour, type TourMoment } from "./tour";
 import { Updates, updatedSince } from "./update";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
-const env = readEnvironment();
+const env = readEnvironment(process.env, app.getPath("documents"));
 /** The conversation's events after which editing by hand may pause or come back (Q91, Q294). */
 const PAUSING = new Set(["turn-start", "turn-end", "question", "pages", "question-settled", "plan", "plan-settled"]);
 /** Those after which the websites waiting for the maker may have changed (Q292). */
@@ -139,6 +140,8 @@ app.setName("Upstart");
 
 async function main() {
   if (!env.background && !app.requestSingleInstanceLock()) return app.quit();
+  // Windows names the app's notifications by this id (the installer's shortcut carries it too).
+  if (process.platform === "win32") app.setAppUserModelId("gg.upstart.desktop");
   await app.whenReady();
   // A packaged app has its icon in its bundle; a development run shows it in the Dock all the same.
   if (!app.isPackaged && !env.background) app.dock?.setIcon(join(here, "../../build/icon.png"));
@@ -174,6 +177,11 @@ async function main() {
   if (updatedSince(lastVersion, app.getVersion())) stats.track("update_installed");
   if (lastVersion !== app.getVersion()) writeFileSync(versionFile, app.getVersion());
   const windowBackground = () => (nativeTheme.shouldUseDarkColors ? "#121212" : "#fafafa");
+  const titleBarOverlay = () => ({
+    color: windowBackground(),
+    symbolColor: nativeTheme.shouldUseDarkColors ? "#e5e5e5" : "#262626",
+    height: 52,
+  });
   const win = new BrowserWindow({
     width: 1440,
     height: 900,
@@ -181,8 +189,11 @@ async function main() {
     minHeight: 600,
     show: false,
     title: "Upstart",
-    titleBarStyle: "hiddenInset",
-    trafficLightPosition: { x: 16, y: 18 },
+    // macOS: the traffic lights over the interface. Windows: its buttons drawn
+    // at the top right, over the interface too, in the window's colors.
+    ...(process.platform === "darwin"
+      ? { titleBarStyle: "hiddenInset" as const, trafficLightPosition: { x: 16, y: 18 } }
+      : { titleBarStyle: "hidden" as const, titleBarOverlay: titleBarOverlay() }),
     backgroundColor: windowBackground(),
     webPreferences: {
       preload: join(here, "../preload/app.cjs"),
@@ -197,12 +208,30 @@ async function main() {
     if (details.url !== win.webContents.getURL()) details.preventDefault();
   });
   win.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  // Opening Upstart again (its shortcut, its icon) brings the window back rather than a second app.
+  app.on("second-instance", () => {
+    if (win.isDestroyed()) return;
+    if (win.isMinimized()) win.restore();
+    win.show();
+    win.focus();
+  });
   win.webContents.on("render-process-gone", (_event, details) => {
     console.error("[upstart] interface process gone:", details.reason);
   });
   if (!env.background) win.once("ready-to-show", () => (env.showInactive ? win.showInactive() : win.show()));
 
   const ipc = createIpc(() => [win]);
+  // On Windows the agent's shell is Git Bash, from Git for Windows (Q375), looked for again on "Check again".
+  // Answered from the start: the interface asks before anything else.
+  const gitBash = { path: process.platform === "win32" ? findGitBash() : undefined };
+  // A check may show the screen that asks for it, on any system.
+  const gitBashNeeded = () =>
+    process.env.UPSTART_GIT_BASH_MISSING === "1" || (process.platform === "win32" && !gitBash.path);
+  ipc.handle("app:git-bash", () => ({ needed: gitBashNeeded(), url: GIT_FOR_WINDOWS_URL }));
+  ipc.handle("app:git-bash-check", () => {
+    if (process.platform === "win32") gitBash.path = findGitBash();
+    return { needed: gitBashNeeded(), url: GIT_FOR_WINDOWS_URL };
+  });
   const devUrl = process.env.ELECTRON_RENDERER_URL;
   // The settings are a panel over the window (Q123), opened with ⌘, or from the sidebar.
   const openSettings = (page?: SettingsPage) =>
@@ -237,7 +266,10 @@ async function main() {
   // The interface's text size (Q125): the whole interface is drawn larger or smaller; the website is not.
   const applyTextSize = () => win.webContents.setZoomFactor(zoomFor(settings.get().textSize));
   win.webContents.on("did-finish-load", applyTextSize);
-  nativeTheme.on("updated", () => win.setBackgroundColor(windowBackground()));
+  nativeTheme.on("updated", () => {
+    win.setBackgroundColor(windowBackground());
+    if (process.platform !== "darwin") win.setTitleBarOverlay(titleBarOverlay());
+  });
   // The app's menus and their shortcuts (Q335).
   Menu.setApplicationMenu(
     buildMenu({
@@ -371,8 +403,9 @@ async function main() {
   const agentEnv = () => {
     const base = cleanEnv();
     return {
-      ...base,
-      PATH: [launcher.binDir, base.PATH].filter(Boolean).join(":"),
+      ...withPathFirst(base, launcher.binDir),
+      // Windows: Git Bash is the agent's shell (Q375).
+      ...gitBashEnv(gitBash.path),
       CLAUDE_CONFIG_DIR: env.agentConfigDir ?? join(userData, "agent"),
       // Back to the project folder after each shell command: a cd the agent
       // leaves behind would send its next relative paths astray (Q220).

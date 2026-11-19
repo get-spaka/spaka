@@ -5,7 +5,7 @@
 // goes through the maker's browser and back to Upstart on this computer. The
 // tokens are encrypted by the system's keychain (the Vault), as connectors'
 // secrets are, never written in a project's files.
-import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import type { AgentToolResult } from "@earendil-works/pi-agent-core";
 import {
   type CallToolResult,
@@ -33,6 +33,7 @@ import {
 } from "@earendil-works/pi-mcp/oauth";
 import { en } from "../../../shared/strings/en";
 import type { McpConfig, Vault } from "../../connectors/connectors";
+import { replaceFile } from "../../replace-file";
 import type { HarnessTool } from "./tools";
 
 /** As the interface shows a connector (ConnectorInfo.status). */
@@ -81,7 +82,7 @@ export class VaultSignIns {
   private write(all: Record<string, McpOAuthState>) {
     const tmp = `${this.file}.tmp`;
     writeFileSync(tmp, this.vault.encrypt(JSON.stringify(all)));
-    renameSync(tmp, this.file);
+    replaceFile(tmp, this.file);
   }
 }
 

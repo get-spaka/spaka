@@ -14,6 +14,8 @@ export type UpdateState =
   | { state: "downloading"; version: string }
   | { state: "ready"; version: string };
 
+export type GitBashState = { needed: boolean; url: string };
+
 export type AppInfo = {
   version: string;
   platform: string;
@@ -581,6 +583,10 @@ export type Invokes = {
   "app:update-state": () => UpdateState;
   /** Quits and opens the downloaded version (Q378). */
   "app:restart-to-update": () => void;
+  /** Windows: whether Git for Windows is still to install, for the agent's shell (Q375), and where to get it. */
+  "app:git-bash": () => GitBashState;
+  /** "Check again": looks for Git Bash once more. */
+  "app:git-bash-check": () => GitBashState;
   /** Opens the settings panel over the window (Q123), at a page. */
   "settings:open": (page?: SettingsPage) => void;
   "settings:get": () => AppSettings;
@@ -849,6 +855,8 @@ export const channels = {
     "app:open-link",
     "app:update-state",
     "app:restart-to-update",
+    "app:git-bash",
+    "app:git-bash-check",
     "settings:open",
     "settings:get",
     "settings:set",

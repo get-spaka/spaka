@@ -34,6 +34,7 @@ import { en } from "../../shared/strings/en";
 import { addFile, addImage, mediaKind, replaceUses, slug, usesLabel, usesOf, usingFiles } from "../media/library";
 import type { ImageFinder } from "../media/search";
 import { testRecordFile } from "../preview/test-records";
+import { replaceFile } from "../replace-file";
 import { type DroppedBlock, dropData, type ProjectView } from "./data-drop";
 import {
   copyName,
@@ -720,5 +721,5 @@ function atomicWrite(abs: string, content: string | Buffer) {
   mkdirSync(dirname(abs), { recursive: true });
   const tmp = join(dirname(abs), `.${basename(abs)}.upstart-tmp`);
   writeFileSync(tmp, content);
-  renameSync(tmp, abs);
+  replaceFile(tmp, abs);
 }

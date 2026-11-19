@@ -3,18 +3,9 @@
 // is stored once per content, under its hash; a snapshot lists which content
 // each path had. Going back to a snapshot adds a new one: the line stays single.
 import { createHash, randomUUID } from "node:crypto";
-import {
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  renameSync,
-  rmdirSync,
-  rmSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
+import { replaceFile } from "../replace-file";
 
 /** "hand": an edit the maker made in the preview, written by the app (Q94). */
 export type SnapshotKind = "start" | "turn" | "outside" | "restore" | "hand";
@@ -165,7 +156,7 @@ export class History {
       mkdirSync(this.objects, { recursive: true });
       const tmp = `${file}.${process.pid}.tmp`;
       writeFileSync(tmp, content);
-      renameSync(tmp, file);
+      replaceFile(tmp, file);
     }
     return hash;
   }
@@ -174,7 +165,7 @@ export class History {
     mkdirSync(dirname(this.index), { recursive: true });
     const tmp = `${this.index}.tmp`;
     writeFileSync(tmp, JSON.stringify(list));
-    renameSync(tmp, this.index);
+    replaceFile(tmp, this.index);
     this.cache = list;
   }
 

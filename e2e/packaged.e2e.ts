@@ -12,7 +12,14 @@ import { buildBlog } from "./blog-check.ts";
 import { buildGuestbook, sampleValues } from "./guestbook-check.ts";
 import { previewDriver } from "./preview-driver.ts";
 
-const built = existsSync(join(import.meta.dirname, "../apps/desktop/dist/mac-arm64/Upstart.app"));
+const built = existsSync(
+  join(
+    import.meta.dirname,
+    process.platform === "win32"
+      ? "../apps/desktop/dist/win-unpacked/Upstart.exe"
+      : "../apps/desktop/dist/mac-arm64/Upstart.app",
+  ),
+);
 const real = process.env.UPSTART_REAL_AGENT === "1";
 const configDir = join(import.meta.dirname, "../.cache/agent-config");
 
@@ -74,7 +81,7 @@ async function load(launched: LaunchedApp, url: string) {
 }
 
 // Run after `pnpm --filter @upstart/desktop package`.
-describe.runIf(built && process.platform === "darwin")("the packaged app", () => {
+describe.runIf(built && (process.platform === "darwin" || process.platform === "win32"))("the packaged app", () => {
   test("starts in the background, with Upstart's skills, and exports a website", async () => {
     const launched = await launchApp({ packaged: true });
     try {

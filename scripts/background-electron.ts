@@ -32,6 +32,8 @@ export function backgroundElectron(): string {
  * check of the packaged build in the background. Returns its executable.
  */
 export function backgroundPackagedApp(bundle = join(root, "apps/desktop/dist/mac-arm64/Upstart.app")): string {
+  // Windows: the unpacked build, run as it is; a check keeps its window hidden by itself (UPSTART_BACKGROUND).
+  if (process.platform === "win32") return join(root, "apps/desktop/dist/win-unpacked/Upstart.exe");
   const target = join(root, ".cache/packaged-background/Upstart.app");
   rmSync(dirname(target), { recursive: true, force: true });
   mkdirSync(dirname(target), { recursive: true });
