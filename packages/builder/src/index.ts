@@ -19,6 +19,7 @@ export type {
 export {
   compatibilityDate,
   databaseIdIn,
+  NEWEST_COMPAT_DATE,
   NODE_COMPAT_DATE,
   WRANGLER_VERSION,
   wranglerConfig,

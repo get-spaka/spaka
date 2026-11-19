@@ -16,9 +16,18 @@ export const WRANGLER_VERSION = "4.160.1";
 /** The first compatibility date with nodejs_compat on by default. */
 export const NODE_COMPAT_DATE = "2026-08-04";
 
+/**
+ * The newest compatibility date the runtime of that wrangler knows (its
+ * workerd's): a later one stops `wrangler dev` from starting the Worker. It
+ * moves with WRANGLER_VERSION.
+ */
+export const NEWEST_COMPAT_DATE = "2026-11-10";
+
+/** Today's date, kept between the two above. */
 export function compatibilityDate(today: Date): string {
   const day = today.toISOString().slice(0, 10);
-  return day < NODE_COMPAT_DATE ? NODE_COMPAT_DATE : day;
+  if (day < NODE_COMPAT_DATE) return NODE_COMPAT_DATE;
+  return day > NEWEST_COMPAT_DATE ? NEWEST_COMPAT_DATE : day;
 }
 
 /**

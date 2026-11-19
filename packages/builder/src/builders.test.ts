@@ -1,4 +1,5 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { memorySource } from "@upstart/runtime";
@@ -9,8 +10,10 @@ import {
   builderById,
   compatibilityDate,
   formsToServices,
+  NEWEST_COMPAT_DATE,
   NODE_COMPAT_DATE,
   slug,
+  WRANGLER_VERSION,
 } from "./index.ts";
 
 let out: string;
@@ -126,14 +129,14 @@ describe("the Cloudflare export", () => {
       outDir: out,
       serverBundle: "// the worker",
       managementToken: "the-token",
-      today: new Date("2026-11-12T10:00:00Z"),
+      today: new Date("2026-11-09T10:00:00Z"),
     });
     const config = JSON.parse(read("wrangler.jsonc").replace(/^\s*\/\/.*$/gm, ""));
     expect(config).toEqual({
       $schema: "./node_modules/wrangler/config-schema.json",
       name: "chez-margot",
       main: "worker.mjs",
-      compatibility_date: "2026-11-12",
+      compatibility_date: "2026-11-09",
       assets: { directory: "./public", run_worker_first: ["/_data/*", "/_upstart/*"] },
       d1_databases: [{ binding: "DB", database_name: "chez-margot-records", migrations_dir: "migrations" }],
       secrets: { required: ["UPSTART_TOKEN"] },
@@ -161,7 +164,12 @@ describe("the Cloudflare export", () => {
   });
 
   test("its compatibility date turns Node.js compatibility on: never before 2026-08-04", () => {
-    expect(compatibilityDate(new Date("2026-11-12T23:00:00Z"))).toBe("2026-11-12");
+    expect(compatibilityDate(new Date("2026-11-09T23:00:00Z"))).toBe("2026-11-09");
+    // Never later than the runtime of the wrangler the export installs knows.
+    expect(compatibilityDate(new Date("2026-11-19T08:00:00Z"))).toBe(NEWEST_COMPAT_DATE);
+    const wranglerRequire = createRequire(createRequire(import.meta.url).resolve("wrangler/package.json"));
+    expect(wranglerRequire("wrangler/package.json").version).toBe(WRANGLER_VERSION);
+    expect(wranglerRequire("workerd").compatibilityDate).toBe(NEWEST_COMPAT_DATE);
     expect(compatibilityDate(new Date("2025-01-01T00:00:00Z"))).toBe(NODE_COMPAT_DATE);
     expect(NODE_COMPAT_DATE >= "2026-08-04").toBe(true);
   });
