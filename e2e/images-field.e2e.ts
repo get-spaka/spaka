@@ -112,6 +112,10 @@ describe("a list of images", () => {
         "[...document.querySelectorAll('.strip img')].map((i) => /\\/media\\/(\\w)\\.jpg/.exec(i.getAttribute('src'))?.[1]).join('')",
       );
     await until(async () => (await srcs()) === "abc");
+    // Loaded, with their size: a click goes where each image is drawn.
+    await until(() =>
+      page("[...document.querySelectorAll('.strip img')].every((i) => i.complete && i.naturalWidth > 0)"),
+    );
     const bar = (act: string) =>
       page(
         `document.querySelector('upstart-editor').shadowRoot.querySelector('[data-testid="editor-${act}"]')?.disabled`,
@@ -120,7 +124,15 @@ describe("a list of images", () => {
       // The bar keeps its last buttons while hidden: emptied, so that what is read is the new selection's.
       await page("document.querySelector('upstart-editor').shadowRoot.querySelector('.bar').innerHTML = ''");
       await click(img(n));
-      await until(async () => (await bar("later")) !== undefined && (await bar("later")) !== null);
+      await until(async () => (await bar("later")) !== undefined && (await bar("later")) !== null).catch(
+        async (error) => {
+          const at = await center(img(n));
+          const hit = await page(
+            `(() => { const e = document.elementFromPoint(${at.x}, ${at.y}); return e ? e.outerHTML.slice(0, 120) : null; })()`,
+          );
+          throw new Error(`${error.message}; clicked at ${JSON.stringify(at)} on ${hit}`);
+        },
+      );
     };
 
     await select(1);
