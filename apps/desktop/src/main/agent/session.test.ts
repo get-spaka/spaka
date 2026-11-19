@@ -415,8 +415,8 @@ test("models, project names, sign-in output", () => {
       { value: "sonnet", resolvedModel: "claude-sonnet-5-5", displayName: "Sonnet", description: "" },
     ]),
   ).toEqual([
-    { id: "claude-opus-5-5", name: "Opus", efforts: ["low", "max"], account: "claude" },
-    { id: "claude-sonnet-5-5", name: "Sonnet", efforts: [], account: "claude" },
+    { id: "claude-opus-5-5", name: "Opus 5.5", efforts: ["low", "max"], account: "claude" },
+    { id: "claude-sonnet-5-5", name: "Sonnet 5.5", efforts: [], account: "claude" },
   ]);
   expect(projectNameFrom("a bakery in Lyon. With a menu page")).toBe("A bakery in Lyon");
   expect(projectNameFrom("   ")).toBe("Untitled website");

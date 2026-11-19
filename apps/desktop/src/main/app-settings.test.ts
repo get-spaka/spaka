@@ -74,3 +74,8 @@ test("the first start with the tour: seen if a website already exists, and kept 
   earlier.settleTour(true);
   expect(earlier.get()).toMatchObject({ tourSeen: true, statistics: false });
 });
+
+test("a model for new websites taken off the list gives way to the latest of its family (Q399)", () => {
+  expect(settingsFrom({ newModel: "claude-opus-4-8" }).newModel).toBe("claude-opus-5-5");
+  expect(settingsFrom({ newModel: "claude-sonnet-5" }).newModel).toBe("claude-sonnet-5");
+});

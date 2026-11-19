@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { type LaunchedApp, launchApp, MAC, runsDir, SLOW } from "./app.ts";
@@ -378,5 +378,20 @@ describe("a project folder in the preview", () => {
     await field.fill("Chez Margot");
     await w.getByTestId("project-order").focus();
     await expect.poll(listed).toEqual(["Chez Margot", "Second"]);
+  });
+
+  test("a website on a model taken off the list moves to the latest of its family, and says so (Q399)", async () => {
+    const w = launched.window;
+    // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
+    const bridge = (channel: string) => w.evaluate((c) => (window as any).upstart.invoke(c), channel);
+    const second = (await bridge("projects:list")).find((p: { name: string }) => p.name === "Second");
+    const file = join(second.path, ".upstart", "project.json");
+    writeFileSync(file, JSON.stringify({ ...JSON.parse(readFileSync(file, "utf8")), model: "claude-opus-4-8" }));
+    await w.getByTestId("project-item").filter({ hasText: "Second" }).click();
+    await expect.poll(async () => (await bridge("projects:current"))?.model).toBe("claude-opus-5-5");
+    expect(JSON.parse(readFileSync(file, "utf8")).model).toBe("claude-opus-5-5");
+    await expect
+      .poll(() => w.getByTestId("notice").allTextContents())
+      .toContain("Opus 4.8 is no longer offered: this website now uses Opus 5.5.");
   });
 });

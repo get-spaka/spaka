@@ -47,6 +47,7 @@ import {
 import { en as t } from "../shared/strings/en";
 import { Agent, projectNameFrom } from "./agent/agent";
 import { AgentAuth } from "./agent/auth";
+import { claudeModelName, claudeReplacement } from "./agent/claude-models";
 import { agentBinary, cleanEnv, nodeLauncher, withPathFirst } from "./agent/confinement";
 import { findGitBash, GIT_FOR_WINDOWS_URL, gitBashEnv } from "./agent/git-bash";
 import { instructionsFor } from "./agent/instructions";
@@ -769,13 +770,21 @@ async function main() {
       }
     }
   };
-  const opened = async (project: ProjectInfo) => {
+  const opened = async (opening: ProjectInfo) => {
     // A record being written in the Content tab gets its version first (Q162).
     editor.leaveRecord();
+    // A model taken off Upstart's list gives way to the latest of its family (Q399).
+    const replacement = claudeReplacement(opening.model);
+    const project = replacement ? projects.update(opening.id, { model: replacement }) : opening;
     current = project;
     templateViewer.close();
     watchSkills(project);
     agent.open(project);
+    if (replacement)
+      agent.notice(
+        project.id,
+        t.conversation.modelRetired(claudeModelName(opening.model), claudeModelName(replacement)),
+      );
     preview.setPaused(agentBusy(project.id));
     // The view the maker left this website in (Q131).
     void preview.setView(viewData().view ?? "page", { animate: false });

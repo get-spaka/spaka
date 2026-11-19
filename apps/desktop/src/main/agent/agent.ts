@@ -26,6 +26,7 @@ import {
 import { en } from "../../shared/strings/en";
 import { replaceFile } from "../replace-file";
 import type { AgentAuth, AuthState } from "./auth";
+import { CLAUDE_MODELS, claudeChoices } from "./claude-models";
 import { handoverNote } from "./handover";
 import type { PiAccounts } from "./pi/accounts";
 import { PI_MODELS, piEfforts, piModel, piModelId } from "./pi/models";
@@ -70,7 +71,12 @@ export class Agent {
 
   constructor(private readonly o: AgentOptions) {
     try {
-      if (o.modelsFile) this.claudeModels = JSON.parse(readFileSync(o.modelsFile, "utf8"));
+      // What the binary offered last time, of the models listed now (Q398).
+      if (o.modelsFile)
+        this.claudeModels = (JSON.parse(readFileSync(o.modelsFile, "utf8")) as ModelChoice[]).flatMap((m) => {
+          const listed = CLAUDE_MODELS.find((l) => l.id === m.id);
+          return listed ? [{ ...m, name: listed.name }] : [];
+        });
     } catch {}
   }
 
@@ -388,16 +394,9 @@ export class Agent {
   }
 }
 
-/** The models the maker can pick from, as the binary lists them, without its "default" entry. */
+/** The Claude models the maker can pick from: those listed (Q398) that the binary offers. */
 export function modelChoices(infos: ModelInfo[]): ModelChoice[] {
-  const out: ModelChoice[] = [];
-  for (const info of infos) {
-    if (info.value === "default") continue;
-    const id = info.resolvedModel ?? info.value;
-    if (out.some((m) => m.id === id)) continue;
-    out.push({ id, name: info.displayName, efforts: info.supportedEffortLevels ?? [], account: "claude" });
-  }
-  return out;
+  return claudeChoices(infos);
 }
 
 /** The models of Upstart's own harness for the accounts connected (Q270, Q275). */

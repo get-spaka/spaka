@@ -113,6 +113,7 @@ export const en = {
   conversation: {
     placeholder: "Describe the website you want…",
     placeholderFollowUp: "Ask for a change…",
+    modelRetired: (from: string, to: string) => `${from} is no longer offered: this website now uses ${to}.`,
     sendTip: "Send your message to the agent",
     stopTip: "Stop the agent where it is",
     startOverTip: "Start over: the agent forgets the conversation so far",

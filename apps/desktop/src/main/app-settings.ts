@@ -15,6 +15,7 @@ import {
   TEXT_SIZES,
   type TextSize,
 } from "../shared/ipc";
+import { claudeReplacement } from "./agent/claude-models";
 import { isEffort } from "./projects";
 import { replaceFile } from "./replace-file";
 
@@ -24,7 +25,11 @@ export const DEFAULT_SETTINGS = DEFAULT_APP_SETTINGS;
 export function settingsFrom(data: unknown): AppSettings {
   const d = (data && typeof data === "object" ? data : {}) as Record<string, unknown>;
   return {
-    newModel: typeof d.newModel === "string" && d.newModel.trim() ? d.newModel : DEFAULT_SETTINGS.newModel,
+    // A model taken off Upstart's list gives way to the latest of its family (Q399).
+    newModel:
+      typeof d.newModel === "string" && d.newModel.trim()
+        ? (claudeReplacement(d.newModel) ?? d.newModel)
+        : DEFAULT_SETTINGS.newModel,
     newEffort: typeof d.newEffort === "string" && isEffort(d.newEffort) ? d.newEffort : DEFAULT_SETTINGS.newEffort,
     statistics: typeof d.statistics === "boolean" ? d.statistics : DEFAULT_SETTINGS.statistics,
     appearance: oneOf(APPEARANCES, d.appearance) ?? DEFAULT_SETTINGS.appearance,
