@@ -167,7 +167,7 @@ describe.skipIf(!real)("the real agent", () => {
         .find((file) => existsSync(file))!;
       const efforts = readFileSync(transcript, "utf8").match(/"effort":"\w+"/g) ?? [];
       expect(efforts.at(-1)).toBe('"effort":"low"');
-      expect(efforts).toContain('"effort":"medium"');
+      expect(efforts).toContain('"effort":"high"');
     },
     150_000 * SLOW,
   );

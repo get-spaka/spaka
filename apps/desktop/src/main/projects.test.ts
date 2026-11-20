@@ -25,8 +25,8 @@ describe("creating a project", () => {
   test("makes a folder named after it, with its .upstart/project.json", () => {
     const project = projects.create("Chez Margot, boulangerie");
     expect(project.path).toBe(join(root, "Upstart", "chez-margot-boulangerie"));
-    expect(project.model).toBe("claude-sonnet-5-5");
-    expect(project.effort).toBe("medium");
+    expect(project.model).toBe("claude-opus-5-5");
+    expect(project.effort).toBe("high");
     expect(readProjectFile(project.path)?.id).toBe(project.id);
     expect(projects.list()).toEqual([
       {

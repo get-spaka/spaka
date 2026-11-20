@@ -59,7 +59,7 @@ test("the settings are kept in their file, and an unreadable file gives the defa
   expect(store.get()).toEqual(DEFAULT_SETTINGS);
   expect(store.set({ statistics: false }).statistics).toBe(false);
   expect(JSON.parse(readFileSync(file, "utf8")).statistics).toBe(false);
-  expect(new AppSettingsStore(file).get()).toMatchObject({ statistics: false, newEffort: "medium" });
+  expect(new AppSettingsStore(file).get()).toMatchObject({ statistics: false, newEffort: DEFAULT_SETTINGS.newEffort });
 });
 
 test("the first start with the tour: seen if a website already exists, and kept once settled (Q340)", () => {

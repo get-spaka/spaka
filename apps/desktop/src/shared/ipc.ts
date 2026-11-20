@@ -431,8 +431,8 @@ export type AppSettings = {
   namingModel: string;
 };
 export const DEFAULT_APP_SETTINGS: AppSettings = {
-  newModel: "claude-sonnet-5-5",
-  newEffort: "medium",
+  newModel: "claude-opus-5-5",
+  newEffort: "high",
   statistics: true,
   appearance: "system",
   textSize: "medium",

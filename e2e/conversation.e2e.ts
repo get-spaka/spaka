@@ -41,7 +41,7 @@ describe("a conversation with the agent", () => {
 
   test("the first message creates the project, with the effort picked beforehand, named by a model", async () => {
     const w = launched.window;
-    await w.getByTestId("effort-select").selectOption("high");
+    await w.getByTestId("effort-select").selectOption("medium");
     await w.getByTestId("message-input").fill("A bakery in Lyon. Warm colours please.");
     await w.getByTestId("message-input").press("Enter");
     // Named from the first sentence at once, then by the model; its folder keeps the first name (Q408).
@@ -49,8 +49,8 @@ describe("a conversation with the agent", () => {
     const info = await project();
     expect(info.name).toBe("Fournil de Lyon");
     expect(info.path).toMatch(/a-bakery-in-lyon$/);
-    expect(info).toMatchObject({ effort: "high", model: "claude-sonnet-5-5" });
-    expect(JSON.parse(readFileSync(join(info.path, ".upstart/project.json"), "utf8")).effort).toBe("high");
+    expect(info).toMatchObject({ effort: "medium", model: "claude-opus-5-5" });
+    expect(JSON.parse(readFileSync(join(info.path, ".upstart/project.json"), "utf8")).effort).toBe("medium");
     await expect(w.getByTestId("maker-message").textContent()).resolves.toContain("A bakery in Lyon");
   });
 

@@ -7,8 +7,8 @@ import { basename, join, resolve } from "node:path";
 import type { AgentMode, Effort, ListedProject, ProjectInfo } from "../shared/ipc";
 import { replaceFile } from "./replace-file";
 
-export const DEFAULT_MODEL = "claude-sonnet-5-5";
-export const DEFAULT_EFFORT: Effort = "medium";
+export const DEFAULT_MODEL = "claude-opus-5-5";
+export const DEFAULT_EFFORT: Effort = "high";
 
 /** .upstart/project.json */
 export type ProjectFile = {
