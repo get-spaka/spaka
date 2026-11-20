@@ -441,6 +441,7 @@ function TemplateLarge({
       <div
         ref={frame}
         data-testid="template-frame"
+        data-native-view
         data-route={state.route ?? undefined}
         className="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-lg border bg-muted"
       >

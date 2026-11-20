@@ -23,6 +23,18 @@ export function TipProvider({ children }: { children: React.ReactNode }) {
  */
 export const TipOverPage = createContext(false);
 
+/**
+ * Whether a tooltip laid out at `r` lies, even in part, over a native view: the
+ * page, its thumbnails or a template's large view, each drawn where an element
+ * marked `data-native-view` is. Such a tooltip is drawn over the page too.
+ */
+function overNativeView(r: DOMRect) {
+  return [...document.querySelectorAll("[data-native-view]")].some((el) => {
+    const b = el.getBoundingClientRect();
+    return r.right > b.left && r.left < b.right && r.bottom > b.top && r.top < b.bottom;
+  });
+}
+
 export function Tip({
   text,
   command,
@@ -40,16 +52,20 @@ export function Tip({
   const keys = command && shortcutOf(command);
   const overPage = useContext(TipOverPage);
   const [open, setOpen] = useState(false);
+  /** Laid out over a native view: drawn above it, the interface's own kept invisible. */
+  const [over, setOver] = useState(false);
   const content = useRef<HTMLDivElement>(null);
 
-  // Over the page: once laid out, the tooltip is drawn above the native view, the interface's own kept invisible.
+  // Once laid out, a tooltip over the page is drawn above the native view.
   useEffect(() => {
-    if (!overPage || !open) return;
+    if (!open) return;
     let frame = requestAnimationFrame(() => {
       frame = requestAnimationFrame(() => {
         const el = content.current;
         if (!el) return;
         const r = el.getBoundingClientRect();
+        if (!overPage && !overNativeView(r)) return;
+        setOver(true);
         const style = getComputedStyle(el);
         upstart.send("tip:show", {
           text,
@@ -67,6 +83,7 @@ export function Tip({
     });
     return () => {
       cancelAnimationFrame(frame);
+      setOver(false);
       upstart.send("tip:hide");
     };
   }, [overPage, open, text, keys]);
@@ -88,8 +105,8 @@ export function Tip({
           sideOffset={6}
           collisionPadding={8}
           data-testid="tip"
-          data-over-page={overPage || undefined}
-          className={`z-50 flex max-w-64 items-center gap-2 rounded-md bg-foreground px-2 py-1 text-xs text-background shadow-md select-none ${overPage ? "opacity-0" : "animate-in fade-in-0"}`}
+          data-over-page={overPage || over || undefined}
+          className={`z-50 flex max-w-64 items-center gap-2 rounded-md bg-foreground px-2 py-1 text-xs text-background shadow-md select-none ${overPage || over ? "opacity-0" : "animate-in fade-in-0"}`}
         >
           <span>{text}</span>
           {keys && <kbd className="font-sans tracking-widest opacity-60">{keys}</kbd>}

@@ -536,6 +536,7 @@ export function PreviewPane({
         <div
           ref={area}
           data-tour-area
+          data-native-view
           className="relative flex min-w-0 flex-1 flex-col items-center justify-center gap-2 px-8 text-center"
         >
           {frame && state.route !== null && (

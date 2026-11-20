@@ -139,6 +139,7 @@ export function PagesGrid({
     <div
       ref={scroller}
       data-testid="pages-grid"
+      data-native-view
       onWheel={() => {
         makerScrolled.current = true;
       }}
