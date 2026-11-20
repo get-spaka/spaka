@@ -447,6 +447,7 @@ export const en = {
     phone: "Phone (393 × 852)",
     portrait: "Turn upright",
     landscape: "Turn sideways",
+    noLandscape: "Turn sideways: phone and tablet screens only",
   },
   editor: {
     parent: "Select what contains it",

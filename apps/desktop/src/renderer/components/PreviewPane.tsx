@@ -463,19 +463,21 @@ export function PreviewPane({
                     <Icon />
                   </Button>
                 ))}
-                {width !== "desktop" && (
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    className={cn("h-6 w-8", landscape && "bg-foreground/10 text-foreground")}
-                    tip={landscape ? t.preview.portrait : t.preview.landscape}
-                    aria-pressed={landscape}
-                    data-testid="rotate"
-                    onClick={() => setLandscape((l) => !l)}
-                  >
-                    <RotateCwSquare />
-                  </Button>
-                )}
+                {/* Always there, so the buttons do not move when the screen changes; a desktop screen does not turn. */}
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className={cn("h-6 w-8", width !== "desktop" && landscape && "bg-foreground/10 text-foreground")}
+                  tip={
+                    width === "desktop" ? t.preview.noLandscape : landscape ? t.preview.portrait : t.preview.landscape
+                  }
+                  disabled={width === "desktop"}
+                  aria-pressed={width !== "desktop" && landscape}
+                  data-testid="rotate"
+                  onClick={() => setLandscape((l) => !l)}
+                >
+                  <RotateCwSquare />
+                </Button>
               </div>
             </>
           )}
