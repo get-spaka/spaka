@@ -66,29 +66,52 @@ describe("all pages as thumbnails", () => {
     launched = await launchApp({ env: { UPSTART_AGENT_REPLAY: recording, UPSTART_AGENT_REPLAY_SPEED: "1" } });
     const w = launched.window;
     await w.getByTestId("message-input").waitFor();
+    // What the turn shows is noted where it happens, not read across the processes in turns, which a
+    // slow runner can do too seldom to catch a page outlined for a moment.
+    // The interface notes each page outlined as being written, in order.
+    await w.evaluate(() => {
+      const writing: string[] = [];
+      (window as { writingSeen?: string[] }).writingSeen = writing;
+      const note = () => {
+        const route = document
+          .querySelector('[data-testid="page-thumb"]:has([data-testid="page-writing"])')
+          ?.getAttribute("data-route");
+        if (route && writing.at(-1) !== route) writing.push(route);
+      };
+      new MutationObserver(note).observe(document.body, { subtree: true, childList: true, attributes: true });
+    });
+    // The main process notes the view, and what the live thumbnail shows, as often as it can.
+    await main((u) => {
+      const seen = { pages: false, live: [] as [string, number[]][] };
+      (globalThis as { gridSeen?: typeof seen }).gridSeen = seen;
+      let reading = false;
+      const timer = setInterval(async () => {
+        if (u.preview.currentView === "pages") seen.pages = true;
+        const live = u.preview.grid.liveView;
+        if (reading || !live?.shown) return;
+        reading = true;
+        const route: string = live.route;
+        const length: number = await live.view.webContents
+          .executeJavaScript("document.body.innerText.length")
+          .catch(() => 0);
+        reading = false;
+        let entry = seen.live.find(([r]) => r === route);
+        if (!entry) seen.live.push((entry = [route, []]));
+        if (!entry[1].includes(length)) entry[1].push(length);
+      }, 25);
+      (globalThis as { gridSeenStop?: () => void }).gridSeenStop = () => clearInterval(timer);
+    });
     await invoke("conversation:send", "A climbing gym in Grenoble, three pages.");
-    // Watches the turn: the view, the outline, and what the live thumbnail shows.
-    for (const started = Date.now(); ; ) {
-      const state = await main((u) => ({
-        view: u.preview.currentView,
-        live: u.preview.grid.liveView?.shown ? u.preview.grid.liveView.route : "",
-      }));
-      if (state.view === "pages") seen.pages = true;
-      if (state.live) {
-        const length = await main((u) =>
-          u.preview.grid.liveView.view.webContents.executeJavaScript("document.body.innerText.length"),
-        ).catch(() => 0);
-        seen.live.set(state.live, (seen.live.get(state.live) ?? new Set()).add(length as number));
-      }
-      const outlined = await w
-        .locator('[data-testid="page-thumb"]:has([data-testid="page-writing"])')
-        .getAttribute("data-route", { timeout: 50 })
-        .catch(() => null);
-      if (outlined) seen.writing.add(outlined);
-      if (await w.locator('[data-testid="agent-message"][data-status="done"]').count()) break;
-      if (Date.now() - started > 40_000 * SLOW) throw new Error("The turn did not end.");
-      await new Promise((r) => setTimeout(r, 50));
-    }
+    await until(() => w.locator('[data-testid="agent-message"][data-status="done"]').count(), 40_000);
+    const noted = await main(() => {
+      const g = globalThis as { gridSeen?: { pages: boolean; live: [string, number[]][] }; gridSeenStop?: () => void };
+      g.gridSeenStop?.();
+      return g.gridSeen;
+    });
+    seen.pages = noted?.pages ?? false;
+    for (const [route, lengths] of noted?.live ?? []) seen.live.set(route, new Set(lengths));
+    for (const route of await w.evaluate(() => (window as { writingSeen?: string[] }).writingSeen ?? []))
+      seen.writing.add(route);
     const project = await invoke("projects:current");
     path = project.path;
     projectId = project.id;
