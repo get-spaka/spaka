@@ -62,6 +62,21 @@ test("the settings are kept in their file, and an unreadable file gives the defa
   expect(new AppSettingsStore(file).get()).toMatchObject({ statistics: false, newEffort: DEFAULT_SETTINGS.newEffort });
 });
 
+test("the file holds only the settings chosen: the others follow the defaults of the version running", () => {
+  dir = mkdtempSync(join(tmpdir(), "upstart-settings-"));
+  const file = join(dir, "settings.json");
+  const store = new AppSettingsStore(file);
+  store.set({ textSize: "large" });
+  store.set({ newModel: "claude-sonnet-5-5" });
+  expect(JSON.parse(readFileSync(file, "utf8"))).toEqual({ textSize: "large", newModel: "claude-sonnet-5-5" });
+  // A value that is not one is left out of the file too.
+  writeFileSync(file, JSON.stringify({ statistics: false, newEffort: "huge" }));
+  const again = new AppSettingsStore(file);
+  expect(again.get()).toEqual({ ...DEFAULT_SETTINGS, statistics: false });
+  again.set({ notifyDone: false });
+  expect(JSON.parse(readFileSync(file, "utf8"))).toEqual({ statistics: false, notifyDone: false });
+});
+
 test("the first start with the tour: seen if a website already exists, and kept once settled (Q340)", () => {
   dir = mkdtempSync(join(tmpdir(), "upstart-settings-"));
   const file = join(dir, "settings.json");
