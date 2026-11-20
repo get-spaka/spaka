@@ -402,7 +402,8 @@ function TemplateLarge({
   return (
     <div data-testid="template-large" data-template={template.id} className="flex min-h-0 flex-1 flex-col px-4">
       <div className="flex shrink-0 items-center gap-2 pb-2">
-        <Button variant="ghost" size="sm" onClick={onBack} tip={t.start.backTip} data-testid="template-back">
+        {/* no tip: its label says where it goes */}
+        <Button variant="ghost" size="sm" onClick={onBack} data-testid="template-back">
           <ArrowLeft />
           {t.start.back}
         </Button>
