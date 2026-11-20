@@ -431,7 +431,7 @@ function TemplateLarge({
           variant={chosen ? "secondary" : "default"}
           onClick={onChoose}
           disabled={chosen}
-          tip={chosen ? t.start.chosenTip : t.start.chooseTip}
+          tip={chosen ? t.start.chosenTip : undefined}
           data-testid="template-choose"
         >
           {chosen && <Check />}

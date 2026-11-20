@@ -252,7 +252,6 @@ export const en = {
     viewTip: "See the template large, page by page",
     back: "All templates",
     choose: "Start from this one",
-    chooseTip: "Start the new website from this template",
     chosen: "Chosen",
     chosenTip: "This template is chosen: describe your website below",
     page: "Page",
