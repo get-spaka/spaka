@@ -280,7 +280,14 @@ export function accountOf(model: string): AgentAccount {
 }
 
 /** A model the maker can pick, with the effort levels it accepts and the account it runs on. */
-export type ModelChoice = { id: string; name: string; efforts: Effort[]; account: AgentAccount };
+export type ModelChoice = {
+  id: string;
+  name: string;
+  efforts: Effort[];
+  account: AgentAccount;
+  /** The account's default for a new website when the model asked for is on an account not connected (Q413-Q414). */
+  default?: boolean;
+};
 
 export type SignInMethod = "claudeai" | "console";
 
@@ -316,7 +323,10 @@ export function anyAccount(status: AgentStatus): boolean {
 
 /** The model a new website gets: the one asked for if its account is connected, or the first connected account's default. */
 export function usableModel(status: AgentStatus, model: string): string {
-  return accountReady(status, model) ? model : (status.models[0]?.id ?? model);
+  if (accountReady(status, model)) return model;
+  const first = status.models[0];
+  if (!first) return model;
+  return (status.models.find((m) => m.account === first.account && m.default) ?? first).id;
 }
 
 /** One version of the project in its history, most recent last. */

@@ -21,12 +21,13 @@ export type PiFamily = "openai" | "gemini";
  * declared `like` one it has: that one's API, address and thinking levels,
  * with the prices models.dev lists for it.
  */
-type Configured = { id: string; name: string; like?: string; cost?: Model<Api>["cost"] };
+type Configured = { id: string; name: string; like?: string; cost?: Model<Api>["cost"]; default?: boolean };
 type Offered = Configured & { account: PiAccount };
 
 /**
- * The models Upstart offers per account, from models.json, in its order: the
- * first of an account is its default (Q270, Q383-Q386).
+ * The models Upstart offers per account, from models.json, in its order; the
+ * one marked `default` is the account's default, else its first (Q383-Q386,
+ * Q413-Q414).
  */
 export const PI_MODELS: Offered[] = PI_ACCOUNTS.flatMap((account) =>
   (config as Record<PiAccount, Configured[]>)[account].map((m) => ({ ...m, account })),

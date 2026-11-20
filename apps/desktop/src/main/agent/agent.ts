@@ -469,7 +469,15 @@ export function piChoices(connected: string[]): ModelChoice[] {
   return PI_MODELS.filter((m) => connected.includes(m.account)).flatMap((m) => {
     const model = piModel(m.account, m.id);
     return model
-      ? [{ id: piModelId(m.account, m.id), name: m.name, efforts: piEfforts(model), account: m.account }]
+      ? [
+          {
+            id: piModelId(m.account, m.id),
+            name: m.name,
+            efforts: piEfforts(model),
+            account: m.account,
+            ...(m.default ? { default: true } : {}),
+          },
+        ]
       : [];
   });
 }

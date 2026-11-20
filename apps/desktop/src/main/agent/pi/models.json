@@ -2,7 +2,7 @@
   "chatgpt": [
     { "id": "gpt-6.1-terra", "name": "GPT-6.1 Terra" },
     { "id": "gpt-6.1-sol", "name": "GPT-6.1 Sol" },
-    { "id": "gpt-6.2-sol", "name": "GPT-6.2 Sol", "like": "gpt-6.1-sol" },
+    { "id": "gpt-6.2-sol", "name": "GPT-6.2 Sol", "like": "gpt-6.1-sol", "default": true },
     {
       "id": "gpt-6.2-astra",
       "name": "GPT-6.2 Astra",
@@ -19,7 +19,7 @@
   "openai": [
     { "id": "gpt-6.1-terra", "name": "GPT-6.1 Terra" },
     { "id": "gpt-6.1-sol", "name": "GPT-6.1 Sol" },
-    { "id": "gpt-6.2-sol", "name": "GPT-6.2 Sol", "like": "gpt-6.1-sol" },
+    { "id": "gpt-6.2-sol", "name": "GPT-6.2 Sol", "like": "gpt-6.1-sol", "default": true },
     {
       "id": "gpt-6.2-astra",
       "name": "GPT-6.2 Astra",
@@ -48,6 +48,7 @@
     },
     {
       "id": "gemini-4-neon",
+      "default": true,
       "name": "Gemini 4 Neon",
       "like": "gemini-4-argon",
       "cost": { "input": 3, "output": 15, "cacheRead": 0.15, "cacheWrite": 0 }
@@ -69,6 +70,7 @@
     },
     {
       "id": "gemini-4-neon",
+      "default": true,
       "name": "Gemini 4 Neon",
       "like": "gemini-4-argon",
       "cost": { "input": 3, "output": 15, "cacheRead": 0.15, "cacheWrite": 0 }

@@ -62,7 +62,7 @@ describe("the accounts", () => {
     await launched.capture("accounts-first-launch");
   });
 
-  test("a Gemini key pasted in the panel connects Gemini: its models are offered, the first chosen", async () => {
+  test("a Gemini key pasted in the panel connects Gemini: its models are offered, its default chosen (Q414)", async () => {
     await w.getByTestId("sign-in-key").click();
     await w.getByTestId("sign-in-key-input").fill(STAND_IN);
     // The key's start says whose it is.
@@ -72,7 +72,7 @@ describe("the accounts", () => {
     const status = await invoke("agent:status");
     expect(status.accounts).toEqual({ chatgpt: false, openai: false, gemini: true, vertex: false });
     expect(await groups()).toEqual(["Gemini: Gemini 4 Hydrogen, Gemini 4 Carbon, Gemini 4 Neon, Gemini 3.8 Flash"]);
-    expect(await w.getByTestId("model-select").inputValue()).toBe("gemini/gemini-4-hydrogen");
+    expect(await w.getByTestId("model-select").inputValue()).toBe("gemini/gemini-4-neon");
     expect(await w.getByTestId("send").isDisabled()).toBe(false);
     // Kept encrypted, never as typed.
     expect(readFileSync(join(launched.dataDir, "accounts/keys.bin"), "utf8")).not.toContain(STAND_IN);
@@ -89,7 +89,7 @@ describe("the accounts", () => {
     expect(await w.locator('[data-setting="gemini-key"]').textContent()).toContain("kept");
     expect(await w.getByTestId("chatgpt-sign-in").textContent()).toBe("Sign in…");
     // New websites get a connected account's model.
-    expect(await w.getByTestId("new-model").inputValue()).toBe("gemini/gemini-4-hydrogen");
+    expect(await w.getByTestId("new-model").inputValue()).toBe("gemini/gemini-4-neon");
     await launched.capture("accounts-settings");
     await w.getByTestId("gemini-key-remove").click();
     await until(async () => (await invoke("agent:status")).accounts.gemini === false);
@@ -120,7 +120,7 @@ describe("the accounts", () => {
     await w.getByTestId("settings-close").click();
     await until(async () => (await w.getByTestId("sign-in").count()) === 0);
     expect(await groups()).toEqual(["Vertex AI: Gemini 4 Hydrogen, Gemini 4 Carbon, Gemini 4 Neon, Gemini 3.8 Flash"]);
-    expect(await w.getByTestId("model-select").inputValue()).toBe("vertex/gemini-4-hydrogen");
+    expect(await w.getByTestId("model-select").inputValue()).toBe("vertex/gemini-4-neon");
     expect(readFileSync(join(launched.dataDir, "accounts/keys.bin"), "utf8")).not.toContain("AQ.e2e");
 
     // A project on gcloud's sign-in replaces the key; whether the sign-in is made depends on this computer.
