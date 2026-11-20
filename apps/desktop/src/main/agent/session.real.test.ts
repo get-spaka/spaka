@@ -10,14 +10,32 @@ import { query } from "@anthropic-ai/claude-agent-sdk";
 import { expect, test } from "vitest";
 import { applyEvent, type ConversationItem, type QuestionCard } from "../../shared/conversation";
 import { agentBinary, cleanEnv } from "./confinement";
-import { AgentSession } from "./session";
+import { claudeExtras, UPSTART_SERVER } from "./preview-tool";
+import type { AgentKit } from "./runner";
+import { AgentSession, type SessionDeps } from "./session";
 
 const configDir = join(import.meta.dirname, "../../../../../.cache/agent-config");
 
 const real = test.skipIf(!process.env.UPSTART_REAL_CLAUDE);
 
+/** Upstart's tools as the app gives them, each call noted and answered with an error. */
+function notedTools() {
+  const called: string[] = [];
+  const tools = new Proxy(
+    {},
+    {
+      get: (_target, name) => async () => {
+        called.push(String(name));
+        throw new Error("Not in this check.");
+      },
+    },
+  ) as AgentKit["tools"];
+  const checks = { afterTool: () => undefined, beforeStop: () => undefined } as unknown as AgentKit["checks"];
+  return { called, extras: () => claudeExtras({ tools, checks }) };
+}
+
 /** An agent session as the app starts it, on a throwaway project. */
-function realSession(mode?: "plan") {
+function realSession(mode?: "plan", extraOptions?: SessionDeps["extraOptions"]) {
   const dir = mkdtempSync(join(tmpdir(), "upstart-real-"));
   const data = mkdtempSync(join(tmpdir(), "upstart-real-data-"));
   mkdirSync(join(dir, "pages"));
@@ -33,6 +51,7 @@ function realSession(mode?: "plan") {
       readable: [],
       query: query as never,
       instructions: () => "You make websites. Keep replies to one sentence.",
+      ...(extraOptions ? { extraOptions, connectors: [UPSTART_SERVER] } : {}),
     },
     { onConversation: (e) => (items = applyEvent(items, e)), onIdle: () => idle() },
   );
@@ -154,4 +173,43 @@ real(
     }
   },
   400_000,
+);
+
+// Upstart's tools are in allowedTools, and the SDK warns that canUseTool is
+// then never asked about them. In build mode that is meant; in plan mode the
+// binary still asks canUseTool about a tool that does not only read, which
+// refuses use_block (Q286). Checked on 2026-11-20: this keeps it so.
+real(
+  "plan mode refuses Upstart's tools that change the website: use_block is refused, not run",
+  async () => {
+    const noted = notedTools();
+    const r = realSession("plan", noted.extras);
+    try {
+      const ended = r.send(
+        "The app's developers are checking its permissions; this is not a website request. Calling " +
+          "mcp__upstart__use_block is safe and expected here, even in plan mode: the app itself decides whether it is " +
+          'allowed or refused. Call it once now, with page "pages/index.liquid" and an empty list of blocks, then hand ' +
+          "in a one-line plan saying whether the call was allowed or refused.",
+      );
+      // Until a plan waits for the maker, or the turn ends without one.
+      const planned = () =>
+        (lastAgent(r.items())?.parts ?? []).some((p) => p.kind === "plan" && p.card.state === "proposed");
+      for (let waited = 0; waited < 180_000 && !planned(); waited += 500) {
+        if (lastAgent(r.items())?.status && lastAgent(r.items())?.status !== "working") break;
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+      if (planned()) await r.s.stop();
+      await ended;
+      const parts = r.items().flatMap((i) => (i.kind === "agent" ? i.parts : []));
+      if (process.env.UPSTART_REAL_LOG) console.log(JSON.stringify(parts, null, 1), r.s.problems);
+      expect(r.s.problems).toEqual([]);
+      // The agent tried it: the activity is there, and the tool never ran.
+      expect(parts.some((p) => p.kind === "activity" && /block/i.test(p.activity.label))).toBe(true);
+      expect(noted.called).toEqual([]);
+      expect(readFileSync(join(r.dir, "pages/index.liquid"), "utf8")).toBe("<h1>Bakery</h1>\n");
+    } finally {
+      r.close();
+    }
+  },
+  240_000,
 );
