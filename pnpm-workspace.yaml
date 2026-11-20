@@ -5,3 +5,7 @@ packages:
 onlyBuiltDependencies:
   - electron
   - esbuild
+
+# GHSA-g3hv-75wg-m249: electron-builder still asks for minimatch 9 and 10.
+overrides:
+  "minimatch@>=7.0.0 <11.0.1": ^11.0.1
