@@ -1,4 +1,4 @@
-import { ArrowUp, Check, ChevronRight, CircleSlash, Eraser, Loader2, Square, X } from "lucide-react";
+import { ArrowUp, Check, ChevronRight, CircleSlash, Eraser, Loader2, SlidersHorizontal, Square, X } from "lucide-react";
 import {
   type KeyboardEvent,
   type ReactNode,
@@ -58,6 +58,7 @@ export function Conversation({
   status,
   sidebarOpen,
   onExpandSidebar,
+  onSiteSettings,
   preview,
 }: {
   project: ProjectInfo | null;
@@ -65,6 +66,8 @@ export function Conversation({
   status: AgentStatus;
   sidebarOpen: boolean;
   onExpandSidebar: () => void;
+  /** Opens the website's own settings (Q118), reached here when the sidebar is hidden too (Q409). */
+  onSiteSettings: () => void;
   preview: PreviewState;
 }) {
   const [draft, setDraft] = useState("");
@@ -124,6 +127,18 @@ export function Conversation({
         )}
       >
         {!sidebarOpen && <ExpandSidebarButton onClick={onExpandSidebar} />}
+        {project && (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="no-drag -mr-1 text-muted-foreground"
+            onClick={onSiteSettings}
+            tip={t.site.open(project.name)}
+            data-testid="header-site-settings"
+          >
+            <SlidersHorizontal />
+          </Button>
+        )}
         {project && (
           <span data-testid="project-name" className="truncate text-sm font-medium">
             {project.name}

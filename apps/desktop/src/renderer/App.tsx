@@ -119,6 +119,10 @@ export function App() {
               status={status}
               sidebarOpen={sidebarOpen}
               onExpandSidebar={() => setSidebarOpen(true)}
+              onSiteSettings={() => {
+                setSettingsOpen(false);
+                setSiteOpen(true);
+              }}
               preview={preview}
             />
             <PreviewPane

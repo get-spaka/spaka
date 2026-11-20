@@ -1,5 +1,6 @@
-// A website's own settings (Q118), as a sheet over Upstart's window, opened
-// from the button on its row in the websites list: its model and effort, its
+// A website's own settings (Q118), as a dialog centred on Upstart's window,
+// opened from the button on its row in the websites list or the one before its
+// name over the conversation: its model and effort, its
 // own skills and connectors, all kept in its folder; and which connectors it
 // also gets from the settings for every website.
 import { House } from "lucide-react";
@@ -34,15 +35,18 @@ export function SiteSettings({
   const shared = connectors.filter((c) => c.scope === "app").map((c) => c.name);
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: a click beside it is for the pointer; Escape and Done do the same from the keyboard
     <div
-      className="absolute inset-0 z-20 flex items-start justify-center bg-scrim"
+      className="no-drag absolute inset-0 z-20 flex items-center justify-center bg-scrim p-6 animate-in fade-in-0"
       data-testid="site-settings-backdrop"
+      onMouseDown={(event) => event.target === event.currentTarget && onClose()}
     >
       <section
         role="dialog"
+        aria-modal="true"
         aria-label={t.site.open(project.name)}
         data-testid="site-settings"
-        className="flex max-h-[85%] w-[560px] flex-col gap-4 overflow-y-auto rounded-b-xl border border-t-0 border-input bg-panel px-5 pt-4 pb-4 text-[13px] text-foreground shadow-[0_18px_40px_rgba(0,0,0,0.22)]"
+        className="flex max-h-full w-[560px] flex-col gap-4 overflow-y-auto rounded-xl border border-input bg-panel px-5 pt-4 pb-4 text-[13px] text-foreground shadow-[0_18px_40px_rgba(0,0,0,0.22)] animate-in fade-in-0 zoom-in-95"
       >
         <header className="flex items-center gap-2.5">
           <span

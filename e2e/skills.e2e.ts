@@ -104,6 +104,20 @@ describe("skills", () => {
     await until(() => main((u) => u.preview.view.getVisible()));
   });
 
+  test("the button before the website's name opens its settings, centred on the window; a click beside them closes them", async () => {
+    const w = launched.window;
+    await w.getByTestId("header-site-settings").click();
+    const dialog = w.getByTestId("site-settings");
+    await dialog.waitFor();
+    const box = (await dialog.boundingBox())!;
+    const size = await w.evaluate(() => ({ width: innerWidth, height: innerHeight }));
+    expect(Math.abs(box.x + box.width / 2 - size.width / 2)).toBeLessThan(2);
+    expect(Math.abs(box.y + box.height / 2 - size.height / 2)).toBeLessThan(2);
+    await w.mouse.click(10, size.height - 10);
+    await dialog.waitFor({ state: "detached" });
+    await until(() => main((u) => u.preview.view.getVisible()));
+  });
+
   const assembledHas = async (path: string) => {
     const file = join(await assembled(), path);
     return existsSync(file) && readFileSync(file, "utf8").length > 0;
