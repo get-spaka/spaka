@@ -426,12 +426,12 @@ function TemplateLarge({
           </NativeSelect>
         )}
         <div className="ml-auto" />
+        {/* no tip: its label says what it does, then that the template is chosen */}
         <Button
           size="sm"
           variant={chosen ? "secondary" : "default"}
           onClick={onChoose}
           disabled={chosen}
-          tip={chosen ? t.start.chosenTip : undefined}
           data-testid="template-choose"
         >
           {chosen && <Check />}

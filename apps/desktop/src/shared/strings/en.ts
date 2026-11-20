@@ -253,7 +253,6 @@ export const en = {
     back: "All templates",
     choose: "Start from this one",
     chosen: "Chosen",
-    chosenTip: "This template is chosen: describe your website below",
     page: "Page",
     importTemplate: "Import a template",
     importTip: "Add a template you have on your computer",
