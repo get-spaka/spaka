@@ -51,6 +51,7 @@ import { claudeModelName, claudeReplacement } from "./agent/claude-models";
 import { agentBinary, cleanEnv, nodeLauncher, withPathFirst } from "./agent/confinement";
 import { findGitBash, GIT_FOR_WINDOWS_URL, gitBashEnv } from "./agent/git-bash";
 import { instructionsFor } from "./agent/instructions";
+import { namingModelFor } from "./agent/naming";
 import { PiAccounts } from "./agent/pi/accounts";
 import { VaultSignIns } from "./agent/pi/connectors";
 import { PiRecorder, piReplay } from "./agent/pi/replay";
@@ -588,6 +589,8 @@ async function main() {
       if (event.type === "turn-end" && projectId === current?.id) preview.endTurn();
     },
     emitStatus: (status) => ipc.emit("agent:status", status),
+    // A replayed agent asks no model for a website's name: a check may give it one.
+    ...(env.nameReply || env.agentReplay || env.piReplay ? { nameWith: async () => env.nameReply } : {}),
     // What the agent writes reaches the preview before the disk (ADR 0009).
     onAgentEvent: (projectId, event) => {
       if (tap && tap.projectId === projectId) tap.tap.handle(event);
@@ -857,13 +860,27 @@ async function main() {
   ipc.handle("projects:create", (name) => opened(projects.create(name)));
   ipc.handle("projects:open", (id) => opened(projects.open(id)));
   ipc.handle("projects:current", () => current ?? null);
-  ipc.handle("projects:rename", (id, name) => {
+  const rename = (id: string, name: string) => {
     const clean = name.trim().slice(0, 120);
     if (!clean) return;
     const project = projects.update(id, { name: clean });
     if (current?.id === id) changed({ ...current, name: project.name });
     ipc.emit("projects:changed", projects.list());
-  });
+  };
+  ipc.handle("projects:rename", rename);
+  /**
+   * A website just created takes the name a small model gives it (Q407), in
+   * place of the one from the first sentence, unless the maker renamed it
+   * meanwhile (Q408). Its folder keeps its name.
+   */
+  const nameLater = async (project: ProjectInfo, description: string) => {
+    const offered = agent.status().models.map((m) => m.id);
+    const model = namingModelFor(settings.get().namingModel, project.model, offered);
+    if (!model) return;
+    const name = await agent.nameWebsite(model, description);
+    const now = projects.list().find((p) => p.id === project.id);
+    if (name && now && now.name === project.name && name !== now.name) rename(project.id, name);
+  };
   ipc.handle("projects:close", () => {
     editor.leaveRecord();
     current = undefined;
@@ -1060,6 +1077,7 @@ async function main() {
       project = await opened(
         projects.update(created.id, { model, effort, ...(template ? { template } : {}), ...(mode ? { mode } : {}) }),
       );
+      void nameLater(project, message);
       if (copied) {
         emitAdaptation(project.id);
         const steps = readAdaptation(project.path)?.steps ?? [];

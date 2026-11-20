@@ -913,6 +913,10 @@ export const en = {
       model: "Model",
       effort: "Effort",
       forNewHelp: "Each website keeps its own model and effort; change them from its conversation or its settings.",
+      naming: "Model for names",
+      namingHelp:
+        "A small model names each new website from your description. Automatic: the small model of the website's account, Haiku on Claude, Flash on Gemini, Terra on OpenAI.",
+      namingAuto: "Automatic",
       replies: "How the agent writes to you",
       replyStyle: "Reply style",
       replyStyles: { short: "Short", explained: "Explained", teaching: "Teaching" },

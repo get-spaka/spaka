@@ -48,6 +48,8 @@ export type Environment = {
   templatesSnapshot: string | undefined;
   /** Checks: the anonymous statistics written to this file, one event a line, instead of sent. */
   statsLog: string | undefined;
+  /** Checks: the name a model gives a new website (Q407), instead of asking one; none while the agent is replayed. */
+  nameReply: string | undefined;
 };
 
 /**
@@ -73,5 +75,6 @@ export function readEnvironment(
     piRecord: env.UPSTART_PI_RECORD || undefined,
     templatesUrl: env.UPSTART_TEMPLATES_URL || undefined,
     templatesSnapshot: env.UPSTART_TEMPLATES_SNAPSHOT || undefined,
+    nameReply: env.UPSTART_NAME_REPLY || undefined,
   };
 }

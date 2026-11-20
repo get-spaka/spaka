@@ -31,20 +31,24 @@ describe("a conversation with the agent", () => {
     );
 
   beforeAll(async () => {
-    launched = await launchApp();
+    // The name a small model would give the website (Q407), its quotes and stop taken off.
+    launched = await launchApp({ env: { UPSTART_NAME_REPLY: '"Fournil de Lyon."' } });
     await launched.window.getByTestId("message-input").waitFor();
   });
   afterAll(async () => {
     await launched?.close();
   });
 
-  test("the first message creates the project, with the effort picked beforehand", async () => {
+  test("the first message creates the project, with the effort picked beforehand, named by a model", async () => {
     const w = launched.window;
     await w.getByTestId("effort-select").selectOption("high");
     await w.getByTestId("message-input").fill("A bakery in Lyon. Warm colours please.");
     await w.getByTestId("message-input").press("Enter");
-    await expect(w.getByTestId("project-name").textContent()).resolves.toBe("A bakery in Lyon");
+    // Named from the first sentence at once, then by the model; its folder keeps the first name (Q408).
+    await expect.poll(() => w.getByTestId("project-name").textContent()).toBe("Fournil de Lyon");
     const info = await project();
+    expect(info.name).toBe("Fournil de Lyon");
+    expect(info.path).toMatch(/a-bakery-in-lyon$/);
     expect(info).toMatchObject({ effort: "high", model: "claude-sonnet-5-5" });
     expect(JSON.parse(readFileSync(join(info.path, ".upstart/project.json"), "utf8")).effort).toBe("high");
     await expect(w.getByTestId("maker-message").textContent()).resolves.toContain("A bakery in Lyon");
@@ -116,6 +120,13 @@ describe("a conversation with the agent", () => {
 
   test("starting over keeps what is shown and says the agent forgot", async () => {
     const w = launched.window;
+    // Its tooltip reaches over the page: it is drawn over it, as the preview bar's are.
+    await w.getByTestId("start-over").hover();
+    await expect
+      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+      .poll(() => launched.app.evaluate(() => (globalThis as any).upstart.tips.shown))
+      .toContain("Start over");
+    expect(await w.getByTestId("tip").getAttribute("data-over-page")).toBe("true");
     await w.getByTestId("start-over").click();
     await until(() => w.getByTestId("notice").nth(1).count());
     expect(await w.getByTestId("maker-message").count()).toBe(2);

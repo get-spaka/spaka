@@ -83,3 +83,33 @@ export function ModelRows({
     </>
   );
 }
+
+/** The model that names each new website (Q407): Automatic, the small model of its account, or one chosen. */
+export function NamingRow({
+  models,
+  value,
+  onChange,
+}: {
+  models: ModelChoice[];
+  value: string;
+  onChange: (namingModel: string) => void;
+}) {
+  // A chosen model no longer on offer reads as Automatic, which it is.
+  const shown = value !== "auto" && models.some((m) => m.id === value) ? value : "auto";
+  return (
+    <Row id="naming-model" label={t.settings.agent.naming} detail={t.settings.agent.namingHelp} htmlFor="naming-model">
+      <NativeSelect
+        id="naming-model"
+        data-testid="naming-model"
+        size="xs"
+        className={selectClass}
+        wrapperClassName="shrink-0"
+        value={shown}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        <option value="auto">{t.settings.agent.namingAuto}</option>
+        <ModelOptions models={models} />
+      </NativeSelect>
+    </Row>
+  );
+}

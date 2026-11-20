@@ -3,8 +3,10 @@
 // conversations as shown (kept in the app's data, ADR 0001), the sign-ins and
 // the models on offer.
 import { readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ModelInfo } from "@anthropic-ai/claude-agent-sdk";
+import { clampThinkingLevel } from "@earendil-works/pi-ai";
 import {
   applyEvent,
   type ConversationEvent,
@@ -28,13 +30,14 @@ import { replaceFile } from "../replace-file";
 import type { AgentAuth, AuthState } from "./auth";
 import { CLAUDE_MODELS, claudeChoices } from "./claude-models";
 import { handoverNote } from "./handover";
+import { NAMING_INSTRUCTIONS, nameFromReply } from "./naming";
 import type { PiAccounts } from "./pi/accounts";
-import { PI_MODELS, piEfforts, piModel, piModelId } from "./pi/models";
+import { PI_MODELS, parseModelId, piEfforts, piModel, piModelId } from "./pi/models";
 import type { PiReplay } from "./pi/replay";
 import { type PiDeps, PiSession } from "./pi/session";
 import { Waits } from "./questions";
 import type { AgentRunner, PlanDecision } from "./runner";
-import { AgentSession, type SessionDeps, type SessionHandlers } from "./session";
+import { AgentSession, type SessionDeps, type SessionHandlers, userMessage } from "./session";
 import type { AgentEvent } from "./stream";
 
 export type AgentOptions = {
@@ -54,7 +57,15 @@ export type AgentOptions = {
   emitConversation: (projectId: string, event: ConversationEvent) => void;
   emitStatus: (status: AgentStatus) => void;
   onAgentEvent?: (projectId: string, event: AgentEvent) => void;
+  /**
+   * How a new website is named (Q407): by default, a request of its own to the
+   * model; the checks give a reply here, or none while the agent is replayed.
+   */
+  nameWith?: (model: string, description: string) => Promise<string | undefined>;
 };
+
+/** How long a website's name may take before the one from the first sentence is kept. */
+const NAMING_TIMEOUT = 30_000;
 
 export class Agent {
   private readonly sessions = new Map<string, AgentRunner>();
@@ -109,6 +120,60 @@ export class Agent {
     const handover = this.handovers.get(project.id);
     this.session(project).send(text, handover ? `${handover}\n\n${forAgent}` : forAgent);
     this.handovers.delete(project.id);
+  }
+
+  /** A name for a new website from the maker's description, by `model` (Q407); none if the request fails. */
+  async nameWebsite(model: string, description: string): Promise<string | undefined> {
+    const signal = AbortSignal.timeout(NAMING_TIMEOUT);
+    try {
+      if (this.o.nameWith) return nameFromReply(await this.o.nameWith(model, description));
+      const { account, model: id } = parseModelId(model);
+      if (account === "claude") {
+        const abortController = new AbortController();
+        signal.addEventListener("abort", () => abortController.abort());
+        const q = this.o.session.query({
+          prompt: (async function* () {
+            yield userMessage(description);
+          })(),
+          options: {
+            pathToClaudeCodeExecutable: this.o.session.binary,
+            env: this.o.auth.env(),
+            cwd: tmpdir(),
+            model,
+            systemPrompt: NAMING_INSTRUCTIONS,
+            tools: [],
+            settingSources: [],
+            maxTurns: 1,
+            persistSession: false,
+            abortController,
+          },
+        });
+        for await (const m of q as AsyncIterable<{ type: string; subtype?: string; result?: string }>)
+          if (m.type === "result") return m.subtype === "success" ? nameFromReply(m.result) : undefined;
+        return undefined;
+      }
+      const pi = this.o.pi;
+      const piM = piModel(account, id);
+      if (!pi || !piM) return undefined;
+      const level = clampThinkingLevel(piM, "minimal");
+      const reply = await pi.accounts.models.completeSimple(
+        piM,
+        {
+          systemPrompt: NAMING_INSTRUCTIONS,
+          messages: [{ role: "user", content: description, timestamp: Date.now() }],
+        },
+        {
+          apiKey: await pi.accounts.apiKey(account),
+          identity: pi.deps.identity,
+          signal,
+          ...(level !== "off" ? { reasoning: level } : {}),
+        },
+      );
+      if (reply.stopReason === "error" || reply.stopReason === "aborted") return undefined;
+      return nameFromReply(reply.content.flatMap((c) => (c.type === "text" ? [c.text] : [])).join(""));
+    } catch {
+      return undefined;
+    }
   }
 
   /** A line in the conversation from Upstart itself. */

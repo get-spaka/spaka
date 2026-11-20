@@ -30,6 +30,7 @@ test("each value is checked; a wrong or missing one is its default", () => {
       appearance: "dim",
       tourSeen: "no",
       projectOrder: "size",
+      namingModel: "",
     }),
   ).toEqual(DEFAULT_SETTINGS);
   const chosen = {
@@ -43,8 +44,11 @@ test("each value is checked; a wrong or missing one is its default", () => {
     notifyDone: false,
     tourSeen: true,
     projectOrder: "name",
+    namingModel: "gemini/gemini-3.8-flash",
   };
   expect(settingsFrom(chosen)).toEqual(chosen);
+  // A naming model taken off the list gives way to the latest of its family (Q399, Q407).
+  expect(settingsFrom({ namingModel: "claude-haiku-4-2" }).namingModel).toBe("claude-haiku-5-5");
 });
 
 test("the settings are kept in their file, and an unreadable file gives the defaults", () => {

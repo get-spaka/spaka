@@ -427,6 +427,8 @@ export type AppSettings = {
   tourSeen: boolean;
   /** The order of the sidebar's projects (Q394). */
   projectOrder: ProjectOrder;
+  /** The model that names a new website (Q407): "auto", the small model of the website's account, or a model's id. */
+  namingModel: string;
 };
 export const DEFAULT_APP_SETTINGS: AppSettings = {
   newModel: "claude-sonnet-5-5",
@@ -439,6 +441,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   notifyDone: true,
   tourSeen: false,
   projectOrder: "updated",
+  namingModel: "auto",
 };
 
 /** Calls from the interface that get an answer: channel → (args) → answer. */

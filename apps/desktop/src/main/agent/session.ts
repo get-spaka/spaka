@@ -42,7 +42,7 @@ export const TOOLS = ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebSearc
 export const DENY_MESSAGE =
   "Upstart does not ask the maker for permissions. This action is refused: find another way or say what you could not do.";
 
-type QueryFn = (params: { prompt: AsyncIterable<SDKUserMessage>; options: Record<string, unknown> }) => Query;
+export type QueryFn = (params: { prompt: AsyncIterable<SDKUserMessage>; options: Record<string, unknown> }) => Query;
 
 export type SessionDeps = {
   binary: string;
@@ -593,7 +593,7 @@ function withAnswerNote(hooks: Record<string, unknown> | undefined, take: () => 
   };
 }
 
-function userMessage(text: string): SDKUserMessage {
+export function userMessage(text: string): SDKUserMessage {
   return { type: "user", message: { role: "user", content: text }, parent_tool_use_id: null } as SDKUserMessage;
 }
 
