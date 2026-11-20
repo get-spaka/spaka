@@ -404,7 +404,7 @@ export function PreviewPane({
                   key={view}
                   variant="ghost"
                   size="icon-sm"
-                  className={cn("size-6", state.view === view && "bg-foreground/10 text-foreground")}
+                  className={cn("h-6 w-8", state.view === view && "bg-foreground/10 text-foreground")}
                   tip={tip}
                   command={command}
                   aria-pressed={state.view === view}
@@ -430,7 +430,7 @@ export function PreviewPane({
                     key={mode}
                     variant="ghost"
                     size="icon-sm"
-                    className={cn("size-6", state.mode === mode && "bg-foreground/10 text-foreground")}
+                    className={cn("h-6 w-8", state.mode === mode && "bg-foreground/10 text-foreground")}
                     tip={tip}
                     command={`mode-${mode}`}
                     aria-pressed={state.mode === mode}
@@ -453,7 +453,7 @@ export function PreviewPane({
                     key={w}
                     variant="ghost"
                     size="icon-sm"
-                    className={cn("size-6", width === w && "bg-foreground/10 text-foreground")}
+                    className={cn("h-6 w-8", width === w && "bg-foreground/10 text-foreground")}
                     tip={tip}
                     command={`screen-${w}`}
                     aria-pressed={width === w}
@@ -467,7 +467,7 @@ export function PreviewPane({
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    className={cn("size-6", landscape && "bg-foreground/10 text-foreground")}
+                    className={cn("h-6 w-8", landscape && "bg-foreground/10 text-foreground")}
                     tip={landscape ? t.preview.portrait : t.preview.landscape}
                     aria-pressed={landscape}
                     data-testid="rotate"
