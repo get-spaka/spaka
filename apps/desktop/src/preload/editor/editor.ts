@@ -42,6 +42,37 @@ export type EditorBridge = CommentsBridge & {
   stop(): void;
 };
 
+/** The keys that scroll the page, left to it while the agent works (Q410). */
+const SCROLL_KEYS = new Set([
+  "ArrowUp",
+  "ArrowDown",
+  "ArrowLeft",
+  "ArrowRight",
+  "PageUp",
+  "PageDown",
+  "Home",
+  "End",
+  " ",
+]);
+
+/** The pointer's events kept from the page while the agent works; the wheel still scrolls it, a drop still says to wait. */
+const SHIELDED = [
+  "click",
+  "dblclick",
+  "auxclick",
+  "contextmenu",
+  "mousedown",
+  "mouseup",
+  "mousemove",
+  "mouseover",
+  "mouseout",
+  "pointerdown",
+  "pointerup",
+  "pointermove",
+  "pointerover",
+  "pointerout",
+] as const;
+
 /** The record the trace names for an element: its own, or the one around it. */
 function recordOf(el: Element): string | undefined {
   return el.closest("[data-up-rec]")?.getAttribute("data-up-rec") || undefined;
@@ -116,6 +147,8 @@ const STYLE = `
 .line { position: fixed; left: 0; right: 0; height: 3px; margin-top: -1px; background: #4f46e5; border-radius: 2px; display: none;
   box-shadow: 0 0 0 2px rgb(255 255 255 / .8); }
 .bar button[data-act="drag"] { cursor: grab; }
+.shield { position: fixed; inset: 0; display: none; pointer-events: auto; cursor: default; }
+.shield.shown { display: block; }
 .working { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); display: none; align-items: center; gap: 10px;
   height: 40px; padding: 0 6px 0 16px; border-radius: 999px; background: #1c1b2e; color: #f4f4f5; font-size: 13px;
   white-space: nowrap; box-shadow: 0 8px 24px rgb(28 27 46 / .28); pointer-events: auto; animation: up-rise .25s ease-out both; }
@@ -154,6 +187,8 @@ export class Editor {
   private readonly line: HTMLElement;
   /** The pill at the bottom of the page while the agent works (Q391). */
   private readonly working: HTMLElement;
+  /** Over the page while the agent works, under what the editor draws: the page takes no click or hover (Q410). */
+  private readonly shield: HTMLElement;
   private readonly tour: PageTourLayer;
   private hovered: HTMLElement | undefined;
   /** An image of a list being dragged by its handle: the outline shows where it goes, not what the pointer is over. */
@@ -176,6 +211,7 @@ export class Editor {
       "all: initial; position: fixed; top: 0; left: 0; width: 0; height: 0; z-index: 2147483647;";
     this.root = this.host.attachShadow({ mode: open ? "open" : "closed" });
     this.root.innerHTML = `<style>${STYLE}${COMMENT_STYLE}${TIP_STYLE}${TOUR_STYLE}</style><div class="layer">
+      <div class="shield" data-testid="page-shield"></div>
       <div class="box hover"><span class="tag"></span></div>
       <div class="box selected"></div>
       <div class="bar" data-testid="editor-bar"></div>
@@ -193,6 +229,7 @@ export class Editor {
     this.note = q(".editing-note");
     this.line = q(".line");
     this.working = q(".working");
+    this.shield = q(".shield");
     q(".working b").textContent = t.working;
     q(".working .sub").textContent = `· ${t.workingPaused}`;
     q(".working button span").textContent = t.stop;
@@ -247,11 +284,24 @@ export class Editor {
     this.showWorking();
   }
 
-  /** The pill shows while the agent works, in every mode, with Stop (Q391). */
+  /**
+   * The pill shows while the agent works, in every mode, with Stop (Q391). The
+   * page meanwhile takes no click, hover or key, and still scrolls (Q410); in
+   * comment mode comments are still placed and written (Q412).
+   */
   private showWorking() {
-    const shown = this.paused && !this.hidden;
+    const shown = this.busy;
     this.working.classList.toggle("shown", shown);
     this.working.parentElement?.classList.toggle("busy", shown);
+    this.shield.classList.toggle("shown", shown && this.mode !== "comment");
+    // What had the focus in the page would still take keys.
+    if (shown && document.activeElement instanceof HTMLElement && document.activeElement !== document.body)
+      document.activeElement.blur();
+  }
+
+  /** The agent works and the page is shown. */
+  private get busy() {
+    return this.paused && !this.hidden;
   }
 
   /** After a new rendering: the selected element may have been replaced, found again by its origin. */
@@ -293,6 +343,29 @@ export class Editor {
       { capture: true, passive: true },
     );
     document.addEventListener("mouseleave", () => this.setHover(undefined));
+    // The pointer on the shield: the page's own listeners would see it on the editor's element.
+    for (const type of SHIELDED)
+      window.addEventListener(
+        type,
+        (e) => {
+          if (!this.busy || !e.composedPath().includes(this.shield)) return;
+          e.preventDefault();
+          e.stopImmediatePropagation();
+        },
+        { capture: true },
+      );
+    // While the agent works the page's scripts see no key; the keys that scroll still scroll (Q410),
+    // and the app's shortcuts still reach it.
+    for (const type of ["keydown", "keyup", "keypress"] as const)
+      window.addEventListener(
+        type,
+        (e) => {
+          if (!this.busy || ours(e) || e.metaKey || e.ctrlKey) return;
+          if (!SCROLL_KEYS.has(e.key)) e.preventDefault();
+          e.stopImmediatePropagation();
+        },
+        { capture: true },
+      );
     for (const type of ["click", "auxclick", "submit", "pointerup", "mouseup"] as const)
       window.addEventListener(
         type,

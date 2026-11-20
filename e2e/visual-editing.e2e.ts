@@ -265,6 +265,38 @@ describe("editing in the preview", () => {
     await until(async () => !(await drawn(".working")));
   });
 
+  test("while the agent works the page takes no click or key in visitor mode, and still scrolls (Q410)", async () => {
+    await invoke("preview:set-mode", "visitor");
+    await until(() => page("document.querySelector('upstart-editor').dataset.mode === 'visitor'"));
+    await page(
+      `(() => {
+        document.body.insertAdjacentHTML('beforeend', '<div id="room" style="height: 3000px"><input id="field"></div>');
+        window.seen = [];
+        for (const type of ['click', 'keydown']) addEventListener(type, (e) => seen.push(type));
+        return true;
+      })()`,
+    );
+    // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+    await launched.app.evaluate(() => (globalThis as any).upstart.preview.setPaused(true));
+    await until(() => drawn('[data-testid="page-shield"]'));
+    await click("a[href]");
+    await key("x");
+    const { x, y } = await center("h1");
+    await input([{ type: "mouseWheel", x, y, deltaX: 0, deltaY: -400, canScroll: true }]);
+    await until(async () => (await page("window.scrollY")) > 100);
+    expect(await page("location.pathname")).toBe("/");
+    expect(await page("seen")).toEqual([]);
+    // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+    await launched.app.evaluate(() => (globalThis as any).upstart.preview.setPaused(false));
+    await until(async () => !(await drawn('[data-testid="page-shield"]')));
+    await click("#field");
+    await key("x");
+    await until(async () => (await page("seen.join()")) === "click,keydown");
+    await page("window.scrollTo(0, 0), document.getElementById('room').remove(), true");
+    await invoke("preview:set-mode", "edit");
+    await until(() => page("document.querySelector('upstart-editor').dataset.mode === 'edit'"));
+  });
+
   test.runIf(ON_A_SCREEN)(
     "while the agent works nothing is selected; a capture for the agent leaves the drawings out",
     async () => {
