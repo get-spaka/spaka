@@ -393,7 +393,7 @@ export function PreviewPane({
             </div>
           )}
           {project && pageCount >= 2 && (
-            <div className="no-drag flex items-center rounded-md border p-0.5" data-testid="preview-view">
+            <div className="no-drag flex items-center gap-px rounded-md border p-0.5" data-testid="preview-view">
               {(
                 [
                   ["page", Square, t.preview.pageViewTip, undefined],
@@ -418,7 +418,7 @@ export function PreviewPane({
           )}
           {project && state.routes.length > 0 && (
             <>
-              <div className="no-drag flex items-center rounded-md border p-0.5" data-testid="preview-mode">
+              <div className="no-drag flex items-center gap-px rounded-md border p-0.5" data-testid="preview-mode">
                 {(
                   [
                     ["edit", MousePointer2, t.preview.editMode],
@@ -441,7 +441,7 @@ export function PreviewPane({
                   </Button>
                 ))}
               </div>
-              <div className="no-drag flex items-center rounded-md border p-0.5" data-testid="preview-width">
+              <div className="no-drag flex items-center gap-px rounded-md border p-0.5" data-testid="preview-width">
                 {(
                   [
                     ["desktop", Monitor, t.preview.desktop],
