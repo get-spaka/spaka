@@ -96,7 +96,10 @@ describe("all pages as thumbnails", () => {
           .catch(() => 0);
         reading = false;
         let entry = seen.live.find(([r]) => r === route);
-        if (!entry) seen.live.push((entry = [route, []]));
+        if (!entry) {
+          entry = [route, []];
+          seen.live.push(entry);
+        }
         if (!entry[1].includes(length)) entry[1].push(length);
       }, 25);
       (globalThis as { gridSeenStop?: () => void }).gridSeenStop = () => clearInterval(timer);
