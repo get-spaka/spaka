@@ -564,3 +564,100 @@ test("plan mode: what writes is refused, the plan waits; changes, then Build, an
   expect(results[1]).toContain("The maker wants changes to the plan: Une page pour les mariages");
   expect(results[2]).toContain("The maker approved your plan.");
 });
+
+test("a passing error is tried again, visibly, and the turn goes on (Q435)", async () => {
+  const { f, models } = faux();
+  f.setResponses([
+    fauxAssistantMessage([], { stopReason: "error", errorMessage: "429 Too Many Requests" }),
+    fauxAssistantMessage([], { stopReason: "error", errorMessage: "503 Service Unavailable" }),
+    fauxAssistantMessage([fauxText("Voilà.")]),
+  ]);
+  const { turn, events, items } = session(models, { retryWaits: [0, 0, 0] });
+  await turn("Bonjour");
+  expect(events.at(-1)).toMatchObject({ type: "turn-end", status: "done" });
+  const lines = (items().at(-1) as { parts: { kind: string; activity?: { label: string; state: string } }[] }).parts
+    .filter((p) => p.kind === "activity")
+    .map((p) => `${p.activity!.label}: ${p.activity!.state}`);
+  expect(lines).toEqual([
+    "Trying again after a passing error (1/3): done",
+    "Trying again after a passing error (2/3): done",
+  ]);
+  // The errors are not kept in what the model is sent next.
+  const saved = JSON.parse(readFileSync(join(dataDir, "pi-session.json"), "utf8")).messages;
+  expect(saved.filter((m: { stopReason?: string }) => m.stopReason === "error")).toEqual([]);
+});
+
+test("after three passing errors, the turn fails as before", async () => {
+  const { f, models } = faux();
+  const busy = () => fauxAssistantMessage([], { stopReason: "error", errorMessage: "429 Too Many Requests" });
+  f.setResponses([busy(), busy(), busy(), busy()]);
+  const { turn, events } = session(models, { retryWaits: [0, 0, 0] });
+  await turn("Bonjour");
+  expect(events.at(-1)).toMatchObject({ type: "turn-end", status: "failed" });
+});
+
+test("a reply cut by its length goes on: in its text, told to; in a call, the call asked for again (Q435)", async () => {
+  const { f, models } = faux();
+  const asked: string[] = [];
+  const lastText = (context: { messages: { content: unknown }[] }) => {
+    const content = context.messages.at(-1)!.content as string | { text?: string }[];
+    asked.push(typeof content === "string" ? content : (content[0]?.text ?? ""));
+  };
+  f.setResponses([
+    fauxAssistantMessage([fauxText("Voici le plan : d'abord")], { stopReason: "length" }),
+    (context) => {
+      lastText(context);
+      return fauxAssistantMessage([fauxToolCall("Write", { file_path: "pages/index.liquid" })], {
+        stopReason: "length",
+      });
+    },
+    (context) => {
+      lastText(context);
+      return fauxAssistantMessage(
+        [fauxToolCall("Write", { file_path: "pages/index.liquid", content: "<h1>Fleur</h1>\n" })],
+        { stopReason: "toolUse" },
+      );
+    },
+    fauxAssistantMessage([fauxText("Voilà.")]),
+  ]);
+  const { turn, events } = session(models);
+  await turn("Un site");
+  expect(events.at(-1)).toMatchObject({ type: "turn-end", status: "done" });
+  expect(asked[0]).toMatch(/cut off by the output limit\. Go on exactly where you stopped/);
+  expect(asked[1]).toMatch(/Tool call "Write" was not executed/);
+  expect(readFileSync(join(project.path, "pages/index.liquid"), "utf8")).toBe("<h1>Fleur</h1>\n");
+});
+
+test("near the model's window, the earlier turns are summarized by the model; the conversation shown is whole (Q434)", async () => {
+  const { f, models } = faux();
+  const sent: string[][] = [];
+  const keep = (text: string) => (context: { messages: { role: string; content: unknown }[] }) => {
+    sent.push(context.messages.map((m) => (typeof m.content === "string" ? m.content : JSON.stringify(m.content))));
+    return fauxAssistantMessage([fauxText(text)]);
+  };
+  f.setResponses([
+    keep(`Première réponse ${"a".repeat(800)}`),
+    keep(`Deuxième réponse ${"b".repeat(800)}`),
+    (context) => {
+      sent.push(["summary asked", JSON.stringify(context.messages[0])]);
+      return fauxAssistantMessage([fauxText("The maker wants a florist's site; two pages are built.")]);
+    },
+    keep("Troisième réponse."),
+  ]);
+  const { turn, items, events } = session(models, { contextWindow: 800 });
+  await turn(`Premier message ${"x".repeat(800)}`);
+  await turn(`Deuxième message ${"y".repeat(800)}`);
+  await turn("Troisième message");
+  expect(events.at(-1)).toMatchObject({ type: "turn-end", status: "done" });
+  expect(sent[2]?.[1]).toMatch(/You summarize the earlier part of your own work/);
+  const third = sent[3]!;
+  // The instructions first still, then the summary before the latest turn.
+  expect(third[0]).toBe("Upstart's instructions for openai.");
+  expect(third[1]).toMatch(
+    /\[What happened earlier in this conversation, summarized:\]\\nThe maker wants a florist's site/,
+  );
+  expect(third.join("\n")).not.toContain("Premier message");
+  // What the maker sees keeps every turn, and a line says the agent's memory was summarized.
+  expect(items().filter((i) => i.kind === "maker")).toHaveLength(3);
+  expect(JSON.stringify(items().at(-1))).toContain("Summarizing the earlier turns for the agent");
+});

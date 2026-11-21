@@ -369,6 +369,8 @@ export const en = {
     skill: (name?: string) => (name ? `Following the skill ${name}` : "Following a skill…"),
     run: (what?: string) => (what ? `Running ${what}` : "Running a command…"),
     searchWeb: "Searching the web",
+    retrying: (n: number, of: number) => `Trying again after a passing error (${n}/${of})`,
+    summarizing: "Summarizing the earlier turns for the agent",
     readPage: (site?: string) => (site ? `Reading a page of ${site}` : "Reading a web page…"),
     other: (tool: string) => `Using ${tool}`,
   },

@@ -44,6 +44,16 @@ import type { SessionDeps, SessionHandlers } from "../session";
 import type { AgentEvent } from "../stream";
 import { upstartTools } from "../upstart-tools";
 import { PiConnectors, type VaultSignIns } from "./connectors";
+import {
+  compactionCut,
+  GO_ON,
+  passingError,
+  RETRY_WAITS_MS,
+  SUMMARY_INSTRUCTIONS,
+  transcriptOf,
+  withoutSeenPictures,
+  withSummary,
+} from "./context";
 import { familyOf, type PiAccount, parseModelId, piModel, thinkingFor } from "./models";
 import type { PiRecorder } from "./replay";
 import { sandboxAvailable } from "./shell";
@@ -89,6 +99,10 @@ export type PiDeps = {
   onConnectorsChange?: () => void;
   /** Keeps each reply of the model, to play it back in checks (replay.ts). */
   recorder?: PiRecorder;
+  /** The waits before each new try after a passing error, in place of RETRY_WAITS_MS: for checks. */
+  retryWaits?: number[];
+  /** The model's window in place of its own: for checks. */
+  contextWindow?: number;
   /** The web search in place of the provider's: a played-back one, in checks. */
   search?: (query: string) => Promise<SearchFound>;
   /** What to tell the maker when an account's sign-in was refused, if not to connect it again in Accounts. */
@@ -205,6 +219,8 @@ export class PiSession implements AgentRunner {
         messages: this.load().messages,
       },
       streamFn: (m, context, options) => this.deps.models.streamSimple(m, context, options),
+      // A picture the model has answered goes as a line from then on (Q434).
+      transformContext: async (messages) => withoutSeenPictures(messages),
       getApiKey: () => this.deps.apiKey(this.account),
       // Reads and searches of one reply run together; a reply that changes the project runs in order (tools.ts).
       toolExecution: "parallel",
@@ -484,6 +500,8 @@ export class PiSession implements AgentRunner {
 
   private async run(loop: Loop, text: string) {
     let failure: unknown;
+    let retries = 0;
+    let goneOn = 0;
     try {
       // The connectors that answer in time are the agent's for this message.
       if (this.connectors) {
@@ -491,13 +509,37 @@ export class PiSession implements AgentRunner {
         await this.connectors.set.ready();
         if (this.loop === loop) loop.state.tools = this.allTools();
       }
+      await this.compact(loop);
       await loop.prompt(text);
+      // A passing error is tried again, a reply cut by its length goes on (Q435).
+      for (;;) {
+        if (this.loop !== loop || this.stopping || !this.working) break;
+        const last = lastReply(loop.state.messages);
+        if (last?.stopReason === "error" && passingError(last.errorMessage) && retries < RETRY_WAITS_MS.length) {
+          retries++;
+          loop.state.messages = loop.state.messages.filter((m) => m !== last);
+          const id = `retry-${this.turnStart}-${retries}`;
+          const label = en.activity.retrying(retries, RETRY_WAITS_MS.length);
+          this.conversation({ type: "activity", activity: { id, label, state: "running" } });
+          await new Promise((r) => setTimeout(r, this.deps.retryWaits?.[retries - 1] ?? RETRY_WAITS_MS[retries - 1]));
+          this.conversation({ type: "activity", activity: { id, label, state: "done" } });
+          if (this.loop !== loop || this.stopping || !this.working) break;
+          await loop.continue();
+          continue;
+        }
+        if (last?.stopReason === "length" && goneOn < 2) {
+          goneOn++;
+          await loop.prompt(GO_ON);
+          continue;
+        }
+        break;
+      }
     } catch (e) {
       failure = e;
     }
     if (this.loop !== loop) return;
     this.save(loop.state.messages);
-    const last = [...loop.state.messages].reverse().find((m): m is AssistantMessage => m.role === "assistant");
+    const last = lastReply(loop.state.messages);
     const reason = last?.stopReason;
     const error = failure !== undefined ? String((failure as Error)?.message ?? failure) : last?.errorMessage;
     this.emitAgent({
@@ -517,6 +559,47 @@ export class PiSession implements AgentRunner {
       return this.endTurn("failed", this.deps.signInHelp?.(this.account) ?? en.errors.accountNeeded);
     }
     return this.endTurn("failed", en.errors.agentStopped);
+  }
+
+  /**
+   * Near the model's window, the oldest turns summarized by the model itself,
+   * the latest kept whole (Q434); the conversation shown is unchanged, a line
+   * says it happened. Without a summary (the model failed), nothing changes.
+   */
+  private async compact(loop: Loop) {
+    if (typeof this.deps.models.completeSimple !== "function") return;
+    const model = this.model();
+    const messages = loop.state.messages;
+    const cut = compactionCut(withoutSeenPictures(messages), this.deps.contextWindow ?? model.contextWindow);
+    if (cut === undefined) return;
+    const id = `compact-${this.turnStart}`;
+    const label = en.activity.summarizing;
+    this.conversation({ type: "activity", activity: { id, label, state: "running" } });
+    try {
+      const level = clampThinkingLevel(model, "low");
+      const reply = await this.deps.models.completeSimple(
+        model,
+        {
+          systemPrompt: SUMMARY_INSTRUCTIONS,
+          messages: [{ role: "user", content: transcriptOf(messages.slice(0, cut)), timestamp: Date.now() }],
+        },
+        {
+          apiKey: await this.deps.apiKey(this.account),
+          identity: this.deps.identity,
+          ...(level !== "off" ? { reasoning: level } : {}),
+        },
+      );
+      this.searchCost += reply.usage?.cost?.total ?? 0;
+      const summary = reply.content.flatMap((c) => (c.type === "text" ? [c.text] : [])).join("");
+      if (reply.stopReason !== "stop" || !summary.trim()) throw new Error(reply.errorMessage ?? "no summary");
+      // The system's messages (the instructions, tools added on the way) stay, in their order.
+      const system = messages.slice(0, cut).filter((m) => m.role === "system");
+      if (this.loop === loop) loop.state.messages = [...system, ...withSummary(messages.slice(cut), summary)];
+      this.conversation({ type: "activity", activity: { id, label, state: "done" } });
+    } catch (e) {
+      this.problems.push(`pi summary: ${(e as Error)?.message ?? e}`);
+      this.conversation({ type: "activity", activity: { id, label, state: "failed" } });
+    }
   }
 
   /**
@@ -704,11 +787,17 @@ export class PiSession implements AgentRunner {
 
   /** Kept without the instructions, which are written afresh at each start. */
   private save(messages: AgentMessage[]) {
-    const saved: Saved = { messages: messages.filter((m) => m.role !== "system") };
+    // Kept as the model is sent them: a picture it answered is a line (Q434).
+    const saved: Saved = { messages: withoutSeenPictures(messages.filter((m) => m.role !== "system")) };
     const tmp = `${this.savedFile()}.tmp`;
     writeFileSync(tmp, JSON.stringify(saved));
     replaceFile(tmp, this.savedFile());
   }
+}
+
+/** The model's latest reply. */
+function lastReply(messages: AgentMessage[]): AssistantMessage | undefined {
+  return [...messages].reverse().find((m): m is AssistantMessage => m.role === "assistant");
 }
 
 /** What says that the account's key or sign-in was refused. */
