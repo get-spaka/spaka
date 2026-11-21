@@ -18,7 +18,7 @@ describe("Kindly's reply card", () => {
   const w = () => launched.window;
 
   /** Fills the reply card of a page and sends it, as a guest would (the radios and fields set, then submitted). */
-  const FILL = (who: string) => `(() => {
+  const FILL = (who: string, sunday = "no") => `(() => {
     const form = document.querySelector('form[hx-post="/_data/rsvps"]');
     if (!form) return false;
     const pick = (name, value) => { const el = form.querySelector('input[name="' + name + '"][value="' + value + '"]'); el.checked = true; };
@@ -30,7 +30,7 @@ describe("Kindly's reply card", () => {
     pick("dinner", "lake whitefish");
     form.elements.diet.value = "No nuts";
     pick("friday", "yes");
-    pick("sunday", "no");
+    pick("sunday", ${JSON.stringify(sunday)});
     form.elements.song.value = "September";
     form.elements.note.value = "We can't wait.";
     form.querySelector('button[type="submit"]').click();
@@ -131,13 +131,28 @@ describe("Kindly's reply card", () => {
         }
         await new Promise((r) => setTimeout(r, 4000));
         const shot = (await win.webContents.capturePage()).toPNG().toString("base64");
+        // The sealed envelope on a phone.
+        win.setSize(390, 844);
+        await run("document.querySelector('[data-seal]').scrollIntoView({ block: 'center' }), true");
+        await new Promise((r) => setTimeout(r, 600));
+        const phone = (await win.webContents.capturePage()).toPNG().toString("base64");
+        // Where the seal stands against the lines below it, at both widths.
+        const gap = await run(`(() => {
+          const seal = document.querySelector(".sealed-seal").getBoundingClientRect();
+          const from = document.querySelector("[data-seal-lines] p").getBoundingClientRect();
+          return Math.round(from.top - seal.bottom);
+        })()`);
         const errors = await run("window.__errors || []");
         win.destroy();
-        return { filled, sealed, shot, errors };
+        return { filled, sealed, shot, phone, gap, errors };
       },
-      { url: `${base}/rsvp`, fill: FILL("Grace Hopper"), sealedCode: SEALED },
+      // The longest reply: a long name, a party, Friday and Sunday.
+      { url: `${base}/rsvp`, fill: FILL("Maximilian Featherstonehaugh-Whitley", "yes"), sealedCode: SEALED },
     );
     writeFileSync(join(runsDir, "kindly-reply-published.png"), Buffer.from(result.shot, "base64"));
+    writeFileSync(join(runsDir, "kindly-reply-published-phone.png"), Buffer.from(result.phone, "base64"));
+    // The seal sits above the lines, not over them.
+    expect(result.gap).toBeGreaterThanOrEqual(0);
     expect(result.filled).toBe(true);
     expect(result.sealed).toMatchObject({ form: false });
     // What it collected, in the Content tab beside the preview's test record.
