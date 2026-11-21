@@ -4,7 +4,14 @@
 // template is made; what a new project copies of them is projectFiles().
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
-import { type AddressedLibrary, type Credit, infoFile, memorySource, siteAssets } from "@upstart/runtime";
+import {
+  type AddressedLibrary,
+  type Credit,
+  type Generation,
+  infoFile,
+  memorySource,
+  siteAssets,
+} from "@upstart/runtime";
 import { type Block, filesTree, readBlocks } from "../gallery/catalogue";
 import { MANIFEST, Manifest } from "./manifest";
 import { readZip, safePath, ZIP_LIMITS } from "./zip";
@@ -23,7 +30,8 @@ export type Template = {
   files: TemplateFiles;
   blocks: Block[];
   libraries: AddressedLibrary[];
-  credits: { path: string; credit?: Credit }[];
+  /** Each media file with its credit, or how it was generated (Q432). */
+  credits: { path: string; credit?: Credit; generated?: Generation }[];
   pictures: TemplatePictures;
 };
 
@@ -144,8 +152,12 @@ export function readTemplate(files: TemplateFiles): { template: Template } | { p
   const credits = media.map((path) => {
     const info = files.get(infoFile(path))?.toString("utf8");
     try {
-      const credit = info ? (JSON.parse(info) as { credit?: Credit }).credit : undefined;
-      return credit ? { path, credit } : { path };
+      const read = info ? (JSON.parse(info) as { credit?: Credit; generated?: Generation }) : {};
+      return {
+        path,
+        ...(read.credit ? { credit: read.credit } : {}),
+        ...(read.generated ? { generated: read.generated } : {}),
+      };
     } catch {
       return { path };
     }

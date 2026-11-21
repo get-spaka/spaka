@@ -4,6 +4,9 @@
 // Bundled and run by scripts/template.mjs.
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { IMAGE_ASPECTS, IMAGE_MODELS, type ImageAspect } from "../../shared/image-models";
+import { generateImage, type ImageCredentials, splitImageModel } from "../images/generate";
+import { generateIntoMedia } from "../images/into-media";
 import { useFoundImage as addFoundImage, slug } from "../media/library";
 import { type FoundImage, type ImageFinder, ImageSearch, imagesAnswer, USER_AGENT } from "../media/search";
 import { checkTemplate } from "./check";
@@ -115,10 +118,73 @@ export async function imageMain(args: string[], dir: string): Promise<number> {
     console.log(answer);
     return added(answer) ? 0 : 1;
   }
+  if (command === "generate") return generateMain(rest);
   console.error(
-    'Usage: pnpm template:image find <words> | pnpm template:image use <template folder> <id> <name> "<alternative text>" | pnpm template:image use <template folder> <list file>',
+    'Usage: pnpm template:image find <words> | pnpm template:image use <template folder> <id> <name> "<alternative text>" | pnpm template:image use <template folder> <list file> | pnpm template:image generate <template folder> <name> "<prompt>" "<alternative text>" [--aspect 16:9] [--ref media/x.webp]… [--model openai/gpt-image-2]',
   );
   return 2;
+}
+
+/**
+ * `pnpm template:image generate <folder> <name> "<prompt>" "<alt>"` (Q432):
+ * an image generated as generate_image does in the app, into the template's
+ * media/ with its model and prompt in place of credits. The key comes from the
+ * terminal, GEMINI_API_KEY or OPENAI_API_KEY, never from a file (Q404); Gemini's
+ * model when both are set, unless `--model` names another.
+ */
+export async function generateMain(args: string[]): Promise<number> {
+  const options = new Map<string, string[]>();
+  const words: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i]!;
+    if (arg.startsWith("--")) options.set(arg, [...(options.get(arg) ?? []), args[++i] ?? ""]);
+    else words.push(arg);
+  }
+  const [folder, name, prompt, alt] = words;
+  const aspect = (options.get("--aspect")?.[0] ?? "4:3") as ImageAspect;
+  if (!folder || !name || !prompt || !alt || words.length > 4 || !IMAGE_ASPECTS.includes(aspect)) {
+    console.error(
+      `Usage: pnpm template:image generate <template folder> <name> "<prompt>" "<alternative text>" [--aspect ${IMAGE_ASPECTS.join("|")}] [--ref media/x.webp]… [--model ${IMAGE_MODELS.filter(
+        (m) => m.account !== "vertex",
+      )
+        .map((m) => m.id)
+        .join("|")}]`,
+    );
+    return 2;
+  }
+  const keys = { gemini: process.env.GEMINI_API_KEY?.trim(), openai: process.env.OPENAI_API_KEY?.trim() };
+  const model =
+    options.get("--model")?.[0] ??
+    IMAGE_MODELS.find((m) => m.default && m.account !== "vertex" && keys[m.account as "gemini" | "openai"])?.id;
+  const known = IMAGE_MODELS.find((m) => m.id === model && m.account !== "vertex");
+  if (!known) {
+    console.error(
+      model
+        ? `${model} is not a model this command knows: ${IMAGE_MODELS.filter((m) => m.account !== "vertex")
+            .map((m) => m.id)
+            .join(", ")}.`
+        : "Set GEMINI_API_KEY or OPENAI_API_KEY in the terminal to generate an image.",
+    );
+    return 2;
+  }
+  const { account, model: id } = splitImageModel(known.id);
+  const key = keys[account as "gemini" | "openai"];
+  if (!key) {
+    console.error(
+      `Set ${account === "gemini" ? "GEMINI_API_KEY" : "OPENAI_API_KEY"} in the terminal for ${known.name}.`,
+    );
+    return 2;
+  }
+  const credentials = { account, key } as ImageCredentials;
+  const answer = await generateIntoMedia(
+    resolve(folder),
+    known.id,
+    { prompt, aspect, name, alt, references: options.get("--ref") ?? [] },
+    (request) => generateImage(credentials, id, request),
+  );
+  const added = answer.startsWith("Generated and added");
+  console.log(added ? answer.split(". Write")[0] : answer);
+  return added ? 0 : 1;
 }
 
 /**

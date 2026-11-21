@@ -39,6 +39,9 @@ const LIBRARY_HOSTS = new Set(["cdn.jsdelivr.net", "unpkg.com"]);
 /** Field kinds an older app reads as text, and the app version that knows them (Q368). */
 export const FIELD_KIND_APP: Partial<Record<FieldKind, string>> = { images: "0.2.0" };
 
+/** The app version that keeps a generated image's model and prompt in place of its credits (Q428, Q432). */
+export const GENERATED_APP = "0.2.0";
+
 const MEDIA_LIMIT = 3 * 1024 * 1024;
 const TOTAL_LIMIT = 50 * 1024 * 1024;
 
@@ -147,17 +150,31 @@ export function checkTemplate(files: TemplateFiles, { finished = false } = {}): 
   }
 
   // ---- images and their credits (Q231) ---------------------------------------
-  for (const { path, credit } of template.credits) {
+  for (const { path, credit, generated } of template.credits) {
     if (!/\.(?:jpe?g|png|webp|gif|avif|svg|mp4|webm)$/i.test(path)) continue;
-    if (!credit?.license) {
+    if (generated && !credit) {
+      // A generated image has no licence to credit: its model and prompt say how it was made.
+      if (
+        typeof generated.model !== "string" ||
+        !generated.model ||
+        typeof generated.prompt !== "string" ||
+        !generated.prompt.trim()
+      )
+        errors.push(`${path} is generated: ${infoFile(path)} gives the model and the prompt it was generated with.`);
+      if (olderVersion(manifest.app ?? "0.0.0", GENERATED_APP))
+        errors.push(
+          `${path} is generated: it needs Upstart ${GENERATED_APP} or later: add "app": "${GENERATED_APP}" to template.json.`,
+        );
+    } else if (!credit?.license) {
       errors.push(`${path} has no credit: ${infoFile(path)} gives its licence, its author and where it was found.`);
       continue;
+    } else {
+      if (/\bnc\b|\bnd\b|non-?commercial|no-?deriv/i.test(credit.license))
+        errors.push(
+          `${path}: ${credit.license} forbids a business site or changes; take an image under CC0, CC BY or CC BY-SA.`,
+        );
+      if (needsCredit(credit.license) && !credit.author) errors.push(`${path}: ${credit.license} asks for its author.`);
     }
-    if (/\bnc\b|\bnd\b|non-?commercial|no-?deriv/i.test(credit.license))
-      errors.push(
-        `${path}: ${credit.license} forbids a business site or changes; take an image under CC0, CC BY or CC BY-SA.`,
-      );
-    if (needsCredit(credit.license) && !credit.author) errors.push(`${path}: ${credit.license} asks for its author.`);
     const info = text(infoFile(path));
     if (/\.(?:jpe?g|png|webp|gif|avif|svg)$/i.test(path) && !/"alt"\s*:\s*"[^"]/.test(info))
       warnings.push(`${path} has no alternative text in ${infoFile(path)}.`);

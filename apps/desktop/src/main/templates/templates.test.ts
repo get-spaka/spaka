@@ -312,6 +312,28 @@ describe("its checks", () => {
     ).toBe("");
   });
 
+  test("a generated image says its model and prompt in place of credits, and the app that knows it (Q432)", () => {
+    const generated = {
+      alt: "A loaf on linen",
+      generated: {
+        model: "gemini/gemini-nano-banana-2.1",
+        prompt: "A loaf on linen",
+        date: "2026-11-21T09:00:00.000Z",
+      },
+    };
+    expect(errorsOf({ "media/studio.json": JSON.stringify(generated) })).toMatch(
+      /media\/studio\.jpg is generated: it needs Upstart 0\.2\.0 or later: add "app": "0\.2\.0" to template\.json/,
+    );
+    const manifest = JSON.stringify({ ...MANIFEST, app: "0.2.0" });
+    expect(errorsOf({ "template.json": manifest, "media/studio.json": JSON.stringify(generated) })).toBe("");
+    expect(
+      errorsOf({
+        "template.json": manifest,
+        "media/studio.json": JSON.stringify({ ...generated, generated: { ...generated.generated, prompt: " " } }),
+      }),
+    ).toMatch(/media\/studio\.jpg is generated: media\/studio\.json gives the model and the prompt/);
+  });
+
   test("each image credited, under a licence a business site may use (Q231)", () => {
     expect(errorsOf({ "media/studio.json": null })).toMatch(/media\/studio\.jpg has no credit/);
     expect(

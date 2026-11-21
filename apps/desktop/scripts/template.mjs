@@ -2,7 +2,8 @@
 // template's checks; `pnpm template:shoot <folder>` photographs its pages in
 // the app, offscreen, into its pictures/ and a review sheet, and renders each
 // page again as after an edit, checking nothing is left hidden; `pnpm
-// template:image` finds images and adds them with their credits. The checks are
+// template:image` finds images and adds them with their credits, or generates
+// them with a key set in the terminal. The checks are
 // the app's own code, bundled here on the fly so that Node runs them as they are.
 // Upstart's own templates live in the public repository
 // upstart-gg/upstart-templates, a submodule at apps/desktop/templates (Q250,
@@ -30,7 +31,7 @@ async function cli() {
     input: join(desktop, "src/main/templates/cli.ts"),
     platform: "node",
     logLevel: "warn",
-    external: ["electron", "sharp"],
+    external: ["electron", "sharp", "@google/genai"],
     output: { file: out, format: "esm" },
   });
   return import(pathToFileURL(out).href);
@@ -106,7 +107,7 @@ if (command === "check") {
   );
 } else {
   console.error(
-    "Usage: pnpm template:check <folder or .zip> | template:shoot <folder> | template:image find|use … | template:release <out> <tag> [previous] | template:snapshot | template:release-script",
+    "Usage: pnpm template:check <folder or .zip> | template:shoot <folder> | template:image find|use|generate … | template:release <out> <tag> [previous] | template:snapshot | template:release-script",
   );
   process.exit(2);
 }

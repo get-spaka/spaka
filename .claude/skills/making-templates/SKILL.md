@@ -13,6 +13,7 @@ Read first, and keep open while building:
 
 - `apps/desktop/templates/FORMAT.md`: the format and the rules `pnpm template:check` applies. It is the source of truth; this skill does not repeat it.
 - `apps/desktop/src/main/agent/instructions.ts` (`UPSTART_INSTRUCTIONS`): what a project is made of, the theme's variables, the classes to use.
+- `apps/desktop/skills/web-design/SKILL.md`: the design rules every Upstart site keeps, a template's first. This skill adds only what is a template's own.
 - `apps/desktop/skills/site-scripts/SKILL.md`, before any script or stylesheet.
 - `apps/desktop/skills/datasources/SKILL.md` and `apps/desktop/gallery/README.md`, for lists and blocks.
 - `e2e/fixtures/templates/atelier/`: a small finished template, for the shape of each file.
@@ -33,7 +34,7 @@ The brief is a page, in the author's language:
 
 - **Concept**: one sentence, and the fictional business its texts are written for (a believable name, place and offer).
 - **Category** (`business`, `portfolio`, `blog`, `launch`, `event`, `app`).
-- **Trends** it draws on, from step 1, and what makes it its own.
+- **Trends** it draws on, from step 1, and its direction and one strong move (the web-design skill): what makes it its own.
 - **Type**: the heading and body fonts (Google Fonts, under the OFL), and the scale.
 - **Palette**: the theme's values (`--theme-color-*` in oklch) and what each is used for.
 - **Motion**: what moves, when, with which library or CSS; what the page shows under reduced motion and in edit mode, where nothing runs.
@@ -51,7 +52,7 @@ In `apps/desktop/templates/<id>/`, a project folder as `FORMAT.md` describes: `t
 
 - **Sections from the gallery**: copy the block's `block.liquid` into `parts/<id>.liquid` and render it, and its `data/` into the project's, as the gallery's README says a drop does; then restyle it to the brief.
 - **Texts**: the fictional business's, as a copywriter would write them, in English with American spelling. Makers write in other languages: the header's links and the buttons hold labels a third longer, as in French or German, on one line (`whitespace-nowrap`), the menu button taking over below the width where they all fit. Every list a datasource with three to six believable records; `navigation` holds the header's and footer's links.
-- **Movement** follows the site-scripts skill: the page complete with no script, the hidden state set by the script itself, reduced motion respected.
+- **Movement** as much as the template's character calls for, by the web-design skill's table, and written by the site-scripts skill's rules: the page complete with no script, the hidden state set by the script itself, reduced motion respected.
 - **The guide**, `TEMPLATE.md`, tells the agent that adapts it what matters only then, in the outline `FORMAT.md` shows: what it is and whom it suits, how it is made, when adapting (where the name and the address appear, what to leave out rather than guess), and `## Pages`, a `### Name (`/route`)` section per page type of the brief, home first: what the page shows in one line, its choices as `####` questions, each option with what it means for the maker and the files to change, and a `When removed:` line on what to delete with it and where to point what led to it.
 - **The design notes** stay with the website for the agent's later turns: the spirit in two or three sentences, the type, the colors and shapes, each effect and the attribute or class that turns it on (so a new section gets it too), how the lists work, and the rules that hold for the website's whole life. They are a skill; write its description as a pointer the agent will follow: "The <name> template's design notes — read before changing its pages, sections or styles." A line goes in one of the two documents, never both.
 
@@ -73,7 +74,11 @@ pnpm template:image use apps/desktop/templates/<id> <id from the search> <short 
 pnpm template:image use apps/desktop/templates/<id> <list file>
 ```
 
-`find` lists free images (CC0, public domain, CC BY, CC BY-SA) and saves a small copy of each in `e2e/.runs/template-images/`: look at them with Read and choose for the brief's palette and mood, not the first one. `use` adds it to `media/` with its credits and alternative text. Once all are chosen, add them in one go: a list file in the scratchpad, one image a line, `<id> <short file name> <alternative text>`. Downloads go one at a time and wait while Wikimedia says it is busy; an image still refused is marked FAIL, and running the same list again adds only those (the others are already there). Every image of the template comes this way; a photo of a recognizable person goes only where the fictional business would show its own people.
+```bash
+pnpm template:image generate apps/desktop/templates/<id> <short file name> "<prompt, in English>" "<alternative text>" --aspect 16:9
+```
+
+`find` lists free images (CC0, public domain, CC BY, CC BY-SA) and saves a small copy of each in `e2e/.runs/template-images/`: look at them with Read and choose for the brief's palette and mood, not the first one. `use` adds it to `media/` with its credits and alternative text. Once all are chosen, add them in one go: a list file in the scratchpad, one image a line, `<id> <short file name> <alternative text>`. Downloads go one at a time and wait while Wikimedia says it is busy; an image still refused is marked FAIL, and running the same list again adds only those (the others are already there). Every image of the template comes this way. `generate` makes an image where it serves the brief's style better than any free photo (an illustration, a texture, a background, a scene of mood), with GEMINI_API_KEY or OPENAI_API_KEY set in the author's terminal: it is paid by that key, so generate only what the brief calls for, and give the previous images with `--ref` to keep one style. A generated image never shows the business's team or any real person, a logo or text; it makes the template need `"app": "0.2.0"`. A photo of a recognizable person goes only where the fictional business would show its own people.
 
 **Done when** each image the brief calls for is in a page or a record, and the check still reports no error.
 
@@ -105,6 +110,6 @@ Then `pnpm template:check apps/desktop/templates/<id> --finished` and `npx vites
 
 The template is committed in the submodule, on a branch of upstart-gg/upstart-templates, and reviewed there. With the author's go-ahead, it goes into that repository's main, which is pushed, then the next `v<n>` is tagged and pushed: its CI checks every template as finished and attaches the release the app reads. Here, commit the submodule's new commit (`git add apps/desktop/templates`) so that the tests and development use it too.
 
-`pnpm template:release <out folder> <tag> [previous catalogue.json]` builds the same release here first, to see it fail before the CI does; given the latest release's catalogue, as the CI gives it, it keeps the earlier versions older apps still need. The `version` in `template.json` goes up whenever a published template changes, so that the app downloads it again. A template that uses something an older app reads otherwise (the `images` field kind) says the oldest app version it needs, `"app": "0.2.0"`; the checks ask for it (Q368). After a change to the checks in `apps/desktop/src/main/templates/`, `pnpm template:release-script` rebuilds the script the CI runs, committed in the submodule.
+`pnpm template:release <out folder> <tag> [previous catalogue.json]` builds the same release here first, to see it fail before the CI does; given the latest release's catalogue, as the CI gives it, it keeps the earlier versions older apps still need. The `version` in `template.json` goes up whenever a published template changes, so that the app downloads it again. A template that uses something an older app reads otherwise (the `images` field kind, a generated image) says the oldest app version it needs, `"app": "0.2.0"`; the checks ask for it (Q368). After a change to the checks in `apps/desktop/src/main/templates/`, `pnpm template:release-script` rebuilds the script the CI runs, committed in the submodule.
 
 **Done when** the tag's release on GitHub lists the template's `.zip` and pictures in its `catalogue.json`, and this repository points at the tagged commit.
