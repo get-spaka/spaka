@@ -16,9 +16,16 @@ export type Activity = {
   state: ActivityState;
   detail?: string;
   error?: string;
-  /** Google's Search Suggestions for a web search, shown in every style: its terms ask for them (Q424). */
-  suggestions?: string;
+  /** What a web search with Google Search found, shown to the maker in every style (Q424, Q437). */
+  grounded?: Grounded;
 };
+
+/**
+ * A Google Search's results as the agent read them, and Google's Search
+ * Suggestions: its terms ask that both be shown, together and unchanged, to
+ * whoever asked (Q424, Q437).
+ */
+export type Grounded = { text: string; suggestions: string };
 
 /** One choice of a question; `preview` is `block:<id>` or an image of the site (Q291). */
 export type QuestionOption = { label: string; description: string; preview?: string };

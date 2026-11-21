@@ -2,6 +2,7 @@
 // events the app acts on: text as it arrives, each tool call with its input
 // while that input is still streaming (ADR 0009), results, refusals, the end
 // of a turn. Pure: no I/O, so it is tested on recorded streams.
+import type { Grounded } from "../../shared/conversation";
 import { parsePartialInput } from "./partial-input";
 
 export type AgentEvent =
@@ -36,8 +37,8 @@ export type AgentEvent =
       name: string;
       isError: boolean;
       text: string;
-      /** Google's Search Suggestions for a web search, shown to the maker (Q424). */
-      suggestions?: string;
+      /** What a web search with Google Search found, shown to the maker (Q424, Q437). */
+      grounded?: Grounded;
     }
   | { kind: "permission-denied"; id: string; name: string; message: string }
   | { kind: "result"; subtype: string; isError: boolean; text: string; durationMs: number; costUsd?: number }

@@ -8,7 +8,7 @@ import { existsSync, readFileSync, realpathSync, rmSync, writeFileSync } from "n
 import { join } from "node:path";
 import { type AgentMessage, Agent as Loop, type AgentEvent as LoopEvent } from "@earendil-works/pi-agent-core";
 import type { Api, AssistantMessage, ClientIdentity, Model, Models, ToolCall } from "@earendil-works/pi-ai";
-import type { AgentQuestion, ConversationEvent, QuestionAnswer } from "../../../shared/conversation";
+import type { AgentQuestion, ConversationEvent, Grounded, QuestionAnswer } from "../../../shared/conversation";
 import type { AgentMode, Effort, ProjectInfo } from "../../../shared/ipc";
 import { en } from "../../../shared/strings/en";
 import type { McpConfig } from "../../connectors/connectors";
@@ -111,8 +111,8 @@ export class PiSession implements AgentRunner {
   private turnStart = 0;
   /** What this turn's web searches cost, made as requests of their own (web-search.ts). */
   private searchCost = 0;
-  /** Google's Search Suggestions of this turn's searches, by tool call, for their activity lines (Q424). */
-  private readonly suggestions = new Map<string, string>();
+  /** What this turn's Google searches found, by tool call, shown on their activity lines (Q424, Q437). */
+  private readonly grounded = new Map<string, Grounded>();
   /** The cards of questions the turn waits on (Q283). */
   private readonly waits = new Waits<QuestionAnswer>();
   /** The plans the turn waits on (Q290). */
@@ -230,7 +230,7 @@ export class PiSession implements AgentRunner {
     this.activities.clear();
     this.turnStart = Date.now();
     this.searchCost = 0;
-    this.suggestions.clear();
+    this.grounded.clear();
     this.handlers.onConversation({ type: "turn-start", id: newId(), text, at: Date.now() });
     void this.run(this.loop!, this.mode === "plan" ? planMessage(forAgent) : forAgent);
   }
@@ -507,7 +507,7 @@ export class PiSession implements AgentRunner {
   /** The provider's own search, with the project's current model and account (Q276). */
   private async search(query: string, signal: AbortSignal | undefined, callId: string) {
     const found = this.deps.search ? await this.deps.search(query) : await this.providerSearch(query, signal);
-    if (found.suggestions) this.suggestions.set(callId, found.suggestions);
+    if (found.suggestions) this.grounded.set(callId, { text: found.text, suggestions: found.suggestions });
     return found.text;
   }
 
@@ -578,7 +578,7 @@ export class PiSession implements AgentRunner {
         name: canonicalTool(e.toolName, this.upstartNames),
         isError: e.isError,
         text: text.slice(0, 4000),
-        ...(this.suggestions.has(e.toolCallId) ? { suggestions: this.suggestions.get(e.toolCallId) } : {}),
+        ...(this.grounded.has(e.toolCallId) ? { grounded: this.grounded.get(e.toolCallId) } : {}),
       });
     }
   }

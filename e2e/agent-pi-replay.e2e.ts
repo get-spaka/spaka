@@ -129,9 +129,13 @@ describe.skipIf(!existsSync(fixture))("Upstart's own harness, played back", () =
       }
       expect(item, item.error).toMatchObject({ kind: "agent", status: "done" });
       expect(labels(item)).toContain("Searching the web");
-      // Google's Search Suggestions under the search's line, in the discreet style too (Q424).
+      // What Google Search found, folded under the search's line, in the discreet style too (Q424, Q437).
+      const grounded = launched.window.getByTestId("grounded-toggle");
+      await grounded.waitFor();
+      expect(await launched.window.getByTestId("search-suggestions").count()).toBe(0);
+      await grounded.click();
+      expect(await launched.window.getByTestId("grounded-text").textContent()).toMatch(/8h30 à 18h00[\s\S]*Sources:/);
       const suggestions = launched.window.getByTestId("search-suggestions");
-      await suggestions.waitFor();
       expect(await suggestions.getAttribute("srcdoc")).toContain('class="chip"');
       expect(await suggestions.getAttribute("sandbox")).toBe("allow-popups allow-popups-to-escape-sandbox");
       expect((await suggestions.boundingBox())?.height).toBeGreaterThan(40);

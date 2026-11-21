@@ -12,6 +12,7 @@ import {
   type Activity,
   type AgentPart,
   type ConversationItem,
+  type Grounded,
   isPlan,
   isWaiting,
   isWorking,
@@ -523,8 +524,8 @@ function Steps({ activities }: { activities: Activity[] }) {
           ))}
         </div>
       ) : (
-        // Folded, the steps still show Google's Search Suggestions, which its terms ask for (Q424).
-        activities.flatMap((a) => (a.suggestions ? [<SearchSuggestions key={a.id} html={a.suggestions} />] : []))
+        // Folded, the steps still show what Google Search found, which its terms ask for (Q424, Q437).
+        activities.flatMap((a) => (a.grounded ? [<GroundedResults key={a.id} grounded={a.grounded} />] : []))
       )}
     </div>
   );
@@ -555,16 +556,50 @@ function ActivityLine({ activity, detailed }: { activity: Activity; detailed?: b
           {activity.error}
         </p>
       )}
-      {activity.suggestions && <SearchSuggestions html={activity.suggestions} />}
+      {activity.grounded && <GroundedResults grounded={activity.grounded} />}
     </div>
   );
 }
 
 /**
- * Google's Search Suggestions for a search made with Gemini, as Google gives
- * them, in every style: its terms ask that they be shown to whoever searched
- * (Q424). Its HTML runs in a frame of its own with no script and no access to
- * the interface; its links open in the maker's browser.
+ * What a search made with Gemini found, in every style, folded until the
+ * maker opens it (Q437): the results as the agent read them, unchanged, and
+ * Google's Search Suggestions with them, which its terms ask to show together
+ * to whoever searched (Q424).
+ */
+function GroundedResults({ grounded }: { grounded: Grounded }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div data-testid="grounded" className="mt-0.5 ml-5.5">
+      <button
+        type="button"
+        data-testid="grounded-toggle"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground"
+      >
+        <ChevronRight className={cn("size-3 transition-transform", open && "rotate-90")} />
+        {t.conversation.groundedResults}
+      </button>
+      {open && (
+        <div className="mt-1 space-y-1">
+          <p
+            data-testid="grounded-text"
+            className="whitespace-pre-wrap break-words pl-4.5 text-[11px] leading-relaxed text-muted-foreground"
+          >
+            {grounded.text}
+          </p>
+          <SearchSuggestions html={grounded.suggestions} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Google's Search Suggestions, as Google gives them. Their HTML runs in a
+ * frame of its own with no script and no access to the interface; their links
+ * open in the maker's browser.
  */
 function SearchSuggestions({ html }: { html: string }) {
   return (
@@ -573,7 +608,7 @@ function SearchSuggestions({ html }: { html: string }) {
       title="Google Search Suggestions"
       sandbox="allow-popups allow-popups-to-escape-sandbox"
       srcDoc={`<!doctype html><meta charset="utf-8"><base target="_blank"><style>body{margin:0}</style>${html}`}
-      className="mt-1 ml-5.5 block h-16 w-[calc(100%-1.375rem)] border-0"
+      className="ml-4.5 block h-16 w-[calc(100%-1.125rem)] border-0"
     />
   );
 }
