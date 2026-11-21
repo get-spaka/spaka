@@ -14,7 +14,7 @@ if ! "$biome" check --staged --no-errors-on-unmatched --files-ignore-unknown=tru
   exit 1
 fi
 if git diff --cached --name-only | grep -qx apps/desktop/templates; then
-  if ! (cd "$root/apps/desktop/templates" && "$biome" check .); then
+  if ! (cd "$root/apps/desktop/templates" && "$biome" check --diagnostic-level=error .); then
     echo "pre-commit: the templates this commit points to fail the lint: fix them and commit in apps/desktop/templates first." >&2
     exit 1
   fi
