@@ -7,7 +7,7 @@
 // UPSTART_REAL_PI_VERTEX_PROJECT=<project>, Gemini runs on Vertex AI instead,
 // on the Google Cloud sign-in made with gcloud (Q280), its calls' arguments
 // streamed to the preview.
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { type LaunchedApp, launchApp, SLOW } from "./app.ts";
@@ -175,5 +175,43 @@ describe.skipIf(!real)(`Upstart's own harness, with Gemini on ${account}`, () =>
       expect(footer).toMatch(/jardin d.en face/i);
     },
     320_000 * SLOW,
+  );
+  test("the search's results and Google's suggestions are shown with it (Q437)", async () => {
+    const { items } = await invoke("conversation:get");
+    const grounded = items
+      .flatMap((i: { kind: string; parts?: { kind: string; activity?: { grounded?: unknown } }[] }) => i.parts ?? [])
+      .filter((p: { activity?: { grounded?: unknown } }) => p.activity?.grounded);
+    expect(grounded.length).toBeGreaterThan(0);
+    expect(grounded[0].activity.grounded.suggestions).toMatch(/<a /);
+  }, 10_000);
+
+  test(
+    "a page the maker changed by hand is read again before the agent edits it (Q294, Q433)",
+    async () => {
+      const project = await invoke("projects:current");
+      const page = join(project.path, "pages/index.liquid");
+      const text = readFileSync(page, "utf8");
+      // The maker's hand edit, after the agent last read the page.
+      writeFileSync(page, text.replace(/<h1([^>]*)>/, "<h1$1>Fleurs fraîches · "));
+      utimesSync(page, new Date(), new Date(Date.now() + 2000));
+      const before = await launched.window.getByTestId("agent-message").count();
+      const from = ((await main(() => (globalThis as { piLog?: Logged[] }).piLog ?? [])) as Logged[]).length;
+      await invoke("conversation:send", "Ajoute « Livraison le jour même » sous le titre principal.");
+      await turnEnded(before, 240_000);
+      const { items } = await invoke("conversation:get");
+      expect(items.at(-1)).toMatchObject({ kind: "agent", status: "done" });
+      const log = ((await main(() => (globalThis as { piLog?: Logged[] }).piLog ?? [])) as Logged[]).slice(from);
+      say(
+        `[pi] after a hand edit: ${log
+          .filter((e) => e.kind === "tool-result")
+          .map((e) => e.name)
+          .join(", ")}`,
+      );
+      const after = readFileSync(page, "utf8");
+      // The maker's words are kept, and the agent's are there.
+      expect(after).toContain("Fleurs fraîches · ");
+      expect(after).toMatch(/Livraison le jour même/);
+    },
+    260_000 * SLOW,
   );
 });

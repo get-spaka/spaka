@@ -7,7 +7,15 @@
 import { existsSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { type AgentMessage, Agent as Loop, type AgentEvent as LoopEvent } from "@earendil-works/pi-agent-core";
-import type { Api, AssistantMessage, ClientIdentity, Model, Models, ToolCall } from "@earendil-works/pi-ai";
+import {
+  type Api,
+  type AssistantMessage,
+  type ClientIdentity,
+  clampThinkingLevel,
+  type Model,
+  type Models,
+  type ToolCall,
+} from "@earendil-works/pi-ai";
 import type { AgentQuestion, ConversationEvent, Grounded, QuestionAnswer } from "../../../shared/conversation";
 import type { AgentMode, Effort, ProjectInfo } from "../../../shared/ipc";
 import { en } from "../../../shared/strings/en";
@@ -16,6 +24,7 @@ import { replaceFile } from "../../replace-file";
 import { type AssembledSkills, readSkill } from "../../skills/skills";
 import { Activities } from "../activity";
 import type { InstructionsFamily, SkillListing } from "../instructions";
+import { NAMING_DEFAULTS } from "../naming";
 import { parsePartialInput } from "../partial-input";
 import {
   ASK_TOOL,
@@ -47,6 +56,7 @@ import {
   piPlanTool,
   piUpstartTools,
 } from "./tools";
+import { FETCH_INSTRUCTIONS, type FetchedPage, PAGE_LIMIT } from "./web-fetch";
 import { canSearch, providerSearch, type SearchFound, searchResult } from "./web-search";
 
 export type PiDeps = {
@@ -174,6 +184,11 @@ export class PiSession implements AgentRunner {
         family,
         shell: this.shell(skills?.dir),
         search: canSearch(model) ? (query, signal, callId) => this.search(query, signal, callId) : undefined,
+        // Played-back models answer only the recorded replies: the page itself then.
+        summarize:
+          typeof this.deps.models.completeSimple === "function"
+            ? (page, prompt, signal) => this.summarize(page, prompt, signal)
+            : undefined,
       }),
       ...piUpstartTools(upstart),
       piAskTool((callId, questions, signal) => this.ask(callId, questions, signal)),
@@ -504,6 +519,41 @@ export class PiSession implements AgentRunner {
     return this.endTurn("failed", en.errors.agentStopped);
   }
 
+  /**
+   * WebFetch's answer from a page, by the account's small model, as the
+   * binary's WebFetch answers with Haiku (Q433); the page itself if it fails.
+   */
+  private async summarize(page: FetchedPage, prompt: string, signal?: AbortSignal): Promise<string | undefined> {
+    const small = piModel(this.account, parseModelId(NAMING_DEFAULTS[this.account]).model) ?? this.model();
+    const level = clampThinkingLevel(small, "minimal");
+    try {
+      const reply = await this.deps.models.completeSimple(
+        small,
+        {
+          systemPrompt: FETCH_INSTRUCTIONS,
+          messages: [
+            {
+              role: "user",
+              content: `${prompt}\n\n---\n\nThe page ${page.url}:\n\n${page.markdown.slice(0, PAGE_LIMIT)}`,
+              timestamp: Date.now(),
+            },
+          ],
+        },
+        {
+          apiKey: await this.deps.apiKey(this.account),
+          identity: this.deps.identity,
+          signal,
+          ...(level !== "off" ? { reasoning: level } : {}),
+        },
+      );
+      this.searchCost += reply.usage?.cost?.total ?? 0;
+      if (reply.stopReason === "error" || reply.stopReason === "aborted") return undefined;
+      return reply.content.flatMap((c) => (c.type === "text" ? [c.text] : [])).join("");
+    } catch {
+      return undefined;
+    }
+  }
+
   /** The provider's own search, with the project's current model and account (Q276). */
   private async search(query: string, signal: AbortSignal | undefined, callId: string) {
     const found = this.deps.search ? await this.deps.search(query) : await this.providerSearch(query, signal);
@@ -627,7 +677,11 @@ export class PiSession implements AgentRunner {
       const [origin, skill] = name.split(":") as [string, string];
       const folder = join(dir, origin, "skills", skill);
       const read = readSkill(folder);
-      if ("problem" in read) continue;
+      if ("problem" in read) {
+        // Left out of the list, and said, as the binary says a skill it cannot load (Q433).
+        this.problems.push(`skill ${name}: ${read.problem}`);
+        continue;
+      }
       listing.push({ name: skill, description: read.description, file: join(folder, "SKILL.md") });
     }
     this.skills = { fingerprint, dir };

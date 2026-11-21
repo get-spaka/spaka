@@ -5,7 +5,8 @@ import { afterEach, beforeEach, expect, test } from "vitest";
 import { findGitBash } from "../git-bash";
 import { instructionsFor } from "../instructions";
 import { upstartTools } from "../upstart-tools";
-import { canonicalTool, type HarnessTool, pageText, piFileTools, piUpstartTools } from "./tools";
+import { canonicalTool, type HarnessTool, piFileTools, piUpstartTools } from "./tools";
+import { pageMarkdown } from "./web-fetch";
 
 let dir: string;
 let root: string;
@@ -39,9 +40,9 @@ test("the file tools reach the project, and Read the skills too; nothing else", 
   expect(await call("Write", { file_path: join(root, "data/team/emma.md"), content: "---\n---\n" })).toMatch(
     /data\/team\/emma\.md/,
   );
-  expect(await call("Read", { file_path: "pages/menu.liquid", offset: 2 })).toBe("<p>Tarte</p>");
+  expect(await call("Read", { file_path: "pages/menu.liquid", offset: 2 })).toBe("     2\t<p>Tarte</p>");
   expect(await call("Read", { file_path: join(dir, "skills/upstart/skills/datasources/SKILL.md") })).toBe(
-    "# Datasources\n",
+    "     1\t# Datasources\n     2\t",
   );
   await expect(call("Read", { file_path: "../secret.txt" })).rejects.toThrow(/outside the project/);
   await expect(call("Write", { file_path: join(dir, "skills/upstart/x.md"), content: "x" })).rejects.toThrow(
@@ -56,6 +57,7 @@ test("the file tools reach the project, and Read the skills too; nothing else", 
 test("Edit replaces a text found once; Glob and Grep search the project", async () => {
   const { call } = tools();
   writeFileSync(join(root, "pages/index.liquid"), "<p>A</p>\n<p>A</p>\n<p>B</p>\n");
+  await call("Read", { file_path: "pages/index.liquid" });
   await expect(
     call("Edit", { file_path: "pages/index.liquid", old_string: "<p>A</p>", new_string: "<p>C</p>" }),
   ).rejects.toThrow(/appears 2 times/);
@@ -71,7 +73,10 @@ test("Edit replaces a text found once; Glob and Grep search the project", async 
   });
   expect(readFileSync(join(root, "pages/index.liquid"), "utf8")).toBe("<p>C</p>\n<p>C</p>\n<p>$&B</p>\n");
   expect(await call("Glob", { pattern: "pages/*.liquid" })).toBe("pages/index.liquid");
-  expect(await call("Grep", { pattern: "\\$&B", glob: "*.liquid" })).toBe("pages/index.liquid:3: <p>$&B</p>");
+  expect(await call("Grep", { pattern: "\\$&B", glob: "*.liquid", output_mode: "content" })).toBe(
+    "pages/index.liquid:3:<p>$&B</p>",
+  );
+  expect(await call("Grep", { pattern: "\\$&B" })).toBe("Found 1 file\npages/index.liquid");
 });
 
 test("Gemini's Append adds the next part of a long file", async () => {
@@ -186,9 +191,14 @@ test("the harness's instructions: Claude's rules with its own tools, long files 
   expect(without).toContain("never another site's texts");
 });
 
-test("a page's text, without its scripts and tags", () => {
-  expect(pageText("<html><script>x()</script><h1>Fleur &amp; Loire</h1><p>Bouquets</p></html>")).toBe(
-    "Fleur & Loire\n Bouquets",
+test("a page as rough Markdown: its title, headings, links and lists, without its scripts", () => {
+  expect(
+    pageMarkdown(
+      '<html><head><title>Fleur &amp; Loire</title></head><body><script>x()</script><h1>Bouquets</h1><p>Du <b>jour</b>, <a href="/carte">la carte</a></p><ul><li>Roses</li><li>Pivoines</li></ul></body></html>',
+      new URL("https://fleur.example/"),
+    ),
+  ).toBe(
+    "# Fleur & Loire\n\n# Bouquets\n\nDu **jour**, [la carte](https://fleur.example/carte)\n\n- Roses\n- Pivoines",
   );
 });
 

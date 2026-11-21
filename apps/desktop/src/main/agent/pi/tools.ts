@@ -31,8 +31,10 @@ import {
 } from "../questions";
 import { type UpstartToolDef, upstartToolName } from "../upstart-tools";
 import { safeCommand } from "./bash-gate";
+import { GREP_LIMIT, GREP_TYPES, type GrepInput, grepExpression, grepFiles } from "./grep";
 import type { PiFamily } from "./models";
 import { runShell, type ShellPlace } from "./shell";
+import { type FetchedPage, fetchAnswer, fetchPage } from "./web-fetch";
 
 export type PiToolsOptions = {
   /** The project's folder. */
@@ -58,6 +60,8 @@ export type PiToolsOptions = {
   };
   /** The provider's web search (web-search.ts); no WebSearch without it (Q276). */
   search?: (query: string, signal: AbortSignal | undefined, callId: string) => Promise<string>;
+  /** Answers WebFetch's prompt from a page, with the account's small model; the page itself without it. */
+  summarize?: (page: FetchedPage, prompt: string, signal?: AbortSignal) => Promise<string | undefined>;
 };
 
 // biome-ignore lint/suspicious/noExplicitAny: the loop checks each call's input against the tool's schema before it runs
@@ -111,54 +115,143 @@ const IMAGES: Record<string, string> = {
   ".webp": "image/webp",
   ".gif": "image/gif",
 };
-const SKIPPED = new Set([".git", "node_modules", ".upstart"]);
+// Never searched: the project's history and installed packages. Its .upstart/ folder is, when asked for by name (Q433).
+const SKIPPED = new Set([".git", "node_modules"]);
+const GLOB_LIMIT = 100;
+const BASH_DEFAULT_MS = 120_000;
+const BASH_MAX_MS = 600_000;
+
+/** The most an image's longer side keeps when Read shows it, as the binary resizes them. */
+const IMAGE_SIDE = 1568;
+/** A line longer than this is cut when Read shows it. */
+const LINE_LIMIT = 2000;
+/** A PDF of more pages than this is read some pages at a time. */
+const PDF_PAGES = 10;
+
+/** A file's text as Read shows it: numbered from `from`, as `cat -n` does, long lines cut. */
+export function numbered(lines: string[], from: number): string {
+  return lines
+    .map((line, i) => {
+      const text = line.length > LINE_LIMIT ? `${line.slice(0, LINE_LIMIT)}… [line cut]` : line;
+      return `${String(from + i).padStart(6)}\t${text}`;
+    })
+    .join("\n");
+}
+
+/** Pages "3", "1-5" or "2,4-6" of `total`, at most 20. */
+export function pagesOf(spec: string, total: number): number[] {
+  const pages = new Set<number>();
+  for (const part of spec.split(",")) {
+    const m = /^\s*(\d+)\s*(?:-\s*(\d+))?\s*$/.exec(part);
+    if (!m) throw new Error(`pages reads as "3", "1-5" or "2,4-6", not "${spec}".`);
+    const first = Number(m[1]);
+    const last = m[2] ? Number(m[2]) : first;
+    for (let p = first; p <= last; p++) if (p >= 1 && p <= total) pages.add(p);
+  }
+  const list = [...pages].sort((a, b) => a - b);
+  if (!list.length) throw new Error(`The PDF has ${total} pages.`);
+  if (list.length > 20) throw new Error("At most 20 pages a read.");
+  return list;
+}
 
 /** The file tools, the shell and the page fetch. */
-export function piFileTools({ root, readable, family, shell, search }: PiToolsOptions): HarnessTool[] {
+export function piFileTools({ root, readable, family, shell, search, summarize }: PiToolsOptions): HarnessTool[] {
   const project = [root];
   const readRoots = [root, ...readable];
+  // The files read in this session, with when they were last changed then: a file is read before it is
+  // changed, and read again once changed by someone else (the maker's hand edits, Q294), as the binary asks.
+  const known = new Map<string, number>();
+  const stamp = (abs: string) => {
+    try {
+      return statSync(abs).mtimeMs;
+    } catch {
+      return undefined;
+    }
+  };
+  const noteRead = (abs: string) => {
+    const at = stamp(abs);
+    if (at !== undefined) known.set(abs, at);
+  };
+  const readFirst = (at: { abs: string; shown: string }) => {
+    if (!existsSync(at.abs)) return;
+    const read = known.get(at.abs);
+    if (read === undefined) throw new Error(`Read ${at.shown} before changing it.`);
+    if (stamp(at.abs) !== read)
+      throw new Error(
+        `${at.shown} changed since you read it (the maker or one of Upstart's tools may have edited it): read it again before changing it.`,
+      );
+  };
   const tools: HarnessTool[] = [
     {
       name: "Read",
       label: "Read",
       description:
-        "Reads a file of the project, or of a skill. Answers with its text, from line `offset` (1 by default), at most `limit` lines (2000 by default); an image is answered as the image.",
+        'Reads a file of the project, or of a skill. Answers with its lines numbered as `cat -n` does (the number, a tab, then the line), from line `offset` (1 by default), at most `limit` lines (2000 by default); a line longer than 2000 characters is cut. An image is answered as the image, a PDF as its text page by page (`pages`, such as "1-5", for one of more than 10 pages). Read a file before you change it with Edit or Write.',
       parameters: fileSchema(
-        { file_path: PATH, offset: { type: "integer", minimum: 1 }, limit: { type: "integer", minimum: 1 } },
+        {
+          file_path: PATH,
+          offset: { type: "integer", minimum: 1, description: "The line to start from" },
+          limit: { type: "integer", minimum: 1, description: "How many lines to read" },
+          pages: str('For a PDF: the pages to read, such as "3" or "1-5"'),
+        },
         ["file_path"],
       ),
-      async execute(_id, { file_path, offset, limit }: { file_path: string; offset?: number; limit?: number }) {
+      async execute(
+        _id,
+        { file_path, offset, limit, pages }: { file_path: string; offset?: number; limit?: number; pages?: string },
+      ) {
         const at = place(file_path, root, readRoots);
         if (!at) throw outside(file_path);
         if (!existsSync(at.abs)) throw new Error(`${at.shown} does not exist.`);
         if (statSync(at.abs).isDirectory()) throw new Error(`${at.shown} is a folder: use Glob to list it.`);
-        const mime = IMAGES[extname(at.abs).toLowerCase()];
-        if (mime) {
-          const data = readFileSync(at.abs);
-          if (data.length > 4_000_000) throw new Error(`${at.shown} is too large to look at.`);
-          return { content: [{ type: "image", data: data.toString("base64"), mimeType: mime }], details: undefined };
+        const ext = extname(at.abs).toLowerCase();
+        if (IMAGES[ext]) {
+          const image = await imageToShow(at.abs);
+          noteRead(at.abs);
+          return { content: [{ type: "image", ...image }], details: undefined };
         }
-        const lines = readFileSync(at.abs, "utf8").split("\n");
+        if (ext === ".pdf") {
+          const { getDocumentProxy, extractText } = await import("unpdf");
+          const pdf = await getDocumentProxy(new Uint8Array(readFileSync(at.abs)));
+          if (!pages && pdf.numPages > PDF_PAGES)
+            throw new Error(
+              `${at.shown} has ${pdf.numPages} pages: read it some pages at a time with pages, such as "1-5".`,
+            );
+          const { text } = await extractText(pdf, { mergePages: false });
+          const wanted = pages ? pagesOf(pages, pdf.numPages) : text.map((_t, i) => i + 1);
+          noteRead(at.abs);
+          return answer(
+            wanted.map((p) => `--- Page ${p} of ${pdf.numPages} ---\n${(text[p - 1] ?? "").trim()}`).join("\n\n"),
+          );
+        }
+        const content = readFileSync(at.abs, "utf8");
+        noteRead(at.abs);
+        if (!content) return answer(`(${at.shown} is empty.)`);
+        const lines = content.split("\n");
         const from = (offset ?? 1) - 1;
+        if (from >= lines.length)
+          return answer(`(${at.shown} has ${lines.length} lines: offset ${offset} is past its end.)`);
         const shown = lines.slice(from, from + (limit ?? 2000));
         const more =
           from + shown.length < lines.length
-            ? `\n[${lines.length - from - shown.length} more lines: read on with offset]`
+            ? `\n[${lines.length - from - shown.length} more lines: read on with offset ${from + shown.length + 1}]`
             : "";
-        return answer(shown.join("\n") + more);
+        return answer(numbered(shown, from + 1) + more);
       },
     },
     {
       name: "Write",
       label: "Write",
       description:
-        "Writes a file of the project with the content given, creating its folders; a file already there is replaced.",
+        "Writes a file of the project with the content given, creating its folders. A file already there is replaced: read it first.",
       parameters: fileSchema({ file_path: PATH, content: str("The whole file") }, ["file_path", "content"]),
       async execute(_id, { file_path, content }: { file_path: string; content: string }) {
         const at = place(file_path, root, project);
         if (!at) throw outside(file_path);
+        readFirst(at);
         mkdirSync(dirname(at.abs), { recursive: true });
         writeFileSync(at.abs, content);
+        noteRead(at.abs);
         return answer(`Wrote ${at.shown} (${content.split("\n").length} lines).`);
       },
     },
@@ -166,7 +259,7 @@ export function piFileTools({ root, readable, family, shell, search }: PiToolsOp
       name: "Edit",
       label: "Edit",
       description:
-        "Changes a file of the project: replaces `old_string`, which must appear exactly once in it (give a few lines around it to make it unique), by `new_string`; with replace_all, every occurrence.",
+        "Changes a file of the project, read first: replaces `old_string`, which must appear exactly once in it (give a few lines around it to make it unique), by `new_string`; with replace_all, every occurrence. Copy old_string as the file has it, without the line numbers Read puts before each line.",
       parameters: fileSchema(
         {
           file_path: PATH,
@@ -188,7 +281,9 @@ export function piFileTools({ root, readable, family, shell, search }: PiToolsOp
         const at = place(file_path, root, project);
         if (!at) throw outside(file_path);
         if (!existsSync(at.abs)) throw new Error(`${at.shown} does not exist: use Write to create it.`);
+        readFirst(at);
         if (!old_string) throw new Error("old_string is empty: give the text to replace.");
+        if (old_string === new_string) throw new Error("old_string and new_string are the same: nothing to change.");
         const text = readFileSync(at.abs, "utf8");
         const count = text.split(old_string).length - 1;
         if (!count) throw new Error(`old_string is not in ${at.shown}: read the file and copy the text exactly.`);
@@ -200,6 +295,7 @@ export function piFileTools({ root, readable, family, shell, search }: PiToolsOp
           at.abs,
           replace_all ? text.split(old_string).join(new_string) : text.replace(old_string, () => new_string),
         );
+        noteRead(at.abs);
         return answer(`Edited ${at.shown}.`);
       },
     },
@@ -207,7 +303,7 @@ export function piFileTools({ root, readable, family, shell, search }: PiToolsOp
       name: "Glob",
       label: "Glob",
       description:
-        "Lists the project's files whose path matches a glob pattern, such as pages/**/*.liquid or data/*/_datasource.yaml.",
+        "Lists the project's files whose path matches a glob pattern, such as pages/**/*.liquid, data/*/_datasource.yaml or .upstart/test-records/**/*.md, the most recently changed first.",
       parameters: fileSchema(
         { pattern: str("The glob pattern"), path: str("The folder to search in; the project by default") },
         ["pattern"],
@@ -217,55 +313,69 @@ export function piFileTools({ root, readable, family, shell, search }: PiToolsOp
         if (!at) throw outside(path ?? ".");
         const found = globSync(pattern, { cwd: at.abs })
           .filter((p) => !p.split(/[\\/]/).some((part) => SKIPPED.has(part)))
-          .map(slashed)
-          .sort();
+          .flatMap((p) => {
+            const abs = join(at.abs, p);
+            try {
+              const stat = statSync(abs);
+              return stat.isFile() ? [{ path: slashed(p), mtime: stat.mtimeMs }] : [];
+            } catch {
+              return [];
+            }
+          })
+          .sort((a, b) => b.mtime - a.mtime || a.path.localeCompare(b.path))
+          .map((f) => f.path);
         if (!found.length) return answer("No file matches.");
-        return answer(found.slice(0, 300).join("\n") + (found.length > 300 ? `\n[${found.length - 300} more]` : ""));
+        return answer(
+          found.slice(0, GLOB_LIMIT).join("\n") +
+            (found.length > GLOB_LIMIT ? `\n[${found.length - GLOB_LIMIT} more: narrow the pattern]` : ""),
+        );
       },
     },
     {
       name: "Grep",
       label: "Grep",
       description:
-        "Searches the project's text files for a regular expression (JavaScript syntax). Answers with each matching line as file:line: text.",
+        'Searches the project\'s text files for a regular expression (JavaScript syntax). By default answers with the files that match, the most recently changed first; output_mode "content" gives the matching lines as file:line:text (with -A, -B or -C lines around them), "count" the matches per file. -i ignores case; multiline lets a match span lines.',
       parameters: fileSchema(
         {
           pattern: str("The regular expression"),
           path: str("A folder or file to search in; the project by default"),
-          glob: str("Only files whose path matches this glob, e.g. *.liquid"),
+          glob: str("Only files whose path matches this glob, e.g. *.liquid or pages/**/*.liquid"),
+          type: str(`Only files of this type: ${Object.keys(GREP_TYPES).join(", ")}`),
+          output_mode: { type: "string", enum: ["files_with_matches", "content", "count"] },
+          "-i": { type: "boolean", description: "Ignore case" },
+          "-n": { type: "boolean", description: "Line numbers in content mode (on by default)" },
+          "-A": { type: "integer", minimum: 0, description: "Lines after each match, in content mode" },
+          "-B": { type: "integer", minimum: 0, description: "Lines before each match, in content mode" },
+          "-C": { type: "integer", minimum: 0, description: "Lines before and after each match, in content mode" },
+          multiline: { type: "boolean", description: "Let . match newlines and a match span lines" },
+          head_limit: {
+            type: "integer",
+            minimum: 1,
+            description: `At most this many lines or files (${GREP_LIMIT} by default)`,
+          },
         },
         ["pattern"],
       ),
-      async execute(_id, { pattern, path, glob }: { pattern: string; path?: string; glob?: string }) {
-        const at = place(path ?? ".", root, readRoots);
-        if (!at) throw outside(path ?? ".");
-        let re: RegExp;
-        try {
-          re = new RegExp(pattern);
-        } catch (e) {
-          throw new Error(`The pattern does not read: ${(e as Error).message}`);
-        }
-        const files = statSync(at.abs).isDirectory()
-          ? (glob ? globSync(glob.includes("/") ? glob : `**/${glob}`, { cwd: at.abs }) : walk(at.abs)).map((p) =>
-              join(at.abs, p),
-            )
+      async execute(_id, input: GrepInput & { path?: string; glob?: string; type?: string }) {
+        const at = place(input.path ?? ".", root, readRoots);
+        if (!at) throw outside(input.path ?? ".");
+        grepExpression(input);
+        const types = input.type ? GREP_TYPES[input.type] : undefined;
+        if (input.type && !types) throw new Error(`type is one of ${Object.keys(GREP_TYPES).join(", ")}.`);
+        const isDir = statSync(at.abs).isDirectory();
+        const paths = isDir
+          ? (input.glob
+              ? globSync(input.glob.includes("/") ? input.glob : `**/${input.glob}`, { cwd: at.abs }).filter(
+                  (p) => !p.split(/[\\/]/).some((part) => SKIPPED.has(part)),
+                )
+              : walk(at.abs)
+            ).map((p) => join(at.abs, p))
           : [at.abs];
-        const lines: string[] = [];
-        for (const file of files) {
-          if (file.split(/[\\/]/).some((part) => SKIPPED.has(part)) || IMAGES[extname(file).toLowerCase()]) continue;
-          let text: string;
-          try {
-            if (statSync(file).size > 2_000_000) continue;
-            text = readFileSync(file, "utf8");
-          } catch {
-            continue;
-          }
-          const rel = slashed(relative(real(root), file)) || file;
-          text.split("\n").forEach((line, i) => {
-            if (lines.length < 200 && re.test(line)) lines.push(`${rel}:${i + 1}: ${line.slice(0, 300)}`);
-          });
-        }
-        return answer(lines.length ? lines.join("\n") : "No match.");
+        const files = paths
+          .filter((abs) => !types || types.includes(extname(abs).toLowerCase()))
+          .map((abs) => ({ abs, shown: slashed(relative(real(root), abs)) || abs }));
+        return answer(grepFiles(files, input));
       },
     },
     ...(search
@@ -287,16 +397,17 @@ export function piFileTools({ root, readable, family, shell, search }: PiToolsOp
       name: "WebFetch",
       label: "WebFetch",
       description:
-        "Reads a web page and answers with its text: a page the maker points you to (their current site, their social page, a menu online), or one that checks a fact.",
-      parameters: fileSchema({ url: str("The page's address, https://…") }, ["url"]),
-      async execute(_id, { url }: { url: string }, signal) {
-        if (!/^https?:\/\//.test(url)) throw new Error("Give a full address, starting with https://.");
-        const response = await fetch(url, { signal, redirect: "follow", headers: { "user-agent": "Upstart" } });
-        if (!response.ok) throw new Error(`The page answered ${response.status}.`);
-        const type = response.headers.get("content-type") ?? "";
-        const body = await response.text();
-        const text = type.includes("html") ? pageText(body) : body;
-        return answer(text.slice(0, 40_000) + (text.length > 40_000 ? "\n[cut]" : ""));
+        "Reads a web page and answers `prompt` from it: a page the maker points you to (their current site, their social page, a menu online), or one that checks a fact. An http address is read over https; a page that sends to another site is not followed: you are told where, to fetch that address instead.",
+      parameters: fileSchema(
+        { url: str("The page's address, https://…"), prompt: str("What to find or take from the page") },
+        ["url", "prompt"],
+      ),
+      async execute(_id, { url, prompt }: { url: string; prompt: string }, signal) {
+        const page = await fetchPage(url, signal);
+        if ("redirect" in page)
+          return answer(`The page sends to another site: ${page.redirect}. Fetch that address to read it.`);
+        const said = summarize && prompt?.trim() ? await summarize(page, prompt.trim(), signal) : undefined;
+        return answer(fetchAnswer(page, said));
       },
     },
   ];
@@ -310,8 +421,10 @@ export function piFileTools({ root, readable, family, shell, search }: PiToolsOp
       async execute(_id, { file_path, content }: { file_path: string; content: string }) {
         const at = place(file_path, root, project);
         if (!at) throw outside(file_path);
+        readFirst(at);
         mkdirSync(dirname(at.abs), { recursive: true });
         appendFileSync(at.abs, content);
+        noteRead(at.abs);
         return answer(`Added ${content.split("\n").length} lines to ${at.shown}.`);
       },
     });
@@ -319,19 +432,35 @@ export function piFileTools({ root, readable, family, shell, search }: PiToolsOp
     tools.push({
       name: "Bash",
       label: "Bash",
-      description: shell.gate
-        ? "Runs a shell command (bash) in the project folder. A plain file command on the project's files (rm, mv, cp, mkdir, ls, cat, with paths inside the project) runs at once; any other waits for the maker's approval. For what the file tools cannot do, such as deleting or moving files."
-        : "Runs a shell command (bash) in the project folder, in Upstart's sandbox: it may write in the project and the temporary folder only. For what the file tools cannot do, such as deleting or moving files.",
+      description: `${
+        shell.gate
+          ? "Runs a shell command (bash) in the project folder. A plain file command on the project's files (rm, mv, cp, mkdir, ls, cat, with paths inside the project) runs at once; any other waits for the maker's approval."
+          : "Runs a shell command (bash) in the project folder, in Upstart's sandbox: it may write in the project and the temporary folder only."
+      } For what the file tools cannot do, such as deleting or moving files. It stops after \`timeout\` milliseconds (2 minutes by default, 10 at most).`,
       parameters: fileSchema(
-        { command: str("The command"), description: str("What it does, in a few words, for the maker") },
+        {
+          command: str("The command"),
+          description: str("What it does, in a few words, for the maker"),
+          timeout: {
+            type: "integer",
+            minimum: 1000,
+            maximum: BASH_MAX_MS,
+            description: "Milliseconds before it is stopped",
+          },
+        },
         ["command"],
       ),
-      async execute(id, { command, description }: { command: string; description?: string }, signal) {
+      async execute(
+        id,
+        { command, description, timeout }: { command: string; description?: string; timeout?: number },
+        signal,
+      ) {
         if (shell.gate && !safeCommand(command, root)) {
           const refused = await shell.gate(id, command, description, signal);
           if (refused) throw new Error(refused);
         }
-        const result = await runShell(command, shell.place, shell.env(), { signal });
+        const timeoutMs = Math.min(Math.max(timeout ?? BASH_DEFAULT_MS, 1000), BASH_MAX_MS);
+        const result = await runShell(command, shell.place, shell.env(), { signal, timeoutMs });
         const output = result.output.trim() || "(no output)";
         if (result.timedOut) throw new Error(`The command took too long and was stopped.\n${output}`);
         if (result.code !== 0) throw new Error(`Exit code ${result.code}\n${output}`);
@@ -419,7 +548,8 @@ export function canonicalTool(name: string, upstart: Set<string>): string {
 function walk(dir: string, prefix = ""): string[] {
   const out: string[] = [];
   for (const entry of readdirSync(join(dir, prefix), { withFileTypes: true })) {
-    if (SKIPPED.has(entry.name)) continue;
+    // Hidden folders and files (.upstart/, .git) only when the search names them, as Glob does.
+    if (SKIPPED.has(entry.name) || entry.name.startsWith(".")) continue;
     const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
     if (entry.isDirectory()) out.push(...walk(dir, rel));
     else out.push(rel);
@@ -427,20 +557,18 @@ function walk(dir: string, prefix = ""): string[] {
   return out;
 }
 
-/** A page's readable text, roughly: without its scripts, styles and tags. */
-export function pageText(html: string): string {
-  return html
-    .replace(/<(script|style|noscript|svg)[\s\S]*?<\/\1>/gi, "")
-    .replace(/<\/(p|div|h[1-6]|li|tr|section|article|header|footer|br)>/gi, "\n")
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/[ \t]+/g, " ")
-    .replace(/\n\s*\n+/g, "\n\n")
-    .trim();
+/** An image as Read shows it: as it is when small enough, else its longer side brought to IMAGE_SIDE. */
+async function imageToShow(abs: string): Promise<{ data: string; mimeType: string }> {
+  const data = readFileSync(abs);
+  const mime = IMAGES[extname(abs).toLowerCase()]!;
+  const sharp = (await import("sharp")).default;
+  const meta = await sharp(data).metadata();
+  const small = (meta.width ?? 0) <= IMAGE_SIDE && (meta.height ?? 0) <= IMAGE_SIDE && data.length <= 3_750_000;
+  if (small && mime !== "image/gif") return { data: data.toString("base64"), mimeType: mime };
+  const resized = sharp(data, { animated: false }).resize(IMAGE_SIDE, IMAGE_SIDE, {
+    fit: "inside",
+    withoutEnlargement: true,
+  });
+  const out = meta.hasAlpha ? await resized.png().toBuffer() : await resized.jpeg({ quality: 85 }).toBuffer();
+  return { data: out.toString("base64"), mimeType: meta.hasAlpha ? "image/png" : "image/jpeg" };
 }

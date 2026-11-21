@@ -135,6 +135,8 @@ export const en = {
     showSteps: "Show the agent's steps",
     hideSteps: "Hide the agent's steps",
     groundedResults: "What Google Search found",
+    showGrounded: "Show what Google Search found, and its suggestions",
+    hideGrounded: "Hide what Google Search found",
     steps: (count: number, failed: number) =>
       `${count} ${count === 1 ? "step" : "steps"}${failed ? ` · ${failed} did not work` : ""}`,
     thinking: "Thinking",

@@ -571,16 +571,18 @@ function GroundedResults({ grounded }: { grounded: Grounded }) {
   const [open, setOpen] = useState(false);
   return (
     <div data-testid="grounded" className="mt-0.5 ml-5.5">
-      <button
-        type="button"
-        data-testid="grounded-toggle"
-        aria-expanded={open}
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground"
-      >
-        <ChevronRight className={cn("size-3 transition-transform", open && "rotate-90")} />
-        {t.conversation.groundedResults}
-      </button>
+      <Tip text={open ? t.conversation.hideGrounded : t.conversation.showGrounded}>
+        <button
+          type="button"
+          data-testid="grounded-toggle"
+          aria-expanded={open}
+          onClick={() => setOpen(!open)}
+          className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground"
+        >
+          <ChevronRight className={cn("size-3 transition-transform", open && "rotate-90")} />
+          {t.conversation.groundedResults}
+        </button>
+      </Tip>
       {open && (
         <div className="mt-1 space-y-1">
           <p
