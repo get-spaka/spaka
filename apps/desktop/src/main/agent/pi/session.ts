@@ -145,6 +145,8 @@ export class PiSession implements AgentRunner {
   private readonly openCards = new Map<string, string>();
   /** Build, or plan mode (Q286): the tools that change the project are refused until the plan is approved. */
   private mode: AgentMode;
+  /** A mode chosen while the agent worked, for when its turn ends (Q436). */
+  private nextMode: AgentMode | undefined;
   /** What the maker changed by hand while a question waited, told with its answer (Q294). */
   private answerNote: string | undefined;
   readonly problems: string[] = [];
@@ -402,9 +404,16 @@ export class PiSession implements AgentRunner {
     this.planWaits.settle(cardId, decision);
   }
 
-  /** The Build / Plan selector, for the next message (Q286, Q296). */
+  /**
+   * The Build / Plan selector, for the next message (Q286, Q296): chosen
+   * while the agent works, it takes effect when the turn ends (Q436).
+   */
   async setMode(mode: AgentMode) {
-    this.mode = mode;
+    if (this.working) this.nextMode = mode === this.mode ? undefined : mode;
+    else {
+      this.nextMode = undefined;
+      this.mode = mode;
+    }
   }
 
   startOver() {
@@ -739,6 +748,7 @@ export class PiSession implements AgentRunner {
   private endTurn(status: "done" | "stopped" | "failed", error?: string) {
     this.working = false;
     this.stopping = false;
+    if (this.nextMode) void this.setMode(this.nextMode);
     this.handlers.onConversation({ type: "turn-end", status, ...(status === "failed" ? { error } : {}) });
     this.handlers.onIdle?.();
   }

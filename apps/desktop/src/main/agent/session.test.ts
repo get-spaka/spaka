@@ -736,3 +736,21 @@ test("in plan mode the hooks that grant what the agent asks for stand aside", as
   await s.setMode("build");
   expect(await hook()).toEqual(granted);
 });
+
+test("a mode chosen while the agent works takes effect when its turn ends (Q436)", async () => {
+  const { s, fake, items, turnEnd } = session([askTurn()]);
+  s.start();
+  const ended = turnEnd();
+  s.send("A bakery");
+  await vi.waitFor(() => expect(questionCard(items())?.state).toBe("waiting"));
+  const modes = () => fake.runs[0]!.calls.filter((c) => typeof c === "object" && c && "permissionMode" in c);
+  await s.setMode("plan");
+  // Not in the middle of the turn: what it does goes on as it began.
+  expect(modes()).toEqual([]);
+  s.answer(questionCard(items())!.id, {
+    kind: "choices",
+    answers: { "Which mood for the bakery?": "Warm (Recommended)" },
+  });
+  await ended;
+  await vi.waitFor(() => expect(modes()).toEqual([{ permissionMode: "plan" }]));
+});

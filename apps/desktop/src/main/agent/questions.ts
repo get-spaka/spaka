@@ -195,8 +195,12 @@ export function readsOnly(name: string): boolean {
   return PLAN_READS.has(name) || (name.startsWith("mcp__") && !name.startsWith(`mcp__${UPSTART_SERVER}__`));
 }
 
-/** The tools that change the project, which plan mode refuses in the Pi harness: canonical names. */
-export const PLAN_WRITERS = new Set(["Write", "Edit", "Append", "Bash", USE_BLOCK_TOOL, USE_IMAGE_TOOL]);
+/**
+ * The tools that change the project, which plan mode refuses in the Pi
+ * harness: canonical names. The card of pages too, which starts an
+ * adaptation, as Claude's plan mode refuses it (Q436).
+ */
+export const PLAN_WRITERS = new Set(["Write", "Edit", "Append", "Bash", USE_BLOCK_TOOL, USE_IMAGE_TOOL, PAGES_TOOL]);
 
 /** What the agent of the Pi harness reads with the maker's message in plan mode. */
 export function planMessage(text: string): string {

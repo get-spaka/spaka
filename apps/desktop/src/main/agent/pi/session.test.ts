@@ -661,3 +661,62 @@ test("near the model's window, the earlier turns are summarized by the model; th
   expect(items().filter((i) => i.kind === "maker")).toHaveLength(3);
   expect(JSON.stringify(items().at(-1))).toContain("Summarizing the earlier turns for the agent");
 });
+
+test("plan mode refuses the card of pages too, as Claude's does (Q436)", async () => {
+  const { f, models } = faux();
+  let shown = false;
+  f.setResponses([
+    fauxAssistantMessage([fauxToolCall("choose_pages", { pages: [] })], { stopReason: "toolUse" }),
+    fauxAssistantMessage([fauxText("Je propose d'abord un plan.")]),
+  ]);
+  project = { ...project, mode: "plan" };
+  const { turn, events } = session(models, {
+    kit: () => ({
+      tools: {
+        ...noTools,
+        choosePages: async () => {
+          shown = true;
+          return "";
+        },
+      },
+      checks: checks(),
+    }),
+  });
+  await turn("Adapte le template");
+  expect(events.at(-1)).toMatchObject({ type: "turn-end", status: "done" });
+  expect(shown).toBe(false);
+});
+
+test("a mode chosen while the agent works takes effect when its turn ends, under Pi too (Q436)", async () => {
+  const { f, models } = faux();
+  const said: string[] = [];
+  f.setResponses([
+    fauxAssistantMessage([fauxToolCall("AskUserQuestion", asked as never)], { stopReason: "toolUse" }),
+    fauxAssistantMessage([fauxToolCall("Write", { file_path: "pages/index.liquid", content: "<h1>Fleur</h1>" })], {
+      stopReason: "toolUse",
+    }),
+    fauxAssistantMessage([fauxText("Voilà.")]),
+    (context) => {
+      const last = context.messages.at(-1) as { content: string | { text?: string }[] };
+      said.push(typeof last.content === "string" ? last.content : (last.content[0]?.text ?? ""));
+      return fauxAssistantMessage([fauxText("Un plan.")]);
+    },
+  ]);
+  const { s, turn, items } = session(models);
+  const ended = turn("Une fleuriste");
+  await until(() => {
+    const last = items().at(-1);
+    return last?.kind === "agent" && last.parts.some((p) => p.kind === "question" && p.card.state === "waiting");
+  });
+  await s.setMode("plan");
+  const card = (items().at(-1) as { parts: { kind: string; card?: { id: string } }[] }).parts.find(
+    (p) => p.kind === "question",
+  )!.card!;
+  s.answer(card.id, { kind: "choices", answers: { "Quelle ambiance pour la boutique ?": "Douce (Recommended)" } });
+  await ended;
+  // The turn went on in Build: its page is written.
+  expect(readFileSync(join(project.path, "pages/index.liquid"), "utf8")).toBe("<h1>Fleur</h1>");
+  // The next message is in plan mode.
+  await turn("Et une page mariages ?");
+  expect(said[0]).toContain("[Upstart: plan mode.");
+});

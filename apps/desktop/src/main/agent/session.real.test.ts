@@ -213,3 +213,47 @@ real(
   },
   240_000,
 );
+
+// Q436: the Build / Plan selector changed while a turn works takes effect when
+// it ends; the binary is told then, and the next turn writes nothing.
+real(
+  "a switch to plan mode during a turn takes effect for the next one: its write is refused",
+  async () => {
+    const r = realSession();
+    const card = (): QuestionCard | undefined => {
+      const part = lastAgent(r.items())?.parts.find((p) => p.kind === "question");
+      return part?.kind === "question" ? part.card : undefined;
+    };
+    try {
+      const ended = r.send(
+        "Ask me with AskUserQuestion whether the bakery's title should say Bread or Cakes. Then write the word I chose in pages/index.liquid, as a <p> under the title, and stop.",
+      );
+      for (let waited = 0; !card() && waited < 120_000; waited += 500) {
+        if (lastAgent(r.items())?.status !== "working") break;
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+      expect(card()?.state).toBe("waiting");
+      await r.s.setMode("plan");
+      const asked = card()!;
+      const bread = asked.questions[0]!.options.find((o) => /bread/i.test(o.label))!;
+      r.s.answer(asked.id, { kind: "choices", answers: { [asked.questions[0]!.question]: bread.label } });
+      await ended;
+      // The turn went on as it began, in Build.
+      expect(readFileSync(join(r.dir, "pages/index.liquid"), "utf8")).toMatch(/bread/i);
+      const before = readFileSync(join(r.dir, "pages/index.liquid"), "utf8");
+      const next = r.send("Now write the word Cakes in pages/index.liquid, as another <p> under the first.");
+      const planned = () =>
+        (lastAgent(r.items())?.parts ?? []).some((p) => p.kind === "plan" && p.card.state === "proposed");
+      for (let waited = 0; waited < 180_000 && !planned(); waited += 500) {
+        if (lastAgent(r.items())?.status && lastAgent(r.items())?.status !== "working") break;
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+      if (planned()) await r.s.stop();
+      await next;
+      expect(readFileSync(join(r.dir, "pages/index.liquid"), "utf8")).toBe(before);
+    } finally {
+      r.close();
+    }
+  },
+  400_000,
+);

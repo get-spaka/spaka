@@ -118,6 +118,8 @@ export class AgentSession implements AgentRunner {
   private answerNote: string | undefined;
   /** Build, or plan mode (Q286): the agent writes nothing until its plan is approved. */
   private mode: AgentMode;
+  /** A mode chosen while the agent worked, for when its turn ends (Q436). */
+  private nextMode: AgentMode | undefined;
   /** The permission mode the agent builds in (confinement.ts). */
   private buildMode: "acceptEdits" | "auto" = "acceptEdits";
   readonly problems: string[] = [];
@@ -307,12 +309,19 @@ export class AgentSession implements AgentRunner {
     this.planWaits.settle(cardId, decision);
   }
 
-  /** The Build / Plan selector, for the next message (Q286, Q296). */
+  /**
+   * The Build / Plan selector, for the next message (Q286, Q296): chosen
+   * while the agent works, it takes effect when the turn ends (Q436).
+   */
   async setMode(mode: AgentMode) {
+    if (this.working) {
+      this.nextMode = mode === this.mode ? undefined : mode;
+      return;
+    }
+    this.nextMode = undefined;
     if (mode === this.mode) return;
     this.mode = mode;
-    if (this.q && !this.working)
-      await this.q.setPermissionMode(mode === "plan" ? "plan" : this.buildMode).catch(() => this.restart());
+    await this.q?.setPermissionMode(mode === "plan" ? "plan" : this.buildMode).catch(() => this.restart());
   }
 
   /** The models the agent offers, with the effort levels each accepts. Works before signing in. */
@@ -500,6 +509,7 @@ export class AgentSession implements AgentRunner {
     this.working = false;
     this.stopping = false;
     this.pending = undefined;
+    if (this.nextMode) void this.setMode(this.nextMode);
     this.handlers.onConversation({ type: "turn-end", status, ...(status === "failed" ? { error } : {}) });
     this.handlers.onIdle?.();
   }
