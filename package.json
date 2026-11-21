@@ -24,11 +24,12 @@
     "template:snapshot": "node apps/desktop/scripts/template.mjs snapshot",
     "template:release-script": "node apps/desktop/scripts/template.mjs release-script",
     "start": "pnpm --filter @upstart/desktop start",
-    "prepare": "node scripts/git-hooks.mjs"
+    "prepare": "node scripts/hooks.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.6",
     "@types/node": "26.6.6",
+    "lefthook": "2.2.2",
     "playwright": "1.65.0",
     "typescript": "7.0.2",
     "vitest": "5.1.0",

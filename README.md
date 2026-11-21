@@ -47,7 +47,7 @@ pnpm --filter @upstart/desktop dev
 | `pnpm e2e` | Builds the app and checks it whole, launched in the background (no window, never takes the focus), with a recorded agent |
 | `pnpm --filter @upstart/desktop package` | The packaged app in `apps/desktop/dist` |
 
-`pnpm install` also turns on the pre-commit hooks in `.githooks`, here and in the templates' submodule once it is checked out (run `pnpm install` again after `git submodule update --init`): a commit runs the lint the CI runs on its staged files, and on the templates when it moves the submodule. `git commit --no-verify` skips it once.
+`pnpm install` also installs the Git hooks (Lefthook, `lefthook.yml`), here and in the templates' submodule, which gets them after the next checkout or pull if it is checked out later: before each commit, Biome's fixes on the staged files, staged again, and what it cannot fix stops the commit; a commit that moves the submodule also checks the templates it points to. `git commit --no-verify` skips them once.
 
 Checks with the real agent spend a little of a Claude subscription, so they run only when asked: sign in once with `CLAUDE_CONFIG_DIR=.cache/agent-config` and the agent binary's `auth login`, then run the e2e checks with `UPSTART_REAL_AGENT=1`.
 

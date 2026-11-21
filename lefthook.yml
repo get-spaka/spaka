@@ -1,0 +1,26 @@
+# Git hooks, installed by `pnpm install` (Lefthook): before each commit, the
+# lint the CI runs. `git commit --no-verify` skips them once.
+# Only what the commands print and what fails.
+output:
+  - execution_out
+  - failure
+pre-commit:
+  commands:
+    # Biome's fixes on the staged files, staged again; what it cannot fix stops the commit.
+    biome:
+      run: pnpm exec biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      stage_fixed: true
+    # A commit that moves the templates' submodule: the templates it points to pass their own lint.
+    templates:
+      glob: "apps/desktop/templates"
+      root: "apps/desktop/templates/"
+      run: ../../../node_modules/.bin/biome check --diagnostic-level=error .
+# After a checkout or a pull, the templates' submodule gets its own hooks once it is there.
+post-checkout:
+  commands:
+    templates-hooks:
+      run: node scripts/hooks.mjs
+post-merge:
+  commands:
+    templates-hooks:
+      run: node scripts/hooks.mjs
