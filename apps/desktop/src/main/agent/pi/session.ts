@@ -47,7 +47,7 @@ import {
   piPlanTool,
   piUpstartTools,
 } from "./tools";
-import { canSearch, providerSearch, searchResult } from "./web-search";
+import { canSearch, providerSearch, type SearchFound, searchResult } from "./web-search";
 
 export type PiDeps = {
   /** pi-ai's collection, its providers registered and the ChatGPT sign-in kept (accounts.ts). */
@@ -57,7 +57,7 @@ export type PiDeps = {
   /** Upstart's tools and checks for a project. */
   kit(project: { id: string; path: string }): AgentKit;
   /** The instructions for a family of models, with the skills it may read. */
-  instructions(family: InstructionsFamily, skills: SkillListing[]): string;
+  instructions(family: InstructionsFamily, skills: SkillListing[], search: boolean): string;
   /** The shell's environment, and the folders it may read although they sit in a denied place. */
   env: () => Record<string, string>;
   readable: string[];
@@ -80,7 +80,7 @@ export type PiDeps = {
   /** Keeps each reply of the model, to play it back in checks (replay.ts). */
   recorder?: PiRecorder;
   /** The web search in place of the provider's: a played-back one, in checks. */
-  search?: (query: string) => Promise<string>;
+  search?: (query: string) => Promise<SearchFound>;
   /** What to tell the maker when an account's sign-in was refused, if not to connect it again in Accounts. */
   signInHelp?: (account: PiAccount) => string | undefined;
 };
@@ -111,6 +111,8 @@ export class PiSession implements AgentRunner {
   private turnStart = 0;
   /** What this turn's web searches cost, made as requests of their own (web-search.ts). */
   private searchCost = 0;
+  /** Google's Search Suggestions of this turn's searches, by tool call, for their activity lines (Q424). */
+  private readonly suggestions = new Map<string, string>();
   /** The cards of questions the turn waits on (Q283). */
   private readonly waits = new Waits<QuestionAnswer>();
   /** The plans the turn waits on (Q290). */
@@ -171,7 +173,7 @@ export class PiSession implements AgentRunner {
         readable: skills ? [skills.dir] : [],
         family,
         shell: this.shell(skills?.dir),
-        search: canSearch(model) ? (query, signal) => this.search(query, signal) : undefined,
+        search: canSearch(model) ? (query, signal, callId) => this.search(query, signal, callId) : undefined,
       }),
       ...piUpstartTools(upstart),
       piAskTool((callId, questions, signal) => this.ask(callId, questions, signal)),
@@ -181,7 +183,7 @@ export class PiSession implements AgentRunner {
     this.startConnectors();
     const loop = new Loop({
       initialState: {
-        systemPrompt: this.deps.instructions(family, skills?.listing ?? []),
+        systemPrompt: this.deps.instructions(family, skills?.listing ?? [], canSearch(model)),
         model,
         thinkingLevel: thinkingFor(model, this.project.effort),
         tools,
@@ -228,6 +230,7 @@ export class PiSession implements AgentRunner {
     this.activities.clear();
     this.turnStart = Date.now();
     this.searchCost = 0;
+    this.suggestions.clear();
     this.handlers.onConversation({ type: "turn-start", id: newId(), text, at: Date.now() });
     void this.run(this.loop!, this.mode === "plan" ? planMessage(forAgent) : forAgent);
   }
@@ -502,8 +505,13 @@ export class PiSession implements AgentRunner {
   }
 
   /** The provider's own search, with the project's current model and account (Q276). */
-  private async search(query: string, signal?: AbortSignal) {
-    if (this.deps.search) return this.deps.search(query);
+  private async search(query: string, signal: AbortSignal | undefined, callId: string) {
+    const found = this.deps.search ? await this.deps.search(query) : await this.providerSearch(query, signal);
+    if (found.suggestions) this.suggestions.set(callId, found.suggestions);
+    return found.text;
+  }
+
+  private async providerSearch(query: string, signal: AbortSignal | undefined): Promise<SearchFound> {
     const found = await providerSearch({
       models: this.deps.models,
       model: this.model(),
@@ -513,9 +521,12 @@ export class PiSession implements AgentRunner {
       signal,
     });
     this.searchCost += found.cost;
-    const text = searchResult(found);
-    this.deps.recorder?.search(query, text);
-    return text;
+    const result: SearchFound = {
+      text: searchResult(found),
+      ...(found.suggestions ? { suggestions: found.suggestions } : {}),
+    };
+    this.deps.recorder?.search(query, result);
+    return result;
   }
 
   private onLoopEvent(e: LoopEvent) {
@@ -567,6 +578,7 @@ export class PiSession implements AgentRunner {
         name: canonicalTool(e.toolName, this.upstartNames),
         isError: e.isError,
         text: text.slice(0, 4000),
+        ...(this.suggestions.has(e.toolCallId) ? { suggestions: this.suggestions.get(e.toolCallId) } : {}),
       });
     }
   }

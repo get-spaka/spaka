@@ -55,6 +55,7 @@ import { namingModelFor } from "./agent/naming";
 import { PiAccounts } from "./agent/pi/accounts";
 import { VaultSignIns } from "./agent/pi/connectors";
 import { PiRecorder, piReplay } from "./agent/pi/replay";
+import { isGoogleSearch } from "./agent/pi/web-search";
 import { claudeExtras, UPSTART_SERVER } from "./agent/preview-tool";
 import { NOT_ANSWERED } from "./agent/questions";
 import { Recorder, replayed, replayQuery } from "./agent/replay";
@@ -213,7 +214,11 @@ async function main() {
   win.webContents.on("will-navigate", (details) => {
     if (details.url !== win.webContents.getURL()) details.preventDefault();
   });
-  win.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  // A search's Google Search Suggestions open their search in the maker's browser (Q424); nothing else opens.
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (isGoogleSearch(url)) void shell.openExternal(url);
+    return { action: "deny" };
+  });
   // Opening Upstart again (its shortcut, its icon) brings the window back rather than a second app.
   app.on("second-instance", () => {
     if (win.isDestroyed()) return;
@@ -525,7 +530,7 @@ async function main() {
       replay: env.piReplay ? piReplay(env.piReplay, 100 * env.agentReplaySpeed) : undefined,
       deps: {
         kit: kitFor,
-        instructions: (family, listed) => instructionsFor(settings.get().replyStyle, family, listed),
+        instructions: (family, listed, search) => instructionsFor(settings.get().replyStyle, family, listed, search),
         env: agentEnv,
         readable: launcher.readable,
         // On Windows, the shell is Git Bash, behind a gate (Q381, Q382).

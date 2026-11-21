@@ -30,7 +30,15 @@ export type AgentEvent =
       done: Record<string, boolean>;
     }
   | { kind: "tool-input-end"; id: string; name: string; input: Record<string, unknown> }
-  | { kind: "tool-result"; id: string; name: string; isError: boolean; text: string }
+  | {
+      kind: "tool-result";
+      id: string;
+      name: string;
+      isError: boolean;
+      text: string;
+      /** Google's Search Suggestions for a web search, shown to the maker (Q424). */
+      suggestions?: string;
+    }
   | { kind: "permission-denied"; id: string; name: string; message: string }
   | { kind: "result"; subtype: string; isError: boolean; text: string; durationMs: number; costUsd?: number }
   | { kind: "auth"; message: string };

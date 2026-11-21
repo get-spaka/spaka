@@ -10,7 +10,7 @@ import { CARD_TOOLS } from "./questions";
 import type { AgentEvent } from "./stream";
 import { FIND_BLOCKS_TOOL, FIND_IMAGES_TOOL, LOOK_TOOL, USE_BLOCK_TOOL, USE_IMAGE_TOOL } from "./upstart-tools";
 
-type Known = { name: string; label: string; detail?: string };
+type Known = { name: string; label: string; detail?: string; suggestions?: string };
 
 /** Turns the agent's tool events into the conversation's activity lines. */
 export class Activities {
@@ -45,6 +45,7 @@ export class Activities {
           e.isError ? e.text : undefined,
           // A look's line names the page it ended on, by its title, and the element acted on (Q320).
           e.name === LOOK_TOOL && !e.isError ? lookedLabel(e.text) : undefined,
+          e.suggestions,
         );
       case "permission-denied":
         return this.activity(e.id, e.name, undefined, "refused", e.message);
@@ -58,6 +59,7 @@ export class Activities {
     state: "running" | "done" | "failed" | "refused",
     error?: string,
     answered?: string,
+    found?: string,
   ) {
     const known = this.known.get(id);
     const label =
@@ -66,13 +68,21 @@ export class Activities {
         ? activityLabel(name, input, this.projectDir())
         : (known?.label ?? activityLabel(name, {}, this.projectDir())));
     const detail = input ? activityDetail(name, input) : known?.detail;
+    const suggestions = found ?? known?.suggestions;
     // A tool's input streams in many small pieces: send only what changes the line.
     if (known && known.label === label && known.detail === detail && state === "running") return;
-    this.known.set(id, { name, label, detail });
+    this.known.set(id, { name, label, detail, ...(suggestions ? { suggestions } : {}) });
     const why = error?.trim() ? clip(error.trim(), 300) : undefined;
     this.emit({
       type: "activity",
-      activity: { id, label, state, ...(detail ? { detail } : {}), ...(why ? { error: why } : {}) },
+      activity: {
+        id,
+        label,
+        state,
+        ...(detail ? { detail } : {}),
+        ...(why ? { error: why } : {}),
+        ...(suggestions ? { suggestions } : {}),
+      },
     });
   }
 }

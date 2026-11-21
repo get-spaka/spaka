@@ -10,7 +10,15 @@ export type ActivityState = "running" | "done" | "failed" | "refused";
  * detailed output style (Q127) also shows what was run or searched, and why a
  * step failed.
  */
-export type Activity = { id: string; label: string; state: ActivityState; detail?: string; error?: string };
+export type Activity = {
+  id: string;
+  label: string;
+  state: ActivityState;
+  detail?: string;
+  error?: string;
+  /** Google's Search Suggestions for a web search, shown in every style: its terms ask for them (Q424). */
+  suggestions?: string;
+};
 
 /** One choice of a question; `preview` is `block:<id>` or an image of the site (Q291). */
 export type QuestionOption = { label: string; description: string; preview?: string };

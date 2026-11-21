@@ -54,8 +54,9 @@ export function instructionsFor(
   style: ReplyStyle,
   family: InstructionsFamily = "claude",
   skills: SkillListing[] = [],
+  search = true,
 ): string {
-  const base = family === "claude" ? UPSTART_INSTRUCTIONS : harnessInstructions(family, skills);
+  const base = family === "claude" ? UPSTART_INSTRUCTIONS : harnessInstructions(family, skills, search);
   return `${base}\n\n# Writing to the maker\n\n${REPLY_STYLE_NOTES[style]} This is only about your messages: the website is written the same way whatever the style.`;
 }
 
@@ -82,9 +83,19 @@ const LONG_FILES = `# Writing long files
 
 Write a file of more than ${PART_LINES} lines in several calls, in reading order: Write with its first ${PART_LINES} lines or so, then Append with each following ${PART_LINES} lines or so, until the file is complete. Make all these calls in the same response, one after another, without waiting for their results. Cut between two elements, never inside a tag or a Liquid tag. A short file, and every change to a file, stays one call.`;
 
-function harnessInstructions(family: Exclude<InstructionsFamily, "claude">, skills: SkillListing[]): string {
+/** The web's line for a model whose provider has no search of its own: WebFetch alone, no other search in its place (Q417). */
+const NO_SEARCH: [string, string] = [
+  "- The web: WebSearch and WebFetch read it, to look at a page the maker points you to (their current site, their social page, a menu online), to check a fact you are unsure of, or to study what well-made sites do now.",
+  "- The web: WebFetch reads it (this model has no web search), to look at a page the maker points you to (their current site, their social page, a menu online) or one whose address you know.",
+];
+
+function harnessInstructions(
+  family: Exclude<InstructionsFamily, "claude">,
+  skills: SkillListing[],
+  search: boolean,
+): string {
   let text = UPSTART_INSTRUCTIONS;
-  for (const [from, to] of HARNESS_CHANGES[family]) {
+  for (const [from, to] of [...HARNESS_CHANGES[family], ...(search ? [] : [NO_SEARCH])]) {
     if (!text.includes(from)) throw new Error(`The instructions no longer say: ${from}`);
     text = text.replace(from, to);
   }

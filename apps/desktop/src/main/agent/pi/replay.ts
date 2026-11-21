@@ -9,6 +9,7 @@
 import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { type AssistantMessage, createModels, fauxProvider, type Models } from "@earendil-works/pi-ai";
+import type { SearchFound } from "./web-search";
 
 export class PiRecorder {
   constructor(private readonly file: string) {
@@ -19,18 +20,18 @@ export class PiRecorder {
     appendFileSync(this.file, `${JSON.stringify({ reply: message })}\n`);
   }
 
-  search(query: string, text: string) {
-    appendFileSync(this.file, `${JSON.stringify({ search: { query, text } })}\n`);
+  search(query: string, found: SearchFound) {
+    appendFileSync(this.file, `${JSON.stringify({ search: { query, ...found } })}\n`);
   }
 }
 
-type Line = { reply: AssistantMessage } | { search: { query: string; text: string } };
+type Line = { reply: AssistantMessage } | { search: { query: string } & SearchFound };
 
 export type PiReplay = {
   /** pi-ai's collection, its replies played back. */
   models: Models;
   /** The web search, its answers played back. */
-  search: (query: string) => Promise<string>;
+  search: (query: string) => Promise<SearchFound>;
 };
 
 /** What the played-back model was asked, request by request: for checks of what Upstart tells it. */
@@ -47,7 +48,11 @@ export function piReplay(file: string, tokensPerSecond = 400): PiReplay {
     .filter((line) => line.trim())
     .map((line) => JSON.parse(line) as Line);
   const replies = lines.flatMap((l) => ("reply" in l ? [l.reply] : []));
-  const searches = lines.flatMap((l) => ("search" in l ? [l.search.text] : []));
+  const searches = lines.flatMap((l): SearchFound[] =>
+    "search" in l
+      ? [{ text: l.search.text, ...(l.search.suggestions ? { suggestions: l.search.suggestions } : {}) }]
+      : [],
+  );
   const faux = fauxProvider({ provider: "replay", models: [{ id: "replay", reasoning: true }], tokensPerSecond });
   const collection = createModels({ authContext: { env: async () => undefined, fileExists: async () => false } });
   collection.setProvider(faux.provider);
@@ -87,9 +92,9 @@ export function piReplay(file: string, tokensPerSecond = 400): PiReplay {
   return {
     models: models as Models,
     search: async () => {
-      const text = searches[nextSearch++];
-      if (text === undefined) throw new Error("No more recorded searches.");
-      return text;
+      const found = searches[nextSearch++];
+      if (found === undefined) throw new Error("No more recorded searches.");
+      return found;
     },
   };
 }

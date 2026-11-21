@@ -57,7 +57,7 @@ export type PiToolsOptions = {
     ) => Promise<string | undefined>;
   };
   /** The provider's web search (web-search.ts); no WebSearch without it (Q276). */
-  search?: (query: string, signal?: AbortSignal) => Promise<string>;
+  search?: (query: string, signal: AbortSignal | undefined, callId: string) => Promise<string>;
 };
 
 // biome-ignore lint/suspicious/noExplicitAny: the loop checks each call's input against the tool's schema before it runs
@@ -276,9 +276,9 @@ export function piFileTools({ root, readable, family, shell, search }: PiToolsOp
             description:
               "Searches the web and answers with what it found and its sources: to check a fact you are unsure of (an address, opening hours, a price), or to study what well-made sites do now. WebFetch then reads a page it found.",
             parameters: fileSchema({ query: str("What to search for, in a few words or a question") }, ["query"]),
-            async execute(_id: string, { query }: { query: string }, signal?: AbortSignal) {
+            async execute(id: string, { query }: { query: string }, signal?: AbortSignal) {
               if (typeof query !== "string" || !query.trim()) throw new Error("Say what to search for.");
-              return answer(await search(query.trim(), signal));
+              return answer(await search(query.trim(), signal, id));
             },
           } satisfies HarnessTool,
         ]

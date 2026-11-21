@@ -2,7 +2,15 @@ import { type Api, type AssistantMessage, createModels, type Model, type Models 
 import { googleProvider } from "@earendil-works/pi-ai/providers/google";
 import { expect, test } from "vitest";
 import { piModel } from "./models";
-import { canSearch, providerSearch, searchResult, sourcesIn, withSearch } from "./web-search";
+import {
+  canSearch,
+  isGoogleSearch,
+  providerSearch,
+  searchResult,
+  sourcesIn,
+  suggestionsIn,
+  withSearch,
+} from "./web-search";
 
 const hydrogen = piModel("gemini", "gemini-4-hydrogen")!;
 const terra = piModel("openai", "gpt-6.1-terra")!;
@@ -135,3 +143,40 @@ test.skipIf(!real)(
   },
   60_000,
 );
+
+test("Google's Search Suggestions are kept for the maker, the last of the stream; OpenAI has none (Q424)", async () => {
+  const chip = '<div class="container"><a class="chip" href="https://www.google.com/search?q=jardin">jardin</a></div>';
+  const event = (html: string) => ({
+    candidates: [{ groundingMetadata: { searchEntryPoint: { renderedContent: html }, groundingChunks: [] } }],
+  });
+  expect(suggestionsIn("google-generative-ai", event(chip))).toBe(chip);
+  expect(suggestionsIn("google-vertex", event(chip))).toBe(chip);
+  expect(suggestionsIn("google-generative-ai", event("  "))).toBeUndefined();
+  expect(suggestionsIn("openai-responses", event(chip))).toBeUndefined();
+  const models = {
+    async completeSimple(model: Model<Api>, _context, options) {
+      await options?.onProviderStreamEvent?.(event(chip), model);
+      await options?.onProviderStreamEvent?.({ candidates: [{}] }, model);
+      return {
+        role: "assistant",
+        content: [{ type: "text", text: "Ouvert." }],
+        stopReason: "stop",
+      } as AssistantMessage;
+    },
+  } as Pick<Models, "completeSimple"> as Models;
+  const found = await providerSearch({ models, model: hydrogen, query: "jardin" });
+  expect(found.suggestions).toBe(chip);
+  // What the agent reads is unchanged: the suggestions are the maker's.
+  expect(searchResult(found)).toBe("Ouvert.");
+});
+
+test("only a Google search's address opens outside the app", () => {
+  expect(isGoogleSearch("https://www.google.com/search?q=jardin")).toBe(true);
+  expect(isGoogleSearch("https://www.google.fr/search?q=jardin")).toBe(true);
+  expect(isGoogleSearch("https://www.google.co.uk/search?q=garden")).toBe(true);
+  expect(isGoogleSearch("http://www.google.com/search?q=x")).toBe(false);
+  expect(isGoogleSearch("https://www.google.com.evil.example/search")).toBe(false);
+  expect(isGoogleSearch("https://evil.example/search")).toBe(false);
+  expect(isGoogleSearch("https://www.google.com/url?q=https://evil.example")).toBe(false);
+  expect(isGoogleSearch("javascript:alert(1)")).toBe(false);
+});

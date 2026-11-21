@@ -179,6 +179,11 @@ test("the harness's instructions: Claude's rules with its own tools, long files 
   expect(gemini).toContain("# Writing long files");
   expect(gemini).toContain("then Append with each following 25 lines");
   expect(gemini).not.toContain("# Skills");
+  // A provider without a search of its own: WebFetch alone is named (Q417).
+  const without = instructionsFor("short", "openai", [], false);
+  expect(without).not.toContain("WebSearch");
+  expect(without).toContain("WebFetch reads it (this model has no web search)");
+  expect(without).toContain("never another site's texts");
 });
 
 test("a page's text, without its scripts and tags", () => {

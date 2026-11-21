@@ -516,12 +516,15 @@ function Steps({ activities }: { activities: Activity[] }) {
           {t.conversation.steps(activities.length, failed)}
         </button>
       </Tip>
-      {open && (
+      {open ? (
         <div className="mt-1 space-y-1.5 pl-5.5">
           {activities.map((a) => (
             <ActivityLine key={a.id} activity={a} />
           ))}
         </div>
+      ) : (
+        // Folded, the steps still show Google's Search Suggestions, which its terms ask for (Q424).
+        activities.flatMap((a) => (a.suggestions ? [<SearchSuggestions key={a.id} html={a.suggestions} />] : []))
       )}
     </div>
   );
@@ -552,7 +555,26 @@ function ActivityLine({ activity, detailed }: { activity: Activity; detailed?: b
           {activity.error}
         </p>
       )}
+      {activity.suggestions && <SearchSuggestions html={activity.suggestions} />}
     </div>
+  );
+}
+
+/**
+ * Google's Search Suggestions for a search made with Gemini, as Google gives
+ * them, in every style: its terms ask that they be shown to whoever searched
+ * (Q424). Its HTML runs in a frame of its own with no script and no access to
+ * the interface; its links open in the maker's browser.
+ */
+function SearchSuggestions({ html }: { html: string }) {
+  return (
+    <iframe
+      data-testid="search-suggestions"
+      title="Google Search Suggestions"
+      sandbox="allow-popups allow-popups-to-escape-sandbox"
+      srcDoc={`<!doctype html><meta charset="utf-8"><base target="_blank"><style>body{margin:0}</style>${html}`}
+      className="mt-1 ml-5.5 block h-16 w-[calc(100%-1.375rem)] border-0"
+    />
   );
 }
 

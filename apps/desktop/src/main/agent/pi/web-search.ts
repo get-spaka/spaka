@@ -8,7 +8,9 @@ import type { Api, AssistantMessage, ClientIdentity, Model, Models } from "@eare
 import { clampThinkingLevel } from "@earendil-works/pi-ai";
 
 export type Source = { title: string; url: string };
-export type SearchAnswer = { text: string; sources: Source[]; cost: number };
+export type SearchAnswer = { text: string; sources: Source[]; cost: number; suggestions?: string };
+/** What a search hands the agent, and what the maker is shown beside it. */
+export type SearchFound = { text: string; suggestions?: string };
 
 const INSTRUCTIONS =
   "Search the web for what is asked, then answer with the facts found, briefly, in the language of the question. Keep names, addresses, prices, dates and opening hours exactly as the sources give them. When nothing reliable is found, say so.";
@@ -64,6 +66,18 @@ export function sourcesIn(api: string, event: unknown): Source[] {
   return [];
 }
 
+/**
+ * Google's Search Suggestions for one event of its stream: the HTML of
+ * groundingMetadata.searchEntryPoint, which Google's terms ask to show the
+ * person who searched, beside what was found (Q424).
+ */
+export function suggestionsIn(api: string, event: unknown): string | undefined {
+  if (!GOOGLE_APIS.has(api)) return undefined;
+  // biome-ignore lint/suspicious/noExplicitAny: the provider's own events
+  const html = (event as any)?.candidates?.[0]?.groundingMetadata?.searchEntryPoint?.renderedContent;
+  return typeof html === "string" && html.trim() ? html : undefined;
+}
+
 /** Searches the web with the model's provider and answers with what it found and where. */
 export async function providerSearch(o: {
   models: Models;
@@ -76,6 +90,7 @@ export async function providerSearch(o: {
   const { model } = o;
   if (!canSearch(model)) throw new Error("This model's provider has no web search.");
   const found = new Map<string, Source>();
+  let suggestions: string | undefined;
   const level = clampThinkingLevel(model, "low");
   const message: AssistantMessage = await o.models.completeSimple(
     model,
@@ -88,6 +103,7 @@ export async function providerSearch(o: {
       onPayload: (payload) => withSearch(model.api, payload as Payload),
       onProviderStreamEvent: (event) => {
         for (const s of sourcesIn(model.api, event)) if (!found.has(s.url)) found.set(s.url, s);
+        suggestions = suggestionsIn(model.api, event) ?? suggestions;
       },
     },
   );
@@ -97,7 +113,12 @@ export async function providerSearch(o: {
     .flatMap((c) => (c.type === "text" ? [c.text] : []))
     .join("")
     .trim();
-  return { text, sources: [...found.values()], cost: message.usage?.cost?.total ?? 0 };
+  return {
+    text,
+    sources: [...found.values()],
+    cost: message.usage?.cost?.total ?? 0,
+    ...(suggestions ? { suggestions } : {}),
+  };
 }
 
 /** What the agent reads: the answer, then its sources. */
@@ -108,6 +129,20 @@ export function searchResult(answer: SearchAnswer): string {
     .slice(0, 10)
     .map((s) => `- ${s.title}: ${s.url}`)
     .join("\n")}`;
+}
+
+/** A Google search's address, as a Search Suggestions chip links to (Q424). */
+export function isGoogleSearch(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return (
+      u.protocol === "https:" &&
+      /^(www\.)?google\.(?:[a-z]{2,3}|co\.[a-z]{2}|com\.[a-z]{2})$/.test(u.hostname) &&
+      u.pathname === "/search"
+    );
+  } catch {
+    return false;
+  }
 }
 
 function host(url: string) {

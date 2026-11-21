@@ -129,6 +129,13 @@ describe.skipIf(!existsSync(fixture))("Upstart's own harness, played back", () =
       }
       expect(item, item.error).toMatchObject({ kind: "agent", status: "done" });
       expect(labels(item)).toContain("Searching the web");
+      // Google's Search Suggestions under the search's line, in the discreet style too (Q424).
+      const suggestions = launched.window.getByTestId("search-suggestions");
+      await suggestions.waitFor();
+      expect(await suggestions.getAttribute("srcdoc")).toContain('class="chip"');
+      expect(await suggestions.getAttribute("sandbox")).toBe("allow-popups allow-popups-to-escape-sandbox");
+      expect((await suggestions.boundingBox())?.height).toBeGreaterThan(40);
+      await launched.capture("pi-search-suggestions");
       const path = await project();
       const footer = ["parts/footer.liquid", "pages/index.liquid"]
         .map((f) => (existsSync(join(path, f)) ? readFileSync(join(path, f), "utf8") : ""))
