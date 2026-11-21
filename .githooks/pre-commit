@@ -1,0 +1,21 @@
+#!/bin/sh
+# Before each commit, the lint the CI runs: Biome on the staged files and, when
+# the commit moves the templates' submodule, on the templates it points to.
+# `pnpm install` turns it on (scripts/git-hooks.mjs); `git commit --no-verify`
+# skips it once.
+root=$(git rev-parse --show-toplevel)
+biome="$root/node_modules/.bin/biome"
+if [ ! -x "$biome" ]; then
+  echo "pre-commit: Biome is not installed here: run pnpm install." >&2
+  exit 1
+fi
+if ! "$biome" check --staged --no-errors-on-unmatched --files-ignore-unknown=true; then
+  echo "pre-commit: the lint fails on the files above. pnpm format fixes most of it; stage the fix and commit again." >&2
+  exit 1
+fi
+if git diff --cached --name-only | grep -qx apps/desktop/templates; then
+  if ! (cd "$root/apps/desktop/templates" && "$biome" check .); then
+    echo "pre-commit: the templates this commit points to fail the lint: fix them and commit in apps/desktop/templates first." >&2
+    exit 1
+  fi
+fi

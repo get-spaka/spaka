@@ -9,7 +9,7 @@
       "!**/out",
       "!**/dist",
       "!**/vendor",
-      "!apps/desktop/templates/scripts/release.mjs",
+      "!!apps/desktop/templates",
       "!apps/desktop/src/main/theme/fixtures/agent-written-theme.css"
     ]
   },
