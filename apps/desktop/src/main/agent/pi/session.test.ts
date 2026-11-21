@@ -283,7 +283,9 @@ test("the harness's models for the accounts connected, with the efforts each acc
     "gemini/gemini-3.8-flash",
   ]);
   expect(choices[0]).toMatchObject({ name: "GPT-6.1 Terra", account: "chatgpt" });
-  expect(choices.find((c) => c.id === "gemini/gemini-4-hydrogen")?.efforts).toEqual(["low", "medium", "high"]);
+  // From Pi's own catalog since 1.6.0: Hydrogen also thinks at xhigh, Carbon does not.
+  expect(choices.find((c) => c.id === "gemini/gemini-4-hydrogen")?.efforts).toEqual(["low", "medium", "high", "xhigh"]);
+  expect(choices.find((c) => c.id === "gemini/gemini-4-carbon")?.efforts).toEqual(["low", "medium", "high"]);
 });
 
 test("every model of models.json is one pi-ai can call: its own, or declared like one of its own", async () => {
