@@ -104,6 +104,7 @@ describe.runIf(built && (process.platform === "darwin" || process.platform === "
           "htmx-patterns",
           "site-scripts",
           "upstart-help",
+          "web-design",
           "writing-skills",
         ]);
         // The builder finds Tailwind, daisyUI and htmx inside the archive.

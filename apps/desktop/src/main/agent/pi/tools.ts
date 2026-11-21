@@ -384,7 +384,7 @@ export function piFileTools({ root, readable, family, shell, search, summarize }
             name: "WebSearch",
             label: "WebSearch",
             description:
-              "Searches the web and answers with what it found and its sources: to check a fact you are unsure of (an address, opening hours, a price), or to study what well-made sites do now. WebFetch then reads a page it found.",
+              "Searches the web and answers with what it found and its sources: to check a fact you are unsure of (an address, opening hours, a price). WebFetch then reads a page it found.",
             parameters: fileSchema({ query: str("What to search for, in a few words or a question") }, ["query"]),
             async execute(id: string, { query }: { query: string }, signal?: AbortSignal) {
               if (typeof query !== "string" || !query.trim()) throw new Error("Say what to search for.");

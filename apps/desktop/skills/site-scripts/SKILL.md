@@ -5,7 +5,7 @@ description: How to give an Upstart site its own JavaScript and stylesheet — s
 
 # A site's own scripts and stylesheet
 
-Most sites need neither: Tailwind's classes, daisyUI and htmx cover layouts, menus, accordions, tabs and forms. Write a script only for what they cannot do, when the site's design or the maker asks for movement. Try CSS first: much movement needs no script at all (below).
+How much a site moves follows its character, from still to orchestrated: the web-design skill says which. Tailwind's classes, daisyUI and htmx already cover layouts, menus, accordions, tabs and forms; a script is for the movement they cannot do. Try CSS first: much movement needs no script at all (below).
 
 Pages never hold `<script>`, `<style>` or `<link>` tags. Upstart loads, for every page:
 
