@@ -54,6 +54,7 @@ export function chosenFrom(data: unknown): Partial<AppSettings> {
   if (projectOrder) chosen.projectOrder = projectOrder;
   if (typeof d.namingModel === "string" && d.namingModel.trim())
     chosen.namingModel = d.namingModel === "auto" ? "auto" : (claudeReplacement(d.namingModel) ?? d.namingModel);
+  if (typeof d.imageModel === "string" && d.imageModel.trim()) chosen.imageModel = d.imageModel;
   return chosen;
 }
 

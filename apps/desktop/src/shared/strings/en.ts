@@ -364,6 +364,7 @@ export const en = {
     findBlocks: "Looking for blocks in the gallery",
     placeBlocks: (page?: string) => (page ? `Placing blocks on ${page}` : "Placing blocks…"),
     findImages: "Looking for images",
+    generateImage: (name?: string) => (name ? `Generating an image: ${name}` : "Generating an image"),
     addImage: (name?: string) => (name ? `Adding the image ${name}` : "Adding an image…"),
     addImages: (n: number) => `Adding ${n} images`,
     skill: (name?: string) => (name ? `Following the skill ${name}` : "Following a skill…"),
@@ -653,6 +654,9 @@ export const en = {
     alt: "Alternative text",
     altHint: "What the image shows, for those who cannot see it",
     credits: "Credits",
+    generated: "Generated",
+    generatedWith: (model: string, date: Date) =>
+      `With ${model}, ${date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}. No credit to give.`,
     by: (author: string) => `by ${author}`,
     via: (source: string) => `via ${source}`,
     usedIn: (where: string) => `Used in ${where}`,
@@ -922,6 +926,10 @@ export const en = {
       namingHelp:
         "A small model names each new website from your description. Automatic: the small model of the website's account, Haiku on Claude, Flash on Gemini, Terra on OpenAI.",
       namingAuto: "Automatic",
+      images: "Model for images",
+      imagesHelp:
+        "Generates the images the agent makes for a website, with your Gemini or OpenAI account, which charges you a few cents an image. Automatic takes the website's account if it can, else a connected one's.",
+      imagesNone: "Connect a Gemini or OpenAI account",
       replies: "How the agent writes to you",
       replyStyle: "Reply style",
       replyStyles: { short: "Short", explained: "Explained", teaching: "Teaching" },

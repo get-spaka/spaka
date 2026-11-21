@@ -8,7 +8,14 @@ import type { ConversationEvent, Grounded } from "../../shared/conversation";
 import { en } from "../../shared/strings/en";
 import { CARD_TOOLS } from "./questions";
 import type { AgentEvent } from "./stream";
-import { FIND_BLOCKS_TOOL, FIND_IMAGES_TOOL, LOOK_TOOL, USE_BLOCK_TOOL, USE_IMAGE_TOOL } from "./upstart-tools";
+import {
+  FIND_BLOCKS_TOOL,
+  FIND_IMAGES_TOOL,
+  GENERATE_IMAGE_TOOL,
+  LOOK_TOOL,
+  USE_BLOCK_TOOL,
+  USE_IMAGE_TOOL,
+} from "./upstart-tools";
 
 type Known = { name: string; label: string; detail?: string; grounded?: Grounded };
 
@@ -125,6 +132,8 @@ export function activityLabel(name: string, input: Record<string, unknown>, proj
       return en.activity.placeBlocks(typeof input.page === "string" ? shortPath(input.page, projectDir) : undefined);
     case FIND_IMAGES_TOOL:
       return en.activity.findImages;
+    case GENERATE_IMAGE_TOOL:
+      return en.activity.generateImage(typeof input.name === "string" && input.name ? input.name : undefined);
     case USE_IMAGE_TOOL: {
       const images: { name?: unknown }[] = Array.isArray(input.images) ? input.images : [];
       if (images.length > 1) return en.activity.addImages(images.length);
@@ -200,6 +209,8 @@ export function activityDetail(name: string, input: Record<string, unknown>): st
       return text(input.pattern);
     case "WebSearch":
       return text(input.query) && clip(text(input.query)!, 400);
+    case GENERATE_IMAGE_TOOL:
+      return text(input.prompt) && clip(text(input.prompt)!, 400);
     case "WebFetch":
       return text(input.url) && clip(text(input.url)!, 400);
     case "Write":

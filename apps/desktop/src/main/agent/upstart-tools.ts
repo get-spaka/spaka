@@ -6,10 +6,13 @@
 // project's media (Q150, Q167). Claude gets them through the Agent SDK's
 // in-process server (preview-tool.ts), the Pi harness as its own tools.
 import { z } from "zod";
+import { IMAGE_ASPECTS } from "../../shared/image-models";
 import { BLOCK_KINDS } from "../../shared/ipc";
 import { isCollected } from "../editing/data-drop";
 import type { Placing } from "../editing/place-blocks";
 import type { Block } from "../gallery/catalogue";
+import { GENERATIONS_A_TURN, MAX_REFERENCES } from "../images/generate";
+import type { GenerateInput } from "../images/into-media";
 import { type LookOptions, lookText, MAX_STEPS, readSteps, type Seen, STEP_ACTIONS } from "../preview/look-steps";
 import { PAGES_DESCRIPTION, PAGES_SHAPE, PAGES_TOOL_NAME } from "../templates/pages-card";
 
@@ -22,6 +25,7 @@ export const FIND_IMAGES_TOOL = upstartToolName("find_images");
 export const USE_IMAGE_TOOL = upstartToolName("use_image");
 export const USE_BLOCK_TOOL = upstartToolName("use_block");
 export const PAGES_TOOL = upstartToolName(PAGES_TOOL_NAME);
+export const GENERATE_IMAGE_TOOL = upstartToolName("generate_image");
 
 export type Look = (route?: string, options?: LookOptions) => Promise<Seen>;
 export type FindBlocks = (query: string, kind: string | undefined, limit: number) => Block[];
@@ -35,6 +39,8 @@ export type UseImage = (images: ImageWanted[]) => Promise<string>;
 export type UseBlocks = (input: Placing) => string;
 /** Shows the card of pages of a template's adaptation, waits for the maker and answers with their choice (Q302). */
 export type ChoosePages = (input: unknown, signal?: AbortSignal) => Promise<string>;
+/** Generates an image with the maker's account and adds it to media/ (Q423); answers with its address or why not. */
+export type GenerateImage = (input: GenerateInput, signal?: AbortSignal) => Promise<string>;
 export type UpstartTools = {
   look: Look;
   findBlocks: FindBlocks;
@@ -42,6 +48,8 @@ export type UpstartTools = {
   useImage: UseImage;
   useBlocks: UseBlocks;
   choosePages: ChoosePages;
+  /** Only when an account that generates images is connected (Q423). */
+  generateImage?: GenerateImage;
 };
 
 /** What a tool answers: text, and images the model looks at. */
@@ -128,6 +136,7 @@ export function upstartTools({
   useImage: addImages,
   useBlocks,
   choosePages,
+  generateImage,
 }: UpstartTools): UpstartToolDef[] {
   return [
     {
@@ -217,6 +226,35 @@ export function upstartTools({
         return text(await addImages(wanted));
       },
     },
+    ...(generateImage
+      ? [
+          {
+            name: "generate_image",
+            description: `Generates an image with the maker's own account (Gemini or OpenAI, which charges them a few cents an image) and adds it to the project's media/ folder with its alternative text, answering with its address. Use it, rather than a free photo from find_images, when the site's style calls for it: an illustration, a texture or pattern, a background, a scene of mood, or a subject no free photo shows well. Never the business's own team or any real person, a logo, a testimonial, or text inside the image (write text in the page). Describe it as a photographer or illustrator would: the subject, the setting, the light, the framing, the style and palette of the site, the same words from one image to the next so they belong together. To keep one style across images, or to retouch an image of the maker's at their request, give up to ${MAX_REFERENCES} images of media/ as references: the result is a new image, the original stays. At most ${GENERATIONS_A_TURN} images a turn: beyond, ask the maker.`,
+            shape: {
+              prompt: z.string().describe("What the image shows and how, in English, in a few sentences"),
+              aspect: z
+                .enum(IMAGE_ASPECTS)
+                .describe(
+                  "Its shape for the place it goes: 16:9 or 21:9 for a banner, 4:3 for a card, 3:4 for a portrait, 1:1 square, 9:16 tall",
+                ),
+              name: z.string().describe('A short file name for it, without extension, e.g. "linen-texture"'),
+              alt: z
+                .string()
+                .describe(
+                  "What the image shows, for those who cannot see it, in the language of the maker's message (the site's)",
+                ),
+              references: z
+                .array(z.string())
+                .max(MAX_REFERENCES)
+                .optional()
+                .describe('Images of the project to start from, by their address, e.g. ["/media/shop-front.jpg"]'),
+            },
+            openWorld: true,
+            run: async (input: GenerateInput, signal?: AbortSignal) => text(await generateImage(input, signal)),
+          } satisfies UpstartToolDef,
+        ]
+      : []),
     {
       name: PAGES_TOOL_NAME,
       description: PAGES_DESCRIPTION,

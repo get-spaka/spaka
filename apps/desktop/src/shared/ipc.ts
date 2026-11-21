@@ -439,6 +439,8 @@ export type AppSettings = {
   projectOrder: ProjectOrder;
   /** The model that names a new website (Q407): "auto", the small model of the website's account, or a model's id. */
   namingModel: string;
+  /** The model that generates images (Q427): "auto", the website's account's if it can, else a connected one's; or a model's id. */
+  imageModel: string;
 };
 export const DEFAULT_APP_SETTINGS: AppSettings = {
   newModel: "claude-opus-5-5",
@@ -452,6 +454,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   tourSeen: false,
   projectOrder: "updated",
   namingModel: "auto",
+  imageModel: "auto",
 };
 
 /** Calls from the interface that get an answer: channel → (args) → answer. */
@@ -567,6 +570,8 @@ export type MediaItem = {
   image: boolean;
   alt?: string;
   credit?: MediaCredit;
+  /** How it was generated, for an image generate_image made (Q428). */
+  generated?: { model: string; prompt: string; date: string };
   /** The files that use it, and that said for the maker ("2 pages, Posts (3)"). */
   uses: string[];
   usesLabel: string;

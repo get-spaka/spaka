@@ -237,3 +237,32 @@ test.skipIf(!bash)(
     expect(asked).toHaveLength(2);
   },
 );
+
+test("generate_image is among Upstart's tools only with an account that generates images, and plan mode refuses it (Q423)", async () => {
+  const base = {
+    look: async () => ({ route: "/", errors: [], notes: [] }),
+    findBlocks: () => [],
+    findImages: async () => "",
+    useImage: async () => "",
+    useBlocks: () => "",
+    choosePages: async () => "",
+  };
+  expect(upstartTools(base).map((d) => d.name)).not.toContain("generate_image");
+  const asked: unknown[] = [];
+  const defs = upstartTools({
+    ...base,
+    generateImage: async (input) => {
+      asked.push(input);
+      return "Generated and added as /media/linen.webp";
+    },
+  });
+  const tool = piUpstartTools(defs).find((t) => t.name === "generate_image")!;
+  expect(tool.executionMode).toBe("sequential");
+  const result = await tool.execute("id", { prompt: "Linen", aspect: "16:9", name: "linen", alt: "Lin" });
+  expect(result.content).toEqual([{ type: "text", text: "Generated and added as /media/linen.webp" }]);
+  expect(asked).toEqual([{ prompt: "Linen", aspect: "16:9", name: "linen", alt: "Lin" }]);
+  await expect(tool.execute("id", { prompt: "x", aspect: "2:1", name: "a", alt: "" })).rejects.toThrow();
+  const { PLAN_WRITERS, readsOnly } = await import("../questions");
+  expect(PLAN_WRITERS.has("mcp__upstart__generate_image")).toBe(true);
+  expect(readsOnly("mcp__upstart__generate_image")).toBe(false);
+});

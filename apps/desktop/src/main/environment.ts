@@ -31,6 +31,8 @@ export type Environment = {
   agentReplaySpeed: number;
   /** A folder of made-up images the image search answers with, for the checks. */
   imagesFixture: string | undefined;
+  /** Images generated as plain colors, no account asked, for the checks (generate_image, Q423). */
+  imagesGenerated: boolean;
   /** Where to record the agent's stream, to play it back in later checks. */
   agentRecord: string | undefined;
   /** Recorded replies of a model of Upstart's own harness, played back instead of asking it (pi/replay.ts). */
@@ -69,6 +71,7 @@ export function readEnvironment(
     agentReplay: env.UPSTART_AGENT_REPLAY || undefined,
     agentReplaySpeed: Number(env.UPSTART_AGENT_REPLAY_SPEED) || 4,
     imagesFixture: env.UPSTART_IMAGES_FIXTURE || undefined,
+    imagesGenerated: env.UPSTART_IMAGES_GENERATED === "1",
     statsLog: env.UPSTART_STATS_LOG || undefined,
     agentRecord: env.UPSTART_AGENT_RECORD || undefined,
     piReplay: env.UPSTART_PI_REPLAY || undefined,

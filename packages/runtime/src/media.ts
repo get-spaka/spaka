@@ -18,7 +18,14 @@ export type Credit = {
   sourceUrl?: string;
 };
 
-export type MediaInfo = { alt?: string; credit?: Credit };
+/**
+ * How an image was generated (Q428): by which model, from which prompt, when,
+ * and from which images of the project; kept to make it again or vary it. It
+ * has no credit to give.
+ */
+export type Generation = { model: string; prompt: string; date: string; references?: string[] };
+
+export type MediaInfo = { alt?: string; credit?: Credit; generated?: Generation };
 
 export const CREDITS_ROUTE = "/credits";
 

@@ -4,6 +4,7 @@
 // one renamed is renamed everywhere it is used.
 import { ChevronLeft, FileText, ImageOff, Search, Trash2, Upload } from "lucide-react";
 import { type DragEvent, useCallback, useEffect, useRef, useState } from "react";
+import { IMAGE_MODELS } from "../../shared/image-models";
 import type { MediaFound, MediaItem } from "../../shared/ipc";
 import { upstart } from "../lib/bridge";
 import { messageOf } from "../lib/errors";
@@ -171,6 +172,14 @@ export function MediaLibrary({ onError }: { onError: (message: string | undefine
                   )}
                   <div className="flex items-center gap-1 px-1.5 py-1">
                     <span className="truncate text-[11px]">{m.name}</span>
+                    {m.generated && (
+                      <span
+                        data-testid="media-generated-mark"
+                        className="shrink-0 rounded bg-muted px-1 text-[9px] text-muted-foreground uppercase"
+                      >
+                        {t.media.generated}
+                      </span>
+                    )}
                     {m.uses.length > 0 && <span className="ml-auto size-1.5 shrink-0 rounded-full bg-success" />}
                   </div>
                 </button>
@@ -334,6 +343,13 @@ function MediaDetail({
             />
           </label>
         )}
+        {item.generated && (
+          <div data-testid="media-generated" className="space-y-0.5 text-xs">
+            <span className="font-medium text-muted-foreground">{t.media.generated}</span>
+            <p>{t.media.generatedWith(modelLabel(item.generated.model), new Date(item.generated.date))}</p>
+            <p className="whitespace-pre-wrap text-muted-foreground">{item.generated.prompt}</p>
+          </div>
+        )}
         {credit && (
           <div data-testid="media-credit" className="space-y-0.5 text-xs">
             <span className="font-medium text-muted-foreground">{t.media.credits}</span>
@@ -448,4 +464,9 @@ export function ImageSearch({
       </ul>
     </div>
   );
+}
+
+/** A generating model's name, from the list of image models, else its id. */
+function modelLabel(id: string): string {
+  return IMAGE_MODELS.find((m) => m.id === id)?.name ?? id;
 }

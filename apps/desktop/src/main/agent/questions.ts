@@ -6,6 +6,7 @@ import type { AgentQuestion, QuestionAnswer } from "../../shared/conversation";
 import {
   FIND_BLOCKS_TOOL,
   FIND_IMAGES_TOOL,
+  GENERATE_IMAGE_TOOL,
   LOOK_TOOL,
   PAGES_TOOL,
   UPSTART_SERVER,
@@ -200,7 +201,16 @@ export function readsOnly(name: string): boolean {
  * harness: canonical names. The card of pages too, which starts an
  * adaptation, as Claude's plan mode refuses it (Q436).
  */
-export const PLAN_WRITERS = new Set(["Write", "Edit", "Append", "Bash", USE_BLOCK_TOOL, USE_IMAGE_TOOL, PAGES_TOOL]);
+export const PLAN_WRITERS = new Set([
+  "Write",
+  "Edit",
+  "Append",
+  "Bash",
+  USE_BLOCK_TOOL,
+  USE_IMAGE_TOOL,
+  GENERATE_IMAGE_TOOL,
+  PAGES_TOOL,
+]);
 
 /** What the agent of the Pi harness reads with the maker's message in plan mode. */
 export function planMessage(text: string): string {

@@ -1,5 +1,7 @@
 // The model and effort rows: for new websites in the settings window, for one
 // website in its own settings (Q117, Q118).
+
+import { IMAGE_MODELS } from "../../shared/image-models";
 import { accountOf, type Effort, type ModelChoice } from "../../shared/ipc";
 import { NativeSelect } from "../components/ui/native-select";
 import { t } from "../lib/strings";
@@ -109,6 +111,52 @@ export function NamingRow({
       >
         <option value="auto">{t.settings.agent.namingAuto}</option>
         <ModelOptions models={models} />
+      </NativeSelect>
+    </Row>
+  );
+}
+
+/**
+ * The model that generates images (Q427): Automatic, or one of the connected
+ * accounts'. Without such an account, there is nothing to choose: it says how
+ * to have one.
+ */
+export function ImageModelRow({
+  accounts,
+  value,
+  onChange,
+}: {
+  accounts: Record<string, boolean>;
+  value: string;
+  onChange: (imageModel: string) => void;
+}) {
+  const offered = IMAGE_MODELS.filter((m) => accounts[m.account]);
+  const shown = value !== "auto" && offered.some((m) => m.id === value) ? value : "auto";
+  const accountName = { gemini: "Gemini", vertex: "Vertex AI", openai: "OpenAI" } as const;
+  return (
+    <Row id="image-model" label={t.settings.agent.images} detail={t.settings.agent.imagesHelp} htmlFor="image-model">
+      <NativeSelect
+        id="image-model"
+        data-testid="image-model"
+        size="xs"
+        className={selectClass}
+        wrapperClassName="shrink-0"
+        disabled={!offered.length}
+        value={offered.length ? shown : "none"}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        {offered.length ? (
+          <>
+            <option value="auto">{t.settings.agent.namingAuto}</option>
+            {offered.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name} ({accountName[m.account]})
+              </option>
+            ))}
+          </>
+        ) : (
+          <option value="none">{t.settings.agent.imagesNone}</option>
+        )}
       </NativeSelect>
     </Row>
   );

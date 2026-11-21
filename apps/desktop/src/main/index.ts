@@ -27,6 +27,7 @@ import { diskSource } from "@upstart/runtime/node";
 import { app, BrowserWindow, dialog, Menu, Notification, nativeTheme, net, safeStorage, shell } from "electron";
 import electronUpdater from "electron-updater";
 import { isPlan } from "../shared/conversation";
+import { type ImageAccount, imageModelFor } from "../shared/image-models";
 import {
   accountOf,
   type ConnectorInfo,
@@ -55,6 +56,7 @@ import { namingModelFor } from "./agent/naming";
 import { PiAccounts } from "./agent/pi/accounts";
 import { VaultSignIns } from "./agent/pi/connectors";
 import { PiRecorder, piReplay } from "./agent/pi/replay";
+import { GCLOUD_SIGN_IN } from "./agent/pi/vertex";
 import { isGoogleSearch } from "./agent/pi/web-search";
 import { claudeExtras, UPSTART_SERVER } from "./agent/preview-tool";
 import { NOT_ANSWERED } from "./agent/questions";
@@ -77,6 +79,14 @@ import { BlockIndex, findWithDesign } from "./gallery/search";
 import { blockShown } from "./gallery/shown";
 import { Thumbnails } from "./gallery/thumbnails";
 import { History } from "./history/history";
+import {
+  GENERATIONS_A_TURN,
+  type GeneratedImage,
+  generateImage,
+  type ImageCredentials,
+  splitImageModel,
+} from "./images/generate";
+import { generateIntoMedia } from "./images/into-media";
 import { createIpc } from "./ipc";
 import { FileTap } from "./live/tap";
 import { addFoundImages, libraryFiles, mediaKind, usesLabel, usesOf, usingFiles } from "./media/library";
@@ -454,12 +464,48 @@ async function main() {
   const tokens = new ManagementTokens(userData, vault);
   // Free images for the agent and the maker (Q150); a folder of made-up ones for the checks.
   const images: ImageFinder = env.imagesFixture ? new FixtureImages(env.imagesFixture) : new ImageSearch();
+  // The images generated in each website's turn, at most GENERATIONS_A_TURN (Q426).
+  const generatedThisTurn = new Map<string, number>();
+  /** The model that generates a website's images now, if an account for it is connected (Q423, Q427). */
+  const imageModelOf = (project: { model?: string }) =>
+    imageModelFor(
+      settings.get().imageModel,
+      project.model ?? "",
+      env.imagesGenerated ? ["gemini"] : piAccounts.connected(),
+    );
+  /** How an account that generates images is reached. */
+  const imageCredentials = (account: ImageAccount): ImageCredentials | undefined => {
+    const key = piAccounts.apiKey(account);
+    if (!key) return undefined;
+    if (account !== "vertex" || key !== GCLOUD_SIGN_IN) return { account, key } as ImageCredentials;
+    const gcloud = piAccounts.vertexGcloud();
+    return gcloud ? { account: "vertex", project: gcloud.project, location: gcloud.location } : undefined;
+  };
+  /** generate_image for a website (Q423-Q429): the settings' model, its account, the turn's limit. */
+  const generateFor =
+    (project: { id: string; path: string; model?: string }) =>
+    async (input: Parameters<typeof generateIntoMedia>[2], signal?: AbortSignal) => {
+      const model = imageModelOf(project);
+      if (!model) return "No account that generates images is connected: use find_images instead.";
+      const used = generatedThisTurn.get(project.id) ?? 0;
+      if (used >= GENERATIONS_A_TURN)
+        return `${GENERATIONS_A_TURN} images were generated in this turn already: ask the maker before generating more.`;
+      generatedThisTurn.set(project.id, used + 1);
+      const { account, model: id } = splitImageModel(model);
+      return generateIntoMedia(project.path, model, input, async (request): Promise<GeneratedImage> => {
+        if (env.imagesGenerated) return plainImage(request.aspect);
+        const credentials = imageCredentials(account);
+        if (!credentials) throw new Error("The account for images is no longer connected.");
+        return generateImage(credentials, id, request, signal);
+      });
+    };
   // What Upstart gives a project's agent, whichever layer runs it (ADR 0012): its tools and its checks.
-  const kitFor = (project: { id: string; path: string }): AgentKit => {
+  const kitFor = (project: { id: string; path: string; model?: string }): AgentKit => {
     const checks = new TurnChecks(project.path);
     return {
       checks,
       tools: {
+        ...(imageModelOf(project) ? { generateImage: generateFor(project) } : {}),
         look: (route, options) => preview.look(route, options),
         findBlocks: findBlocksIn(project.path),
         findImages: async (query, count) => imagesAnswer(query, await images.search(query, count)),
@@ -499,7 +545,12 @@ async function main() {
       userAgent: { custom: `Upstart/${app.getVersion()}` },
       attribution: { name: "Upstart", url: "https://upstart.gg" },
     },
-    onChange: () => agent && ipc.emit("agent:status", agent.status()),
+    onChange: () => {
+      if (!agent) return;
+      ipc.emit("agent:status", agent.status());
+      // An account that generates images, connected or let go: the agents start again with generate_image or without it.
+      agent.refreshExtensions();
+    },
     openBrowser: (url) => {
       if (url.startsWith("https://") && !env.background) void shell.openExternal(url);
     },
@@ -520,6 +571,7 @@ async function main() {
       instructions: () => instructionsFor(settings.get().replyStyle),
       extraOptions: (project) => claudeExtras(kitFor(project)),
       connectors: [UPSTART_SERVER],
+      toolsKey: (project) => (imageModelOf(project) ? "images" : ""),
       skills,
       connectorServers: connectors,
       query: (env.agentReplay ? replayQuery(env.agentReplay, env.agentReplaySpeed) : query) as never,
@@ -530,6 +582,7 @@ async function main() {
       replay: env.piReplay ? piReplay(env.piReplay, 100 * env.agentReplaySpeed) : undefined,
       deps: {
         kit: kitFor,
+        toolsKey: (project) => (imageModelOf(project) ? "images" : ""),
         instructions: (family, listed, search) => instructionsFor(settings.get().replyStyle, family, listed, search),
         env: agentEnv,
         readable: launcher.readable,
@@ -554,6 +607,7 @@ async function main() {
     dataFor: (id) => projects.dataFor(id),
     emitConversation: (projectId, event) => {
       ipc.emit("conversation:event", { projectId, event });
+      if (event.type === "turn-start") generatedThisTurn.delete(projectId);
       // Editing by hand waits while the agent works on the project shown (Q91), and
       // comes back while it waits for the maker's answer (Q294).
       if (projectId === current?.id && PAUSING.has(event.type)) preview.setPaused(agentBusy(projectId));
@@ -1647,6 +1701,9 @@ async function main() {
         image: mediaKind(path) === "image",
         ...(info?.alt ? { alt: info.alt } : {}),
         ...(info?.credit ? { credit: info.credit } : {}),
+        ...(info?.generated
+          ? { generated: { model: info.generated.model, prompt: info.generated.prompt, date: info.generated.date } }
+          : {}),
         uses,
         usesLabel: usesLabel(uses, datasourceLabel),
       };
@@ -1788,6 +1845,7 @@ async function main() {
         templateViewer,
         checks,
         replayed,
+        kitFor,
       },
     });
 
@@ -1804,3 +1862,20 @@ main().catch((error) => {
   console.error("[upstart] failed to start", error);
   app.exit(1);
 });
+
+/** A generated image for the checks: a plain color in the shape asked, no account used. */
+async function plainImage(aspect: string): Promise<GeneratedImage> {
+  const [w, h] = aspect.split(":").map(Number) as [number, number];
+  const { default: sharp } = await import("sharp");
+  const data = await sharp({
+    create: {
+      width: Math.round((1024 * w) / Math.max(w, h)),
+      height: Math.round((1024 * h) / Math.max(w, h)),
+      channels: 3,
+      background: "#7a8c6e",
+    },
+  })
+    .png()
+    .toBuffer();
+  return { data, mimeType: "image/png" };
+}

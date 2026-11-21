@@ -75,7 +75,9 @@ export type PiDeps = {
   /** The maker's key for an account; undefined for the sign-in the collection keeps. */
   apiKey(account: PiAccount): Promise<string | undefined> | string | undefined;
   /** Upstart's tools and checks for a project. */
-  kit(project: { id: string; path: string }): AgentKit;
+  kit(project: ProjectInfo): AgentKit;
+  /** Which of Upstart's tools the agent is given (generate_image with an account for it, Q423): it starts again when that changes. */
+  toolsKey?: (project: ProjectInfo) => string;
   /** The instructions for a family of models, with the skills it may read. */
   instructions(family: InstructionsFamily, skills: SkillListing[], search: boolean): string;
   /** The shell's environment, and the folders it may read although they sit in a denied place. */
@@ -145,6 +147,8 @@ export class PiSession implements AgentRunner {
   private readonly openCards = new Map<string, string>();
   /** Build, or plan mode (Q286): the tools that change the project are refused until the plan is approved. */
   private mode: AgentMode;
+  /** Which of Upstart's tools the running agent was given (toolsKey). */
+  private toolsKey: string | undefined;
   /** A mode chosen while the agent worked, for when its turn ends (Q436). */
   private nextMode: AgentMode | undefined;
   /** What the maker changed by hand while a question waited, told with its answer (Q294). */
@@ -190,6 +194,7 @@ export class PiSession implements AgentRunner {
     const model = this.model();
     const family = familyOf(this.account);
     const kit = this.deps.kit(this.project);
+    this.toolsKey = this.deps.toolsKey?.(this.project);
     const skills = this.assembleSkills();
     const upstart = upstartTools(kit.tools);
     this.upstartNames = new Set(upstart.map((t) => t.name));
@@ -254,7 +259,8 @@ export class PiSession implements AgentRunner {
   send(text: string, forAgent = text) {
     if (this.working) throw new Error("The agent is already working.");
     // Skills changed, or a model of the other family: the agent starts again with them, its memory kept.
-    if (this.loop && (this.rebuild || this.skillsChanged() || this.connectorsChanged())) this.close();
+    if (this.loop && (this.rebuild || this.skillsChanged() || this.connectorsChanged() || this.toolsChanged()))
+      this.close();
     this.start();
     this.working = true;
     this.stopping = false;
@@ -449,7 +455,7 @@ export class PiSession implements AgentRunner {
   }
 
   refreshExtensions(): boolean {
-    if (!this.loop || !(this.skillsChanged() || this.connectorsChanged())) return false;
+    if (!this.loop || !(this.skillsChanged() || this.connectorsChanged() || this.toolsChanged())) return false;
     if (!this.working) {
       this.close();
       this.start();
@@ -500,6 +506,10 @@ export class PiSession implements AgentRunner {
 
   private allTools(): HarnessTool[] {
     return [...this.baseTools, ...(this.connectors?.set.tools() ?? [])];
+  }
+
+  private toolsChanged() {
+    return !!this.deps.toolsKey && this.deps.toolsKey(this.project) !== this.toolsKey;
   }
 
   private connectorsChanged() {

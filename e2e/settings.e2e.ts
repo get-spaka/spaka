@@ -172,6 +172,11 @@ describe("the settings panel", () => {
     await until(async () => (await invoke("settings:get")).replyStyle === "teaching");
     await w.getByTestId("new-effort").locator('[data-value="high"]').click();
     await until(async () => (await invoke("settings:get")).newEffort === "high");
+    // No account that generates images is connected: the model for images waits for one (Q427).
+    await expect(w.getByTestId("image-model").isDisabled()).resolves.toBe(true);
+    expect(await w.getByTestId("image-model").locator("option").allTextContents()).toEqual([
+      "Connect a Gemini or OpenAI account",
+    ]);
     await launched.capture("settings-agent");
     await w.keyboard.press("Escape");
     await until(closed);

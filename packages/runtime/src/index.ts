@@ -60,6 +60,7 @@ export {
   creditedMedia,
   creditsPage,
   fillAlts,
+  type Generation,
   imagesIn,
   infoFile,
   type MediaInfo,

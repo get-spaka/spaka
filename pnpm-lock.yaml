@@ -50,6 +50,9 @@ importers:
       '@earendil-works/pi-schema':
         specifier: 1.6.0
         version: 1.6.0
+      '@google/genai':
+        specifier: 2.32.0
+        version: 2.32.0(@modelcontextprotocol/sdk@1.32.2(zod@4.6.7))
       '@tailwindcss/browser':
         specifier: 4.3.5
         version: 4.3.5

@@ -51,7 +51,7 @@ import { APP_ICON } from "../lib/icon";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { ConnectorList, SkillList } from "./lists";
-import { ModelRows, NamingRow } from "./model";
+import { ImageModelRow, ModelRows, NamingRow } from "./model";
 import { Group, Highlighted, inputClass, Push, Row, Segmented, Switch } from "./ui";
 
 const ICONS: Record<SettingsPage, { icon: LucideIcon; color: string }> = {
@@ -454,6 +454,11 @@ function AgentPage() {
           models={status.models}
           value={settings.namingModel}
           onChange={(namingModel) => void upstart.invoke("settings:set", { namingModel })}
+        />
+        <ImageModelRow
+          accounts={status.accounts}
+          value={settings.imageModel}
+          onChange={(imageModel) => void upstart.invoke("settings:set", { imageModel })}
         />
       </Group>
       <Group title={t.settings.agent.replies} caption={t.settings.agent.replyStyleNote}>

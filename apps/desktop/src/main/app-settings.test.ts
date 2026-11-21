@@ -31,6 +31,7 @@ test("each value is checked; a wrong or missing one is its default", () => {
       tourSeen: "no",
       projectOrder: "size",
       namingModel: "",
+      imageModel: "",
     }),
   ).toEqual(DEFAULT_SETTINGS);
   const chosen = {
@@ -45,6 +46,7 @@ test("each value is checked; a wrong or missing one is its default", () => {
     tourSeen: true,
     projectOrder: "name",
     namingModel: "gemini/gemini-3.8-flash",
+    imageModel: "openai/gpt-image-2",
   };
   expect(settingsFrom(chosen)).toEqual(chosen);
   // A naming model taken off the list gives way to the latest of its family (Q399, Q407).

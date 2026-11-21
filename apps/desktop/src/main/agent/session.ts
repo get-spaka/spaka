@@ -60,6 +60,8 @@ export type SessionDeps = {
   };
   /** The connectors the agent is given, by server name, for the isolation check. */
   connectors?: string[];
+  /** Which of Upstart's tools the agent is given (generate_image with an account for it, Q423): it starts again when that changes. */
+  toolsKey?: (project: ProjectInfo) => string;
   /** The maker's connectors that are on for a project (ADR 0010), as the kit takes them. */
   connectorServers?: {
     servers(project: { id: string; path: string }): Record<string, unknown>;
@@ -108,6 +110,8 @@ export class AgentSession implements AgentRunner {
   private skills: { assembled: AssembledSkills; fingerprint: string } | undefined;
   /** The maker's connectors the running agent was given, and their fingerprint at the time. */
   private connectors: { names: string[]; fingerprint: string } | undefined;
+  /** Which of Upstart's tools the running agent was given (toolsKey). */
+  private toolsKey: string | undefined;
   /** The connectors' state as the agent's kit last reported it. */
   private serverStatus: { name: string; status: string; error?: string }[] = [];
   /** The cards of questions the turn waits on (Q283). */
@@ -152,6 +156,7 @@ export class AgentSession implements AgentRunner {
     const resume = this.sessionId();
     const skills = this.assembleSkills();
     const extra = this.deps.extraOptions?.(this.project) ?? {};
+    this.toolsKey = this.deps.toolsKey?.(this.project);
     const servers = this.deps.connectorServers?.servers(this.project) ?? {};
     this.connectors = {
       names: Object.keys(servers),
@@ -398,7 +403,8 @@ export class AgentSession implements AgentRunner {
     const connectors = this.deps.connectorServers;
     return (
       (!!skills && skills.fingerprint(this.project.path) !== this.skills?.fingerprint) ||
-      (!!connectors && connectors.fingerprint(this.project) !== this.connectors?.fingerprint)
+      (!!connectors && connectors.fingerprint(this.project) !== this.connectors?.fingerprint) ||
+      (!!this.deps.toolsKey && this.deps.toolsKey(this.project) !== this.toolsKey)
     );
   }
 
