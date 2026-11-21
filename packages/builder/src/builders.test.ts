@@ -192,6 +192,8 @@ describe("a site's scripts and stylesheet (ADR 0011)", () => {
       "scripts/lib/split.js": "window.split = 1;",
       "scripts/reveal.js": "export function start(root) {}",
       "styles/site.css": ".headline { @apply text-primary; letter-spacing: -0.04em; }",
+      // A picture the stylesheet refers to (Kindly's seal, Commons' edges): served as it is.
+      "styles/edges/wave.svg": "<svg/>",
       // A template's blocks, offered by the Blocks tab (Q235): not the site's.
       "blocks/hero/hero-studio/block.liquid": "<section>Hero</section>",
     });
@@ -209,6 +211,7 @@ describe("a site's scripts and stylesheet (ADR 0011)", () => {
     expect(css).toMatch(/\.headline\s*\{[^}]*color: var\(--theme-color-primary[^}]*letter-spacing: -0\.04em/);
     // Compiled into site.css, not copied as it is.
     expect(existsSync(join(out, "styles/site.css"))).toBe(false);
+    expect(existsSync(join(out, "styles/edges/wave.svg"))).toBe(true);
     expect(existsSync(join(out, "blocks"))).toBe(false);
   });
 
@@ -218,6 +221,7 @@ describe("a site's scripts and stylesheet (ADR 0011)", () => {
     expect(site.assets.modules).toEqual(["scripts/reveal.js"]);
     expect(existsSync(join(out, "public/assets/up-start.js"))).toBe(true);
     expect(existsSync(join(out, "public/scripts/reveal.js"))).toBe(true);
+    expect(existsSync(join(out, "public/styles/edges/wave.svg"))).toBe(true);
   });
 
   test("a site without them gets no start script", async () => {
