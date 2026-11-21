@@ -57,6 +57,22 @@ test("daisyUI's revert-layer answer to a Tailwind utility of the same name stays
   );
 });
 
+test("a breakpoint's block holding daisyUI's classes beside utilities is cut in its order: the utilities stay", () => {
+  const css = [
+    "@layer utilities{",
+    ".flex-col{flex-direction:column}",
+    "@media (width>=40rem){.sm\\:flex-row{flex-direction:row}@layer daisyui.l1{.sm\\:btn-md{--size:2.5rem}}.sm\\:w-auto{width:auto}}",
+    "}",
+  ].join("");
+  expect(daisyuiBelowComponents(css)).toBe(
+    [
+      "@layer utilities{.flex-col{flex-direction:column}@media (width>=40rem){.sm\\:flex-row{flex-direction:row}}}",
+      "@layer daisyui{@media (width>=40rem){@layer daisyui.l1{.sm\\:btn-md{--size:2.5rem}}}}",
+      "@layer utilities{@media (width>=40rem){.sm\\:w-auto{width:auto}}}",
+    ].join(""),
+  );
+});
+
 test("a stylesheet without daisyUI's components is left as it is", () => {
   const css = "@layer utilities{.p-4{padding:1rem}}\n.hero{color:red}\n";
   expect(daisyuiBelowComponents(css)).toBe(css);

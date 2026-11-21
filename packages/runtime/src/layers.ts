@@ -29,19 +29,41 @@ export function daisyuiBelowComponents(css: string): string {
       const [, lead, inner] = utilities as unknown as [string, string, string];
       const groups: { daisyui: boolean; text: string }[] = [];
       const answers: string[] = [];
-      for (const part of statements(inner, 0, inner.length)) {
-        const plain = part.replace(/\/\*[\s\S]*?\*\//g, "");
-        const daisyui = /@layer\s+daisyui\b/.test(plain);
-        if (daisyui) answers.push(...revertLayerAnswers(plain));
+      for (const piece of statements(inner, 0, inner.length).flatMap(pieces)) {
+        if (piece.daisyui) answers.push(...revertLayerAnswers(piece.text.replace(/\/\*[\s\S]*?\*\//g, "")));
         const last = groups.at(-1);
-        if (last && (last.daisyui === daisyui || !part.trim())) last.text += part;
-        else groups.push({ daisyui, text: part });
+        if (last && (last.daisyui === piece.daisyui || !piece.text.trim())) last.text += piece.text;
+        else groups.push(piece);
       }
       if (!groups.some((g) => g.daisyui)) return statement;
       const kept = answers.length > 0 ? `@layer utilities{${answers.join("")}}` : "";
       return lead + groups.map((g) => `@layer ${g.daisyui ? "daisyui" : "utilities"}{${g.text}}`).join("") + kept;
     })
     .join("");
+}
+
+/**
+ * A part of the utilities layer as daisyUI's or not. A breakpoint's block
+ * (`@media`, `@supports`, `@container`) holding daisyUI's classes beside
+ * Tailwind's (`sm:btn-md` with `sm:flex-row`, compiled into one block) is cut
+ * in its order into blocks of the same condition, each one daisyUI's or not:
+ * moved whole, it would take that breakpoint's utilities with it.
+ */
+function pieces(part: string): { daisyui: boolean; text: string }[] {
+  const plain = part.replace(/\/\*[\s\S]*?\*\//g, "");
+  if (!/@layer\s+daisyui\b/.test(plain)) return [{ daisyui: false, text: part }];
+  const block = /^(\s*)(@(?:media|supports|container)\b[^{]*)\{([\s\S]*)\}\s*$/.exec(part);
+  if (!block) return [{ daisyui: true, text: part }];
+  const [, lead, head, inner] = block as unknown as [string, string, string, string];
+  const inside = statements(inner, 0, inner.length).flatMap(pieces);
+  if (inside.every((p) => p.daisyui || !p.text.trim())) return [{ daisyui: true, text: part }];
+  const groups: { daisyui: boolean; text: string }[] = [];
+  for (const piece of inside) {
+    const last = groups.at(-1);
+    if (last && (last.daisyui === piece.daisyui || !piece.text.trim())) last.text += piece.text;
+    else groups.push({ ...piece });
+  }
+  return groups.map((g, i) => ({ daisyui: g.daisyui, text: `${i === 0 ? lead : ""}${head}{${g.text}}` }));
 }
 
 /**

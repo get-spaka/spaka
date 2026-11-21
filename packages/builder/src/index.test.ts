@@ -65,6 +65,17 @@ test("a site's own @layer components rules come after daisyUI's components, the 
   expect(layersOf(css, ".rounded-none")).toEqual(["utilities"]);
 });
 
+test("a daisyUI class behind a breakpoint leaves that breakpoint's utilities in the utilities layer", async () => {
+  const source = memorySource({
+    "pages/index.liquid": `<!doctype html><html lang="en"><head><title>Home</title></head><body><div class="flex flex-col sm:flex-row"><a class="btn btn-sm sm:btn-md w-full sm:w-auto">Write</a></div></body></html>`,
+  });
+  await buildStatic({ source, outDir: out });
+  const css = readFileSync(join(out, "assets/site.css"), "utf8");
+  expect(layersOf(css, ".sm\\:btn-md").every((l) => l.startsWith("daisyui"))).toBe(true);
+  expect(layersOf(css, ".sm\\:flex-row")).toEqual(["utilities"]);
+  expect(layersOf(css, ".sm\\:w-auto")).toEqual(["utilities"]);
+});
+
 test("a page that fails is left out and said", async () => {
   const result = await buildStatic({ source: memorySource({ "pages/index.liquid": "{% if %}" }), outDir: out });
   expect(result.pages).toEqual([]);
