@@ -35,6 +35,22 @@ export function themeTraits(
 }
 
 /** A hex color's relative luminance, from 0 (black) to 1 (white); 1 when it is not a hex color. */
+/**
+ * Whether a surface is the warm off-white models reach for whatever the
+ * business (#FAF7F2 and its neighbours), rather than a surface chosen with the
+ * direction: light, barely tinted, toward yellow or orange (Q445).
+ */
+export function warmOffWhite(color: string): boolean {
+  const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(color.trim())?.[1];
+  if (!hex || luminance(color) < 0.8) return false;
+  const full = hex.length === 3 ? [...hex].map((c) => c + c).join("") : hex;
+  const [r, g, b] = [0, 2, 4].map((i) => Number.parseInt(full.slice(i, i + 2), 16)) as [number, number, number];
+  const spread = Math.max(r, g, b) - Math.min(r, g, b);
+  if (spread < 4 || spread > 24 || r < g || r < b) return false;
+  const hue = (60 * (g - b)) / spread;
+  return hue >= 15 && hue <= 65;
+}
+
 export function luminance(color: string): number {
   const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(color.trim())?.[1];
   if (!hex) return 1;
@@ -71,7 +87,7 @@ export function varietyTable(title: string, sites: DesignSite[], pairs: [string,
     "|---|---|---|---|---|---|",
     ...rows,
     "",
-    `${sites.length} websites: ${distinct((s) => s.hero)} different opening blocks, ${distinct((s) => s.headingFont)} heading fonts, ${sites.filter((s) => s.dark).length} dark.`,
+    `${sites.length} websites: ${distinct((s) => s.hero)} different opening blocks, ${distinct((s) => s.headingFont)} heading fonts, ${sites.filter((s) => s.dark).length} dark, ${sites.filter((s) => warmOffWhite(s.surface)).length} on a warm off-white.`,
     "",
     ...sameTrade(sites, pairs),
   ].join("\n");

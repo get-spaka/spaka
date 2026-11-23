@@ -43,6 +43,7 @@ The move follows the business's character, never its trade alone: every trade fi
 
 - Four to six colors in the theme, each with a role: the surface and its alternate, the text, the primary that carries the brand, and a secondary and accent used sparingly. One color dominates; the accent is rare (one button, a mark, a rule).
 - Light or dark by character: daylight businesses on a light surface; a bar, a cinema, a night event on a dark one.
+- A light surface follows the direction too, like the fonts: pure white or a cool grey for the precise and the graphic, a pale tint of the primary's own hue for the bright and the playful, a warm paper only for the warm or the literary. Its alternate (`--theme-color-surface-alt`) is a step of the same family.
 - Text on its surface, and each `-content` on its color, reads at a contrast of 4.5:1 or more.
 - The four style values (`--theme-radius-field`, `--theme-depth`, `--theme-size`, `--theme-border`) follow the direction too: square and flat for precise, pill and raised for friendly, fine borders for quiet, bold ones for graphic.
 
@@ -77,6 +78,7 @@ Each of these makes a site look like any site; write its alternative instead:
 
 - **The gradient of every AI site** (purple into blue, gradient text in a heading): one flat brand color, a gradient only between the theme's own colors when the direction calls for it.
 - **The tasteful default** (cream paper, a very large serif headline, a muted dark red or brown, a small spaced-out label above it, whatever the business): the colors, fonts and move of this business's own character; keep that look for the few that are truly literary or luxurious.
+- **The warm off-white of every site** (a cream surface, `#FAF7F2` or near it, whatever the direction): the surface family of the direction, from section 3.
 - **Three equal cards with an icon each**: a numbered list, a split of text and image, or one large item and two small.
 - **Everything centered**: a strong left edge, the center kept for the hero and the closing call.
 - **Glass and glow** (frosted panels, neon shadows, blurred blobs): solid surfaces, depth from the theme's `--theme-depth`.

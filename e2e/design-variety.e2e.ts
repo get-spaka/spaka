@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { luminance, themeTraits, varietyTable } from "./design-variety.ts";
+import { luminance, themeTraits, varietyTable, warmOffWhite } from "./design-variety.ts";
 
 const theme = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond&display=swap');
 :root {
@@ -35,7 +35,7 @@ test("the variety table counts the different heroes and fonts", () => {
     { ...site, brief: "c", hero: "hero-centered", headingFont: "Archivo", surface: "#111", dark: true },
   ]);
   expect(table).toContain("| c | hero-centered | Archivo / Inter | #111 (dark) | #000 | 60 s |");
-  expect(table).toContain("3 websites: 2 different opening blocks, 2 heading fonts, 1 dark.");
+  expect(table).toContain("3 websites: 2 different opening blocks, 2 heading fonts, 1 dark, 0 on a warm off-white.");
 });
 
 test("the variety table says whether two businesses of one trade open differently (Q444)", () => {
@@ -65,4 +65,38 @@ test("the variety table says whether two businesses of one trade open differentl
   );
   // A pair with a brief not run is left out; with no pair run, no line.
   expect(varietyTable("claude, after", sites.slice(0, 1), pairs)).not.toContain("One trade");
+});
+
+test("a warm off-white is a light surface barely tinted toward yellow or orange (Q445)", () => {
+  // What Gemini chose for five light sites of six.
+  for (const cream of ["#FAF7F2", "#FAF8F4", "#FAF8F5", "#FFFBF5", "#fbf6f0", "#f8f4ec"])
+    expect(warmOffWhite(cream), cream).toBe(true);
+  // Pure white, a cool or neutral grey, a pale tint of a brand's hue, a dark surface, a strong yellow.
+  for (const other of [
+    "#ffffff",
+    "#F7F7F5",
+    "#f4f6f8",
+    "#fdf0f4",
+    "#eef6ff",
+    "#0f0e0d",
+    "#ffe9a8",
+    "oklch(98% 0.01 80)",
+  ])
+    expect(warmOffWhite(other), other).toBe(false);
+  const site = {
+    brief: "a",
+    hero: "hero-mosaic",
+    heroQueries: [],
+    seconds: 60,
+    headingFont: "Syne",
+    bodyFont: "Inter",
+    primary: "#000",
+    dark: false,
+  };
+  expect(
+    varietyTable("pi, surface", [
+      { ...site, surface: "#FAF7F2" },
+      { ...site, surface: "#ffffff" },
+    ]),
+  ).toContain("1 on a warm off-white.");
 });
