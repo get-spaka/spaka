@@ -2,7 +2,7 @@
   "name": "Dark statement hero",
   "kind": "hero",
   "source": "upstart",
-  "description": "A dark first screen with no picture: a small line of hours at the top, one large statement whose key words take the accent color, then a ruled foot with a sentence and a single accent button.",
+  "description": "A dark first screen with no picture: a small line of hours at the top, one large statement whose key words are underlined in the accent color, then a ruled foot with a sentence and a single accent button.",
   "tags": ["dark statement", "dark background", "night", "one accent", "no image", "statement"],
   "mood": ["dark", "bold"],
   "synonyms": [
