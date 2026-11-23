@@ -1,17 +1,17 @@
 # Upstart v2 : la vague 5 de templates
 
-Décidée avec Matt le 2026-11-23 (Q450-Q466, consignées dans `docs/v2.0-decisions.md`, « Templates (build step 5) »). Le vocabulaire (vague, lot, brief, move, effet signature, niveau de mouvement) est dans `GLOSSARY.md`.
+Décidée avec Matt le 2026-11-23 (Q450-Q474, consignées dans `docs/v2.0-decisions.md`, « Templates (build step 5) »). Le vocabulaire (vague, lot, brief, move, effet signature, niveau de mouvement) est dans `GLOSSARY.md`.
 
-## État (2026-11-23) : plan écrit, rien de construit
+## État (2026-11-23) : les neuf briefs approuvés (Q474), lot 1 lancé
 
 | Tranche | Fait | Commits |
 |---|---|---|
-| 0. L'inventaire des 28 et la règle du skill | | |
-| 1. Les tendances, sujet par sujet | | |
-| 2. Les neuf briefs, approuvés ensemble | | |
-| 3. Lot 1 : SaaS, théâtre, librairie | | |
-| 4. Lot 2 : open source, école de musique, restaurant | | |
-| 5. Lot 3 : formation en cohorte, yoga, coworking | | |
+| 0. L'inventaire des 28 et la règle du skill | ✅ | (avec les briefs) |
+| 1. Les tendances, sujet par sujet | ✅ | (notes de travail, reprises dans chaque brief) |
+| 2. Les neuf briefs, approuvés ensemble | ✅ | (ce commit) |
+| 3. Lot 1 : Batten (théâtre), Covered (SaaS), Dogear (librairie) | | |
+| 4. Lot 2 : Heats (modèle open source), Strum (école de musique), Spindle (restaurant) | | |
+| 5. Lot 3 : Ruled (formation), Bolster (yoga), Overhead (coworking) | | |
 | 6. Release v14 et pointeur | | |
 
 ## D'où l'on part
@@ -36,7 +36,7 @@ Le plan initial (Q230) visait 30 à 50 templates, en vagues, « surtout des desi
 
 Écartés : un blog de recettes, un blog de voyage, un auteur, un club de sport amateur, un garage, un vétérinaire ou toiletteur, une école de langues (trop proche de la formation), un cabinet dentaire (trop proche de Mend).
 
-**Plus de « standard » ni d'« original » (Q454).** Ces mots ne vivaient plus que dans les briefs des vagues 1 à 3, depuis que Q396 a retiré `original` des manifestes, et la vague 4 ne les utilisait déjà plus. Chaque brief fixe son **niveau de mouvement** selon le caractère du commerce, parmi les quatre du skill web-design : still, gentle, expressive, orchestrated. La vague en compte au moins trois, avec au moins deux templates expressive ou orchestrated, pour garder l'intention de Q230.
+**Plus de « standard » ni d'« original » (Q454).** Ces mots ne vivaient plus que dans les briefs des vagues 1 à 3, depuis que Q396 a retiré `original` des manifestes, et la vague 4 ne les utilisait déjà plus. Chaque brief fixe son **niveau de mouvement** selon le caractère du commerce, parmi les quatre du skill web-design : still, gentle, expressive, orchestrated. Les templates ont en plus un cinquième niveau, au-dessus d'orchestrated (Q467) : **immersive**, où toute la page est une histoire qui se déroule au scroll (défilement de côté, transitions entre pages, une scène WebGL sur toute la page), comme bougent déjà Reel, Seam, Chalk et Pocket. La limite du skill web-design, « un moment orchestré par page », ne s'y applique pas. Chaque page reste lisible au téléphone et complète sous reduced motion et en mode édition. Les sites de l'agent gardent les quatre niveaux. La vague compte au moins trois niveaux, au moins deux templates expressive ou au-delà, et au moins un immersive, pour garder l'intention de Q230.
 
 **Ce qu'aucun template de la vague ne partage avec un autre** : le sujet, les polices, l'effet signature (règles des vagues précédentes) et maintenant le **move** du héros, choisi parmi les onze du skill web-design (Q453). Les polices et les moves sont aussi comparés aux 28 : une police déjà livrée n'est pas reprise, et un move déjà pris n'est repris que si sa composition reste différente.
 
@@ -79,7 +79,7 @@ Le plan initial (Q230) visait 30 à 50 templates, en vagues, « surtout des desi
 - Les commerces fictifs sont écrits en anglais, à l'orthographe américaine, dans des lieux différents.
 - Vérifié sur les neuf ensemble :
   - aucun sujet, police, effet signature ou move partagé ;
-  - au moins trois niveaux de mouvement, dont au moins deux expressive ou orchestrated ;
+  - au moins trois niveaux de mouvement, au moins deux templates expressive ou au-delà, et au moins un immersive ;
   - aucune police livrée par les 28 ;
   - aucune teinte déjà prise ;
   - le SaaS et l'open source ne se ressemblent pas.
@@ -91,9 +91,9 @@ Le plan initial (Q230) visait 30 à 50 templates, en vagues, « surtout des desi
 
 | Lot | Templates |
 |---|---|
-| 1 | SaaS, théâtre, librairie |
-| 2 | open source, école de musique, restaurant |
-| 3 | formation en cohorte, yoga, coworking |
+| 1 | Batten (théâtre), Covered (SaaS), Dogear (librairie) |
+| 2 | Heats (modèle open source), Strum (école de musique), Spindle (restaurant) |
+| 3 | Ruled (formation), Bolster (yoga), Overhead (coworking) |
 
 Pour chaque lot :
 - Trois sessions, lancées d'ici, une par template, chacune dans sa worktree partant de main, avec un brief court :

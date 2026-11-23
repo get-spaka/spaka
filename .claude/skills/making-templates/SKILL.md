@@ -37,10 +37,12 @@ The brief is a page, in the author's language:
 - **Trends** it draws on, from step 1, and its direction and one strong move (the web-design skill): what makes it its own.
 - **Type**: the heading and body fonts (Google Fonts, under the OFL), and the scale.
 - **Palette**: the theme's values (`--theme-color-*` in oklch) and what each is used for.
-- **Motion**: its movement level, by the business's character (the web-design skill's still, gentle, expressive or orchestrated; a wave holds at least three levels, with at least two templates expressive or orchestrated); its signature effect, the movement that is this template's alone; what moves, when, with which library or CSS; what the page shows under reduced motion and in edit mode, where nothing runs.
+- **Motion**: its movement level, by the business's character: the web-design skill's still, gentle, expressive or orchestrated, or, for a template alone, immersive, the whole page a story told as it scrolls (a sideways scroll, transitions between pages, a WebGL scene across the page), where the web-design skill's "one orchestrated moment a page" does not hold, yet every page still reads on a phone and is complete under reduced motion and in edit mode. A wave holds at least three levels, at least two templates expressive or beyond, and at least one immersive; its signature effect, the movement that is this template's alone; what moves, when, with which library or CSS; what the page shows under reduced motion and in edit mode, where nothing runs.
 - **Page types**: the pages that share a first folder of `pages/` (the home page alone; a list and its record pages together), in the order the agent adapts them, home first; each with its sections in order, which come from the gallery (`apps/desktop/gallery/<kind>/<id>`) and which are the template's own; its datasources.
 - **Its own blocks**: the sections a maker will want to add again elsewhere, which go into `blocks/`.
 - **What varies**, page type by page type: the choices that really vary in the design and cost the agent work to change (how a visitor books, orders or signs up, what is sold and how), each with 2 to 4 options, the first the one recommended, most often the template as built; a choice for the whole website goes with the home page. Whether a page exists is not a choice: say what goes with each page type when the maker leaves it out. Never a fact the agent asks after (the hours, the prices).
+
+Before writing it, read `docs/template-briefs/inventory.md`, a row per template already made: the brief takes no font it lists, no move or signature effect another template of its wave has, and no color another template owns.
 
 Show it to the author and ask for their approval; build nothing before it.
 
@@ -108,7 +110,7 @@ Then `pnpm template:check apps/desktop/templates/<id> --finished` and `npx vites
 
 ## 6. Release it, once the author says so
 
-The template is committed in the submodule, on a branch of upstart-gg/upstart-templates, and reviewed there. With the author's go-ahead, it goes into that repository's main, which is pushed, then the next `v<n>` is tagged and pushed: its CI checks every template as finished and attaches the release the app reads. Here, commit the submodule's new commit (`git add apps/desktop/templates`) so that the tests and development use it too.
+The template is committed in the submodule, on a branch of upstart-gg/upstart-templates, and reviewed there. With the author's go-ahead, it goes into that repository's main, which is pushed, then the next `v<n>` is tagged and pushed: its CI checks every template as finished and attaches the release the app reads. Here, commit the submodule's new commit (`git add apps/desktop/templates`) so that the tests and development use it too, with the template's row added to `docs/template-briefs/inventory.md`.
 
 `pnpm template:release <out folder> <tag> [previous catalogue.json]` builds the same release here first, to see it fail before the CI does; given the latest release's catalogue, as the CI gives it, it keeps the earlier versions older apps still need. The `version` in `template.json` goes up whenever a published template changes, so that the app downloads it again. A template that uses something an older app reads otherwise (the `images` field kind, a generated image) says the oldest app version it needs, `"app": "0.2.0"`; the checks ask for it (Q368). After a change to the checks in `apps/desktop/src/main/templates/`, `pnpm template:release-script` rebuilds the script the CI runs, committed in the submodule.
 

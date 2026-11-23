@@ -189,7 +189,7 @@ _Avoid_: Hero style, layout
 The movement that belongs to one template alone and carries its concept, such as Transfer's stencil or Chalk's line drawing itself.
 
 **Movement level**:
-How much a site moves, set by its character: still, gentle, expressive or orchestrated.
+How much a site moves, set by its character: still, gentle, expressive or orchestrated, and for a template alone, immersive (the whole page a story told as it scrolls).
 _Avoid_: Standard template, original design
 
 ### Running and shipping
