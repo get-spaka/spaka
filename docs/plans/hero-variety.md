@@ -1,6 +1,6 @@
 # Upstart v2 : des héros aussi variés que les commerces
 
-## État (2026-11-23) : les cinq suggestions appliquées, mesurées avant/après
+## État (2026-11-23) : les cinq suggestions appliquées et mesurées, puis le geste par caractère (Q444)
 
 | Suggestion | Fait | Commits |
 |---|---|---|
@@ -9,6 +9,8 @@
 | 3. Le skill et la galerie parlent des mêmes gestes (Q441) | ✅ | 88694d3 |
 | 4. Les exemples des skills ne poussent plus vers un seul look (Q442) | ✅ | 1d131f3 |
 | 5. L'agent peut réécrire la structure du héros (Q443) | ✅ | b2dcd4c |
+| Mesure et consignation | ✅ | ef063c8 |
+| 6. Le geste suit le caractère du commerce, plus son métier (Q444) | ✅ | d06be62 |
 
 Mesuré le 2026-11-23 avec le banc, six commerces par agent :
 
@@ -22,9 +24,24 @@ Mesuré le 2026-11-23 avec le banc, six commerces par agent :
 
 Après, chaque site s'ouvre sur le geste que le skill donne à son caractère, chez les deux agents : mosaïque pour la pâtisserie, giant type pour le tatoueur, déclaration sombre pour le bar, index pour la notaire, écran partagé pour l'escalade, photo pleine page pour le mariage. Le giant type dans une police large dépassait de quelques pixels sa règle sur ordinateur : son titre est un peu plus petit (`12vw`, `11rem` au plus).
 
-Reste ouvert :
-- les deux agents choisissent le même geste pour le même métier, le tableau du skill donnant un geste par caractère : deux tatoueurs s'ouvriraient pareil ;
+Restait ouvert après cette mesure :
+- les deux agents choisissaient le même geste pour le même métier, le tableau du skill donnant un geste par métier : deux tatoueurs s'ouvriraient pareil. Tu as choisi de faire suivre le geste au caractère du commerce (Q444, ci-dessous) ;
 - Gemini garde un fond crème sur cinq sites sur six.
+
+## Le geste par caractère (Q444)
+
+Le tableau du skill web-design décrit chaque geste par le caractère qu'il sert (bruyant et graphique, sensoriel, précis et sobre…), et ses exemples mettent un même métier sous plusieurs gestes. L'agent lit le caractère dans les mots du maker. Les exemples du skill ne nomment pas les commerces du banc, pour que le banc mesure la règle et pas un exemple.
+
+Le banc gagne deux commerces d'un métier déjà présent : Trait Fin, un tatoueur fine line calme et sur rendez-vous, et Chou Bidou, une pâtisserie colorée que les familles aiment. Son tableau dit si chaque paire s'ouvre sur des héros différents.
+
+Mesuré le 2026-11-23 : Gemini sur les huit commerces, Claude sur les deux paires.
+
+| Paire | Claude | Gemini |
+|---|---|---|
+| Encre Sauvage / Trait Fin | giant type / overlap (réécrit en panneau clair à côté de planches botaniques) | déclaration sombre / magazine serif |
+| Maison Odile / Chou Bidou | mosaïque / écran partagé | mosaïque / écran partagé |
+
+Les deux paires s'ouvrent différemment chez les deux agents. Chez Gemini, les huit sites s'ouvrent sur sept héros différents, le tatoueur et le bar tous deux sur la déclaration sombre. Les deux agents ne s'accordent plus toujours pour un même commerce : Encre Sauvage s'ouvre sur le giant type avec Claude, sur la déclaration sombre avec Gemini. Temps : Claude 1 631 s pour quatre, Gemini 1 915 s pour huit.
 
 ## Contexte
 
