@@ -5,6 +5,7 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { IMAGE_ASPECTS, IMAGE_MODELS, type ImageAspect } from "../../shared/image-models";
+import { devKey } from "../dev-keys";
 import { generateImage, type ImageCredentials, splitImageModel } from "../images/generate";
 import { generateIntoMedia } from "../images/into-media";
 import { useFoundImage as addFoundImage, slug } from "../media/library";
@@ -128,9 +129,9 @@ export async function imageMain(args: string[], dir: string): Promise<number> {
 /**
  * `pnpm template:image generate <folder> <name> "<prompt>" "<alt>"` (Q432):
  * an image generated as generate_image does in the app, into the template's
- * media/ with its model and prompt in place of credits. The key comes from the
- * terminal, GEMINI_API_KEY or OPENAI_API_KEY, never from a file (Q404); Gemini's
- * model when both are set, unless `--model` names another.
+ * media/ with its model and prompt in place of credits. The key, GEMINI_API_KEY
+ * or OPENAI_API_KEY, comes from the terminal or the repository's .env (Q438);
+ * Gemini's model when both are set, unless `--model` names another.
  */
 export async function generateMain(args: string[]): Promise<number> {
   const options = new Map<string, string[]>();
@@ -152,7 +153,7 @@ export async function generateMain(args: string[]): Promise<number> {
     );
     return 2;
   }
-  const keys = { gemini: process.env.GEMINI_API_KEY?.trim(), openai: process.env.OPENAI_API_KEY?.trim() };
+  const keys = { gemini: devKey("GEMINI_API_KEY"), openai: devKey("OPENAI_API_KEY") };
   const model =
     options.get("--model")?.[0] ??
     IMAGE_MODELS.find((m) => m.default && m.account !== "vertex" && keys[m.account as "gemini" | "openai"])?.id;
@@ -163,7 +164,7 @@ export async function generateMain(args: string[]): Promise<number> {
         ? `${model} is not a model this command knows: ${IMAGE_MODELS.filter((m) => m.account !== "vertex")
             .map((m) => m.id)
             .join(", ")}.`
-        : "Set GEMINI_API_KEY or OPENAI_API_KEY in the terminal to generate an image.",
+        : "Set GEMINI_API_KEY or OPENAI_API_KEY in the terminal or in the repository's .env to generate an image.",
     );
     return 2;
   }
@@ -171,7 +172,7 @@ export async function generateMain(args: string[]): Promise<number> {
   const key = keys[account as "gemini" | "openai"];
   if (!key) {
     console.error(
-      `Set ${account === "gemini" ? "GEMINI_API_KEY" : "OPENAI_API_KEY"} in the terminal for ${known.name}.`,
+      `Set ${account === "gemini" ? "GEMINI_API_KEY" : "OPENAI_API_KEY"} in the terminal or in the repository's .env for ${known.name}.`,
     );
     return 2;
   }

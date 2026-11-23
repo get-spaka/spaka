@@ -1,24 +1,23 @@
 // Checks of Upstart's own harness with a real model (ADR 0012). They spend a
 // little of the maker's Gemini key, so they run only when asked:
-// UPSTART_REAL_PI=1, with GEMINI_API_KEY set in the terminal
-// (Q404: never kept in a file). The key goes from there to the app's main process,
+// UPSTART_REAL_PI=1, with GEMINI_API_KEY set in the terminal or in the
+// repository's .env (Q438). The key goes from there to the app's main process,
 // never printed. With UPSTART_PI_RECORD=<file>, the model's replies are
 // recorded, for agent-pi-replay.e2e.ts to play back. With
 // UPSTART_REAL_PI_VERTEX_PROJECT=<project>, Gemini runs on Vertex AI instead,
 // on the Google Cloud sign-in made with gcloud (Q280), its calls' arguments
 // streamed to the preview.
-import { existsSync, readFileSync, utimesSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readdirSync, readFileSync, utimesSync, writeFileSync } from "node:fs";
+import { join, relative } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { devKey as key } from "../apps/desktop/src/main/dev-keys.ts";
 import { type LaunchedApp, launchApp, SLOW } from "./app.ts";
+import { maker } from "./real-maker.ts";
 
 const real = process.env.UPSTART_REAL_PI === "1";
 const vertexProject = process.env.UPSTART_REAL_PI_VERTEX_PROJECT;
 const account = vertexProject ? "vertex" : "gemini";
 const hydrogen = `${account}/gemini-4-hydrogen`;
-
-/** A key of the maker's, set in the terminal for a run with a real model (Q404): never kept in a file. */
-const key = (name: string): string | undefined => process.env[name]?.trim() || undefined;
 
 /** Shown even when the checks pass. */
 const say = (line: string) => process.stdout.write(`${line}\n`);
@@ -50,11 +49,17 @@ describe.skipIf(!real)(`Upstart's own harness, with Gemini on ${account}`, () =>
       await new Promise((r) => setTimeout(r, 300));
     }
   };
+  const asker = maker(() => launched);
+  /** The turn's end; a card the agent waits on is answered with its recommended choices, as a maker who agrees. */
   const turnEnded = (before: number, timeout: number) =>
-    until(
-      () => launched.window.locator('[data-testid="agent-message"]:not([data-status="working"])').nth(before).count(),
-      timeout,
-    );
+    until(async () => {
+      // A new website's first turn may end on the card of what the agent guessed (Q301).
+      if (await asker.waitingQuestion().count()) {
+        say("[pi] a card of questions, answered with its recommended choices");
+        await asker.answerRecommended();
+      }
+      return launched.window.locator('[data-testid="agent-message"]:not([data-status="working"])').nth(before).count();
+    }, timeout);
   const problems = () => main((u) => [...u.agent.sessions.values()].flatMap((s: { problems: string[] }) => s.problems));
 
   beforeAll(async () => {
@@ -64,7 +69,10 @@ describe.skipIf(!real)(`Upstart's own harness, with Gemini on ${account}`, () =>
     if (vertexProject) await main((u, p) => u.piAccounts.setVertexGcloud(p), vertexProject);
     else {
       const gemini = key("GEMINI_API_KEY");
-      if (!gemini) throw new Error("Set GEMINI_API_KEY in the terminal to run these checks with a real Gemini.");
+      if (!gemini)
+        throw new Error(
+          "Set GEMINI_API_KEY in the terminal or in the repository's .env to run these checks with a real Gemini.",
+        );
       await main((u, k) => u.piAccounts.setKey("gemini", k), gemini);
     }
     // What the agent streams, with its time, to see the page grow (ADR 0009).
@@ -108,32 +116,53 @@ describe.skipIf(!real)(`Upstart's own harness, with Gemini on ${account}`, () =>
         "Un site d'une page pour un fleuriste à Nantes, Fleur de Loire : le thème et la page d'accueil avec trois sections.",
         { model: hydrogen, effort: "medium" },
       );
-      await turnEnded(0, 400_000);
-      const done = Date.now();
-      const { items } = await invoke("conversation:get");
-      const item = items.at(-1);
+      // What the agent did, said even when its turn does not end in time.
+      const report = async (done: number) => {
+        const log = (await main(() => (globalThis as { piLog?: Logged[] }).piLog ?? [])) as Logged[];
+        const at = (e?: Logged) => (e ? `${((e.t - started) / 1000).toFixed(1)} s` : "-");
+        // The first change the maker sees: a file being written, or a block placed (ADR 0009).
+        const firstWrite = log.find((e) => e.kind === "tool-input" && e.length);
+        const firstBlock = log.find((e) => e.kind === "tool-result" && e.name === "mcp__upstart__use_block");
+        const calls = log.filter((e) => e.kind === "tool-input-end");
+        // How finely the home page reached the preview: each piece is a new rendering of it.
+        const pagePieces = log.filter((e) => e.kind === "tool-input" && e.path === "pages/index.liquid" && e.length);
+        say(
+          `[pi] pages/index.liquid: ${pagePieces.length} pieces, first at ${at(pagePieces[0])}, last at ${at(pagePieces.at(-1))}`,
+        );
+        say(
+          `[pi] turn ${((done - started) / 1000).toFixed(1)} s; first text written at ${at(firstWrite)} (${firstWrite?.path}); first block placed at ${at(firstBlock)}; ${calls.length} tool calls; last event at ${at(log.at(-1))} (${log.at(-1)?.kind} ${log.at(-1)?.name ?? ""})`,
+        );
+        say(`[pi] calls: ${calls.map((e) => `${at(e)} ${e.name}${e.path ? ` ${e.path}` : ""}`).join("; ")}`);
+        say(`[pi] problems: ${JSON.stringify(await problems())}`);
+        const { items } = await invoke("conversation:get");
+        const last = items.at(-1);
+        // The turn's lines (retries, compaction, errors) and its last words.
+        const lines = (last?.parts ?? [])
+          .map((p: { kind: string; text?: string; activity?: { label: string; state: string; error?: string } }) =>
+            p.kind === "activity"
+              ? `${p.activity?.label} (${p.activity?.state}${p.activity?.error ? `: ${p.activity.error}` : ""})`
+              : p.kind === "text"
+                ? `text: ${p.text?.slice(0, 120).replace(/\n/g, " ")}`
+                : p.kind,
+          )
+          .slice(-12);
+        say(
+          `[pi] last item: ${last?.kind} ${last?.status ?? ""}${last?.error ? ` (${last.error})` : ""}; ${lines.join(" | ")}`,
+        );
+        return { item: last, firstChange: firstWrite ?? firstBlock };
+      };
+      let seen: Awaited<ReturnType<typeof report>> | undefined;
+      try {
+        await turnEnded(0, 400_000);
+      } finally {
+        seen = await report(Date.now());
+      }
       const project = await invoke("projects:current");
-      const log = (await main(() => (globalThis as { piLog?: Logged[] }).piLog ?? [])) as Logged[];
-      const at = (e?: Logged) => (e ? `${((e.t - started) / 1000).toFixed(1)} s` : "-");
-      // The first change the maker sees: a file being written, or a block placed (ADR 0009).
-      const firstWrite = log.find((e) => e.kind === "tool-input" && e.length);
-      const firstBlock = log.find((e) => e.kind === "tool-result" && e.name === "mcp__upstart__use_block");
-      const calls = log.filter((e) => e.kind === "tool-input-end");
-      // How finely the home page reached the preview: each piece is a new rendering of it.
-      const pagePieces = log.filter((e) => e.kind === "tool-input" && e.path === "pages/index.liquid" && e.length);
-      say(
-        `[pi] pages/index.liquid: ${pagePieces.length} pieces, first at ${at(pagePieces[0])}, last at ${at(pagePieces.at(-1))}`,
-      );
-      say(
-        `[pi] turn ${((done - started) / 1000).toFixed(1)} s; first text written at ${at(firstWrite)} (${firstWrite?.path}); first block placed at ${at(firstBlock)}; ${calls.length} tool calls`,
-      );
-      say(`[pi] calls: ${calls.map((e) => `${at(e)} ${e.name}${e.path ? ` ${e.path}` : ""}`).join("; ")}`);
-      say(`[pi] problems: ${JSON.stringify(await problems())}`);
-      expect(item).toMatchObject({ kind: "agent", status: "done" });
+      expect(seen.item).toMatchObject({ kind: "agent", status: "done" });
       expect(existsSync(join(project.path, "theme.css"))).toBe(true);
       const page = readFileSync(join(project.path, "pages/index.liquid"), "utf8");
       expect(page).toMatch(/<html|render/);
-      expect(firstWrite ?? firstBlock).toBeDefined();
+      expect(seen.firstChange).toBeDefined();
     },
     420_000 * SLOW,
   );
@@ -189,10 +218,22 @@ describe.skipIf(!real)(`Upstart's own harness, with Gemini on ${account}`, () =>
     "a page the maker changed by hand is read again before the agent edits it (Q294, Q433)",
     async () => {
       const project = await invoke("projects:current");
-      const page = join(project.path, "pages/index.liquid");
+      // The file holding the main title: the page, or one of its parts when it was built from blocks.
+      const parts = join(project.path, "parts");
+      const files = [
+        join(project.path, "pages/index.liquid"),
+        ...(existsSync(parts) ? readdirSync(parts).filter((f) => f.endsWith(".liquid")) : []).map((f) =>
+          join(parts, f),
+        ),
+      ];
+      const page = files.find((f) => /<h1[\s>]/.test(readFileSync(f, "utf8")));
+      if (!page) throw new Error(`no <h1> in ${files.map((f) => relative(project.path, f)).join(", ")}`);
+      say(`[pi] the main title is in ${relative(project.path, page)}`);
       const text = readFileSync(page, "utf8");
       // The maker's hand edit, after the agent last read the page.
-      writeFileSync(page, text.replace(/<h1([^>]*)>/, "<h1$1>Fleurs fraîches · "));
+      const edited = text.replace(/<h1([^>]*)>/, "<h1$1>Fleurs fraîches · ");
+      expect(edited).not.toBe(text);
+      writeFileSync(page, edited);
       utimesSync(page, new Date(), new Date(Date.now() + 2000));
       const before = await launched.window.getByTestId("agent-message").count();
       const from = ((await main(() => (globalThis as { piLog?: Logged[] }).piLog ?? [])) as Logged[]).length;

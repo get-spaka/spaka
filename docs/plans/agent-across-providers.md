@@ -1,6 +1,6 @@
 # Upstart v2 : plan de l'agent, pareil d'un fournisseur à l'autre
 
-## État (2026-11-22) : terminé, des vérifications réelles attendent des clés
+## État (2026-11-23) : terminé, vérifié avec les vrais comptes
 
 | Tranche | Fait | Commits |
 |---|---|---|
@@ -13,7 +13,7 @@
 | 7. Le skill web-design | ✅ | 5b76f4e ; banc avant/après avec Claude (`e2e/agent-design.e2e.ts`) |
 | 8. Images générées dans les templates (Q432) | ✅ | 38f9647 (templates b283147) |
 
-Restent à faire tourner avec les clés de Matt, lues dans son terminal : `src/main/images/generate.real.test.ts` (Gemini, OpenAI) ; `agent-pi.e2e.ts` avec `UPSTART_REAL_PI=1` ; le banc web-design avec Gemini. Vertex n'a pas été essayé.
+Vérifié le 2026-11-23 avec les clés de Matt, lues dans le `.env` du dépôt (Q438) : `generate.real.test.ts` avec Gemini et OpenAI ; la recherche Google de Pi ; `agent-pi.e2e.ts` en entier (6/6) avec Gemini 4 Hydrogen, par une clé AI Studio et sur Vertex AI ; le banc web-design avec Gemini (pâtisserie 266 s, studio 188 s, contre 448 s et 373 s pour Claude). `agent-pi.e2e.ts` répond désormais aux cartes de questions, et retouche le fichier qui porte le titre, une partie quand la page est faite de blocs. Pas encore essayé : generate_image sur Vertex.
 
 ## Contexte
 

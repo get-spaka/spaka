@@ -1,6 +1,7 @@
 import { type Api, type AssistantMessage, createModels, type Model, type Models } from "@earendil-works/pi-ai";
 import { googleProvider } from "@earendil-works/pi-ai/providers/google";
 import { expect, test } from "vitest";
+import { devKey } from "../../dev-keys";
 import { piModel } from "./models";
 import {
   canSearch,
@@ -119,13 +120,16 @@ test("a refused search fails the tool call, which the agent reads", async () => 
 });
 
 // With the maker's real Gemini key, when asked: UPSTART_REAL_PI=1 and GEMINI_API_KEY set in
-// the terminal (Q404: never kept in a file), never printed.
+// the terminal or in the repository's .env (Q438), never printed.
 const real = process.env.UPSTART_REAL_PI === "1";
 test.skipIf(!real)(
   "Google Search answers with its sources, with a real Gemini key",
   async () => {
-    const key = process.env.GEMINI_API_KEY?.trim();
-    if (!key) throw new Error("Set GEMINI_API_KEY in the terminal to run this check with a real Gemini.");
+    const key = devKey("GEMINI_API_KEY");
+    if (!key)
+      throw new Error(
+        "Set GEMINI_API_KEY in the terminal or in the repository's .env to run this check with a real Gemini.",
+      );
     const models = createModels({ authContext: { env: async () => undefined, fileExists: async () => false } });
     models.setProvider(googleProvider());
     const started = Date.now();

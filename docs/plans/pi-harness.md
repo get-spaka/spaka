@@ -11,7 +11,7 @@
 | 4. Vertex AI (Q280) | ✅ | e739988 |
 | 5. Vérification | ✅ | ce6b796 (Pi rejoué en e2e), bbf6704 (ChatGPT réel) |
 
-Restent à essayer avec les vraies clés de Matt : `agent-pi.e2e.ts` (`UPSTART_REAL_PI=1`) avec Gemini et OpenAI. Le harnais a été aligné ensuite sur Claude par le plan [agent-across-providers](agent-across-providers.md).
+`agent-pi.e2e.ts` (`UPSTART_REAL_PI=1`) a tourné en entier le 2026-11-23 avec Gemini, par une clé AI Studio et sur Vertex AI. Pas encore essayé : un tour sur une clé OpenAI. Le harnais a été aligné ensuite sur Claude par le plan [agent-across-providers](agent-across-providers.md).
 
 ## Contexte
 

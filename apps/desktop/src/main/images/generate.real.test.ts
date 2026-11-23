@@ -1,17 +1,19 @@
 // generate_image with the maker's real accounts (Q423-Q429): run only when
-// asked, with the keys set in the terminal, since each image is paid for.
+// asked, since each image is paid for, with the keys set in the terminal or in
+// the repository's .env (Q438). Each account runs when its key is there:
 //
-//   GEMINI_API_KEY=… pnpm exec vitest run src/main/images/generate.real.test.ts
-//   OPENAI_API_KEY=… pnpm exec vitest run src/main/images/generate.real.test.ts
+//   UPSTART_REAL_IMAGES=1 pnpm exec vitest run src/main/images/generate.real.test.ts
 import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, expect, test } from "vitest";
+import { devKey } from "../dev-keys";
 import { generateImage, type ImageCredentials } from "./generate";
 import { generateIntoMedia } from "./into-media";
 
-const gemini = process.env.GEMINI_API_KEY;
-const openai = process.env.OPENAI_API_KEY;
+const real = process.env.UPSTART_REAL_IMAGES === "1";
+const gemini = real ? devKey("GEMINI_API_KEY") : undefined;
+const openai = real ? devKey("OPENAI_API_KEY") : undefined;
 
 let root: string;
 beforeAll(() => {

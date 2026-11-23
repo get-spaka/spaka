@@ -12,5 +12,5 @@ Each plan turns a stretch of design (the decisions in `docs/v2.0-decisions.md` a
 | [look-at-preview](look-at-preview.md) | The agent's look at a page (Q314-Q324) | Complete |
 | [tour-and-polish](tour-and-polish.md) | Dark appearance, menus, tooltips, the tour, statistics, icon (Q327-Q342) | Complete |
 | [distribution](distribution.md) | 0.2.0 for macOS and the Windows beta (Q361-Q382) | Slices 0-5 done, 6 (release) set aside |
-| [agent-across-providers](agent-across-providers.md) | The agent alike across providers, generate_image, the web-design skill (Q417-Q437) | Complete; real checks with Gemini and OpenAI keys pending |
+| [agent-across-providers](agent-across-providers.md) | The agent alike across providers, generate_image, the web-design skill (Q417-Q437) | Complete; checked with the real Gemini, Vertex AI and OpenAI accounts (2026-11-23) |
 | [anthropic-message](anthropic-message.md) | The message to Anthropic about subscription sign-in (distribution, slice 0) | Drafted, not sent |

@@ -8,7 +8,7 @@
 //   UPSTART_REAL_AGENT=1: Claude, in the packaged app (`pnpm package` first),
 //     with .cache/agent-config signed in;
 //   UPSTART_REAL_PI=1: Gemini 4 Hydrogen in Upstart's own harness, with
-//     GEMINI_API_KEY set in the terminal (never printed).
+//     GEMINI_API_KEY set in the terminal or in the repository's .env (never printed).
 //   UPSTART_DESIGN_LABEL=before|after (after by default).
 //
 // Writes e2e/.runs/agent-design/<label>-<agent>-<brief>-<picture>.png and
@@ -16,6 +16,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { devKey as key } from "../apps/desktop/src/main/dev-keys.ts";
 import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 import { maker, walk } from "./real-maker.ts";
 
@@ -57,9 +58,6 @@ const CASES = [
   { agent: "claude", run: process.env.UPSTART_REAL_AGENT === "1" },
   { agent: "pi", run: process.env.UPSTART_REAL_PI === "1" },
 ];
-
-/** A key of the maker's, set in the terminal for a run with a real model (Q404): never kept in a file. */
-const key = (name: string): string | undefined => process.env[name]?.trim() || undefined;
 
 for (const { agent, run } of CASES)
   describe.skipIf(!run)(`the ${agent} agent designs two websites (${label})`, () => {
@@ -107,7 +105,10 @@ for (const { agent, run } of CASES)
       if (agent === "claude") await until(async () => (await invoke("agent:status")).auth === "signed-in", 30_000);
       else {
         const gemini = key("GEMINI_API_KEY");
-        if (!gemini) throw new Error("Set GEMINI_API_KEY in the terminal to run these checks with a real Gemini.");
+        if (!gemini)
+          throw new Error(
+            "Set GEMINI_API_KEY in the terminal or in the repository's .env to run these checks with a real Gemini.",
+          );
         await main((u, k) => u.piAccounts.setKey("gemini", k), gemini);
       }
     }, 120_000 * SLOW);
