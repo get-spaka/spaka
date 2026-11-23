@@ -1,6 +1,6 @@
 // Which whole-app checks a change calls for, by the files it touches: the
 // pre-push hook runs them before a push (scripts/pre-push.ts, Q446), the CI
-// running them all afterwards.
+// running them all on main, and on a pull request whose box is ticked (Q447).
 //
 // - a check that changed runs, and so does every check that imports a helper
 //   of e2e/ that changed;

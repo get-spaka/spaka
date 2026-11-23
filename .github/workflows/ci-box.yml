@@ -1,0 +1,23 @@
+# The box of a pull request's description (.github/pull_request_template.md),
+# ticked once the pull request is open: CI runs on its branch at once, on macOS
+# and Windows too, rather than at the next push (Q449). Any other edit of the
+# description starts nothing. A run made by GitHub's token starts no other
+# workflow, except one asked for, as this one is.
+name: CI box
+on:
+  pull_request:
+    types: [edited]
+permissions:
+  actions: write
+jobs:
+  start:
+    name: Start the checks on macOS and Windows
+    if: github.event.changes.body && !contains(github.event.changes.body.from, '[x] Run the checks on macOS and Windows') && contains(github.event.pull_request.body, '[x] Run the checks on macOS and Windows')
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - run: gh workflow run ci.yml --repo "$REPOSITORY" --ref "$BRANCH"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          BRANCH: ${{ github.head_ref }}
