@@ -15,8 +15,12 @@ for (const dir of [root, join(root, "apps/desktop/templates")]) {
   if (!existsSync(join(dir, ".git")) || !existsSync(join(dir, "lefthook.yml"))) continue;
   try {
     const hooksDir = execFileSync("git", ["rev-parse", "--git-path", "hooks"], { cwd: dir }).toString().trim();
-    const hook = resolve(dir, hooksDir, "pre-commit");
-    if (existsSync(hook) && readFileSync(hook, "utf8").includes("lefthook")) continue;
+    const installed = (name) => {
+      const hook = resolve(dir, hooksDir, name);
+      return existsSync(hook) && readFileSync(hook, "utf8").includes("lefthook");
+    };
+    // The templates' lefthook.yml has no pre-push.
+    if (installed("pre-commit") && (dir !== root || installed("pre-push"))) continue;
     execFileSync(lefthook, ["install"], { cwd: dir, stdio: "ignore", shell: process.platform === "win32" });
     console.log(`Git hooks installed in ${dir === root ? "the repository" : "apps/desktop/templates"} (lefthook.yml)`);
   } catch {
