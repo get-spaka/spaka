@@ -3,7 +3,7 @@
   "kind": "hero",
   "source": "upstart",
   "description": "A cheerful hero with a badge, a headline with a wavy underlined phrase, three benefits each with a round tick, two rounded buttons and a large rounded picture beside them.",
-  "tags": ["headline", "badge", "benefits", "checklist", "image"],
+  "tags": ["friendly checklist", "headline", "badge", "benefits", "checklist", "image"],
   "mood": ["playful", "friendly", "colorful"],
   "synonyms": [
     "banner",

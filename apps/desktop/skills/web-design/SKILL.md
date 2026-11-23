@@ -13,7 +13,21 @@ Before the theme, decide from what the maker said (and guess the rest):
 
 - **The business's character**: who comes, what for, and how the place feels. A notary's calm, a bakery's warmth at dawn, a tattoo studio's edge, a wedding's tenderness.
 - **The direction**, in three or four words that follow from it: "quiet and editorial", "warm, handmade, generous", "graphic and loud", "precise and airy".
-- **One strong move**: the thing a visitor remembers. A headline set very large in a serif with character; one saturated color on paper white; a full-bleed photograph under the first screen's text; hard rules and a strict grid; a dark page with a single bright accent. Everything around it stays quiet, so the move carries.
+- **One strong move**: the thing a visitor remembers, chosen from the list below by the character. Everything around it stays quiet, so the move carries. Each move is a hero of the gallery, which carries it among its tags: the home page opens on it.
+
+| Move | Suits | The hero made for it |
+|---|---|---|
+| giant type | a confident, graphic character: a tattoo studio, a record shop, a boxing gym | one huge headline across the width, no picture |
+| full-bleed photo | a place people come to: a restaurant, a hotel, a farm, a wedding | a photograph filling the first screen, the text over its foot |
+| picture first | a landscape or a venue: a gîte, a vineyard, a trip | a wide picture, the headline below it |
+| split screen | one saturated brand color: a shop, a children's activity, a festival | half picture, half a panel in the primary color |
+| dark statement | night and edge: a bar, a club, a cinema | a dark screen, one statement, one accent |
+| index | precise offices and studios: a notary, a lawyer, an architect | the services as a numbered index |
+| overlap | layered, creative: a design studio, a gallery, a florist | a panel over the picture's edge |
+| magazine serif | quiet and literary: a bookshop, a fashion label, a tea room | a very large serif beside a tall picture |
+| picture mosaic | many products or moments: a bakery, a photographer | the headline beside a mosaic of pictures |
+| local details | a neighbourhood shop whose hours matter: a bakery, a hairdresser | the headline beside the hours and address |
+| friendly checklist | friendly services: a dog walker, a cleaner, a tutor | the headline over three promises with ticks |
 
 **Done when** you can say the direction and its move in one sentence, and each choice below follows from it.
 
@@ -32,9 +46,10 @@ Before the theme, decide from what the maker said (and guess the rest):
 
 ## 4. Layout and rhythm
 
-- Choose the gallery's blocks by the direction: put its words in each `find_blocks` query, so the sections share one character. They keep their structure (the gallery skill); the theme and `styles/site.css` make them this site's.
+- Ask for the hero by its move, the move's own words first: `{ kind: "hero", query: "giant type hero, graphic and loud" }`, and place the block made for it.
+- Choose the other blocks by the direction: put its words in each `find_blocks` query, so the sections share one character. They keep their structure (the gallery skill); the theme and `styles/site.css` make them this site's.
 - Sections alternate in density and background: text sections on the surface and its alternate, then a band of color or a full-bleed image. Generous space between them (`py-20 md:py-32`), more for a calm direction.
-- One section breaks the grid, on the home page: asymmetric columns, an image overlapping its text, an oversized number or word.
+- One section breaks the grid, on the home page: asymmetric columns, an oversized number or word, or the overlap hero when it is the move.
 - Text sits on a strong left edge; a centered column suits the hero and the closing call. One primary action per screen.
 - On a phone the page is designed, not shrunk: headings sized for it, tap targets of 44 px, nothing wider than the screen.
 

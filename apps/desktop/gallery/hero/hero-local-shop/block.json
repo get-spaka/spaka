@@ -3,7 +3,7 @@
   "kind": "hero",
   "source": "upstart",
   "description": "A welcoming headline with a badge, subtitle and two buttons for a local shop, beside a card with the opening hours, the address and a phone number.",
-  "tags": ["headline", "opening hours", "address", "phone", "local business", "buttons"],
+  "tags": ["local details", "headline", "opening hours", "address", "phone", "local business", "buttons"],
   "mood": ["warm", "friendly"],
   "synonyms": [
     "shop front",

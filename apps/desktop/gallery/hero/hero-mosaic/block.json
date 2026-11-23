@@ -3,7 +3,7 @@
   "kind": "hero",
   "source": "upstart",
   "description": "A headline, subtitle and two buttons beside a staggered mosaic of four picture tiles, two tall and two short; the mosaic sits under the text on mobile.",
-  "tags": ["headline", "images", "mosaic", "two columns", "buttons"],
+  "tags": ["picture mosaic", "headline", "images", "mosaic", "two columns", "buttons"],
   "mood": ["friendly", "colorful"],
   "synonyms": [
     "banner",

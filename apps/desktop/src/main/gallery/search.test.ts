@@ -81,6 +81,38 @@ test("the shipped gallery answers everyday requests", () => {
   expect(top("horaires d'ouverture")).toBe("contact");
 });
 
+/** The web-design skill's moves, each the tag of the hero made for it (Q441). */
+const MOVES: Record<string, string> = {
+  "giant type": "hero-giant-type",
+  "full-bleed photo": "hero-full-bleed-photo",
+  "picture first": "hero-picture-first",
+  "split screen": "hero-split-screen",
+  "dark statement": "hero-dark-statement",
+  index: "hero-index",
+  overlap: "hero-overlap",
+  "magazine serif": "hero-editorial",
+  "picture mosaic": "hero-mosaic",
+  "local details": "hero-local-shop",
+  "friendly checklist": "hero-benefits",
+};
+
+test("a hero asked for by its move is the one made for it, whatever words of the direction come with it (Q441)", () => {
+  const list = readGallery(join(__dirname, "../../../gallery"));
+  const index = new BlockIndex(list);
+  const hero = (q: string) => index.find(q, { kind: "hero" })[0]?.id;
+  for (const [move, id] of Object.entries(MOVES)) {
+    expect(list.find((x) => x.id === id)?.tags, id).toContain(move);
+    expect(hero(move), move).toBe(id);
+    expect(hero(`${move} hero`), `${move} hero`).toBe(id);
+  }
+  // As the skill asks: the move first, then a few words of the direction.
+  expect(hero("giant type hero, graphic and loud")).toBe("hero-giant-type");
+  expect(hero("full-bleed photo hero, warm and tender")).toBe("hero-full-bleed-photo");
+  expect(hero("index hero, precise and calm")).toBe("hero-index");
+  expect(hero("dark statement hero, late and moody")).toBe("hero-dark-statement");
+  expect(hero("split screen hero, playful and colorful")).toBe("hero-split-screen");
+});
+
 test("a project's own design first: what fits, or its block of the kind asked for, then the gallery's (Q235)", () => {
   const design = new BlockIndex([
     b("team-reel-pile", "team", "Pile of cards", { description: "The team as tilted cards.", design: true }),

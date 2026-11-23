@@ -3,7 +3,7 @@
   "kind": "hero",
   "source": "upstart",
   "description": "A magazine-style opening with a very large serif headline and a short ruled introduction on the left and a tall portrait picture with a caption on the right.",
-  "tags": ["headline", "serif", "tall image", "two columns", "magazine"],
+  "tags": ["magazine serif", "headline", "serif", "tall image", "two columns", "magazine"],
   "mood": ["editorial", "elegant", "minimal"],
   "synonyms": [
     "banner",
