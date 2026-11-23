@@ -2,14 +2,14 @@
 
 Décidée avec Matt le 2026-11-23 (Q450-Q474, consignées dans `docs/v2.0-decisions.md`, « Templates (build step 5) »). Le vocabulaire (vague, lot, brief, move, effet signature, niveau de mouvement) est dans `GLOSSARY.md`.
 
-## État (2026-11-23) : les neuf briefs approuvés (Q474), lot 1 lancé
+## État (2026-11-23) : lot 1 fusionné (Batten, Covered, Dogear), lot 2 à lancer
 
 | Tranche | Fait | Commits |
 |---|---|---|
 | 0. L'inventaire des 28 et la règle du skill | ✅ | (avec les briefs) |
 | 1. Les tendances, sujet par sujet | ✅ | (notes de travail, reprises dans chaque brief) |
-| 2. Les neuf briefs, approuvés ensemble | ✅ | (ce commit) |
-| 3. Lot 1 : Batten (théâtre), Covered (SaaS), Dogear (librairie) | | |
+| 2. Les neuf briefs, approuvés ensemble | ✅ | c644b24 |
+| 3. Lot 1 : Batten (théâtre), Covered (SaaS), Dogear (librairie) | ✅ | templates ec350d9 (Dogear), d8e01b5 (Covered), 11a72bf (Batten) ; inventaire et pointeur (ce commit) |
 | 4. Lot 2 : Heats (modèle open source), Strum (école de musique), Spindle (restaurant) | | |
 | 5. Lot 3 : Ruled (formation), Bolster (yoga), Overhead (coworking) | | |
 | 6. Release v14 et pointeur | | |

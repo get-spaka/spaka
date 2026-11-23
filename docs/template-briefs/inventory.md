@@ -1,18 +1,21 @@
 # Templates inventory
 
-A new brief reads this inventory before it is written, so that no subject, font, signature effect or move is repeated, and each template merged adds its row here. The moves and movement levels of the templates made before the moves list existed (all 28 below) were assigned afterwards from their pages, read with their briefs and scripts.
+A new brief reads this inventory before it is written, so that no subject, font, signature effect or move is repeated, and each template merged adds its row here. The moves and movement levels of the templates made before the moves list existed (the 28 before wave 5) were assigned afterwards from their pages, read with their briefs and scripts.
 
 | Template | Category | Fonts | Owned color | Move (first screen) | Movement level | Signature effect |
 |---|---|---|---|---|---|---|
 | Aspect | business: real estate agency | Petrona / Albert Sans | madrona red, h 35 (deep, muted); brass marks | magazine serif: text serif beside a tall house photo, its address and price | gentle: soft reveals, a door per listing, light Lenis | a painted front door swinging open onto each home (`door.js`) |
+| Batten | event: a repertory theater's season | League Gothic / Spectral | house magenta, h 320, a flat portal round stage black | dark statement: condensed caps on stage black inside the magenta portal | immersive: the flies on every page, the next cloth lowering between pages | each production's painted cloth flown in from the flies on its batten (`flies.js`) |
 | Beacon | launch: uptime monitoring app | Sora / Sora + Martian Mono | luminous violet, h 285, on blue-black | dark statement: centered headline and waitlist field in a violet aperture glow | orchestrated: one moment, the window on scroll | the app's window tilting flat out of the glow as you scroll (`window.js`) |
 | Chalk | business: bouldering gym | Unbounded / Onest + Red Hat Mono | hold violet, h 293; tape orange h 45 | giant type: "FIND YOUR LINE." in heavy caps beside a tilted wall photo with bolted holds | immersive: a route through every page, page transitions | a route drawn hold to hold down the whole page (`line.js`) |
 | Codicil | business: law firm | Baskervville (+ SC) / IBM Plex Sans | iron-gall blue-black, h 262 (low chroma); red pen h 31 | magazine serif: serif headline with "in legalese" struck out, beside a tall front-door photo | gentle: the redline once, short reveals | a lawyer's phrase struck through in red pen, the plain words written in (`redline.js`) |
 | Commons | business: neighborhood nonprofit | Gabarito / Public Sans + Caveat | tomato, h 33, with sky h 232 | own: two doors, tomato and sky panels under a big headline (near split screen) | expressive: spring jar, fluttering tabs, Lenis | the appeal's jar filling, its surface swaying (`jar.js`) |
 | Corner | business: corner bakery | Bricolage Grotesque / DM Sans + DM Mono, Instrument Serif | cobalt, h 262, with butter yellow h 92 | own: poster headline beside an arched loaf, an "Open now" pill (near local details) | gentle: reveals, CSS ribbon, arch easing on scroll | a tilted ribbon of today's counter running sideways (`ribbon.js` + CSS) |
 | Coteau | business: winery | Marcellus (+ SC) / Ysabeau Office + IBM Plex Mono | grape-must purple, h 330 (Q415) | magazine serif: serif headline beside the vineyard and tonight's wine on its hill | gentle: one marker climb, reveals | a marker climbing each wine's hill to this year (`hill.js`) |
+| Covered | app: schedules and timesheets for restaurants | Geologica / Golos Text + Shantell Sans | jade, h 172; ticket coral h 26 | split screen: a kitchen photo beside the jade headline panel | orchestrated: the tidy-up once, the jobs' tabs, a chapter rail | the paper schedule from the walk-in door sorting itself into the product's week (`tidy-up.js`) |
 | Cursus | portfolio: résumé | Hedvig Letters Serif / Radio Canada Big + Google Sans Code | deep indigo, h 270 (Q415); mint h 170 | own: serif statement beside the one-page CV in miniature (near magazine serif) | gentle: reveals, the sheet rising once | the CV folding from full length to one page, printed as shown (`fold.js`, `print.js`) |
 | Decal | business: food truck | Bagel Fat One / Overpass + Overpass Mono | truck yellow, h 96; guava pink h 355 | own: fat headline beside the truck's serving window (near split screen) | gentle: the truck parks once, reveals | a yellow truck parking in today's bay on the week's road (`parking-row.js`) |
+| Dogear | business: independent bookshop | Brygada 1918 / Libre Franklin | ochre book cloth, h 84; lavender endpaper h 300, ribbon red h 28 | picture mosaic: a front table of drawn covers and the soda counter beside the headline | gentle: the cards rise once, short reveals | the booksellers' shelf-talkers rising from behind the covers (`talkers.js`) |
 | Earshot | blog: podcast | Parkinsans / Atkinson Hyperlegible Next + Atkinson Hyperlegible Mono | on-air red, h 27; caption yellow h 102 | own: giant title over a wide studio frame with live captions (near giant type) | expressive: Lenis, words by Splitting | read-along captions lit at the pace of speech (`readalong.js`) |
 | Ember | business: evening restaurant and wine bar | Bodoni Moda / Hanken Grotesk | candlelight amber, h 72, on warm black; oxblood h 22 | full-bleed photo: the dark dining room, "Wick" in Bodoni over its foot | immersive: an evening told by scrolling, WebGL hero, cuts through black | a candle's light carried by the pointer over the dark room (`candlelight.js`, OGL) |
 | Encore | portfolio: band | Big Shoulders / Host Grotesk + Azeret Mono | aqua stage wash, h 195, on graphite | own: giant band name beside the album sleeve (near giant type) | orchestrated: the sleeve; covers fly between pages | the disc sliding out of its sleeve and turning (`sleeve.js`) |
@@ -35,19 +38,19 @@ A new brief reads this inventory before it is written, so that no subject, font,
 
 ## Fonts already shipped
 
-Albert Sans, Anybody, Archivo, Atkinson Hyperlegible Mono, Atkinson Hyperlegible Next, Azeret Mono, Bagel Fat One, Ballet, Baskervville, Baskervville SC, Big Shoulders, Bodoni Moda, Bricolage Grotesque, Caprasimo, Caveat, Chivo, Chivo Mono, Commissioner, Courier Prime, Darker Grotesque, DM Mono, DM Sans, Encode Sans, Familjen Grotesk, Figtree, Fragment Mono, Fraunces, Fredoka, Funnel Sans, Gabarito, Geist Mono, Gloock, Google Sans Code, Grenze Gotisch, Hanken Grotesk, Hedvig Letters Serif, Host Grotesk, IBM Plex Mono, IBM Plex Sans, Inclusive Sans, Instrument Sans, Instrument Serif, Inter Tight, Jost, Kalnia, Libre Caslon Condensed, Literata, Marcellus, Marcellus SC, Martian Mono, Mona Sans, Newsreader, Noto Serif Display, Onest, Overpass, Overpass Mono, Parkinsans, Petrona, Plus Jakarta Sans, Public Sans, Radio Canada Big, Red Hat Mono, Rethink Sans, Schibsted Grotesk, Sono, Sora, Source Serif 4, Spline Sans, Spline Sans Mono, Unbounded, Young Serif, Ysabeau Office.
+Albert Sans, Anybody, Archivo, Atkinson Hyperlegible Mono, Atkinson Hyperlegible Next, Azeret Mono, Bagel Fat One, Ballet, Baskervville, Baskervville SC, Big Shoulders, Bodoni Moda, Bricolage Grotesque, Brygada 1918, Caprasimo, Caveat, Chivo, Chivo Mono, Commissioner, Courier Prime, Darker Grotesque, DM Mono, DM Sans, Encode Sans, Familjen Grotesk, Figtree, Fragment Mono, Fraunces, Fredoka, Funnel Sans, Gabarito, Geist Mono, Geologica, Gloock, Golos Text, Google Sans Code, Grenze Gotisch, Hanken Grotesk, Hedvig Letters Serif, Host Grotesk, IBM Plex Mono, IBM Plex Sans, Inclusive Sans, Instrument Sans, Instrument Serif, Inter Tight, Jost, Kalnia, League Gothic, Libre Caslon Condensed, Libre Franklin, Literata, Marcellus, Marcellus SC, Martian Mono, Mona Sans, Newsreader, Noto Serif Display, Onest, Overpass, Overpass Mono, Parkinsans, Petrona, Plus Jakarta Sans, Public Sans, Radio Canada Big, Red Hat Mono, Rethink Sans, Schibsted Grotesk, Shantell Sans, Sono, Sora, Source Serif 4, Spectral, Spline Sans, Spline Sans Mono, Unbounded, Young Serif, Ysabeau Office.
 
 ## Moves taken
 
 - **giant type**: Chalk, Folio, Marquee, Reel, Transfer.
 - **full-bleed photo**: Ember, Kindly, Plinth, Seam.
 - **picture first**: none yet (Plinth's step-back ends on one; Linen sets its headline above a wide picture).
-- **split screen**: none yet (Commons's two doors and Decal's serving window come near).
-- **dark statement**: Beacon.
+- **split screen**: Covered (Commons's two doors and Decal's serving window come near).
+- **dark statement**: Batten, Beacon.
 - **index**: none yet (Codicil's practice sheets and Folio's project index come after the first screen).
 - **overlap**: none yet.
 - **magazine serif**: Aspect, Codicil, Coteau, Margin.
-- **picture mosaic**: none yet.
+- **picture mosaic**: Dogear.
 - **local details**: Saucer, Taper.
 - **friendly checklist**: Mend.
 - **own**: Commons, Corner, Cursus, Decal, Earshot, Encore, Gnomon, Linen, Pail, Pocket, Trestle.
@@ -57,26 +60,28 @@ Fifteen first screens share one frame, the headline on the left beside a picture
 ## Levels
 
 - **still**: none yet.
-- **gentle**: Aspect, Codicil, Corner, Coteau, Cursus, Decal, Margin, Mend, Pail, Saucer, Taper, Trestle.
+- **gentle**: Aspect, Codicil, Corner, Coteau, Cursus, Decal, Dogear, Margin, Mend, Pail, Saucer, Taper, Trestle.
 - **expressive**: Commons, Earshot, Folio, Transfer.
-- **orchestrated**: Beacon, Encore, Gnomon, Kindly, Linen, Marquee, Plinth.
-- **immersive**: Chalk, Pocket, Reel, Seam (named by Q467), and Ember, whose evening is told as the page scrolls.
+- **orchestrated**: Beacon, Covered, Encore, Gnomon, Kindly, Linen, Marquee, Plinth.
+- **immersive**: Batten, Chalk, Pocket, Reel, Seam (named by Q467), and Ember, whose evening is told as the page scrolls.
 
 ## Colors taken
 
 - **h 10-22, deep reds**: Seam's claret (h 10), Linen's cochineal (h 18); Ember's oxblood (h 22) as a second color.
-- **h 27-35, reds and vermilions**: Earshot's on-air red and Transfer's flash red (both h 27), Commons's tomato (h 33), Folio's bright vermilion and Aspect's muted madrona red (both h 35). Marks in this range: Encore's signal red (h 25), Codicil's red pen (h 31), Kindly's sealing wax, Taper's pole and Pail's coral (h 32).
+- **h 27-35, reds and vermilions**: Earshot's on-air red and Transfer's flash red (both h 27), Commons's tomato (h 33), Folio's bright vermilion and Aspect's muted madrona red (both h 35). Marks in this range: Encore's signal red (h 25), Covered's ticket coral (h 26), Dogear's ribbon red (h 28), Codicil's red pen (h 31), Kindly's sealing wax, Taper's pole and Pail's coral (h 32).
 - **h 45-58, earth and orange**: Gnomon's adobe brown (h 48); as second colors, Chalk's tape orange (h 45), Decal's cone orange (h 48), Marquee's tangerine (h 58).
 - **h 70-72, amber**: Saucer's marmalade (h 70, on light), Ember's candlelight (h 72, on dark); Linen's marigold accent (h 72).
+- **h 84, ochre**: Dogear's book cloth.
 - **h 92-105, yellows and olive**: Decal's truck yellow (h 96), Trestle's olive (h 105, low chroma); yellow marks in Corner and Transfer (h 92), Reel (h 98) and Earshot (h 102).
 - **h 123, chartreuse**: Reel.
 - **h 140-160, greens**: Pail's fern (h 140), Kindly's bottle green (h 158), Margin's fir green (h 160); Coteau's vine green (h 140) and Plinth's lichen (h 160) as second colors.
-- **h 165-200, mint, aqua and teal**: Encore's aqua (h 195, on dark), Pocket's lagoon teal (h 200); mint panels in Chalk and Cursus (h 170) and Pocket's glow (h 165).
+- **h 165-200, mint, aqua and teal**: Covered's jade (h 172), Encore's aqua (h 195, on dark), Pocket's lagoon teal (h 200); mint panels in Chalk and Cursus (h 170) and Pocket's glow (h 165).
 - **h 215-235, blue-greens and pale blues**: Taper's Barbicide blue-green (h 215), Mend's lake blue (h 220); pale blues as second colors in Seam (h 228), Aspect (h 230), Commons (h 232) and Saucer (h 235).
 - **h 255-270, blues and indigo**: Plinth's dusk blue (h 258), Corner's cobalt (h 262), Codicil's iron-gall blue-black (h 262, low chroma), Cursus's indigo (h 270, Q415); Linen's indigo (h 262) and Beacon's electric blue (h 255) as second colors.
 - **h 282-293, violets**: Transfer's stencil violet (h 282; "the violet is Transfer's", Q351), Beacon's luminous violet on dark (h 285, from wave 1), Chalk's hold violet (h 293).
-- **h 305-310, lilac**: Kindly's envelope liner (h 310), Pocket's glow (h 305).
+- **h 300-310, lilac**: Kindly's envelope liner (h 310), Pocket's glow (h 305), Dogear's lavender endpaper (h 300).
+- **h 320, magenta**: Batten's house magenta, the portal round every page.
 - **h 330, grape purple**: Coteau (Q415).
 - **h 352-355, pinks**: Marquee's hot pink (h 352); Decal's guava pink (h 355) as a second color.
 - **Dark surfaces**: Beacon (blue-black), Ember (warm black), Encore (graphite), Reel (black).
-- **No primary yet** in h 50-68 (orange), h 106-122, h 165-190, h 236-254 or h 295-328, though some of these hues appear as second colors.
+- **No primary yet** in h 50-68 (orange), h 106-122, h 165-170, h 176-190, h 236-254, h 295-318 or h 322-328, though some of these hues appear as second colors.
