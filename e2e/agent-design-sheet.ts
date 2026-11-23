@@ -3,8 +3,10 @@
 // the pictures agent-design.e2e.ts left in e2e/.runs/agent-design/, with the
 // variety tables it wrote. Run after the bench:
 //
-//   node e2e/agent-design-sheet.ts [desktop-1|phone-1]
+//   node e2e/agent-design-sheet.ts [desktop-1|phone-1] [after-claude,moves-claude…]
 //
+// The columns are every label and agent with a variety table, before and after
+// first, unless the second argument names them.
 // Writes e2e/.runs/agent-design/sheet-<picture>.png and variety.md.
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -14,8 +16,21 @@ const dir = join(import.meta.dirname, ".runs/agent-design");
 const picture = process.argv[2] ?? "desktop-1";
 const sharp = createRequire(join(import.meta.dirname, "../apps/desktop/package.json"))("sharp");
 
-const BRIEFS = ["patisserie", "tattoo", "bar", "notary", "climbing", "wedding"];
-const ORDER = ["before-claude", "after-claude", "before-pi", "after-pi"];
+const BRIEFS = ["patisserie", "choux", "tattoo", "fineline", "bar", "notary", "climbing", "wedding"];
+const AGENTS = ["claude", "pi"];
+const LABELS = ["before", "after"];
+const tableOf = (f: string) => /^(.+)-(claude|pi)\.md$/.exec(f);
+const found = readdirSync(dir)
+  .map(tableOf)
+  .filter((m) => m !== null)
+  .sort(
+    (a, b) =>
+      AGENTS.indexOf(a[2]!) - AGENTS.indexOf(b[2]!) ||
+      (LABELS.indexOf(a[1]!) + 1 || 99) - (LABELS.indexOf(b[1]!) + 1 || 99) ||
+      a[1]!.localeCompare(b[1]!),
+  )
+  .map((m) => `${m[1]}-${m[2]}`);
+const ORDER = process.argv[3]?.split(",") ?? found;
 const shot = (column: string, brief: string) => join(dir, `${column}-${brief}-${picture}.png`);
 const columns = ORDER.filter((c) => BRIEFS.some((b) => existsSync(shot(c, b))));
 const briefs = BRIEFS.filter((b) => columns.some((c) => existsSync(shot(c, b))));
@@ -58,9 +73,9 @@ await sharp({
   .png()
   .toFile(out);
 
-const tables = readdirSync(dir)
-  .filter((f) => /^(before|after)-(claude|pi)\.md$/.test(f))
-  .sort((a, b) => ORDER.indexOf(a.replace(".md", "")) - ORDER.indexOf(b.replace(".md", "")))
-  .map((f) => readFileSync(join(dir, f), "utf8"));
+const tables = columns
+  .map((c) => join(dir, `${c}.md`))
+  .filter((f) => existsSync(f))
+  .map((f) => readFileSync(f, "utf8"));
 writeFileSync(join(dir, "variety.md"), tables.join("\n"));
 console.log(`${out}\n${join(dir, "variety.md")}`);

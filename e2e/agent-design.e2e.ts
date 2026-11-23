@@ -1,6 +1,9 @@
 // The web-design skill (Q418-Q421, Q430) with a real agent: six briefs of
-// opposite characters, from a notary's calm to a tattoo studio's edge, each
-// built from one message in a new website, then looked at as a visitor would.
+// opposite characters, from a notary's calm to a tattoo studio's edge, and two
+// more of a trade already there but another character (a quiet fine-line
+// tattoo studio, a bright pâtisserie loved by children), which should open on
+// another move (Q444). Each is built from one message in a new website, then
+// looked at as a visitor would.
 // Run once before a change to the design rules and once after, with a label
 // for each, to set the pictures side by side and count how much the websites
 // differ (Q439): which hero each opens with, its fonts, its colors. Opt-in,
@@ -10,8 +13,8 @@
 //     with .cache/agent-config signed in;
 //   UPSTART_REAL_PI=1: Gemini 4 Hydrogen in Upstart's own harness, with
 //     GEMINI_API_KEY set in the terminal or in the repository's .env (never printed).
-//   UPSTART_DESIGN_LABEL=before|after (after by default).
-//   UPSTART_DESIGN_BRIEFS=tattoo,bar: only these briefs.
+//   UPSTART_DESIGN_LABEL=before|after|… (after by default).
+//   UPSTART_DESIGN_BRIEFS=tattoo,fineline: only these briefs.
 //
 // Writes e2e/.runs/agent-design/<label>-<agent>-<brief>-<picture>.png,
 // <label>-<agent>.json (each turn's time, its lines, its block searches and
@@ -66,6 +69,24 @@ const ALL_BRIEFS = [
     message:
       "A website for Léa and Thomas's wedding on 12 June 2027 in a farmhouse near Annecy: the day's programme, how to get there, where to stay, and a form to reply.",
   },
+  // Two of a trade already above, of another character (Q444).
+  {
+    id: "fineline",
+    name: "Trait Fin",
+    message:
+      "A website for Trait Fin, a fine-line tattoo studio in Nantes: one artist working alone, by appointment only, in a quiet and light private room; delicate botanical pieces and lettering, how to book a consultation, and the aftercare.",
+  },
+  {
+    id: "choux",
+    name: "Chou Bidou",
+    message:
+      "A website for Chou Bidou, a pâtisserie in Montpellier that families love: choux in bright colors and funny flavours, birthday cakes for children, the flavours of the week, and how to order.",
+  },
+];
+/** Briefs of one trade and different characters, which should open on different moves (Q444). */
+const PAIRS: [string, string][] = [
+  ["tattoo", "fineline"],
+  ["patisserie", "choux"],
 ];
 const chosen = process.env.UPSTART_DESIGN_BRIEFS?.split(",").map((s) => s.trim());
 const BRIEFS = chosen ? ALL_BRIEFS.filter((b) => chosen.includes(b.id)) : ALL_BRIEFS;
@@ -160,7 +181,7 @@ for (const { agent, run } of CASES)
     }, 120_000 * SLOW);
     afterAll(async () => {
       writeFileSync(join(shots, `${label}-${agent}.json`), JSON.stringify(report, null, 2));
-      const table = varietyTable(`${agent}, ${label}`, sites);
+      const table = varietyTable(`${agent}, ${label}`, sites, PAIRS);
       writeFileSync(join(shots, `${label}-${agent}.md`), table);
       process.stdout.write(`${table}\n`);
       await launched?.close();

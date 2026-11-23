@@ -15,19 +15,21 @@ Before the theme, decide from what the maker said (and guess the rest):
 - **The direction**, in three or four words that follow from it: "graphic and loud", "bright and playful", "warm, handmade, generous", "precise and airy", "dark and intimate", "quiet and literary". Two businesses of different characters never share a direction.
 - **One strong move**: the thing a visitor remembers, chosen from the list below by the character. Everything around it stays quiet, so the move carries. Each move is a hero of the gallery, which carries it among its tags: the home page opens on it.
 
-| Move | Suits | The hero made for it |
-|---|---|---|
-| giant type | a confident, graphic character: a tattoo studio, a record shop, a boxing gym | one huge headline across the width, no picture |
-| full-bleed photo | a place people come to: a restaurant, a hotel, a farm, a wedding | a photograph filling the first screen, the text over its foot |
-| picture first | a landscape or a venue: a gîte, a vineyard, a trip | a wide picture, the headline below it |
-| split screen | one saturated brand color: a shop, a children's activity, a festival | half picture, half a panel in the primary color |
-| dark statement | night and edge: a bar, a club, a cinema | a dark screen, one statement, one accent |
-| index | precise offices and studios: a notary, a lawyer, an architect | the services as a numbered index |
-| overlap | layered, creative: a design studio, a gallery, a florist | a panel over the picture's edge |
-| magazine serif | quiet and literary: a bookshop, a fashion label, a tea room | a very large serif beside a tall picture |
-| picture mosaic | many products or moments: a bakery, a photographer | the headline beside a mosaic of pictures |
-| local details | a neighbourhood shop whose hours matter: a bakery, a hairdresser | the headline beside the hours and address |
-| friendly checklist | friendly services: a dog walker, a cleaner, a tutor | the headline over three promises with ticks |
+The move follows the business's character, never its trade alone: every trade fits several moves, and two businesses of one trade open differently when their characters differ. Read the character in the maker's words (what they stress, who comes, how they speak of the place): a barbershop with loud music and a crowd opens on giant type, a family hairdresser on its local details; a vineyard that receives guests on picture first, a winemaker of natural wines among friends on a dark statement.
+
+| Move | For a character that is | For example | The hero made for it |
+|---|---|---|---|
+| giant type | loud, graphic, sure of itself | a blackwork tattoo studio, a record shop, a boxing gym, a street-food stand | one huge headline across the width, no picture |
+| full-bleed photo | generous, sensory, about a place | a restaurant, a hotel, a farm, a wedding in a garden | a photograph filling the first screen, the text over its foot |
+| picture first | open, scenic, unhurried | a gîte, a vineyard, a wedding in the mountains, a sailing school | a wide picture, the headline below it |
+| split screen | bright, bold in one color | a children's activity, a festival, a juice bar, an ice-cream shop | half picture, half a panel in the primary color |
+| dark statement | nocturnal, intimate, edgy | a cocktail bar, a club, a cinema, a late-night tattoo parlour | a dark screen, one statement, one accent |
+| index | precise, methodical, sober | a notary, an architect, an accountant, a dental clinic | the services as a numbered index |
+| overlap | layered, creative, artful | a design studio, a gallery, a florist, a hair salon with a signature style | a panel over the picture's edge |
+| magazine serif | quiet, literary, refined | a bookshop, a fashion label, a tea room, a winemaker's estate | a very large serif beside a tall picture |
+| picture mosaic | abundant, with much to show | a bakery, a photographer, a tattoo studio known for its portfolio, a market stall | the headline beside a mosaic of pictures |
+| local details | neighbourly, practical, everyday | a corner bakery, a hairdresser, a cobbler, a pharmacy | the headline beside the hours and address |
+| friendly checklist | reassuring, helpful, warm | a dog walker, a tutor, a cleaner, a climbing gym for children | the headline over three promises with ticks |
 
 **Done when** you can say the direction and its move in one sentence, and each choice below follows from it.
 

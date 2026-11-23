@@ -1,6 +1,6 @@
 // How much the websites of the design bench differ (Q439): for each, the
 // block its home page opens with, its fonts and its colors, then how many
-// different ones the six briefs got. Read by agent-design.e2e.ts and by
+// different ones the briefs got. Read by agent-design.e2e.ts and by
 // agent-design-sheet.ts.
 
 /** One website of the bench, as the variety table counts it. */
@@ -47,7 +47,18 @@ export function luminance(color: string): number {
 }
 
 /** The variety table in Markdown: one row a website, then how many different heroes, fonts and surfaces. */
-export function varietyTable(title: string, sites: DesignSite[]): string {
+/** Whether two businesses of one trade, of different characters, open on different heroes (Q444). */
+function sameTrade(sites: DesignSite[], pairs: [string, string][]): string[] {
+  const hero = (brief: string) => sites.find((s) => s.brief === brief)?.hero;
+  const said = pairs
+    .filter(([a, b]) => hero(a) && hero(b))
+    .map(([a, b]) =>
+      hero(a) === hero(b) ? `${a} / ${b} alike (${hero(a)})` : `${a} / ${b} differ (${hero(a)}, ${hero(b)})`,
+    );
+  return said.length ? [`One trade, two characters: ${said.join("; ")}.`, ""] : [];
+}
+
+export function varietyTable(title: string, sites: DesignSite[], pairs: [string, string][] = []): string {
   const distinct = (pick: (s: DesignSite) => string) => new Set(sites.map(pick)).size;
   const rows = sites.map(
     (s) =>
@@ -62,5 +73,6 @@ export function varietyTable(title: string, sites: DesignSite[]): string {
     "",
     `${sites.length} websites: ${distinct((s) => s.hero)} different opening blocks, ${distinct((s) => s.headingFont)} heading fonts, ${sites.filter((s) => s.dark).length} dark.`,
     "",
+    ...sameTrade(sites, pairs),
   ].join("\n");
 }

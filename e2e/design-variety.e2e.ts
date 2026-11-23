@@ -37,3 +37,32 @@ test("the variety table counts the different heroes and fonts", () => {
   expect(table).toContain("| c | hero-centered | Archivo / Inter | #111 (dark) | #000 | 60 s |");
   expect(table).toContain("3 websites: 2 different opening blocks, 2 heading fonts, 1 dark.");
 });
+
+test("the variety table says whether two businesses of one trade open differently (Q444)", () => {
+  const site = {
+    heroQueries: [],
+    seconds: 60,
+    headingFont: "Syne",
+    bodyFont: "Inter",
+    surface: "#fff",
+    primary: "#000",
+    dark: false,
+  };
+  const sites = [
+    { ...site, brief: "tattoo", hero: "hero-giant-type" },
+    { ...site, brief: "fineline", hero: "hero-index" },
+    { ...site, brief: "patisserie", hero: "hero-mosaic" },
+    { ...site, brief: "choux", hero: "hero-mosaic" },
+  ];
+  const pairs: [string, string][] = [
+    ["tattoo", "fineline"],
+    ["patisserie", "choux"],
+    ["bar", "club"],
+  ];
+  const table = varietyTable("claude, after", sites, pairs);
+  expect(table).toContain(
+    "One trade, two characters: tattoo / fineline differ (hero-giant-type, hero-index); patisserie / choux alike (hero-mosaic).",
+  );
+  // A pair with a brief not run is left out; with no pair run, no line.
+  expect(varietyTable("claude, after", sites.slice(0, 1), pairs)).not.toContain("One trade");
+});
