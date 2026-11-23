@@ -165,6 +165,33 @@ _Avoid_: Page group, route, section
 What a template leaves with the website it starts, for the agent's later turns: its type, colors, effects and how its lists work.
 _Avoid_: Style guide, template guide
 
+### Making templates
+
+**Category**:
+The kind of website a template is listed under on the start screen: business, portfolio, blog, launch, event or app.
+
+**Wave**:
+A set of templates briefed and approved together, then built, so that no two of them share a subject, a font, a signature effect or a move.
+
+**Batch**:
+The few templates of a wave that are built at the same time, each on its own.
+_Avoid_: Wave (a wave is briefed together, a batch is built together)
+
+**Brief**:
+The page that describes one template before it is built (its concept, type, palette, motion and page types), which the template's author approves.
+_Avoid_: Spec, mock-up
+
+**Move**:
+The one strong composition a visitor remembers on a site's first screen, chosen by the business's character (giant type, full-bleed photo, index…).
+_Avoid_: Hero style, layout
+
+**Signature effect**:
+The movement that belongs to one template alone and carries its concept, such as Transfer's stencil or Chalk's line drawing itself.
+
+**Movement level**:
+How much a site moves, set by its character: still, gentle, expressive or orchestrated.
+_Avoid_: Standard template, original design
+
 ### Running and shipping
 
 **Runtime**:
