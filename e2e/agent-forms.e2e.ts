@@ -3,11 +3,11 @@
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, test } from "vitest";
-import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
+import { agentConfigDir, type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 import { buildGuestbook } from "./guestbook-check.ts";
 
 const real = process.env.UPSTART_REAL_AGENT === "1";
-const configDir = join(import.meta.dirname, "../.cache/agent-config");
+const configDir = agentConfigDir();
 
 describe.skipIf(!real)("forms with the real agent", () => {
   let launched: LaunchedApp;

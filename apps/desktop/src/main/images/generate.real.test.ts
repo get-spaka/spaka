@@ -1,8 +1,10 @@
 // generate_image with the maker's real accounts (Q423-Q429): run only when
 // asked, since each image is paid for, with the keys set in the terminal or in
-// the repository's .env (Q438). Each account runs when its key is there:
+// the repository's .env (Q438). Each account runs when its key is there, and
+// Vertex AI on gcloud's sign-in when its project is given:
 //
 //   UPSTART_REAL_IMAGES=1 pnpm exec vitest run src/main/images/generate.real.test.ts
+//   UPSTART_REAL_IMAGES=1 UPSTART_REAL_IMAGES_VERTEX_PROJECT=<project> pnpm exec vitest run src/main/images/generate.real.test.ts
 import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -14,6 +16,7 @@ import { generateIntoMedia } from "./into-media";
 const real = process.env.UPSTART_REAL_IMAGES === "1";
 const gemini = real ? devKey("GEMINI_API_KEY") : undefined;
 const openai = real ? devKey("OPENAI_API_KEY") : undefined;
+const vertexProject = real ? process.env.UPSTART_REAL_IMAGES_VERTEX_PROJECT?.trim() : undefined;
 
 let root: string;
 beforeAll(() => {
@@ -81,4 +84,17 @@ test.skipIf(!openai)(
     await generatesAndRetouches({ account: "openai", key: openai! }, "openai/gpt-image-2", "gpt-image-2");
   },
   300_000,
+);
+
+test.skipIf(!vertexProject)(
+  "Vertex AI on gcloud's sign-in generates an image, then another from it",
+  async () => {
+    // The location the app gives a project connected by gcloud (accounts.ts setVertexGcloud).
+    await generatesAndRetouches(
+      { account: "vertex", project: vertexProject!, location: "global" },
+      "vertex/gemini-nano-banana-2.1",
+      "gemini-nano-banana-2.1",
+    );
+  },
+  180_000,
 );

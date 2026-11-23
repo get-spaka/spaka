@@ -1,0 +1,26 @@
+label: Services
+fields:
+  - name: name
+    label: Name
+    kind: text
+    required: true
+  - name: summary
+    label: Summary
+    kind: text
+  - name: price
+    label: Price
+    kind: text
+  - name: duration
+    label: Duration
+    kind: text
+  - name: icon
+    label: Icon
+    kind: choice
+    choices: [spark, chat, calendar, star, heart, home, wrench, scissors, brush, leaf, camera, car]
+  - name: image
+    label: Image
+    kind: image
+  - name: href
+    label: Link to more
+    kind: link
+order: [first-consultation, standard-service, home-visit, full-package, gift-voucher, yearly-care-plan]

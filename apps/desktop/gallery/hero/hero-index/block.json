@@ -1,0 +1,24 @@
+{
+  "name": "Index hero",
+  "kind": "hero",
+  "source": "upstart",
+  "description": "A headline and a short statement over a numbered index of the services, one ruled line each: its number, its name set large, a summary and its price. The page opens on what the business does, as a studio's or an office's would.",
+  "tags": ["index", "numbered list", "services first", "ruled lines", "table of contents", "projects"],
+  "mood": ["minimal", "professional", "editorial"],
+  "synonyms": [
+    "list hero",
+    "what we do",
+    "services index",
+    "directory",
+    "practice areas",
+    "sommaire",
+    "liste numérotée",
+    "nos domaines",
+    "prestations",
+    "index des projets"
+  ],
+  "data": {
+    "name": "services",
+    "family": "collection"
+  }
+}

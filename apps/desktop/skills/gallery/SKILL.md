@@ -16,13 +16,14 @@ Upstart ships a gallery of blocks: sections written for daisyUI and the theme, r
 ## How
 
 1. Ask for every section in one call, each with a few words in any language on what it holds and how it looks:
-   `find_blocks({ sections: [{ kind: "hero", query: "calm, centred headline" }, { kind: "menu", query: "dishes by course with prices" }, { kind: "faq", query: "questions that open one at a time" }] })`
+   `find_blocks({ sections: [{ kind: "hero", query: "full-bleed photo hero, warm and generous" }, { kind: "menu", query: "dishes by course with prices" }, { kind: "faq", query: "questions that open one at a time" }] })`
+   The hero is asked for by the direction's move (the web-design skill lists them), its words first.
    It answers with each block's id, what it holds, its mood, and what a block that lists things lists; never its template.
 2. Put the chosen blocks in, in reading order, each named after its role on the site:
-   `use_block({ page: "pages/index.liquid", title: "Chez Margot", description: "…", lang: "fr", blocks: [{ block: "header-dark", name: "header" }, { block: "hero-editorial", name: "hero" }, { block: "menu-courses", name: "menu" }, { block: "footer-local-shop", name: "footer" }] })`
+   `use_block({ page: "pages/index.liquid", title: "Chez Margot", description: "…", lang: "fr", blocks: [{ block: "header-dark", name: "header" }, { block: "hero-full-bleed-photo", name: "hero" }, { block: "menu-courses", name: "menu" }, { block: "footer-local-shop", name: "footer" }] })`
    - Each block becomes a shared part, `parts/<name>.liquid`, numbered if the name is taken, and its `{% render %}` line goes into the page, a banner and header at the top, a footer at the end.
    - A page that does not exist yet is created with the site's head, header and footer; give its title and description, in the site's language, and the language for the site's first page.
-3. Then, part by part, the hero's first (it is what the maker looks at), read the part and write this project's own texts in place of every example: a placed block's texts are lorem ipsum placeholders (its numbers, dates, times and a form's labels and button kept as the gallery wrote them), so every lorem ipsum word left is a text still to write. Keep its structure and classes; change the structure only for what the maker asked. Keep the color classes: they come from the theme.
+3. Then, part by part, the hero's first (it is what the maker looks at), read the part and write this project's own texts in place of every example: a placed block's texts are lorem ipsum placeholders (its numbers, dates, times and a form's labels and button kept as the gallery wrote them), so every lorem ipsum word left is a text still to write. Keep its structure and classes; change the structure only for what the maker asked. The hero is the one exception: when the direction's move asks for a layout no hero of the gallery has (another split, the headline over a picture, an oversized figure or word), rewrite the hero's structure for that move. Keep the color classes: they come from the theme.
 4. If no block fits a section, write it yourself in the page.
 
 ## A block that lists things

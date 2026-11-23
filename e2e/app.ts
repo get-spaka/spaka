@@ -3,14 +3,26 @@
 // is never shown), and a throwaway data folder and projects folder, so that a
 // check never touches the maker's own.
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { _electron, type ElectronApplication, type Page } from "playwright";
+import { checkouts } from "../apps/desktop/src/main/dev-keys.ts";
 import { backgroundElectron, backgroundPackagedApp } from "../scripts/background-electron.ts";
 
 const appDir = join(import.meta.dirname, "../apps/desktop");
 export const runsDir = join(import.meta.dirname, ".runs");
+
+/**
+ * The Claude sign-in the checks with the real agent use, .cache/agent-config:
+ * this checkout's, else its main checkout's when this one is a git worktree,
+ * by its own path, since the binary finds its sign-in by that path.
+ */
+export function agentConfigDir(): string {
+  const roots = checkouts(import.meta.dirname);
+  const found = roots.map((root) => join(root, ".cache/agent-config")).find((dir) => existsSync(dir));
+  return found ?? join(import.meta.dirname, "../.cache/agent-config");
+}
 
 /** How much longer every wait is on CI's runners, much slower than a maker's computer. */
 export const SLOW = process.env.CI ? 3 : 1;

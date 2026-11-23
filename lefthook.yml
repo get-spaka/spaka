@@ -1,5 +1,7 @@
 # Git hooks, installed by `pnpm install` (Lefthook): before each commit, the
-# lint the CI runs. `git commit --no-verify` skips them once.
+# lint the CI runs; before each push, the types, the unit tests and the
+# whole-app checks the pushed change calls for (Q446). `git commit --no-verify`
+# and `git push --no-verify` skip them once.
 # Only what the commands print and what fails.
 output:
   - execution_out
@@ -15,6 +17,12 @@ pre-commit:
       glob: "apps/desktop/templates"
       root: "apps/desktop/templates/"
       run: ../../../node_modules/.bin/biome check --diagnostic-level=error .
+# The types, the unit tests, then the whole-app checks named after what the
+# push changes, the app built first (scripts/pre-push.ts, e2e/changed.ts).
+pre-push:
+  commands:
+    checks:
+      run: node scripts/pre-push.ts
 # After a checkout or a pull, the templates' submodule gets its own hooks once it is there.
 post-checkout:
   commands:

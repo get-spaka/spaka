@@ -9,10 +9,10 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
+import { agentConfigDir, type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 
 const real = process.env.UPSTART_REAL_AGENT === "1";
-const configDir = join(import.meta.dirname, "../.cache/agent-config");
+const configDir = agentConfigDir();
 const dataDir = join(import.meta.dirname, "../.cache/gallery-v2-data");
 const shots = join(runsDir, "gallery-v2");
 

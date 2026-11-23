@@ -1,0 +1,20 @@
+{
+  "name": "Giant type hero",
+  "kind": "hero",
+  "source": "upstart",
+  "description": "No picture: one headline set huge across the whole width, tight and uppercase, over a heavy rule, then three columns with the introduction, the practical details and the main action.",
+  "tags": ["giant type", "typographic", "oversized headline", "no image", "strict grid", "rule"],
+  "mood": ["bold", "minimal"],
+  "synonyms": [
+    "big type",
+    "wordmark",
+    "typography only",
+    "statement headline",
+    "graphic",
+    "grand titre",
+    "typographie",
+    "sans image",
+    "titre géant",
+    "accroche typographique"
+  ]
+}

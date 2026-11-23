@@ -1,30 +1,38 @@
-// The web-design skill (Q418-Q421, Q430) with a real agent: the same two
-// briefs, a pâtisserie and an architecture studio, each built from one
-// message in a new website, then looked at as a visitor would. Run once
-// before a change to the design rules and once after, with a label for each,
-// to set the pictures side by side. Opt-in, as the other checks with a real
-// agent:
+// The web-design skill (Q418-Q421, Q430) with a real agent: six briefs of
+// opposite characters, from a notary's calm to a tattoo studio's edge, and two
+// more of a trade already there but another character (a quiet fine-line
+// tattoo studio, a bright pâtisserie loved by children), which should open on
+// another move (Q444). Each is built from one message in a new website, then
+// looked at as a visitor would.
+// Run once before a change to the design rules and once after, with a label
+// for each, to set the pictures side by side and count how much the websites
+// differ (Q439): which hero each opens with, its fonts, its colors. Opt-in,
+// as the other checks with a real agent:
 //
 //   UPSTART_REAL_AGENT=1: Claude, in the packaged app (`pnpm package` first),
 //     with .cache/agent-config signed in;
 //   UPSTART_REAL_PI=1: Gemini 4 Hydrogen in Upstart's own harness, with
 //     GEMINI_API_KEY set in the terminal or in the repository's .env (never printed).
-//   UPSTART_DESIGN_LABEL=before|after (after by default).
+//   UPSTART_DESIGN_LABEL=before|after|… (after by default).
+//   UPSTART_DESIGN_BRIEFS=tattoo,fineline: only these briefs.
 //
-// Writes e2e/.runs/agent-design/<label>-<agent>-<brief>-<picture>.png and
-// <label>-<agent>.json: each turn's time, its lines, the theme and the files.
+// Writes e2e/.runs/agent-design/<label>-<agent>-<brief>-<picture>.png,
+// <label>-<agent>.json (each turn's time, its lines, its block searches and
+// placements, the theme and the files) and <label>-<agent>.md, the variety
+// table; `node e2e/agent-design-sheet.ts` sets the first screens side by side.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { devKey as key } from "../apps/desktop/src/main/dev-keys.ts";
-import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
+import { agentConfigDir, type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
+import { type DesignSite, themeTraits, varietyTable } from "./design-variety.ts";
 import { maker, walk } from "./real-maker.ts";
 
-const configDir = join(import.meta.dirname, "../.cache/agent-config");
+const configDir = agentConfigDir();
 const shots = join(runsDir, "agent-design");
 const label = process.env.UPSTART_DESIGN_LABEL || "after";
 
-const BRIEFS = [
+const ALL_BRIEFS = [
   {
     id: "patisserie",
     name: "Maison Odile",
@@ -32,12 +40,59 @@ const BRIEFS = [
       "A website for Maison Odile, a pâtisserie in Bordeaux: cakes and tarts to order, the pastries of the season, and the shop's hours.",
   },
   {
-    id: "architects",
-    name: "Ferro & Lind",
+    id: "tattoo",
+    name: "Encre Sauvage",
     message:
-      "A website for Ferro & Lind, a small architecture studio in Copenhagen: their projects, how they work with clients, and how to reach them.",
+      "A website for Encre Sauvage, a tattoo studio in Lille with three artists: their styles and work, the flash days, how to book, and the aftercare.",
+  },
+  {
+    id: "bar",
+    name: "Minuit Quinze",
+    message:
+      "A website for Minuit Quinze, a cocktail bar in Marseille open from 7 pm to 2 am: the cocktails, the DJ nights on Fridays and Saturdays, and how to book a table.",
+  },
+  {
+    id: "notary",
+    name: "Claire Duval",
+    message:
+      "A website for Claire Duval's notary office in Rennes: what the office handles (buying a home, wills and inheritance, marriage contracts), the fees, and how to make an appointment.",
+  },
+  {
+    id: "climbing",
+    name: "Grimpette",
+    message:
+      "A website for Grimpette, an indoor climbing gym for children aged 4 to 12 in Lyon: the sessions and school-holiday courses, birthday parties, prices and opening hours.",
+  },
+  {
+    id: "wedding",
+    name: "Léa & Thomas",
+    message:
+      "A website for Léa and Thomas's wedding on 12 June 2027 in a farmhouse near Annecy: the day's programme, how to get there, where to stay, and a form to reply.",
+  },
+  // Two of a trade already above, of another character (Q444).
+  {
+    id: "fineline",
+    name: "Trait Fin",
+    message:
+      "A website for Trait Fin, a fine-line tattoo studio in Nantes: one artist working alone, by appointment only, in a quiet and light private room; delicate botanical pieces and lettering, how to book a consultation, and the aftercare.",
+  },
+  {
+    id: "choux",
+    name: "Chou Bidou",
+    message:
+      "A website for Chou Bidou, a pâtisserie in Montpellier that families love: choux in bright colors and funny flavours, birthday cakes for children, the flavours of the week, and how to order.",
   },
 ];
+/** Briefs of one trade and different characters, which should open on different moves (Q444). */
+const PAIRS: [string, string][] = [
+  ["tattoo", "fineline"],
+  ["patisserie", "choux"],
+];
+const chosen = process.env.UPSTART_DESIGN_BRIEFS?.split(",").map((s) => s.trim());
+const BRIEFS = chosen ? ALL_BRIEFS.filter((b) => chosen.includes(b.id)) : ALL_BRIEFS;
+
+/** A call the agent made to the gallery's tools, as it streamed it. */
+type GalleryCall = { name: string; input: Record<string, unknown> };
 
 /** The pictures taken of each home page: its first screen and two more on desktop, its first on a phone. */
 const PICTURES = [
@@ -60,10 +115,11 @@ const CASES = [
 ];
 
 for (const { agent, run } of CASES)
-  describe.skipIf(!run)(`the ${agent} agent designs two websites (${label})`, () => {
+  describe.skipIf(!run)(`the ${agent} agent designs ${BRIEFS.length} websites (${label})`, () => {
     let launched: LaunchedApp;
     const m = maker(() => launched);
     const report: Record<string, unknown> = { agent, label };
+    const sites: DesignSite[] = [];
     // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
     const main = <T>(fn: (upstart: any, arg: any) => T, arg?: unknown) =>
       launched.app.evaluate(
@@ -111,9 +167,23 @@ for (const { agent, run } of CASES)
           );
         await main((u, k) => u.piAccounts.setKey("gemini", k), gemini);
       }
+      // The agent's searches of the gallery and the blocks it placed, with what it asked.
+      await main((u) => {
+        const calls: GalleryCall[] = [];
+        (globalThis as { galleryCalls?: GalleryCall[] }).galleryCalls = calls;
+        const before = u.agent.o.onAgentEvent;
+        u.agent.o.onAgentEvent = (id: string, e: { kind: string; name?: string; input?: Record<string, unknown> }) => {
+          if (e.kind === "tool-input-end" && e.name && /find_blocks|use_block/.test(e.name) && e.input)
+            calls.push({ name: e.name.replace(/^mcp__upstart__/, ""), input: e.input });
+          before?.(id, e);
+        };
+      });
     }, 120_000 * SLOW);
     afterAll(async () => {
       writeFileSync(join(shots, `${label}-${agent}.json`), JSON.stringify(report, null, 2));
+      const table = varietyTable(`${agent}, ${label}`, sites, PAIRS);
+      writeFileSync(join(shots, `${label}-${agent}.md`), table);
+      process.stdout.write(`${table}\n`);
       await launched?.close();
     });
 
@@ -122,6 +192,7 @@ for (const { agent, run } of CASES)
         `${brief.name}: built from one message, then photographed`,
         async () => {
           const project = await invoke("projects:create", brief.name);
+          await main(() => (globalThis as { galleryCalls?: GalleryCall[] }).galleryCalls?.splice(0));
           if (agent === "pi") await invoke("agent:set-model", "gemini/gemini-4-hydrogen");
           const started = Date.now();
           await invoke("conversation:send", brief.message);
@@ -157,15 +228,45 @@ for (const { agent, run } of CASES)
           }, PICTURES)) as Record<string, string>;
           for (const [id, png] of Object.entries(pictures))
             writeFileSync(join(shots, `${label}-${agent}-${brief.id}-${id}.png`), Buffer.from(png, "base64"));
+          const calls = (await main(
+            () => (globalThis as { galleryCalls?: GalleryCall[] }).galleryCalls ?? [],
+          )) as GalleryCall[];
+          const theme = existsSync(join(project.path, "theme.css"))
+            ? readFileSync(join(project.path, "theme.css"), "utf8")
+            : "";
+          const placed = calls
+            .filter((c) => c.name === "use_block")
+            .flatMap((c) =>
+              ((c.input.blocks as { block: string }[] | undefined) ?? []).map((b) => ({
+                page: String(c.input.page ?? ""),
+                block: b.block,
+              })),
+            );
+          const heroQueries = calls
+            .filter((c) => c.name === "find_blocks")
+            .flatMap((c) => (c.input.sections as { kind?: string; query?: string }[] | undefined) ?? [])
+            .filter((s) => s.kind === "hero" || /hero/i.test(s.query ?? ""))
+            .map((s) => s.query ?? "");
+          // The first screen of the home page: its first block after the header, or what the agent wrote itself.
+          const hero =
+            placed.find((p) => p.page === "pages/index.liquid" && !/^(header|banner)-/.test(p.block))?.block ??
+            "(written)";
+          sites.push({
+            brief: brief.id,
+            hero,
+            heroQueries,
+            seconds: Math.round((Date.now() - started) / 1000),
+            ...themeTraits(theme),
+          });
           report[brief.id] = {
+            placed,
+            heroQueries,
             status: item.status,
             turnS: Math.round((Date.now() - started) / 1000),
             readWebDesign: lines.some((l) => /web-design/i.test(l)),
             questions,
             lines,
-            theme: existsSync(join(project.path, "theme.css"))
-              ? readFileSync(join(project.path, "theme.css"), "utf8")
-              : "",
+            theme,
             files,
           };
           process.stdout.write(

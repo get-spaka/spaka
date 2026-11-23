@@ -7,7 +7,7 @@ import { extname, join, normalize } from "node:path";
 import { describe, expect, test } from "vitest";
 import { parse } from "yaml";
 import { PALETTES } from "../apps/desktop/src/shared/palettes.ts";
-import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
+import { agentConfigDir, type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 import { buildBlog } from "./blog-check.ts";
 import { buildGuestbook, sampleValues } from "./guestbook-check.ts";
 import { previewDriver } from "./preview-driver.ts";
@@ -21,7 +21,7 @@ const built = existsSync(
   ),
 );
 const real = process.env.UPSTART_REAL_AGENT === "1";
-const configDir = join(import.meta.dirname, "../.cache/agent-config");
+const configDir = agentConfigDir();
 
 const invokeIn =
   (launched: LaunchedApp) =>

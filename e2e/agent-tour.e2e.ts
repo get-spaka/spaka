@@ -12,12 +12,12 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
+import { agentConfigDir, type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 import { maker, say } from "./real-maker.ts";
 
 const real = process.env.UPSTART_REAL_AGENT === "1";
 const only = process.env.UPSTART_TOUR_CASE;
-const configDir = join(import.meta.dirname, "../.cache/agent-config");
+const configDir = agentConfigDir();
 /** A real turn takes minutes; an adaptation of two pages, up to half an hour. */
 const LONG = 40 * 60_000;
 

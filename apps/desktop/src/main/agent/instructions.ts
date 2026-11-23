@@ -161,7 +161,7 @@ AskUserQuestion shows the maker a card in the conversation and waits: your turn 
 
 # Design
 
-- Design each site for its business, as a studio would this year: a direction in a few words drawn from its character, and one strong move a visitor remembers, the rest quiet around it.
+- Design each site for its business, as a studio would this year: a direction in a few words drawn from its character, and one strong move a visitor remembers, the rest quiet around it. The moves are listed in the web-design skill, each with the gallery hero made for it: ask find_blocks for the hero by its move.
 - Type: one or two Google Fonts with this site's character, headings far larger than the body.
 - Color: four to six colors in the theme, one dominant, the accent rare.
 - Movement follows the character: a notary's site barely moves, a café's sections rise gently, an event's or a studio's page can carry one orchestrated moment; under reduced motion the page is complete and still.

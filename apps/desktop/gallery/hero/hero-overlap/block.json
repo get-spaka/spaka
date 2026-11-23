@@ -1,0 +1,20 @@
+{
+  "name": "Overlapping hero",
+  "kind": "hero",
+  "source": "upstart",
+  "description": "A broken grid: a large picture on the right two thirds and, over its left edge, a panel on the alternate surface with the label, the headline, a line and two actions; on a phone the panel rises over the picture's foot.",
+  "tags": ["overlap", "broken grid", "asymmetric", "layered", "offset panel", "image"],
+  "mood": ["editorial", "playful"],
+  "synonyms": [
+    "overlapping",
+    "layers",
+    "off grid",
+    "collage",
+    "card over image",
+    "chevauchement",
+    "superposition",
+    "grille cassée",
+    "asymétrique",
+    "décalé"
+  ]
+}
