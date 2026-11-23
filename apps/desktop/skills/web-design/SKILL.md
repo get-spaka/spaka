@@ -12,7 +12,7 @@ The maker should open their site and feel it was made for their business, by a s
 Before the theme, decide from what the maker said (and guess the rest):
 
 - **The business's character**: who comes, what for, and how the place feels. A notary's calm, a bakery's warmth at dawn, a tattoo studio's edge, a wedding's tenderness.
-- **The direction**, in three or four words that follow from it: "quiet and editorial", "warm, handmade, generous", "graphic and loud", "precise and airy".
+- **The direction**, in three or four words that follow from it: "graphic and loud", "bright and playful", "warm, handmade, generous", "precise and airy", "dark and intimate", "quiet and literary". Two businesses of different characters never share a direction.
 - **One strong move**: the thing a visitor remembers, chosen from the list below by the character. Everything around it stays quiet, so the move carries. Each move is a hero of the gallery, which carries it among its tags: the home page opens on it.
 
 | Move | Suits | The hero made for it |
@@ -33,7 +33,7 @@ Before the theme, decide from what the maker said (and guess the rest):
 
 ## 2. Type
 
-- One or two Google Fonts under the OFL, loaded by the `@import` on theme.css's first line: a heading font with the direction's character (a high-contrast serif for editorial, a grotesque with quirks for graphic, a rounded or humanist sans for friendly, a mono as an accent for technical), and a body font made for reading, or one family in two weights. Choose among Google Fonts' many families for this character, as a type designer would, and give each a fallback stack.
+- One or two Google Fonts under the OFL, loaded by the `@import` on theme.css's first line: a heading font with the direction's character (a grotesque with quirks for graphic, a condensed or extended sans for loud, a rounded or humanist sans for friendly, a slab for sturdy and practical, a mono as an accent for technical, a high-contrast serif for literary or luxurious), and a body font made for reading, or one family in two weights. A serif is one voice among these, not the default for a site that should look careful. Choose among Google Fonts' many families for this character, as a type designer would, and give each a fallback stack.
 - A contrasted scale: the hero's headline far larger than the body (`text-5xl md:text-7xl` and beyond for a display move, `tracking-tight` at that size), section headings a clear step below, body text at `text-base` or `text-lg` in lines of 60 to 75 characters (`max-w-prose`).
 - Headings say something about this business ("Bread out of the oven at 6"), with a small label above them when a reader needs the section's name.
 
@@ -74,6 +74,7 @@ How much a site moves follows its character, from still to orchestrated:
 Each of these makes a site look like any site; write its alternative instead:
 
 - **The gradient of every AI site** (purple into blue, gradient text in a heading): one flat brand color, a gradient only between the theme's own colors when the direction calls for it.
+- **The tasteful default** (cream paper, a very large serif headline, a muted dark red or brown, a small spaced-out label above it, whatever the business): the colors, fonts and move of this business's own character; keep that look for the few that are truly literary or luxurious.
 - **Three equal cards with an icon each**: a numbered list, a split of text and image, or one large item and two small.
 - **Everything centered**: a strong left edge, the center kept for the hero and the closing call.
 - **Glass and glow** (frosted panels, neon shadows, blurred blobs): solid surfaces, depth from the theme's `--theme-depth`.
