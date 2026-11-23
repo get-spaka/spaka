@@ -46,7 +46,7 @@ Before the theme, decide from what the maker said (and guess the rest):
 
 ## 4. Layout and rhythm
 
-- Ask for the hero by its move, the move's own words first: `{ kind: "hero", query: "giant type hero, graphic and loud" }`, and place the block made for it.
+- Ask for the hero by its move, the move's own words first: `{ kind: "hero", query: "giant type hero, graphic and loud" }`, and place the block made for it. When the move you chose needs a layout no hero has, place the nearest and rewrite its structure for the move: the hero is the one block whose structure you may change (the gallery skill).
 - Choose the other blocks by the direction: put its words in each `find_blocks` query, so the sections share one character. They keep their structure (the gallery skill); the theme and `styles/site.css` make them this site's.
 - Sections alternate in density and background: text sections on the surface and its alternate, then a band of color or a full-bleed image. Generous space between them (`py-20 md:py-32`), more for a calm direction.
 - One section breaks the grid, on the home page: asymmetric columns, an oversized number or word, or the overlap hero when it is the move.
