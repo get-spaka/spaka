@@ -6,7 +6,9 @@
 // recorded, for agent-pi-replay.e2e.ts to play back. With
 // UPSTART_REAL_PI_VERTEX_PROJECT=<project>, Gemini runs on Vertex AI instead,
 // on the Google Cloud sign-in made with gcloud (Q280), its calls' arguments
-// streamed to the preview.
+// streamed to the preview. With UPSTART_REAL_PI_OPENAI=1, the harness runs
+// OpenAI's default model on OPENAI_API_KEY instead, searching with OpenAI's
+// own web search.
 import { existsSync, readdirSync, readFileSync, utimesSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
@@ -16,15 +18,19 @@ import { maker } from "./real-maker.ts";
 
 const real = process.env.UPSTART_REAL_PI === "1";
 const vertexProject = process.env.UPSTART_REAL_PI_VERTEX_PROJECT;
-const account = vertexProject ? "vertex" : "gemini";
-const hydrogen = `${account}/gemini-4-hydrogen`;
+const openai = process.env.UPSTART_REAL_PI_OPENAI === "1";
+const account = vertexProject ? "vertex" : openai ? "openai" : "gemini";
+/** The model that builds, and another the account offers. */
+const [model, other, modelName] = openai
+  ? ["openai/gpt-6.2-sol", "openai/gpt-6.2-astra", "GPT-6.2 Sol"]
+  : [`${account}/gemini-4-hydrogen`, `${account}/gemini-4-carbon`, "Gemini 4 Hydrogen"];
 
 /** Shown even when the checks pass. */
 const say = (line: string) => process.stdout.write(`${line}\n`);
 
 type Logged = { t: number; kind: string; name?: string; path?: string; length?: number };
 
-describe.skipIf(!real)(`Upstart's own harness, with Gemini on ${account}`, () => {
+describe.skipIf(!real)(`Upstart's own harness, with ${modelName} on ${account}`, () => {
   let launched: LaunchedApp;
   // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
   const main = <T>(fn: (upstart: any, arg: any) => T, arg?: unknown) =>
@@ -67,7 +73,14 @@ describe.skipIf(!real)(`Upstart's own harness, with Gemini on ${account}`, () =>
     launched = await launchApp({ env: { UPSTART_AGENT_REPLAY: "", ...(record ? { UPSTART_PI_RECORD: record } : {}) } });
     await launched.window.getByTestId("message-input").waitFor();
     if (vertexProject) await main((u, p) => u.piAccounts.setVertexGcloud(p), vertexProject);
-    else {
+    else if (openai) {
+      const k = key("OPENAI_API_KEY");
+      if (!k)
+        throw new Error(
+          "Set OPENAI_API_KEY in the terminal or in the repository's .env to run these checks with OpenAI.",
+        );
+      await main((u, k) => u.piAccounts.setKey("openai", k), k);
+    } else {
       const gemini = key("GEMINI_API_KEY");
       if (!gemini)
         throw new Error(
@@ -102,19 +115,17 @@ describe.skipIf(!real)(`Upstart's own harness, with Gemini on ${account}`, () =>
   test("the key connects the account: its models are offered", async () => {
     const status = await invoke("agent:status");
     expect(status.accounts[account]).toBe(true);
-    expect(status.models.map((m: { id: string }) => m.id)).toEqual(
-      expect.arrayContaining([hydrogen, `${account}/gemini-4-carbon`]),
-    );
+    expect(status.models.map((m: { id: string }) => m.id)).toEqual(expect.arrayContaining([model, other]));
   });
 
   test(
-    "Gemini 4 Hydrogen builds a site, the preview following it",
+    `${modelName} builds a site, the preview following it`,
     async () => {
       const started = Date.now();
       await invoke(
         "conversation:send",
         "Un site d'une page pour un fleuriste à Nantes, Fleur de Loire : le thème et la page d'accueil avec trois sections.",
-        { model: hydrogen, effort: "medium" },
+        { model, effort: "medium" },
       );
       // What the agent did, said even when its turn does not end in time.
       const report = async (done: number) => {
@@ -182,7 +193,7 @@ describe.skipIf(!real)(`Upstart's own harness, with Gemini on ${account}`, () =>
   );
 
   test(
-    "the agent searches the web with Google Search, then writes what it found",
+    `the agent searches the web with ${openai ? "OpenAI's web search" : "Google Search"}, then writes what it found`,
     async () => {
       const before = await launched.window.getByTestId("agent-message").count();
       const from = ((await main(() => (globalThis as { piLog?: Logged[] }).piLog ?? [])) as Logged[]).length;
@@ -205,14 +216,19 @@ describe.skipIf(!real)(`Upstart's own harness, with Gemini on ${account}`, () =>
     },
     320_000 * SLOW,
   );
-  test("the search's results and Google's suggestions are shown with it (Q437)", async () => {
-    const { items } = await invoke("conversation:get");
-    const grounded = items
-      .flatMap((i: { kind: string; parts?: { kind: string; activity?: { grounded?: unknown } }[] }) => i.parts ?? [])
-      .filter((p: { activity?: { grounded?: unknown } }) => p.activity?.grounded);
-    expect(grounded.length).toBeGreaterThan(0);
-    expect(grounded[0].activity.grounded.suggestions).toMatch(/<a /);
-  }, 10_000);
+  // Google's own suggestions come with Google Search alone.
+  test.skipIf(openai)(
+    "the search's results and Google's suggestions are shown with it (Q437)",
+    async () => {
+      const { items } = await invoke("conversation:get");
+      const grounded = items
+        .flatMap((i: { kind: string; parts?: { kind: string; activity?: { grounded?: unknown } }[] }) => i.parts ?? [])
+        .filter((p: { activity?: { grounded?: unknown } }) => p.activity?.grounded);
+      expect(grounded.length).toBeGreaterThan(0);
+      expect(grounded[0].activity.grounded.suggestions).toMatch(/<a /);
+    },
+    10_000,
+  );
 
   test(
     "a page the maker changed by hand is read again before the agent edits it (Q294, Q433)",
