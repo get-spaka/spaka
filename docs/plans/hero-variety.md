@@ -1,6 +1,6 @@
 # Upstart v2 : des héros aussi variés que les commerces
 
-## État (2026-11-23) : les cinq suggestions appliquées et mesurées, puis le geste par caractère (Q444)
+## État (2026-11-23) : les cinq suggestions appliquées et mesurées, puis le geste par caractère (Q444) et le fond par direction (Q445)
 
 | Suggestion | Fait | Commits |
 |---|---|---|
@@ -10,7 +10,8 @@
 | 4. Les exemples des skills ne poussent plus vers un seul look (Q442) | ✅ | 1d131f3 |
 | 5. L'agent peut réécrire la structure du héros (Q443) | ✅ | b2dcd4c |
 | Mesure et consignation | ✅ | ef063c8 |
-| 6. Le geste suit le caractère du commerce, plus son métier (Q444) | ✅ | d06be62 |
+| 6. Le geste suit le caractère du commerce, plus son métier (Q444) | ✅ | d06be62, 4904b3a |
+| 7. Le fond clair suit la direction (Q445) | ✅ | 77b3e98 |
 
 Mesuré le 2026-11-23 avec le banc, six commerces par agent :
 
@@ -26,7 +27,7 @@ Après, chaque site s'ouvre sur le geste que le skill donne à son caractère, c
 
 Restait ouvert après cette mesure :
 - les deux agents choisissaient le même geste pour le même métier, le tableau du skill donnant un geste par métier : deux tatoueurs s'ouvriraient pareil. Tu as choisi de faire suivre le geste au caractère du commerce (Q444, ci-dessous) ;
-- Gemini garde un fond crème sur cinq sites sur six.
+- Gemini garde un fond crème sur cinq sites sur six : réglé par Q445, plus bas.
 
 ## Le geste par caractère (Q444)
 
@@ -42,6 +43,17 @@ Mesuré le 2026-11-23 : Gemini sur les huit commerces, Claude sur les deux paire
 | Maison Odile / Chou Bidou | mosaïque / écran partagé | mosaïque / écran partagé |
 
 Les deux paires s'ouvrent différemment chez les deux agents. Chez Gemini, les huit sites s'ouvrent sur sept héros différents, le tatoueur et le bar tous deux sur la déclaration sombre. Les deux agents ne s'accordent plus toujours pour un même commerce : Encre Sauvage s'ouvre sur le giant type avec Claude, sur la déclaration sombre avec Gemini. Temps : Claude 1 631 s pour quatre, Gemini 1 915 s pour huit.
+
+## Le fond clair suit la direction (Q445)
+
+Le crème de Gemini venait de son propre goût : aucun texte d'Upstart ne le suggérait, et le skill ne disait que « clair ou sombre par caractère ». La section Color du skill donne maintenant au fond clair une famille choisie avec la direction : blanc pur ou gris froid pour le précis et le graphique, une teinte pâle de la couleur primaire pour le vif et le joueur, un papier chaud seulement pour le chaleureux ou le littéraire. « Le blanc cassé chaud de tous les sites » rejoint ce qui fait générique. Le tableau du banc compte les sites sur un blanc cassé chaud.
+
+| Sites clairs sur un blanc cassé chaud | Avant Q445 | Après Q445 |
+|---|---|---|
+| Gemini (huit commerces) | 5 sur 6 | 2 sur 6 (le mariage sur papier chaud, Chou Bidou sur un rose pâle tiré de sa couleur) |
+| Claude (les deux paires) | 2 sur 4 | 0 sur 4 |
+
+La pâtisserie et la notaire de Gemini sont maintenant sur blanc. Les paires d'un même métier s'ouvrent toujours différemment chez les deux agents.
 
 ## Contexte
 
