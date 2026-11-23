@@ -51,15 +51,7 @@ run("unit tests", ["exec", "vitest", "run", "--bail", "1"]);
 if (chosen.length) {
   run("build", ["--filter", "@upstart/desktop", "build"]);
   run("background Electron", ["background-electron"]);
-  // A leading slash, so that gallery.e2e.ts does not also pick agent-gallery.e2e.ts.
-  run("whole-app checks", [
-    "exec",
-    "vitest",
-    "run",
-    "--config",
-    "e2e/vitest.config.ts",
-    "--bail",
-    "1",
-    ...chosen.map((c) => `/${c}`),
-  ]);
+  // Vitest takes a name as part of a path: gallery.e2e.ts also runs agent-gallery.e2e.ts, which without a real
+  // agent skips at once.
+  run("whole-app checks", ["exec", "vitest", "run", "--config", "e2e/vitest.config.ts", "--bail", "1", ...chosen]);
 }
