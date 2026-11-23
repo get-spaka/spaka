@@ -85,14 +85,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
   e2e:
-    # On macOS and Windows alone: on main, on a run asked for, or with the box ticked.
+    # On macOS and Windows alone: on main, on a run asked for, or with the box ticked. Named by GitHub, as
+    # "e2e (macos-latest, 1)", since a name of its own would show unexpanded when the job is skipped.
     if: github.event_name != 'pull_request' || contains(github.event.pull_request.body, '[x] Run the checks on macOS and Windows')
     strategy:
       fail-fast: true
       matrix:
         os: [macos-latest, windows-latest]
         shard: [1, 2, 3, 4]
-    name: e2e (${{ matrix.os }}, ${{ matrix.shard }}/4)
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
