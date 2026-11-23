@@ -4,10 +4,10 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
+import { agentConfigDir, type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 
 const real = process.env.UPSTART_REAL_AGENT === "1";
-const configDir = join(import.meta.dirname, "../.cache/agent-config");
+const configDir = agentConfigDir();
 const outside = join(import.meta.dirname, "../.cache/outside-check");
 // The app's data under the home folder, as in real use: the sandbox denies
 // reading there, except for the folders Upstart opens to the agent.

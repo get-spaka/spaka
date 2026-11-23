@@ -6,11 +6,11 @@
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
+import { agentConfigDir, type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 import { type BlogReport, buildBlog } from "./blog-check.ts";
 
 const real = process.env.UPSTART_REAL_AGENT === "1";
-const configDir = join(import.meta.dirname, "../.cache/agent-config");
+const configDir = agentConfigDir();
 
 describe.skipIf(!real)("a blog with the real agent", () => {
   let launched: LaunchedApp;

@@ -12,10 +12,10 @@ import { join, relative } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { sentencesOf, templateTexts } from "../apps/desktop/src/main/templates/adapt.ts";
 import { readTemplateFolder } from "../apps/desktop/src/main/templates/reader.ts";
-import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
+import { agentConfigDir, type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 
 const real = process.env.UPSTART_REAL_AGENT === "1";
-const configDir = join(import.meta.dirname, "../.cache/agent-config");
+const configDir = agentConfigDir();
 const dataRoot = join(import.meta.dirname, "../.cache/agent-template-data");
 const CASES = [
   {

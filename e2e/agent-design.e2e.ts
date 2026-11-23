@@ -21,11 +21,11 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { devKey as key } from "../apps/desktop/src/main/dev-keys.ts";
-import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
+import { agentConfigDir, type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 import { type DesignSite, themeTraits, varietyTable } from "./design-variety.ts";
 import { maker, walk } from "./real-maker.ts";
 
-const configDir = join(import.meta.dirname, "../.cache/agent-config");
+const configDir = agentConfigDir();
 const shots = join(runsDir, "agent-design");
 const label = process.env.UPSTART_DESIGN_LABEL || "after";
 
