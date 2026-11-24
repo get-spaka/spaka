@@ -2,7 +2,7 @@
 
 Décidée avec Matt le 2026-11-23 (Q450-Q474, consignées dans `docs/v2.0-decisions.md`, « Templates (build step 5) »). Le vocabulaire (vague, lot, brief, move, effet signature, niveau de mouvement) est dans `GLOSSARY.md`.
 
-## État (2026-11-24) : lots 1 et 2 fusionnés (Batten, Covered, Dogear ; Heats, Strum, Spindle), lot 3 à lancer
+## État (2026-11-24) : lots 1 et 2 fusionnés (Batten, Covered, Dogear ; Heats, Strum, Spindle), lot 3 en pause
 
 | Tranche | Fait | Commits |
 |---|---|---|
@@ -10,8 +10,8 @@ Décidée avec Matt le 2026-11-23 (Q450-Q474, consignées dans `docs/v2.0-decisi
 | 1. Les tendances, sujet par sujet | ✅ | (notes de travail, reprises dans chaque brief) |
 | 2. Les neuf briefs, approuvés ensemble | ✅ | c644b24 |
 | 3. Lot 1 : Batten (théâtre), Covered (SaaS), Dogear (librairie) | ✅ | templates ec350d9 (Dogear), d8e01b5 (Covered), 11a72bf (Batten) ; inventaire et pointeur 8423c9e |
-| 4. Lot 2 : Heats (modèle open source), Strum (école de musique), Spindle (restaurant) | ✅ | templates 4456f36 (Heats), 93a3e5a (Strum), 0f95d76 (Spindle), 4632ec3 (lien des crédits de Dogear) ; inventaire et pointeur (ce commit) |
-| 5. Lot 3 : Ruled (formation), Bolster (yoga), Overhead (coworking) | | |
+| 4. Lot 2 : Heats (modèle open source), Strum (école de musique), Spindle (restaurant) | ✅ | templates 4456f36 (Heats), 93a3e5a (Strum), 0f95d76 (Spindle), 4632ec3 (lien des crédits de Dogear) ; inventaire et pointeur d658aa9 ; corrections de Strum : templates a7ab107, pointeur (ce commit) |
+| 5. Lot 3 : Ruled (formation), Bolster (yoga), Overhead (coworking) | en pause | Matt s'arrête après le lot 2 (2026-11-24) ; les trois briefs restent approuvés, rien n'est commencé |
 | 6. Release v14 et pointeur | | |
 
 ## D'où l'on part
