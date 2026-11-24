@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdtempSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
@@ -51,7 +51,18 @@ describe("the start screen", () => {
     expect(chips).toEqual(["all", "business", "portfolio", "blog", "launch", "event", "app"]);
     await w.locator('[data-testid="template-chip"][data-category="event"]').click();
     const events = await cards.evaluateAll((els) => els.map((el) => el.getAttribute("data-template")));
-    expect(events.sort()).toEqual(["kindly", "marquee", "plinth"]);
+    // Every event template and no other, by their manifests: a new template changes the list.
+    const folder = join(import.meta.dirname, "../apps/desktop/templates");
+    const category = (id: string): string => {
+      const manifest = join(folder, id, "template.json");
+      return existsSync(manifest) ? JSON.parse(readFileSync(manifest, "utf8")).category : "";
+    };
+    expect(events.sort()).toEqual(
+      readdirSync(folder)
+        .filter((id) => category(id) === "event")
+        .sort(),
+    );
+    expect(events).toEqual(expect.arrayContaining(["kindly", "marquee", "plinth"]));
     await w.locator('[data-testid="template-chip"][data-category="all"]').click();
     await expect(cards.count()).resolves.toBe(ids.length);
     await launched.capture("start");
