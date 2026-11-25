@@ -140,7 +140,7 @@ describe("skills", () => {
     await until(async () => (await dialog.getByTestId("site-name").textContent()) === "Renamed in settings");
     await until(() => w.getByTestId("project-item").filter({ hasText: "Renamed in settings" }).count());
     // Its folder, shown under its name, is project-<random id> and stays so (Q410).
-    const folder = (await invoke("projects:current")).path.split("/").pop();
+    const folder = (await invoke("projects:current")).path.split(/[\\/]/).pop();
     expect(folder).toMatch(/^project-[0-9a-z]{10}$/);
     expect(await dialog.getByTestId("site-folder").textContent()).toBe(folder);
     // Back to its name, for the tests after it.
