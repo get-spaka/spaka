@@ -11,7 +11,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, test } from "vitest";
-import { Projects, readProjectFile, slug } from "./projects";
+import { folderId, Projects, readProjectFile, slug } from "./projects";
 
 let root: string;
 let projects: Projects;
@@ -22,9 +22,9 @@ beforeEach(() => {
 });
 
 describe("creating a project", () => {
-  test("makes a folder named after it, with its .upstart/project.json", () => {
+  test("makes a folder project-<random id>, with its .upstart/project.json holding its name (Q410)", () => {
     const project = projects.create("Chez Margot, boulangerie");
-    expect(project.path).toBe(join(root, "Upstart", "chez-margot-boulangerie"));
+    expect(project.path).toMatch(new RegExp(`^${join(root, "Upstart", "project-")}[0-9a-z]{10}$`));
     expect(project.model).toBe("claude-opus-5-5");
     expect(project.effort).toBe("high");
     expect(readProjectFile(project.path)?.id).toBe(project.id);
@@ -39,11 +39,26 @@ describe("creating a project", () => {
     ]);
   });
 
-  test("never reuses an existing folder", () => {
+  test("two websites of the same name get folders of their own", () => {
     const a = projects.create("Lumen");
     const b = projects.create("Lumen");
-    expect(b.path).toBe(`${a.path}-2`);
+    expect(b.path).not.toBe(a.path);
     expect(b.id).not.toBe(a.id);
+  });
+
+  test("a rename changes the name in project.json, never the folder", () => {
+    const project = projects.create("Je voudrais un site");
+    projects.update(project.id, { name: "Chez Margot" });
+    expect(readProjectFile(project.path)?.name).toBe("Chez Margot");
+    expect(projects.list()[0]).toMatchObject({ name: "Chez Margot", path: project.path });
+  });
+});
+
+describe("a folder's random id", () => {
+  test("10 lowercase letters or digits, a new one each time", () => {
+    const ids = new Set(Array.from({ length: 1000 }, () => folderId()));
+    expect(ids.size).toBe(1000);
+    for (const id of ids) expect(id).toMatch(/^[0-9a-z]{10}$/);
   });
 });
 

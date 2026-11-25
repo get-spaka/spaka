@@ -7,6 +7,7 @@ import { diskSource } from "@upstart/runtime/node";
 import type { ExportResult, PublishInfo } from "../shared/ipc";
 import { published } from "./history/history";
 import { webpCopies } from "./media/library";
+import { slug } from "./projects";
 
 /** Marks a folder as an export of Upstart's, which a new export may replace. */
 const MARKER = ".upstart-export";
@@ -14,13 +15,14 @@ const MARKER = ".upstart-export";
 /**
  * The folder the export goes into: the chosen one when it is empty or holds a
  * previous export, else a new folder inside it, so that nothing of the
- * maker's is ever overwritten.
+ * maker's is ever overwritten, named after the website (its folder is
+ * project-<random id>, Q410).
  */
-export function exportFolder(chosen: string, projectDir: string): string {
+export function exportFolder(chosen: string, projectDir: string, name: string): string {
   const usable = (dir: string) =>
     !existsSync(dir) || existsSync(join(dir, MARKER)) || readdirSync(dir).filter((f) => f !== ".DS_Store").length === 0;
   if (usable(chosen)) return chosen;
-  const base = `${basename(projectDir)}-site`;
+  const base = `${slug(name) || basename(projectDir)}-site`;
   let folder = join(chosen, base);
   for (let n = 2; !usable(folder); n++) folder = join(chosen, `${base}-${n}`);
   return folder;
@@ -75,7 +77,7 @@ export async function exportProject(projectDir: string, chosen: string, options:
     throw new Error(
       `A static site cannot show what visitors send (${checked.refusal.datasources.join(", ")}): choose the Node or Cloudflare export.`,
     );
-  const folder = exportFolder(chosen, projectDir);
+  const folder = exportFolder(chosen, projectDir, options.name);
   // A previous export is replaced: no page that no longer exists is left behind.
   if (existsSync(join(folder, MARKER)))
     for (const entry of readdirSync(folder))

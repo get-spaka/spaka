@@ -361,7 +361,8 @@ describe("a project folder in the preview", () => {
     await field.press("Enter");
     await field.waitFor({ state: "detached" });
     expect(await listed()).toEqual(["Chez Margot", "Second"]);
-    // Enter keeps the new name, written in the project and shown for the open website; its folder keeps its own.
+    // Enter keeps the new name, written in the project and shown for the open website; its folder,
+    // project-<random id>, stays as it is (Q410).
     await row("Chez Margot").dblclick();
     await field.fill("Boulangerie Margot");
     await w.screenshot({ path: join(runsDir, "project-rename.png"), clip: { x: 0, y: 0, width: 480, height: 320 } });
@@ -372,7 +373,8 @@ describe("a project folder in the preview", () => {
       (window as any).upstart.invoke("projects:current"),
     );
     expect(current.name).toBe("Boulangerie Margot");
-    expect(current.path).toMatch(/chez-margot$/);
+    expect(current.path).toBe(folder);
+    expect(current.path).toMatch(/\/project-[0-9a-z]{10}$/);
     // A click elsewhere keeps it too.
     await row("Boulangerie").dblclick();
     await field.fill("Chez Margot");

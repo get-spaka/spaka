@@ -1011,7 +1011,10 @@ export const en = {
   },
   site: {
     open: (name: string) => `Settings of ${name}`,
-    kept: "Kept in its folder: these settings go with it.",
+    keptIn: "Kept in its folder",
+    keptAfter: ": these settings go with it.",
+    folderTip: (path: string) => `Show ${path} in ${FILE_MANAGER}; renaming the website does not change it`,
+    renameTip: "Rename the website",
     agent: "Agent",
     ownSkills: "Its own skills",
     ownConnectors: "Its own connectors",

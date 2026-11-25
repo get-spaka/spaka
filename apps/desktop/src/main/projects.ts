@@ -1,7 +1,7 @@
 // Projects: folders of plain files (ADR 0001). What belongs to a project
 // travels in its hidden .upstart/ folder; what belongs to this machine (where
 // the folder is, when it was last opened) is kept in the app's own data.
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import type { AgentMode, Effort, ListedProject, ProjectInfo } from "../shared/ipc";
@@ -61,12 +61,17 @@ export class Projects {
     }
   }
 
-  /** A new, empty project folder in the projects folder, named after `name`. */
+  /**
+   * A new, empty project folder in the projects folder, project-<random id>
+   * (Q410): the website's name is in its project.json and changes there
+   * alone, the folder never, whether or not the agent works in it; two
+   * websites of the same name never meet.
+   */
   create(name: string): ProjectInfo {
     mkdirSync(this.projectsDir, { recursive: true });
-    const base = slug(name) || "website";
-    let folder = join(this.projectsDir, base);
-    for (let n = 2; existsSync(folder); n++) folder = join(this.projectsDir, `${base}-${n}`);
+    let folder: string;
+    do folder = join(this.projectsDir, `project-${folderId()}`);
+    while (existsSync(folder));
     mkdirSync(folder, { recursive: true });
     const file: ProjectFile = {
       id: randomUUID(),
@@ -205,6 +210,22 @@ export function isEffort(value: unknown): value is Effort {
 }
 
 /** A folder name from a project's name: lowercase ASCII words joined by dashes. */
+const ID_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz";
+
+/**
+ * A nanoid-like random id of 10 characters, in lowercase letters and digits
+ * only: the Mac's and Windows' disks do not tell "aB" from "ab".
+ */
+export function folderId(size = 10): string {
+  let id = "";
+  while (id.length < size)
+    for (const byte of randomBytes(size)) {
+      // 252 = 7 × 36: the bytes above it are dropped, so that each character is as likely.
+      if (byte < 252 && id.length < size) id += ID_ALPHABET[byte % 36];
+    }
+  return id;
+}
+
 export function slug(name: string): string {
   return name
     .normalize("NFKD")

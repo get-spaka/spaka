@@ -118,6 +118,40 @@ describe("skills", () => {
     await until(() => main((u) => u.preview.view.getVisible()));
   });
 
+  test("a click on the website's name in its settings renames it; Escape leaves it and keeps the dialog open", async () => {
+    const w = launched.window;
+    const before = (await invoke("projects:current")).name;
+    await w.getByTestId("header-site-settings").click();
+    const dialog = w.getByTestId("site-settings");
+    const field = dialog.getByTestId("site-rename");
+    await dialog.getByTestId("site-name").click();
+    await field.waitFor();
+    expect(await field.inputValue()).toBe(before);
+    await field.fill("Not kept");
+    await field.press("Escape");
+    await field.waitFor({ state: "detached" });
+    expect(await dialog.count()).toBe(1);
+    expect(await dialog.getByTestId("site-name").textContent()).toBe(before);
+    // Enter keeps it, for the website and in its row in the list.
+    await dialog.getByTestId("site-name").click();
+    await field.fill("Renamed in settings");
+    await field.press("Enter");
+    await until(async () => (await invoke("projects:current")).name === "Renamed in settings");
+    await until(async () => (await dialog.getByTestId("site-name").textContent()) === "Renamed in settings");
+    await until(() => w.getByTestId("project-item").filter({ hasText: "Renamed in settings" }).count());
+    // Its folder, shown under its name, is project-<random id> and stays so (Q410).
+    const folder = (await invoke("projects:current")).path.split("/").pop();
+    expect(folder).toMatch(/^project-[0-9a-z]{10}$/);
+    expect(await dialog.getByTestId("site-folder").textContent()).toBe(folder);
+    // Back to its name, for the tests after it.
+    await dialog.getByTestId("site-name").click();
+    await field.fill(before);
+    await field.press("Enter");
+    await until(async () => (await invoke("projects:current")).name === before);
+    await dialog.getByTestId("site-settings-done").click();
+    await dialog.waitFor({ state: "detached" });
+  });
+
   const assembledHas = async (path: string) => {
     const file = join(await assembled(), path);
     return existsSync(file) && readFileSync(file, "utf8").length > 0;

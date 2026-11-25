@@ -915,6 +915,9 @@ async function main() {
     },
   }));
   ipc.on("app:ready", () => console.log("[upstart] interface ready"));
+  ipc.handle("projects:reveal", () => {
+    if (!env.background && current && existsSync(current.path)) shell.showItemInFolder(current.path);
+  });
   ipc.handle("projects:list", () => projects.list());
   ipc.handle("projects:create", (name) => opened(projects.create(name)));
   ipc.handle("projects:open", (id) => opened(projects.open(id)));

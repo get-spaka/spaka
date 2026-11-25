@@ -1,8 +1,9 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
-import { basename, extname, join, normalize } from "node:path";
+import { extname, join, normalize } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { slug } from "../apps/desktop/src/main/projects.ts";
 import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 
 /** The checks that place or capture the preview's native view: a CI runner's hidden window does not lay it out as a screen does. */
@@ -102,7 +103,8 @@ describe("exporting the website", () => {
     mkdirSync(theirs, { recursive: true });
     writeFileSync(join(theirs, "notes.txt"), "mine");
     const result = await invoke("export:run", theirs, "static");
-    expect(result.folder).toBe(join(theirs, `${await projectFolderName()}-site`));
+    // Named after the website, not its folder, project-<random id> (Q410).
+    expect(result.folder).toBe(join(theirs, `${slug((await invoke("projects:current")).name)}-site`));
     expect(readFileSync(join(theirs, "notes.txt"), "utf8")).toBe("mine");
     expect(existsSync(join(result.folder, "index.html"))).toBe(true);
     // Back to the first folder, for the next checks.
@@ -275,6 +277,4 @@ describe("exporting the website", () => {
     }, siteOrigin);
     expect(shown).toMatch(/\/media\/croissants-\d+w\.webp$/);
   });
-
-  const projectFolderName = async () => basename((await invoke("projects:current")).path);
 });

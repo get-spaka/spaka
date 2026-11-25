@@ -635,6 +635,8 @@ export type Invokes = {
   "settings:set": (change: Partial<AppSettings>) => AppSettings;
   /** Shows the websites' folder in the Finder. */
   "settings:reveal-projects": () => void;
+  /** Shows the open website's folder in the Finder. */
+  "projects:reveal": () => void;
   "projects:list": () => ListedProject[];
   "projects:create": (name: string) => ProjectInfo;
   "projects:open": (id: string) => ProjectInfo;
@@ -910,6 +912,7 @@ export const channels = {
     "settings:get",
     "settings:set",
     "settings:reveal-projects",
+    "projects:reveal",
     "projects:list",
     "projects:create",
     "projects:open",

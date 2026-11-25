@@ -2,7 +2,8 @@
 // opened from the button on its row in the websites list or the one before its
 // name over the conversation: its model and effort, its
 // own skills and connectors, all kept in its folder; and which connectors it
-// also gets from the settings for every website.
+// also gets from the settings for every website. A click on its name, the
+// dialog's title, renames it, as a double-click on its row does.
 import { House } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { AgentStatus, ConnectorInfo, ProjectInfo, SiteCheck, SkillInfo } from "../../shared/ipc";
@@ -12,6 +13,7 @@ import { t } from "../lib/strings";
 import { ConnectorList, SkillList } from "../settings/lists";
 import { ModelRows } from "../settings/model";
 import { Group, Push, Row } from "../settings/ui";
+import { RenameField } from "./RenameField";
 import { Tip } from "./ui/tip";
 
 export function SiteSettings({
@@ -32,6 +34,7 @@ export function SiteSettings({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+  const [renaming, setRenaming] = useState(false);
   const shared = connectors.filter((c) => c.scope === "app").map((c) => c.name);
 
   return (
@@ -56,8 +59,46 @@ export function SiteSettings({
             <House className="size-[18px]" />
           </span>
           <span className="flex min-w-0 flex-1 flex-col">
-            <h2 className="truncate text-[15px] font-semibold">{project.name}</h2>
-            <span className="text-[11px] text-muted-foreground">{t.site.kept}</span>
+            {renaming ? (
+              <RenameField
+                name={project.name}
+                testid="site-rename"
+                className="-mx-[7px] px-[6px] py-0 text-[15px] font-semibold"
+                onDone={(name) => {
+                  setRenaming(false);
+                  const clean = name?.trim();
+                  if (clean && clean !== project.name) void upstart.invoke("projects:rename", project.id, clean);
+                }}
+              />
+            ) : (
+              <h2 className="flex min-w-0">
+                <Tip text={t.site.renameTip}>
+                  <button
+                    type="button"
+                    data-testid="site-name"
+                    onClick={() => setRenaming(true)}
+                    className="-mx-[7px] min-w-0 truncate rounded-sm border border-transparent px-[6px] text-left text-[15px] font-semibold hover:border-input focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                  >
+                    {project.name}
+                  </button>
+                </Tip>
+              </h2>
+            )}
+            <span className="flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground">
+              <span className="shrink-0">{t.site.keptIn}</span>
+              {/* Its folder, project-<random id> (Q410): a rename never changes it. */}
+              <Tip text={t.site.folderTip(project.path)}>
+                <button
+                  type="button"
+                  data-testid="site-folder"
+                  onClick={() => void upstart.invoke("projects:reveal")}
+                  className="min-w-0 truncate font-mono underline-offset-2 hover:text-foreground hover:underline"
+                >
+                  {project.path.split(/[\\/]/).pop()}
+                </button>
+              </Tip>
+              <span className="shrink-0">{t.site.keptAfter}</span>
+            </span>
           </span>
         </header>
 

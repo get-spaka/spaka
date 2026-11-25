@@ -1,11 +1,12 @@
 import { ArrowDownUp, FolderOpen, PanelLeft, Plus, Settings, SlidersHorizontal } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { type ListedProject, PROJECT_ORDERS, type ProjectInfo, type ProjectOrder } from "../../shared/ipc";
 import { ordered } from "../../shared/project-order";
 import { useAppSettings } from "../hooks/useMain";
 import { upstart } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
+import { RenameField } from "./RenameField";
 import { UpdateNote } from "./UpdateNote";
 import { Button } from "./ui/button";
 import {
@@ -126,6 +127,7 @@ export function Sidebar({
               {renaming === project.id ? (
                 <RenameField
                   name={project.name}
+                  className="my-px ml-px px-[7px] py-[5px] text-sm font-normal"
                   onDone={(name) => {
                     setRenaming(null);
                     const clean = name?.trim();
@@ -196,43 +198,5 @@ export function Sidebar({
         </Button>
       </div>
     </aside>
-  );
-}
-
-/** The website's name in a field, in place of its row (Q397): Enter or a click elsewhere keeps it, Escape leaves it. */
-function RenameField({ name, onDone }: { name: string; onDone: (name?: string) => void }) {
-  const [value, setValue] = useState(name);
-  const field = useRef<HTMLInputElement>(null);
-  const done = useRef(false);
-  const finish = (to?: string) => {
-    if (done.current) return;
-    done.current = true;
-    onDone(to);
-  };
-  useEffect(() => {
-    field.current?.focus();
-    field.current?.select();
-  }, []);
-  return (
-    <input
-      ref={field}
-      data-testid="project-rename"
-      aria-label={t.sidebar.rename}
-      value={value}
-      maxLength={120}
-      onChange={(event) => setValue(event.target.value)}
-      onKeyDown={(event) => {
-        if (event.key === "Enter") {
-          event.preventDefault();
-          finish(value);
-        } else if (event.key === "Escape") {
-          event.preventDefault();
-          event.stopPropagation();
-          finish();
-        }
-      }}
-      onBlur={() => finish(value)}
-      className="no-drag my-px ml-px min-w-0 flex-1 rounded-sm border bg-background px-[7px] py-[5px] text-sm font-normal outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-    />
   );
 }

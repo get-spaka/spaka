@@ -19,11 +19,11 @@ test("the profile lets the shell write the project and the temporary folders, an
   const profile = sandboxProfile({
     projectDir: "/tmp",
     readable: ["/Applications/Upstart.app"],
-    skillsDir: "/tmp/skills",
+    skillsDir: "/nonexistent/skills",
   });
   expect(profile).toContain('(deny file-read* (subpath "/Users") (subpath "/Volumes"))');
   expect(profile).toContain('(subpath "/Applications/Upstart.app")');
-  expect(profile).toContain('(deny file-write* (subpath "/tmp/skills"))');
+  expect(profile).toContain('(deny file-write* (subpath "/nonexistent/skills"))');
 });
 
 test.runIf(sandboxAvailable())(

@@ -69,7 +69,7 @@ export function ContentTab({ working, onAsk }: { working: boolean; onAsk: (text:
   const ds = open && list?.find((d) => d.name === open.datasource);
 
   return (
-    <fieldset data-testid="content" disabled={working} className="flex min-h-0 flex-1 flex-col">
+    <fieldset data-testid="content" disabled={working} className="flex min-h-0 min-w-0 flex-1 flex-col">
       {working && <p className="px-4 pt-3 text-xs text-muted-foreground">{t.content.busy}</p>}
       {error && (
         <p data-testid="content-error" className="px-4 pt-3 text-xs text-destructive">
