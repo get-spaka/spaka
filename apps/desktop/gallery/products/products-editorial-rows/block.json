@@ -1,7 +1,7 @@
 {
   "name": "Editorial product rows",
   "kind": "products",
-  "source": "upstart",
+  "source": "spaka",
   "description": "Large editorial rows that alternate sides, each with a tall picture (or a soft placeholder) beside a number, the category, a badge, the product's name in a serif type, a summary, the price, an Order button and a link to its story; each product's page has a centered title, a wide picture, the description beside the price and the order button, and three other products.",
   "tags": ["editorial", "alternating", "rows", "story", "handmade"],
   "mood": ["editorial", "elegant"],

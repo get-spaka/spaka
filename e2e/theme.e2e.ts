@@ -124,7 +124,7 @@ describe("the theme", () => {
     expect(existsSync(join(path, "fonts/fraunces/normal.woff2"))).toBe(true);
     await until(() => page("document.fonts.load('700 32px Fraunces').then((f) => f.length > 0)"));
     expect(await page("getComputedStyle(document.querySelector('h1')).fontFamily")).toMatch(/^"?Fraunces/);
-    const out = mkdtempSync(join(tmpdir(), "upstart-export-"));
+    const out = mkdtempSync(join(tmpdir(), "spaka-export-"));
     await invoke("export:run", out, "static");
     expect(existsSync(join(out, "fonts/fraunces/normal.woff2"))).toBe(true);
     // The published theme carries the color scheme its background calls for, unlike the project's.

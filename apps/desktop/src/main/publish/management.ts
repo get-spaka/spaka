@@ -5,7 +5,7 @@
 import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { StoredRecord } from "@upstart/runtime";
+import type { StoredRecord } from "@spaka/runtime";
 import type { Vault } from "../connectors/connectors";
 
 export class ManagementTokens {
@@ -53,7 +53,7 @@ const key = (projectId: string) => `project:${projectId}:management-token`;
 /** Why a published site could not be reached, worded for the maker. */
 export class SiteUnavailable extends Error {
   constructor(
-    readonly reason: "no-address" | "no-token" | "unreachable" | "wrong-token" | "not-upstart" | "failed",
+    readonly reason: "no-address" | "no-token" | "unreachable" | "wrong-token" | "not-spaka" | "failed",
     message: string,
   ) {
     super(message);
@@ -66,7 +66,7 @@ const MESSAGES = {
   unreachable: "The published site does not answer. Check its address, and that it is online.",
   "wrong-token":
     "The published site does not accept this website's management token: give it the token shown in its settings.",
-  "not-upstart": "This address is not a site published with Upstart's Node or Cloudflare export.",
+  "not-spaka": "This address is not a site published with Spaka's Node or Cloudflare export.",
   failed: "The published site could not do it.",
 } as const;
 
@@ -81,7 +81,7 @@ export async function callSite<T>(
   if (!token) throw new SiteUnavailable("no-token", MESSAGES["no-token"]);
   let response: Response;
   try {
-    response = await fetch(new URL(`/_upstart/${path}`, siteUrl), {
+    response = await fetch(new URL(`/_spaka/${path}`, siteUrl), {
       method,
       headers: { authorization: `Bearer ${token}` },
       signal: AbortSignal.timeout(10_000),
@@ -91,9 +91,9 @@ export async function callSite<T>(
   }
   if (response.status === 401) throw new SiteUnavailable("wrong-token", MESSAGES["wrong-token"]);
   const json = (await response.json().catch(() => undefined)) as (T & { error?: string }) | undefined;
-  if (response.status === 404 && path === "ping") throw new SiteUnavailable("not-upstart", MESSAGES["not-upstart"]);
+  if (response.status === 404 && path === "ping") throw new SiteUnavailable("not-spaka", MESSAGES["not-spaka"]);
   if (!response.ok || json === undefined) {
-    if (json === undefined && path === "ping") throw new SiteUnavailable("not-upstart", MESSAGES["not-upstart"]);
+    if (json === undefined && path === "ping") throw new SiteUnavailable("not-spaka", MESSAGES["not-spaka"]);
     throw new SiteUnavailable("failed", json?.error ? `${MESSAGES.failed} ${json.error}` : MESSAGES.failed);
   }
   return json;

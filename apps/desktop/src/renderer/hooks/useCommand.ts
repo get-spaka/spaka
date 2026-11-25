@@ -3,10 +3,10 @@
 // on screen.
 import { useEffect, useRef } from "react";
 import type { Command } from "../../shared/shortcuts";
-import { upstart } from "../lib/bridge";
+import { spaka } from "../lib/bridge";
 
 export function useCommands(run: Partial<Record<Command, () => void>>) {
   const latest = useRef(run);
   latest.current = run;
-  useEffect(() => upstart.on("menu:command", (command) => latest.current[command]?.()), []);
+  useEffect(() => spaka.on("menu:command", (command) => latest.current[command]?.()), []);
 }

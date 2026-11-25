@@ -13,8 +13,8 @@ const write = (path: string, content: string) => {
 const read = (path: string) => readFileSync(join(project, path), "utf8");
 
 beforeEach(() => {
-  project = mkdtempSync(join(tmpdir(), "upstart-history-p-"));
-  data = mkdtempSync(join(tmpdir(), "upstart-history-d-"));
+  project = mkdtempSync(join(tmpdir(), "spaka-history-p-"));
+  data = mkdtempSync(join(tmpdir(), "spaka-history-d-"));
 });
 afterEach(() => {
   rmSync(project, { recursive: true, force: true });
@@ -26,7 +26,7 @@ test("a snapshot after each turn, only when something changed, each content stor
   expect(history.snapshot("start", "")).toBeUndefined();
   write("theme.css", ":root{}");
   write("pages/index.liquid", "<h1>A</h1>");
-  write(".upstart/project.json", "{}");
+  write(".spaka/project.json", "{}");
   const first = history.snapshot("turn", "A bakery")!;
   expect(Object.keys(first.files).sort()).toEqual(["pages/index.liquid", "theme.css"]);
   expect(history.snapshot("turn", "nothing")).toBeUndefined();
@@ -70,13 +70,13 @@ test("changes made by hand are kept before going back", () => {
   expect(read("theme.css")).toBe("a");
   expect(tracked("node_modules/x.js")).toBe(false);
   expect(tracked(".git/HEAD")).toBe(false);
-  // The preview's test records are kept; the rest of Upstart's folder is not (Q172).
-  expect(tracked(".upstart/test-records/guestbook/2026-11-12-0931-a7f3.md")).toBe(true);
-  expect(tracked(".upstart")).toBe(true);
-  expect(tracked(".upstart/project.json")).toBe(false);
-  expect(tracked(".upstart/test-records/guestbook/.x.upstart-tmp")).toBe(false);
-  expect(published(".upstart/test-records/guestbook/a.md")).toBe(false);
-  expect(published(".upstart")).toBe(false);
+  // The preview's test records are kept; the rest of Spaka's folder is not (Q172).
+  expect(tracked(".spaka/test-records/guestbook/2026-11-12-0931-a7f3.md")).toBe(true);
+  expect(tracked(".spaka")).toBe(true);
+  expect(tracked(".spaka/project.json")).toBe(false);
+  expect(tracked(".spaka/test-records/guestbook/.x.spaka-tmp")).toBe(false);
+  expect(published(".spaka/test-records/guestbook/a.md")).toBe(false);
+  expect(published(".spaka")).toBe(false);
   expect(published("pages/index.liquid")).toBe(true);
 });
 

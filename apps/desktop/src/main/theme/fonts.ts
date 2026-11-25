@@ -54,8 +54,8 @@ export const SYSTEM_FONTS: FontChoice[] = [
   },
 ];
 
-const START = "/* Fonts chosen in Upstart's Theme tab (kept by Upstart) */";
-const END = "/* End of the fonts chosen in Upstart's Theme tab */";
+const START = "/* Fonts chosen in Spaka's Theme tab (kept by Spaka) */";
+const END = "/* End of the fonts chosen in Spaka's Theme tab */";
 
 export class Fonts {
   private shipped: Shipped[] | undefined;

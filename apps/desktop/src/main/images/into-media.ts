@@ -4,7 +4,7 @@
 // from. The original of a retouched image stays.
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { Generation } from "@upstart/runtime";
+import type { Generation } from "@spaka/runtime";
 import { addImage, mediaKind } from "../media/library";
 import { type GeneratedImage, type GenerateRequest, MAX_REFERENCES, type Reference } from "./generate";
 
@@ -75,5 +75,5 @@ export async function generateIntoMedia(
     ...(references.length ? { references } : {}),
   };
   const added = await addImage(root, input.name || "generated", webp, { alt: input.alt ?? "", generated });
-  return `Generated and added as /${added.path}${added.width ? ` (${added.width}×${added.height})` : ""}. Write <img src="/${added.path}" …> in a page, part or record without an alt attribute: Upstart takes its alternative text from ${added.path.replace(/\.[^.]+$/, ".json")}, where the maker can change it. Look at the page to see it in place.`;
+  return `Generated and added as /${added.path}${added.width ? ` (${added.width}×${added.height})` : ""}. Write <img src="/${added.path}" …> in a page, part or record without an alt attribute: Spaka takes its alternative text from ${added.path.replace(/\.[^.]+$/, ".json")}, where the maker can change it. Look at the page to see it in place.`;
 }

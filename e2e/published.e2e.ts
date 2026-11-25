@@ -74,9 +74,9 @@ describe("what a published site collected", () => {
     const path = (await invoke("projects:current")).path as string;
     mkdirSync(join(path, "data/guestbook"), { recursive: true });
     writeFileSync(join(path, "data/guestbook/_datasource.yaml"), GUESTBOOK);
-    mkdirSync(join(path, ".upstart/test-records/guestbook"), { recursive: true });
+    mkdirSync(join(path, ".spaka/test-records/guestbook"), { recursive: true });
     writeFileSync(
-      join(path, ".upstart/test-records/guestbook/2026-11-11-0800-bbbb.md"),
+      join(path, ".spaka/test-records/guestbook/2026-11-11-0800-bbbb.md"),
       "---\nname: Test person\nsubmitted: 2026-11-11T08:00:00.000Z\n---\nA test.\n",
     );
     token = (await invoke("site:token")) as string;
@@ -98,7 +98,7 @@ describe("what a published site collected", () => {
 
   test("a new test record is written when saved, not as it is typed", async () => {
     const path = (await invoke("projects:current")).path as string;
-    const files = () => readdirSync(join(path, ".upstart/test-records/guestbook"));
+    const files = () => readdirSync(join(path, ".spaka/test-records/guestbook"));
     await w().getByTestId("record-add").click();
     await w().getByTestId("field-name").fill("Typed person");
     await new Promise((r) => setTimeout(r, 1500));
@@ -106,8 +106,8 @@ describe("what a published site collected", () => {
     await w().getByTestId("record-save").click();
     await until(async () => (await rows()).length === 2);
     const added = files().find((f) => f !== "2026-11-11-0800-bbbb.md")!;
-    expect(readFileSync(join(path, ".upstart/test-records/guestbook", added), "utf8")).toContain("name: Typed person");
-    rmSync(join(path, ".upstart/test-records/guestbook", added));
+    expect(readFileSync(join(path, ".spaka/test-records/guestbook", added), "utf8")).toContain("name: Typed person");
+    rmSync(join(path, ".spaka/test-records/guestbook", added));
     await until(async () => (await rows()).length === 1);
     await w().getByTestId("content-back").click();
   });

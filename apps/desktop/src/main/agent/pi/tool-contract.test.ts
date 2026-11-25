@@ -12,7 +12,7 @@ import { fetchPage, forgetPages } from "./web-fetch";
 let dir: string;
 let root: string;
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), "upstart-contract-"));
+  dir = mkdtempSync(join(tmpdir(), "spaka-contract-"));
   root = join(dir, "site");
   mkdirSync(join(root, "pages"), { recursive: true });
   forgetPages();
@@ -118,16 +118,16 @@ test("Gemini's Append continues a file it wrote, not one it has not read", async
   );
 });
 
-test("Glob: the most recently changed first, at most 100, .upstart/ when named", async () => {
+test("Glob: the most recently changed first, at most 100, .spaka/ when named", async () => {
   const { call } = tools();
   const old = join(root, "pages/old.liquid");
   writeFileSync(old, "");
   utimesSync(old, new Date(2020, 0, 1), new Date(2020, 0, 1));
   writeFileSync(join(root, "pages/new.liquid"), "");
   expect(await call("Glob", { pattern: "pages/*.liquid" })).toBe("pages/new.liquid\npages/old.liquid");
-  mkdirSync(join(root, ".upstart/test-records/rsvps"), { recursive: true });
-  writeFileSync(join(root, ".upstart/test-records/rsvps/1.md"), "");
-  expect(await call("Glob", { pattern: ".upstart/test-records/**/*.md" })).toBe(".upstart/test-records/rsvps/1.md");
+  mkdirSync(join(root, ".spaka/test-records/rsvps"), { recursive: true });
+  writeFileSync(join(root, ".spaka/test-records/rsvps/1.md"), "");
+  expect(await call("Glob", { pattern: ".spaka/test-records/**/*.md" })).toBe(".spaka/test-records/rsvps/1.md");
   mkdirSync(join(root, "data/many"), { recursive: true });
   for (let i = 0; i < 120; i++) writeFileSync(join(root, `data/many/${i}.md`), "");
   const many = await call("Glob", { pattern: "data/many/*.md" });

@@ -7,7 +7,7 @@ export default defineConfig({
   main: {
     build: {
       // The workspace's own packages are TypeScript sources: bundle them.
-      externalizeDeps: { exclude: ["@upstart/runtime", "@upstart/builder"] },
+      externalizeDeps: { exclude: ["@spaka/runtime", "@spaka/builder"] },
       rollupOptions: { input: { index: resolve(__dirname, "src/main/index.ts") } },
     },
   },

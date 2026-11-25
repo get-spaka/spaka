@@ -1,12 +1,12 @@
 // The "Guestbook" scenario with the real agent (step 4). Opt-in like
-// agent.e2e.ts: UPSTART_REAL_AGENT=1, with .cache/agent-config signed in.
+// agent.e2e.ts: SPAKA_REAL_AGENT=1, with .cache/agent-config signed in.
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, test } from "vitest";
 import { agentConfigDir, type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 import { buildGuestbook } from "./guestbook-check.ts";
 
-const real = process.env.UPSTART_REAL_AGENT === "1";
+const real = process.env.SPAKA_REAL_AGENT === "1";
 const configDir = agentConfigDir();
 
 describe.skipIf(!real)("forms with the real agent", () => {
@@ -17,7 +17,7 @@ describe.skipIf(!real)("forms with the real agent", () => {
     mkdirSync(runsDir, { recursive: true });
     rmSync(record, { force: true });
     launched = await launchApp({
-      env: { UPSTART_AGENT_REPLAY: "", UPSTART_AGENT_CONFIG_DIR: configDir, UPSTART_AGENT_RECORD: record },
+      env: { SPAKA_AGENT_REPLAY: "", SPAKA_AGENT_CONFIG_DIR: configDir, SPAKA_AGENT_RECORD: record },
     });
     await launched.window.getByTestId("message-input").waitFor();
   }, 60_000 * SLOW);

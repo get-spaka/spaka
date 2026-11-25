@@ -6,7 +6,7 @@
 import { ArrowRight, Check, Circle, CircleDot, Eye, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { AdaptationState, AdaptationStep } from "../../shared/ipc";
-import { upstart } from "../lib/bridge";
+import { spaka } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { Button } from "./ui/button";
@@ -19,8 +19,8 @@ export function useAdaptation(projectId: string | undefined): AdaptationState | 
     setState(null);
     if (!projectId) return;
     let live = true;
-    void upstart.invoke("adaptation:get").then((s) => live && setState(s));
-    const off = upstart.on("adaptation:changed", (m) => {
+    void spaka.invoke("adaptation:get").then((s) => live && setState(s));
+    const off = spaka.on("adaptation:changed", (m) => {
       if (m.projectId === projectId) setState(m.state);
     });
     return () => {
@@ -67,7 +67,7 @@ export function AdaptationBar({ state, working }: { state: AdaptationState; work
   const looked = state.steps.find((s) => s.status === "ready");
   const go = () => {
     setProblem(undefined);
-    void upstart.invoke("adaptation:continue").then((p) => p && setProblem(p));
+    void spaka.invoke("adaptation:continue").then((p) => p && setProblem(p));
   };
   return (
     <div data-testid="adaptation-bar" className="mx-3 mb-2 space-y-2 rounded-xl border bg-card p-2.5 shadow-xs">
@@ -129,7 +129,7 @@ function StepChip({ step, picked, disabled }: { step: AdaptationStep; picked: bo
         <button
           type="button"
           disabled={!todo || disabled}
-          onClick={() => void upstart.invoke("adaptation:pick", step.route)}
+          onClick={() => void spaka.invoke("adaptation:pick", step.route)}
           className={cn("inline-flex items-center gap-1 py-0.5 pl-2", todo ? "pr-1 hover:text-primary" : "pr-2")}
         >
           <Icon className={cn("size-3", step.status === "doing" && "animate-pulse")} />
@@ -144,7 +144,7 @@ function StepChip({ step, picked, disabled }: { step: AdaptationStep; picked: bo
             data-testid="adaptation-remove"
             disabled={disabled}
             aria-label={t.adaptation.remove}
-            onClick={() => void upstart.invoke("adaptation:remove", step.route)}
+            onClick={() => void spaka.invoke("adaptation:remove", step.route)}
             className="mr-1 rounded-full p-0.5 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100 focus-visible:opacity-100"
           >
             <X className="size-3" />

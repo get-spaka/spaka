@@ -33,23 +33,23 @@ describe("routes", () => {
 
 describe("rendering", () => {
   test("a page with its shared part, traced, with the runtime's head", () => {
-    const runtime = new Runtime(project, { head: () => `<meta name="x" data-up-runtime>` });
+    const runtime = new Runtime(project, { head: () => `<meta name="x" data-spaka-runtime>` });
     const result = runtime.renderRoute("/");
     expect(result.status).toBe(200);
     expect(result.file).toBe("pages/index.liquid");
-    expect(result.html).toContain(`<head><meta name="x" data-up-runtime><title>Home</title>`);
+    expect(result.html).toContain(`<head><meta name="x" data-spaka-runtime><title>Home</title>`);
     expect(result.html).toMatch(
-      /<!--up-inc pages\/index.liquid:\d+:\d+--><header data-up-src="parts\/header.liquid:1:0" data-up-rec="">/,
+      /<!--spaka-inc pages\/index.liquid:\d+:\d+--><header data-spaka-src="parts\/header.liquid:1:0" data-spaka-rec="">/,
     );
     expect(result.html).toContain(`class="active"`);
-    expect(result.html).toMatch(/<h1 data-up-src="pages\/index.liquid:6:\d+">Home<\/h1>/);
+    expect(result.html).toMatch(/<h1 data-spaka-src="pages\/index.liquid:6:\d+">Home<\/h1>/);
     expect(result.notes).toEqual([]);
   });
 
   test("without tracing or repair, for an export", () => {
     const runtime = new Runtime(project, { trace: false, repair: false });
     expect(runtime.renderRoute("/menu").html).toContain("<main><h1>Menu</h1></main>");
-    expect(runtime.renderRoute("/menu").html).not.toContain("data-up-src");
+    expect(runtime.renderRoute("/menu").html).not.toContain("data-spaka-src");
   });
 
   test("a missing shared part renders as nothing, with a note", () => {
@@ -94,9 +94,9 @@ describe("rendering", () => {
 
 test("the page's own stylesheets are marked for the preview", async () => {
   const { markPageStyles } = await import("./runtime.ts");
-  const html = `<html><head><title>x</title><link rel="stylesheet" href="a.css"><link rel="icon" href="i.svg"><style>a{}</style><style data-up-runtime>b{}</style></head><body><style>c{}</style></body></html>`;
+  const html = `<html><head><title>x</title><link rel="stylesheet" href="a.css"><link rel="icon" href="i.svg"><style>a{}</style><style data-spaka-runtime>b{}</style></head><body><style>c{}</style></body></html>`;
   expect(markPageStyles(html)).toBe(
-    `<html><head><title>x</title><link data-up-page rel="stylesheet" href="a.css"><link rel="icon" href="i.svg"><style data-up-page>a{}</style><style data-up-runtime>b{}</style></head><body><style>c{}</style></body></html>`,
+    `<html><head><title>x</title><link data-spaka-page rel="stylesheet" href="a.css"><link rel="icon" href="i.svg"><style data-spaka-page>a{}</style><style data-spaka-runtime>b{}</style></head><body><style>c{}</style></body></html>`,
   );
 });
 

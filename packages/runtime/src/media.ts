@@ -87,7 +87,7 @@ export function fillAlts(html: string, source: ProjectSource): string {
 /** The credits' words in a language, for the link and the /credits page (Q325). */
 type CreditsWords = { title: string; by: string; via: string; home: string };
 
-/** The languages Upstart writes the credits in; any other gets English. */
+/** The languages Spaka writes the credits in; any other gets English. */
 const ENGLISH: CreditsWords = { title: "Image credits", by: "by", via: "via", home: "Home" };
 const CREDITS_WORDS: Record<string, CreditsWords> = {
   en: ENGLISH,
@@ -123,10 +123,10 @@ export function creditsWords(language: string | undefined): CreditsWords {
  */
 export function addCreditsLink(html: string): string {
   // Already there: the element itself, not a stylesheet's selector naming it.
-  if (/<[a-z][^>]*\sdata-up-credits\b/i.test(html)) return html;
+  if (/<[a-z][^>]*\sdata-spaka-credits\b/i.test(html)) return html;
   if (/<a\b[^>]*\shref\s*=\s*["']?\/credits\/?(?=["'\s>#?])/i.test(html)) return html;
   const words = creditsWords(pageLanguage(html));
-  const link = `<p data-up-credits style="margin:0.75rem 0 0;font-size:0.75rem;opacity:0.7"><a href="${CREDITS_ROUTE}" style="color:inherit">${escapeHtml(words.title)}</a></p>`;
+  const link = `<p data-spaka-credits style="margin:0.75rem 0 0;font-size:0.75rem;opacity:0.7"><a href="${CREDITS_ROUTE}" style="color:inherit">${escapeHtml(words.title)}</a></p>`;
   const footer = html.toLowerCase().lastIndexOf("</footer>");
   if (footer >= 0) return html.slice(0, footer) + link + html.slice(footer);
   const body = html.toLowerCase().lastIndexOf("</body>");

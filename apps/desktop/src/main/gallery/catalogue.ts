@@ -12,7 +12,7 @@ export const BLOCK_SOURCES = {
   "meraki-ui": "LICENSE-Meraki-UI",
   "mamba-ui": "LICENSE-Mamba-UI",
   "wicked-blocks": "LICENSE-Wicked-Blocks",
-  upstart: undefined,
+  spaka: undefined,
 } as const;
 
 const Described = z.object({
@@ -22,7 +22,7 @@ const Described = z.object({
   tags: z.array(z.string()).default([]),
   mood: z.array(z.string()).default([]),
   synonyms: z.array(z.string()).default([]),
-  source: z.enum(Object.keys(BLOCK_SOURCES) as [keyof typeof BLOCK_SOURCES]).default("upstart"),
+  source: z.enum(Object.keys(BLOCK_SOURCES) as [keyof typeof BLOCK_SOURCES]).default("spaka"),
   data: z
     .object({
       name: z.string().regex(/^[a-z][a-z0-9-]*$/),
@@ -84,7 +84,7 @@ export class ProjectBlocks {
     if (!root) return [];
     if (this.design?.root !== root) {
       const { blocks, skipped } = readBlocks(diskTree(join(root, "blocks")));
-      for (const { id, problem } of skipped) console.warn(`[upstart] the project's block ${id} left out: ${problem}`);
+      for (const { id, problem } of skipped) console.warn(`[spaka] the project's block ${id} left out: ${problem}`);
       this.design = { root, blocks: blocks.map((b) => ({ ...b, design: true })) };
     }
     return this.design.blocks;
@@ -155,7 +155,7 @@ export function filesTree(files: Map<string, Buffer>, prefix: string): BlockTree
 /** The blocks of a gallery folder. A block that does not describe itself properly is left out, with a warning. */
 export function readGallery(dir: string): Block[] {
   const { blocks, skipped } = readBlocks(diskTree(dir));
-  for (const { id, problem } of skipped) console.warn(`[upstart] gallery block ${id} left out: ${problem}`);
+  for (const { id, problem } of skipped) console.warn(`[spaka] gallery block ${id} left out: ${problem}`);
   return blocks;
 }
 

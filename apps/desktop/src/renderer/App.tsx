@@ -23,7 +23,7 @@ import {
   useSkills,
   useWaiting,
 } from "./hooks/useMain";
-import { upstart } from "./lib/bridge";
+import { spaka } from "./lib/bridge";
 import { usePickRequest } from "./lib/picker";
 import { t } from "./lib/strings";
 import { SettingsPanel } from "./settings/SettingsPanel";
@@ -65,7 +65,7 @@ export function App() {
   const [settingsPage, setSettingsPage] = useState<SettingsPage>("general");
   useEffect(
     () =>
-      upstart.on("settings:show", ({ page, toggle }) => {
+      spaka.on("settings:show", ({ page, toggle }) => {
         if (page) setSettingsPage(page);
         setSettingsOpen((open) => (toggle ? !open : true));
         setSiteOpen(false);
@@ -83,13 +83,13 @@ export function App() {
     setSiteOpen(false);
     setShortcutsOpen(false);
     // The page itself is one of its steps.
-    void upstart.invoke("preview:set-view", "page");
+    void spaka.invoke("preview:set-view", "page");
     setTourStep(0);
   }, [current]);
-  useEffect(() => upstart.on("tour:start", startTour), [startTour]);
+  useEffect(() => spaka.on("tour:start", startTour), [startTour]);
   const endTour = useCallback((how: "finished" | "skipped") => {
     setTourStep(null);
-    void upstart.invoke("tour:seen", how);
+    void spaka.invoke("tour:seen", how);
   }, []);
   useCommands({
     tour: startTour,
@@ -106,8 +106,8 @@ export function App() {
     "tab-blocks": () => setPreviewOnly(false),
     "tab-theme": () => setPreviewOnly(false),
     "tab-content": () => setPreviewOnly(false),
-    "new-website": () => void upstart.invoke("projects:close"),
-    "open-folder": () => void upstart.invoke("projects:choose-folder"),
+    "new-website": () => void spaka.invoke("projects:close"),
+    "open-folder": () => void spaka.invoke("projects:choose-folder"),
     shortcuts: () => setShortcutsOpen((open) => !open),
   });
 
@@ -127,7 +127,7 @@ export function App() {
     return () => window.removeEventListener("keydown", close);
   }, [drawerOpen]);
   // "Ask the agent about it" writes in the conversation: it is shown again.
-  useEffect(() => upstart.on("conversation:prefill", () => setPreviewOnly(false)), []);
+  useEffect(() => spaka.on("conversation:prefill", () => setPreviewOnly(false)), []);
   // Escape leaves the page at full width, unless a dialog is open (it closes first).
   useEffect(() => {
     if (!previewOnly) return;
@@ -160,7 +160,7 @@ export function App() {
               onCollapse={collapseSidebar}
               onNew={() => {
                 setDrawerOpen(false);
-                void upstart.invoke("projects:close");
+                void spaka.invoke("projects:close");
               }}
               onSettings={() => {
                 setDrawerOpen(false);
@@ -168,7 +168,7 @@ export function App() {
                 setSettingsOpen(true);
               }}
               onSiteSettings={async (id) => {
-                if (current?.id !== id) await upstart.invoke("projects:open", id);
+                if (current?.id !== id) await spaka.invoke("projects:open", id);
                 setDrawerOpen(false);
                 setSettingsOpen(false);
                 setSiteOpen(true);
@@ -193,7 +193,7 @@ export function App() {
                   onCollapse={collapseSidebar}
                   onNew={() => {
                     setDrawerOpen(false);
-                    void upstart.invoke("projects:close");
+                    void spaka.invoke("projects:close");
                   }}
                   onSettings={() => {
                     setDrawerOpen(false);
@@ -201,7 +201,7 @@ export function App() {
                     setSettingsOpen(true);
                   }}
                   onSiteSettings={async (id) => {
-                    if (current?.id !== id) await upstart.invoke("projects:open", id);
+                    if (current?.id !== id) await spaka.invoke("projects:open", id);
                     setDrawerOpen(false);
                     setSettingsOpen(false);
                     setSiteOpen(true);

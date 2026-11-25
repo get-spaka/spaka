@@ -1,5 +1,5 @@
-// One project's agent in Upstart's own harness (ADR 0012): pi-agent-core's
-// loop on a model of the maker's ChatGPT plan or their own key, with Upstart's
+// One project's agent in Spaka's own harness (ADR 0012): pi-agent-core's
+// loop on a model of the maker's ChatGPT plan or their own key, with Spaka's
 // tools. Its stream becomes the same events as Claude's (stream.ts), so that
 // the live preview follows what it writes, and the conversation shows it the
 // same way. Its memory of the conversation is kept in the app's data, between
@@ -41,8 +41,8 @@ import {
 } from "../questions";
 import type { AgentKit, AgentRunner, PlanDecision } from "../runner";
 import type { SessionDeps, SessionHandlers } from "../session";
+import { spakaTools } from "../spaka-tools";
 import type { AgentEvent } from "../stream";
-import { upstartTools } from "../upstart-tools";
 import { PiConnectors, type VaultSignIns } from "./connectors";
 import {
   compactionCut,
@@ -64,7 +64,7 @@ import {
   piAskTool,
   piFileTools,
   piPlanTool,
-  piUpstartTools,
+  piSpakaTools,
 } from "./tools";
 import { FETCH_INSTRUCTIONS, type FetchedPage, PAGE_LIMIT } from "./web-fetch";
 import { canSearch, providerSearch, type SearchFound, searchResult } from "./web-search";
@@ -74,9 +74,9 @@ export type PiDeps = {
   models: Models;
   /** The maker's key for an account; undefined for the sign-in the collection keeps. */
   apiKey(account: PiAccount): Promise<string | undefined> | string | undefined;
-  /** Upstart's tools and checks for a project. */
+  /** Spaka's tools and checks for a project. */
   kit(project: ProjectInfo): AgentKit;
-  /** Which of Upstart's tools the agent is given (generate_image with an account for it, Q423): it starts again when that changes. */
+  /** Which of Spaka's tools the agent is given (generate_image with an account for it, Q423): it starts again when that changes. */
   toolsKey?: (project: ProjectInfo) => string;
   /** The instructions for a family of models, with the skills it may read. */
   instructions(family: InstructionsFamily, skills: SkillListing[], search: boolean): string;
@@ -86,7 +86,7 @@ export type PiDeps = {
   skills?: SessionDeps["skills"];
   /** How requests name the app to providers. */
   identity?: ClientIdentity;
-  /** Whether the agent gets a shell: in Upstart's sandbox on macOS (Q278), in Git Bash behind a gate on Windows (Q381). */
+  /** Whether the agent gets a shell: in Spaka's sandbox on macOS (Q278), in Git Bash behind a gate on Windows (Q381). */
   shell?: boolean;
   /** On Windows, Git Bash's bash.exe, once Git for Windows is found. */
   gitBash?: () => string | undefined;
@@ -126,9 +126,9 @@ export class PiSession implements AgentRunner {
   private readonly activities: Activities;
   /** The tool calls of the reply being written, by their place in it. */
   private readonly calls = new Map<number, { id: string; name: string; json: string }>();
-  private upstartNames = new Set<string>();
+  private spakaNames = new Set<string>();
   private skills: { fingerprint: string; dir: string } | undefined;
-  /** The maker's connectors, connected by Upstart itself, and their fingerprint at the start. */
+  /** The maker's connectors, connected by Spaka itself, and their fingerprint at the start. */
   private connectors: { set: PiConnectors; fingerprint: string } | undefined;
   /** The tools the agent starts with, before its connectors'. */
   private baseTools: HarnessTool[] = [];
@@ -143,11 +143,11 @@ export class PiSession implements AgentRunner {
   private readonly waits = new Waits<QuestionAnswer>();
   /** The plans the turn waits on (Q290). */
   private readonly planWaits = new Waits<PlanDecision>();
-  /** The calls of questions and plans that wait, with their tool: answered as not answered if Upstart closes. */
+  /** The calls of questions and plans that wait, with their tool: answered as not answered if Spaka closes. */
   private readonly openCards = new Map<string, string>();
   /** Build, or plan mode (Q286): the tools that change the project are refused until the plan is approved. */
   private mode: AgentMode;
-  /** Which of Upstart's tools the running agent was given (toolsKey). */
+  /** Which of Spaka's tools the running agent was given (toolsKey). */
   private toolsKey: string | undefined;
   /** A mode chosen while the agent worked, for when its turn ends (Q436). */
   private nextMode: AgentMode | undefined;
@@ -178,7 +178,7 @@ export class PiSession implements AgentRunner {
 
   private get account(): PiAccount {
     const parsed = parseModelId(this.project.model);
-    if (parsed.account === "claude") throw new Error(`Not a model of Upstart's own harness: ${this.project.model}`);
+    if (parsed.account === "claude") throw new Error(`Not a model of Spaka's own harness: ${this.project.model}`);
     return parsed.account;
   }
 
@@ -196,8 +196,8 @@ export class PiSession implements AgentRunner {
     const kit = this.deps.kit(this.project);
     this.toolsKey = this.deps.toolsKey?.(this.project);
     const skills = this.assembleSkills();
-    const upstart = upstartTools(kit.tools);
-    this.upstartNames = new Set(upstart.map((t) => t.name));
+    const spaka = spakaTools(kit.tools);
+    this.spakaNames = new Set(spaka.map((t) => t.name));
     const tools = [
       ...piFileTools({
         root: this.project.path,
@@ -211,7 +211,7 @@ export class PiSession implements AgentRunner {
             ? (page, prompt, signal) => this.summarize(page, prompt, signal)
             : undefined,
       }),
-      ...piUpstartTools(upstart),
+      ...piSpakaTools(spaka),
       piAskTool((callId, questions, signal) => this.ask(callId, questions, signal)),
       piPlanTool((callId, plan, signal) => this.proposePlan(callId, plan, signal)),
     ];
@@ -235,11 +235,11 @@ export class PiSession implements AgentRunner {
       identity: this.deps.identity,
       // Plan mode (Q286): what changes the project waits for the plan's approval.
       beforeToolCall: async ({ toolCall }) =>
-        this.mode === "plan" && PLAN_WRITERS.has(canonicalTool(toolCall.name, this.upstartNames))
+        this.mode === "plan" && PLAN_WRITERS.has(canonicalTool(toolCall.name, this.spakaNames))
           ? { block: true, reason: PLAN_REFUSED }
           : undefined,
       afterToolCall: async ({ toolCall, args, result }) => {
-        const note = kit.checks.afterTool(canonicalTool(toolCall.name, this.upstartNames), args);
+        const note = kit.checks.afterTool(canonicalTool(toolCall.name, this.spakaNames), args);
         return note ? { content: [...result.content, { type: "text", text: note }] } : undefined;
       },
       finishTurn: async ({ message }) => {
@@ -283,7 +283,7 @@ export class PiSession implements AgentRunner {
   }
 
   /**
-   * The agent's shell: in Upstart's sandbox on macOS (Q278); on Windows, Git
+   * The agent's shell: in Spaka's sandbox on macOS (Q278); on Windows, Git
    * Bash with no sandbox, a command that is not a plain file command on the
    * project's files asked of the maker first (Q381, Q382); elsewhere none.
    */
@@ -463,7 +463,7 @@ export class PiSession implements AgentRunner {
     return true;
   }
 
-  /** The maker's connectors as Upstart's client sees them now (Q277). */
+  /** The maker's connectors as Spaka's client sees them now (Q277). */
   async connectorStatus() {
     return this.connectors?.set.status() ?? [];
   }
@@ -727,7 +727,7 @@ export class PiSession implements AgentRunner {
       this.emitAgent({
         kind: "tool-result",
         id: e.toolCallId,
-        name: canonicalTool(e.toolName, this.upstartNames),
+        name: canonicalTool(e.toolName, this.spakaNames),
         isError: e.isError,
         text: text.slice(0, 4000),
         ...(this.grounded.has(e.toolCallId) ? { grounded: this.grounded.get(e.toolCallId) } : {}),
@@ -740,7 +740,7 @@ export class PiSession implements AgentRunner {
     const known = this.calls.get(index);
     if (known) return known;
     if (!block?.id || !block.name) return undefined;
-    const call = { id: block.id, name: canonicalTool(block.name, this.upstartNames), json: "" };
+    const call = { id: block.id, name: canonicalTool(block.name, this.spakaNames), json: "" };
     this.calls.set(index, call);
     this.emitAgent({ kind: "tool-start", id: call.id, name: call.name });
     return call;

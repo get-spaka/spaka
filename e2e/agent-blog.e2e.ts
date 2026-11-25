@@ -1,5 +1,5 @@
 // "Blog" with the real agent (step 3). Opt-in like agent.e2e.ts:
-// UPSTART_REAL_AGENT=1, with .cache/agent-config signed in. One message asks
+// SPAKA_REAL_AGENT=1, with .cache/agent-config signed in. One message asks
 // for a bakery with a blog of three posts with photos: a datasource and its
 // record pages, images found on Openverse and Wikimedia Commons with their
 // credits, the /credits page; what the preview showed meanwhile is reported.
@@ -9,7 +9,7 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { agentConfigDir, type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 import { type BlogReport, buildBlog } from "./blog-check.ts";
 
-const real = process.env.UPSTART_REAL_AGENT === "1";
+const real = process.env.SPAKA_REAL_AGENT === "1";
 const configDir = agentConfigDir();
 
 describe.skipIf(!real)("a blog with the real agent", () => {
@@ -21,7 +21,7 @@ describe.skipIf(!real)("a blog with the real agent", () => {
     mkdirSync(runsDir, { recursive: true });
     rmSync(record, { force: true });
     launched = await launchApp({
-      env: { UPSTART_AGENT_REPLAY: "", UPSTART_AGENT_CONFIG_DIR: configDir, UPSTART_AGENT_RECORD: record },
+      env: { SPAKA_AGENT_REPLAY: "", SPAKA_AGENT_CONFIG_DIR: configDir, SPAKA_AGENT_RECORD: record },
     });
     await launched.window.getByTestId("message-input").waitFor();
   }, 60_000 * SLOW);
@@ -39,8 +39,8 @@ describe.skipIf(!real)("a blog with the real agent", () => {
       const problems = await launched.app.evaluate(() =>
         [
           ...(
-            globalThis as { upstart?: { agent: { sessions: Map<string, { problems: string[] }> } } }
-          ).upstart!.agent.sessions.values(),
+            globalThis as { spaka?: { agent: { sessions: Map<string, { problems: string[] }> } } }
+          ).spaka!.agent.sessions.values(),
         ].flatMap((s) => s.problems),
       );
       expect(problems).toEqual([]);

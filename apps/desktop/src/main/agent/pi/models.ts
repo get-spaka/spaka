@@ -1,4 +1,4 @@
-// The models of Upstart's own harness (Q269, Q270, Q280): ChatGPT Plus or Pro
+// The models of Spaka's own harness (Q269, Q270, Q280): ChatGPT Plus or Pro
 // through Sign in with ChatGPT, an OpenAI key, a Gemini key, and Vertex AI on
 // a key of its express mode or gcloud's sign-in. A project's model
 // id carries its account ("chatgpt/gpt-6.1-terra"); an id without one is
@@ -25,7 +25,7 @@ type Configured = { id: string; name: string; like?: string; cost?: Model<Api>["
 type Offered = Configured & { account: PiAccount };
 
 /**
- * The models Upstart offers per account, from models.json, in its order; the
+ * The models Spaka offers per account, from models.json, in its order; the
  * one marked `default` is the account's default, else its first (Q383-Q386,
  * Q413-Q414).
  */
@@ -70,7 +70,7 @@ export function piModel(account: PiAccount, id: string): Model<Api> | undefined 
 
 const EFFORT_LEVELS: Effort[] = ["low", "medium", "high", "xhigh", "max"];
 
-/** The effort levels a model accepts, as Upstart names them (Q272). */
+/** The effort levels a model accepts, as Spaka names them (Q272). */
 export function piEfforts(model: Model<Api>): Effort[] {
   const levels = getSupportedThinkingLevels(model) as string[];
   return EFFORT_LEVELS.filter((e) => levels.includes(e));

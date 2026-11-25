@@ -264,7 +264,7 @@ export class AgentView {
         contextIsolation: true,
         partition: PARTITION,
         backgroundThrottling: false,
-        additionalArguments: ["--upstart-agent"],
+        additionalArguments: ["--spaka-agent"],
       },
     });
     this.win = win;
@@ -360,9 +360,9 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  */
 const STARTED = `new Promise((done) => {
   const started = Date.now();
-  const styled = () => [...document.querySelectorAll("style")].some((s) => !s.hasAttribute("data-up-runtime")
-    && !s.hasAttribute("data-up-page") && s.id !== "up-scroll" && s.textContent.length > 0);
-  const ready = () => (!window.__upStart || window.__upStart.started) && styled();
+  const styled = () => [...document.querySelectorAll("style")].some((s) => !s.hasAttribute("data-spaka-runtime")
+    && !s.hasAttribute("data-spaka-page") && s.id !== "spaka-scroll" && s.textContent.length > 0);
+  const ready = () => (!window.__spakaStart || window.__spakaStart.started) && styled();
   const check = () => ready() || Date.now() - started > 5000
     ? Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 1000))]).then(() => done(true))
     : setTimeout(check, 30);

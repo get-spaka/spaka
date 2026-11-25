@@ -1,7 +1,7 @@
 {
   "name": "Reviews with stars and a form",
   "kind": "forms",
-  "source": "upstart",
+  "source": "spaka",
   "description": "Customer reviews as white cards in two columns, each with its stars, a title, the text, the name and the date, followed by a card to leave a review with a row of stars to click, a name, a title and the review.",
   "tags": ["reviews", "stars", "rating", "form", "cards"],
   "mood": ["friendly", "professional"],

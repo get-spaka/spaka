@@ -1,4 +1,4 @@
-// Builds an Upstart project into a website to put online, in one of several
+// Builds a Spaka project into a website to put online, in one of several
 // ways, each a Builder (builder.ts): a static site, a Node.js server, a
 // Cloudflare Worker.
 import type { Builder } from "./builder.ts";
@@ -6,7 +6,7 @@ import { cloudflareBuilder } from "./builders/cloudflare.ts";
 import { nodeBuilder } from "./builders/node.ts";
 import { staticBuilder } from "./builders/static.ts";
 
-export { ASSETS, copyAddress, exportHead, imagesIn, withSrcset } from "@upstart/runtime";
+export { ASSETS, copyAddress, exportHead, imagesIn, withSrcset } from "@spaka/runtime";
 export type {
   Builder,
   BuildOptions,

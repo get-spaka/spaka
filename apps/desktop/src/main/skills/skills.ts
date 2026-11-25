@@ -1,5 +1,5 @@
-// Skills extend the agent (ADR 0010): those Upstart ships, those the maker
-// adds for the whole app, and those of a project, kept in its .upstart/skills
+// Skills extend the agent (ADR 0010): those Spaka ships, those the maker
+// adds for the whole app, and those of a project, kept in its .spaka/skills
 // folder. Each is a folder in the Agent Skills format: a SKILL.md whose
 // front matter gives its name and description, and the files it refers to.
 //
@@ -22,7 +22,7 @@ import { join } from "node:path";
 import type { SkillInfo, SkillOrigin } from "../../shared/ipc";
 
 /** Where a project keeps its skills. */
-export const PROJECT_SKILLS = ".upstart/skills";
+export const PROJECT_SKILLS = ".spaka/skills";
 /** A skill's name, as the Agent Skills format allows it. */
 const NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 /** More than this in one skill is not copied for the agent. */
@@ -77,7 +77,7 @@ export function parseSkill(text: string): { name: string; description: string } 
 
 export class Skills {
   constructor(
-    /** The skills shipped with Upstart. */
+    /** The skills shipped with Spaka. */
     private readonly bundledDir: string,
     /** The maker's skills for all their projects. */
     private readonly appDir: string,
@@ -143,7 +143,7 @@ export class Skills {
 
   private origins(projectDir?: string): [SkillOrigin, string][] {
     return [
-      ["upstart", this.bundledDir],
+      ["spaka", this.bundledDir],
       ["app", this.appDir],
       ...(projectDir ? [["project", join(projectDir, PROJECT_SKILLS)] as [SkillOrigin, string]] : []),
     ];

@@ -1,7 +1,7 @@
 {
   "name": "Newsletter with interests",
   "kind": "newsletter",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A sign-up in a soft panel asking for a first name and an email address side by side, then the topics the visitor wants to hear about as three checkbox tiles.",
   "tags": ["interests", "topics", "checkboxes", "first name", "preferences"],
   "mood": ["friendly", "professional"],

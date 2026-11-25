@@ -1,5 +1,5 @@
 // The settings (Q116–Q119), after macOS System Settings, in a panel over
-// Upstart's window (Q123): a sidebar with a close button, a search field, the
+// Spaka's window (Q123): a sidebar with a close button, a search field, the
 // connected accounts (Q275) and a colored icon per category; on the right, the
 // category's page in grouped rows. Only what applies to every website is here;
 // a website's own settings open from the website (Q118). Escape, ⌘, or a click
@@ -32,7 +32,7 @@ import {
   type TextSize,
   usableModel,
 } from "../../shared/ipc";
-import { COMPONENTS, UPSTART_SITE } from "../../shared/open-source";
+import { COMPONENTS, SPAKA_SITE } from "../../shared/open-source";
 import { searchSettings } from "../../shared/settings-search";
 import { Button } from "../components/ui/button";
 import { Tip } from "../components/ui/tip";
@@ -45,7 +45,7 @@ import {
   useSkills,
   useUpdate,
 } from "../hooks/useMain";
-import { upstart } from "../lib/bridge";
+import { spaka } from "../lib/bridge";
 import { ACCOUNT, CLOSE_BUTTON, CLOSE_CROSS, TILES } from "../lib/colors";
 import { APP_ICON } from "../lib/icon";
 import { t } from "../lib/strings";
@@ -274,7 +274,7 @@ function GeneralPage() {
           <Push
             testid="reveal-projects"
             tip={g.revealTip}
-            onClick={() => void upstart.invoke("settings:reveal-projects")}
+            onClick={() => void spaka.invoke("settings:reveal-projects")}
           >
             {g.reveal}
           </Push>
@@ -287,7 +287,7 @@ function GeneralPage() {
             label={g.appearance}
             value={settings.appearance}
             options={APPEARANCES.map((value) => ({ value, label: g.appearances[value], tip: g.appearanceTips[value] }))}
-            onChange={(appearance) => void upstart.invoke("settings:set", { appearance })}
+            onChange={(appearance) => void spaka.invoke("settings:set", { appearance })}
           />
         </Row>
         <Row id="text-size" label={g.textSize} detail={g.textSizeHelp}>
@@ -296,7 +296,7 @@ function GeneralPage() {
             label={g.textSize}
             value={settings.textSize}
             options={TEXT_SIZES.map((value) => ({ value, label: g.textSizes[value], tip: g.textSizeTips[value] }))}
-            onChange={(textSize) => void upstart.invoke("settings:set", { textSize })}
+            onChange={(textSize) => void spaka.invoke("settings:set", { textSize })}
           />
         </Row>
         <Row id="output-style" label={g.outputStyle} detail={g.outputStyleHelp[settings.outputStyle]}>
@@ -309,7 +309,7 @@ function GeneralPage() {
               label: g.outputStyles[value],
               tip: g.outputStyleTips[value],
             }))}
-            onChange={(outputStyle) => void upstart.invoke("settings:set", { outputStyle })}
+            onChange={(outputStyle) => void spaka.invoke("settings:set", { outputStyle })}
           />
         </Row>
         <Row id="notify" label={g.notify} detail={g.notifyHelp}>
@@ -317,7 +317,7 @@ function GeneralPage() {
             testid="notify-switch"
             label={g.notify}
             checked={settings.notifyDone}
-            onChange={(notifyDone) => void upstart.invoke("settings:set", { notifyDone })}
+            onChange={(notifyDone) => void spaka.invoke("settings:set", { notifyDone })}
           />
         </Row>
       </Group>
@@ -352,13 +352,13 @@ function AgentPage() {
             <Push
               testid="claude-sign-in"
               tip={a.signInClaudeTip}
-              onClick={() => void upstart.invoke("agent:sign-in", "claudeai")}
+              onClick={() => void spaka.invoke("agent:sign-in", "claudeai")}
             >
               {a.signIn}
             </Push>
           )}
           {status.auth === "signing-in" && (
-            <Push tip={a.cancelSignInTip} onClick={() => void upstart.invoke("agent:cancel-sign-in")}>
+            <Push tip={a.cancelSignInTip} onClick={() => void spaka.invoke("agent:cancel-sign-in")}>
               {a.cancel}
             </Push>
           )}
@@ -369,7 +369,7 @@ function AgentPage() {
           kept={status.hasApiKey}
           keptText={a.apiKeyKept}
           noneText={a.apiKeyNone}
-          onSave={(key) => upstart.invoke("agent:set-api-key", key)}
+          onSave={(key) => spaka.invoke("agent:set-api-key", key)}
         />
       </Group>
       <Group title={a.chatgpt}>
@@ -390,14 +390,14 @@ function AgentPage() {
             <Push
               testid="chatgpt-sign-out"
               tip={a.signOutChatgptTip}
-              onClick={() => void upstart.invoke("agent:chatgpt-sign-out")}
+              onClick={() => void spaka.invoke("agent:chatgpt-sign-out")}
             >
               {a.signOut}
             </Push>
           ) : status.chatgpt.signingIn ? (
             <span className="flex items-center gap-2">
               <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
-              <Push tip={a.cancelSignInTip} onClick={() => void upstart.invoke("agent:chatgpt-cancel")}>
+              <Push tip={a.cancelSignInTip} onClick={() => void spaka.invoke("agent:chatgpt-cancel")}>
                 {a.cancel}
               </Push>
             </span>
@@ -405,7 +405,7 @@ function AgentPage() {
             <Push
               testid="chatgpt-sign-in"
               tip={a.signInChatgptTip}
-              onClick={() => void upstart.invoke("agent:chatgpt-sign-in")}
+              onClick={() => void spaka.invoke("agent:chatgpt-sign-in")}
             >
               {a.signIn}
             </Push>
@@ -421,7 +421,7 @@ function AgentPage() {
             kept={status.accounts[account]}
             keptText={a[`${account}Kept`]}
             noneText={a[`${account}None`]}
-            onSave={(key) => upstart.invoke("agent:set-key", account as KeyAccount, key)}
+            onSave={(key) => spaka.invoke("agent:set-key", account as KeyAccount, key)}
           />
         ))}
       </Group>
@@ -432,7 +432,7 @@ function AgentPage() {
           kept={status.accounts.vertex && !status.vertexGcloud}
           keptText={a.vertexKept}
           noneText={a.vertexNone}
-          onSave={(key) => upstart.invoke("agent:set-key", "vertex", key)}
+          onSave={(key) => spaka.invoke("agent:set-key", "vertex", key)}
         />
         <GcloudRow gcloud={status.vertexGcloud} />
       </Group>
@@ -444,7 +444,7 @@ function AgentPage() {
           model={usableModel(status, settings.newModel)}
           effort={settings.newEffort}
           onChange={(next) =>
-            void upstart.invoke("settings:set", {
+            void spaka.invoke("settings:set", {
               ...(next.model ? { newModel: next.model } : {}),
               ...(next.effort ? { newEffort: next.effort } : {}),
             })
@@ -453,12 +453,12 @@ function AgentPage() {
         <NamingRow
           models={status.models}
           value={settings.namingModel}
-          onChange={(namingModel) => void upstart.invoke("settings:set", { namingModel })}
+          onChange={(namingModel) => void spaka.invoke("settings:set", { namingModel })}
         />
         <ImageModelRow
           accounts={status.accounts}
           value={settings.imageModel}
-          onChange={(imageModel) => void upstart.invoke("settings:set", { imageModel })}
+          onChange={(imageModel) => void spaka.invoke("settings:set", { imageModel })}
         />
       </Group>
       <Group title={t.settings.agent.replies} caption={t.settings.agent.replyStyleNote}>
@@ -476,7 +476,7 @@ function AgentPage() {
               label: t.settings.agent.replyStyles[value],
               tip: t.settings.agent.replyStyleTips[value],
             }))}
-            onChange={(replyStyle) => void upstart.invoke("settings:set", { replyStyle })}
+            onChange={(replyStyle) => void spaka.invoke("settings:set", { replyStyle })}
           />
         </Row>
       </Group>
@@ -579,7 +579,7 @@ function GcloudRow({ gcloud }: { gcloud: AgentStatus["vertexGcloud"] }) {
           <Push
             testid="vertex-gcloud-stop"
             tip={a.stopProjectTip}
-            onClick={() => void upstart.invoke("agent:set-vertex-gcloud", null)}
+            onClick={() => void spaka.invoke("agent:set-vertex-gcloud", null)}
           >
             {a.stopProject}
           </Push>
@@ -596,7 +596,7 @@ function GcloudRow({ gcloud }: { gcloud: AgentStatus["vertexGcloud"] }) {
           className="flex items-center gap-2 px-3 py-2"
           onSubmit={(event) => {
             event.preventDefault();
-            if (project.trim()) void upstart.invoke("agent:set-vertex-gcloud", project.trim()).then(close);
+            if (project.trim()) void spaka.invoke("agent:set-vertex-gcloud", project.trim()).then(close);
           }}
         >
           <input
@@ -676,7 +676,7 @@ function PrivacyPage() {
           testid="statistics-switch"
           label={t.settings.privacy.statistics}
           checked={settings.statistics}
-          onChange={(statistics) => void upstart.invoke("settings:set", { statistics })}
+          onChange={(statistics) => void spaka.invoke("settings:set", { statistics })}
         />
       </Row>
     </Group>
@@ -706,7 +706,7 @@ function AboutPage() {
             size="sm"
             className="h-7 text-primary underline-offset-4 hover:bg-transparent hover:underline"
             tip={t.settings.about.siteTip}
-            onClick={() => void upstart.invoke("app:open-link", UPSTART_SITE)}
+            onClick={() => void spaka.invoke("app:open-link", SPAKA_SITE)}
             data-testid="about-site"
           >
             {t.settings.about.site}

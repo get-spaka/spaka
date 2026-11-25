@@ -19,11 +19,11 @@ describe("exporting the website", () => {
   let siteOrigin = "";
   const out = join(runsDir, "export");
   // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-  const main = <T>(fn: (upstart: any, arg: any, electron: any) => T, arg?: unknown) =>
+  const main = <T>(fn: (spaka: any, arg: any, electron: any) => T, arg?: unknown) =>
     launched.app.evaluate(
       (electron, [source, arg]) =>
         new Function("u", "a", "e", `return (${source})(u, a, e)`)(
-          (globalThis as { upstart?: unknown }).upstart,
+          (globalThis as { spaka?: unknown }).spaka,
           arg,
           electron,
         ),
@@ -32,7 +32,7 @@ describe("exporting the website", () => {
   const invoke = (channel: string, ...args: unknown[]) =>
     launched.window.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      ([channel, args]) => (window as any).upstart.invoke(channel, ...args),
+      ([channel, args]) => (window as any).spaka.invoke(channel, ...args),
       [channel, args] as const,
     );
   const until = async (read: () => Promise<unknown>, timeout = 15_000) => {
@@ -85,7 +85,7 @@ describe("exporting the website", () => {
       expect(existsSync(join(out, file)), file).toBe(true);
     const home = readFileSync(join(out, "index.html"), "utf8");
     expect(home).toContain("Chez Margot");
-    expect(home).not.toMatch(/data-up-src|tailwindcss\/browser|preview/);
+    expect(home).not.toMatch(/data-spaka-src|tailwindcss\/browser|preview/);
     // The classes the pages use are in the compiled stylesheet.
     const css = readFileSync(join(out, "assets/site.css"), "utf8");
     expect(css).toContain(".text-5xl");
@@ -131,7 +131,7 @@ describe("exporting the website", () => {
       const exported = electron.nativeImage.createFromBuffer(Buffer.from(data, "base64"));
       const served = {
         url: contents.getURL(),
-        marked: await contents.executeJavaScript("document.querySelectorAll('[data-up-src]').length"),
+        marked: await contents.executeJavaScript("document.querySelectorAll('[data-spaka-src]').length"),
         sheets: await contents.executeJavaScript("[...document.styleSheets].map((s) => s.href)"),
       };
       u.win.contentView.removeChildView(view);

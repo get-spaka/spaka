@@ -1,7 +1,7 @@
 {
   "name": "Soft gradient launch strip",
   "kind": "banner",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A strip washed with a soft gradient from the primary to the accent and secondary colours, announcing a launch in one line with a small primary button beside it.",
   "tags": ["gradient", "launch", "small button", "centred", "thin strip"],
   "mood": ["colorful", "friendly"],

@@ -1,6 +1,6 @@
-// Upstart's own harness in the whole app, with no key spent (ADR 0012): a
+// Spaka's own harness in the whole app, with no key spent (ADR 0012): a
 // conversation with Gemini 4 Hydrogen, recorded once by agent-pi.e2e.ts with
-// UPSTART_PI_RECORD, is played back. Only the model's replies are recorded:
+// SPAKA_PI_RECORD, is played back. Only the model's replies are recorded:
 // its tool calls run for real, so the files, the gallery's blocks, the
 // checks and the preview are the app's, as with a real model.
 import { existsSync, readFileSync } from "node:fs";
@@ -12,21 +12,21 @@ const fixture = join(import.meta.dirname, "fixtures/pi-florist.jsonl");
 
 // Its agent deletes the gallery's samples with rm: in sandbox-exec on macOS,
 // in Git Bash on Windows, where the gate lets a plain rm of the project's
-// files run at once (Q382). Without a shell the samples would stay, Upstart
+// files run at once (Q382). Without a shell the samples would stay, Spaka
 // would send the agent back to work, and the recording would run out of replies.
-describe.skipIf(!existsSync(fixture))("Upstart's own harness, played back", () => {
+describe.skipIf(!existsSync(fixture))("Spaka's own harness, played back", () => {
   let launched: LaunchedApp;
   // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-  const main = <T>(fn: (upstart: any, arg: any) => T, arg?: unknown) =>
+  const main = <T>(fn: (spaka: any, arg: any) => T, arg?: unknown) =>
     launched.app.evaluate(
       (_electron, [source, arg]) =>
-        new Function("u", "a", `return (${source})(u, a)`)((globalThis as { upstart?: unknown }).upstart, arg),
+        new Function("u", "a", `return (${source})(u, a)`)((globalThis as { spaka?: unknown }).spaka, arg),
       [fn.toString(), arg] as const,
     ) as Promise<Awaited<T>>;
   const invoke = (channel: string, ...args: unknown[]) =>
     launched.window.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      ([channel, args]) => (window as any).upstart.invoke(channel, ...args),
+      ([channel, args]) => (window as any).spaka.invoke(channel, ...args),
       [channel, args] as const,
     );
   const until = async (read: () => Promise<unknown>, timeout: number) => {
@@ -59,8 +59,8 @@ describe.skipIf(!existsSync(fixture))("Upstart's own harness, played back", () =
   const project = async () => (await invoke("projects:current")).path as string;
 
   beforeAll(async () => {
-    // UPSTART_PACKAGED=1: in the packaged app (apps/desktop/dist), once `pnpm package` has run.
-    launched = await launchApp({ env: { UPSTART_PI_REPLAY: fixture }, packaged: process.env.UPSTART_PACKAGED === "1" });
+    // SPAKA_PACKAGED=1: in the packaged app (apps/desktop/dist), once `pnpm package` has run.
+    launched = await launchApp({ env: { SPAKA_PI_REPLAY: fixture }, packaged: process.env.SPAKA_PACKAGED === "1" });
     await launched.window.getByTestId("message-input").waitFor();
     // A stand-in key: the replies are played back, nothing reaches Google.
     await main((u) => u.piAccounts.setKey("gemini", "AIza-e2e-stand-in-not-a-key"));
@@ -114,7 +114,7 @@ describe.skipIf(!existsSync(fixture))("Upstart's own harness, played back", () =
         "Le fleuriste est en face du Jardin des Plantes de Nantes : cherche sur le web les horaires d'ouverture du jardin en hiver, et ajoute-les dans le pied de page, sous « Le jardin d'en face ».",
       );
       if (item.status !== "done") {
-        // What the session sent the model as the maker: Upstart's own notes among them.
+        // What the session sent the model as the maker: Spaka's own notes among them.
         const sent = await main((u) =>
           [...u.agent.sessions.values()].flatMap(
             (session: { loop?: { state: { messages: { role: string; content: unknown }[] } } }) =>

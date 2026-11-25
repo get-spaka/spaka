@@ -1,9 +1,9 @@
 // One project's agent, whichever layer runs it (ADR 0012): Claude through the
-// Agent SDK (session.ts), or Upstart's own harness on Pi's libraries.
+// Agent SDK (session.ts), or Spaka's own harness on Pi's libraries.
 import type { QuestionAnswer } from "../../shared/conversation";
 import type { AgentMode, Effort, ProjectInfo } from "../../shared/ipc";
+import type { SpakaTools } from "./spaka-tools";
 import type { TurnChecks } from "./turn-checks";
-import type { UpstartTools } from "./upstart-tools";
 
 /** What the maker made of a plan: approved with Build, or changes asked for in their own words (Q290). */
 export type PlanDecision = { approved: true } | { changes: string };
@@ -45,5 +45,5 @@ export interface AgentRunner {
   signInConnector(name: string): Promise<string | undefined>;
 }
 
-/** What Upstart gives one project's agent, whichever layer runs it: its tools and its checks. */
-export type AgentKit = { tools: UpstartTools; checks: TurnChecks };
+/** What Spaka gives one project's agent, whichever layer runs it: its tools and its checks. */
+export type AgentKit = { tools: SpakaTools; checks: TurnChecks };

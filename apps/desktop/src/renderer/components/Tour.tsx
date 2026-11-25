@@ -6,7 +6,7 @@
 // Skip, Escape or the last Next end it, and it no longer opens by itself.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { PageTour } from "../../shared/ipc";
-import { upstart } from "../lib/bridge";
+import { spaka } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { Button } from "./ui/button";
 
@@ -65,12 +65,12 @@ export function Tour({
           skip: t.tour.skip,
         }
       : { kind: "veil" };
-    void upstart.invoke("tour:page", tour);
+    void spaka.invoke("tour:page", tour);
   }, [name, words, count, last, rect]);
-  useEffect(() => () => void upstart.invoke("tour:page", null), []);
+  useEffect(() => () => void spaka.invoke("tour:page", null), []);
 
   // Next and Skip clicked on the bubble in the page; Escape in the interface.
-  useEffect(() => upstart.on("tour:action", (action) => (action === "skip" ? skip() : next())), [next, skip]);
+  useEffect(() => spaka.on("tour:action", (action) => (action === "skip" ? skip() : next())), [next, skip]);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => event.key === "Escape" && skip();
     window.addEventListener("keydown", onKey);

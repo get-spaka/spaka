@@ -35,7 +35,7 @@ const bridge: Bridge = {
   pathOf: (file) => webUtils.getPathForFile(file),
 };
 
-contextBridge.exposeInMainWorld("upstart", bridge);
+contextBridge.exposeInMainWorld("spaka", bridge);
 
 // The interface makes room for the window's own buttons where the system puts them.
 if (process.platform === "win32")

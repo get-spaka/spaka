@@ -13,13 +13,13 @@ export const systemTmp = realpathSync(tmpdir());
 /**
  * The app's environment without anything that belongs to the session that
  * launched it: every CLAUDE_* and ANTHROPIC_* variable is dropped, so the
- * agent behaves the same whether Upstart was started from the Dock or from a
+ * agent behaves the same whether Spaka was started from the Dock or from a
  * terminal running Claude. Values are never read, only names.
  */
 export function cleanEnv(env: NodeJS.ProcessEnv = process.env): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [name, value] of Object.entries(env)) {
-    if (value === undefined || /^(ANTHROPIC_|CLAUDE_|CLAUDECODE$|ELECTRON_|UPSTART_)/.test(name)) continue;
+    if (value === undefined || /^(ANTHROPIC_|CLAUDE_|CLAUDECODE$|ELECTRON_|SPAKA_)/.test(name)) continue;
     out[name] = value;
   }
   return out;
@@ -128,12 +128,12 @@ function sandboxFor(projectDir: string, readable: string[], skills: string[]) {
 const SANDBOX_HOLDS: NodeJS.Platform[] = ["darwin"];
 
 /**
- * What Upstart grants itself when the agent tool would ask (Q220, Q221): with
+ * What Spaka grants itself when the agent tool would ask (Q220, Q221): with
  * auto mode off, a shell command run in the operating system's sandbox, which
  * confines it to the project and the temporary folder whatever it does (the
  * tool asks for a cd joined to a write, or an rm among several commands,
  * because it cannot tell statically where they write); a connector's tool or
- * Upstart's own; a skill. A file tool asks only to write outside the project,
+ * Spaka's own; a skill. A file tool asks only to write outside the project,
  * and is refused, like anything else (ADR 0007).
  */
 export function grantedInSandbox(toolName: string, input: unknown, platform = process.platform): boolean {

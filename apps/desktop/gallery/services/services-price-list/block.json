@@ -1,7 +1,7 @@
 {
   "name": "Price list with dotted leaders",
   "kind": "services",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A narrow, centred price list in the manner of a salon or a menu: each service's name, then a dotted leader running to its price, with the duration and a short line below.",
   "tags": ["price list", "dotted leaders", "list", "centered", "tariffs"],
   "mood": ["elegant", "minimal"],

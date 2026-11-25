@@ -1,7 +1,7 @@
 {
   "name": "Two options with pros and cons",
   "kind": "comparison",
-  "source": "upstart",
+  "source": "spaka",
   "description": "Two cards side by side, each an option with an icon, a short line, a list of what it is good for with plus signs, a list of what to keep in mind with minus signs, a price and a booking button.",
   "tags": ["two options", "pros and cons", "cards", "side by side", "booking"],
   "mood": ["friendly", "professional"],

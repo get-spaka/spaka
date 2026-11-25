@@ -1,16 +1,16 @@
 // Signing in to a remote connector (Q89, Q106), with the real agent. Opt-in
 // twice, since it opens the maker's browser and asks them to sign in:
-// UPSTART_REAL_AGENT=1 and UPSTART_OAUTH_TRIAL=1, with .cache/agent-config
+// SPAKA_REAL_AGENT=1 and SPAKA_OAUTH_TRIAL=1, with .cache/agent-config
 // signed in. The app stays hidden; the test opens the sign-in page itself.
 // The official program keeps the token; nothing of it may land in the
-// project or in Upstart's own data.
+// project or in Spaka's own data.
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { agentConfigDir, type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 
-const trial = process.env.UPSTART_REAL_AGENT === "1" && process.env.UPSTART_OAUTH_TRIAL === "1";
+const trial = process.env.SPAKA_REAL_AGENT === "1" && process.env.SPAKA_OAUTH_TRIAL === "1";
 const configDir = agentConfigDir();
 const dataDir = join(import.meta.dirname, "../.cache/oauth-check-data");
 const NAME = "notion";
@@ -29,7 +29,7 @@ describe.skipIf(!trial)("signing in to a connector with the real agent", () => {
   const invoke = (channel: string, ...args: unknown[]) =>
     launched.window.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      ([channel, args]) => (window as any).upstart.invoke(channel, ...args),
+      ([channel, args]) => (window as any).spaka.invoke(channel, ...args),
       [channel, args] as const,
     );
   const until = async (read: () => Promise<unknown>, timeout: number) => {
@@ -63,10 +63,10 @@ describe.skipIf(!trial)("signing in to a connector with the real agent", () => {
     rmSync(dataDir, { recursive: true, force: true });
     launched = await launchApp({
       env: {
-        UPSTART_AGENT_REPLAY: "",
-        UPSTART_AGENT_CONFIG_DIR: configDir,
-        UPSTART_AGENT_RECORD: record,
-        UPSTART_DATA_DIR: dataDir,
+        SPAKA_AGENT_REPLAY: "",
+        SPAKA_AGENT_CONFIG_DIR: configDir,
+        SPAKA_AGENT_RECORD: record,
+        SPAKA_DATA_DIR: dataDir,
       },
     });
     await launched.window.getByTestId("message-input").waitFor();
@@ -108,7 +108,7 @@ describe.skipIf(!trial)("signing in to a connector with the real agent", () => {
       report.tools = text.split("\n").filter((l: string) => l.includes(`mcp__${NAME}__`));
       expect((report.tools as string[]).length).toBeGreaterThan(0);
 
-      // Nothing of the token in the project or in Upstart's own data.
+      // Nothing of the token in the project or in Spaka's own data.
       const project = (await invoke("projects:current")).path as string;
       const leaks = [...files(project), ...files(dataDir)].filter((f) => {
         if (statSync(f).size > 2_000_000) return false;

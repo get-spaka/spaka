@@ -1,7 +1,7 @@
 {
   "name": "The usual way and with us",
   "kind": "comparison",
-  "source": "upstart",
+  "source": "spaka",
   "description": "Two columns side by side, a muted card for the usual way with a cross on each line and a card outlined in the primary color for the business with a check on the same lines, and a quote button.",
   "tags": ["two columns", "us vs them", "checks and crosses", "cards", "button"],
   "mood": ["friendly", "professional"],

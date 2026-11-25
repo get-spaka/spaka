@@ -1,7 +1,7 @@
 {
   "name": "Vertical timeline of steps",
   "kind": "steps",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A heading and a short text on the left beside a vertical timeline on the right, each step a round colored icon on the line with its number, title and sentence beside it.",
   "tags": ["timeline", "vertical", "icons", "two columns", "first visit"],
   "mood": ["friendly", "warm"],

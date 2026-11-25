@@ -1,7 +1,7 @@
 {
   "name": "Compact service tiles",
   "kind": "services",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A short heading above a dense grid of small tiles on a soft base background, each service an icon, its name and its price, the whole tile a link when it has one.",
   "tags": ["tiles", "grid", "compact", "icons", "six columns"],
   "mood": ["friendly", "minimal"],

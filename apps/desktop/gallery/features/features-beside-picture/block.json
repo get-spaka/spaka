@@ -1,7 +1,7 @@
 {
   "name": "Features beside a picture",
   "kind": "features",
-  "source": "upstart",
+  "source": "spaka",
   "description": "Two columns: a tall picture placeholder on one side and, on the other, a heading, an intro and a list of features each with an icon in a ringed circle, a title and a sentence.",
   "tags": ["picture", "two columns", "list", "icons", "image left"],
   "mood": ["warm", "elegant"],

@@ -1,4 +1,4 @@
-// A release of Upstart's templates (Q247, Q250, Q265), and the app reading it:
+// A release of Spaka's templates (Q247, Q250, Q265), and the app reading it:
 // the catalogue and pictures shipped, the latest catalogue read, a template
 // downloaded when needed, checked against its sha256, kept in the cache.
 import { createHash } from "node:crypto";
@@ -20,8 +20,8 @@ import {
 } from "./release";
 
 const BUILT_IN = join(import.meta.dirname, "../../../templates");
-const scratch = () => mkdtempSync(join(tmpdir(), "upstart-release-"));
-const RELEASES = "https://releases.example/upstart-templates/releases";
+const scratch = () => mkdtempSync(join(tmpdir(), "spaka-release-"));
+const RELEASES = "https://releases.example/spaka-templates/releases";
 const APP = "0.2.0";
 
 /** A release of Beacon and Reel, built as the public repository's CI builds one. */
@@ -226,7 +226,7 @@ describe("earlier versions for older apps (Q368)", () => {
     files.set(MANIFEST, Buffer.from(JSON.stringify(manifest)));
     expect(checkTemplate(files).errors).toContainEqual(
       expect.stringMatching(
-        /^data\/listings\/_datasource\.yaml: the images field kind needs Upstart 0\.2\.0 or later: add "app": "0\.2\.0"/,
+        /^data\/listings\/_datasource\.yaml: the images field kind needs Spaka 0\.2\.0 or later: add "app": "0\.2\.0"/,
       ),
     );
     files.set(MANIFEST, Buffer.from(JSON.stringify({ ...manifest, app: "0.2.0" })));

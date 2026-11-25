@@ -3,7 +3,7 @@
 // with the chosen file's address, or null. From a list of images, several
 // can be chosen at once (Q354).
 import { useEffect, useState } from "react";
-import { upstart } from "./bridge";
+import { spaka } from "./bridge";
 
 /** `multiple`: several images may be chosen, answered in the order they were chosen. */
 export type PickRequest = { id: number; multiple: boolean; resolve: (paths: string[] | null) => void };
@@ -52,6 +52,6 @@ export function usePickRequest(): PickRequest | undefined {
 
 /** "Replace…" in the preview (Q159): the main process asks for the picker, and gets its answer. */
 if (typeof window !== "undefined")
-  upstart.on("media:pick-request", ({ id }) => {
-    void pickImage().then((path) => upstart.invoke("media:picked", id, path));
+  spaka.on("media:pick-request", ({ id }) => {
+    void pickImage().then((path) => spaka.invoke("media:picked", id, path));
   });

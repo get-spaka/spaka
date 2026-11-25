@@ -34,7 +34,7 @@ describe("a list of images", () => {
     write(record, "---\naddress: Wren Street\nphotos:\n  - /media/a.jpg\n  - /media/b.jpg\n  - /media/c.jpg\n---\n");
 
   beforeAll(async () => {
-    launched = await launchApp({ env: { UPSTART_IMAGES_FIXTURE: FIXTURE } });
+    launched = await launchApp({ env: { SPAKA_IMAGES_FIXTURE: FIXTURE } });
     await w().getByTestId("message-input").waitFor();
     await invoke("conversation:send", "A bakery in Lyon. Warm colours please.");
     await until(() => w().locator('[data-testid="agent-message"][data-status="done"]').count(), 30_000);
@@ -118,11 +118,11 @@ describe("a list of images", () => {
     );
     const bar = (act: string) =>
       page(
-        `document.querySelector('upstart-editor').shadowRoot.querySelector('[data-testid="editor-${act}"]')?.disabled`,
+        `document.querySelector('spaka-editor').shadowRoot.querySelector('[data-testid="editor-${act}"]')?.disabled`,
       );
     const select = async (n: number) => {
       // The bar keeps its last buttons while hidden: emptied, so that what is read is the new selection's.
-      await page("document.querySelector('upstart-editor').shadowRoot.querySelector('.bar').innerHTML = ''");
+      await page("document.querySelector('spaka-editor').shadowRoot.querySelector('.bar').innerHTML = ''");
       await click(img(n));
       await until(async () => (await bar("later")) !== undefined && (await bar("later")) !== null).catch(
         async (error) => {

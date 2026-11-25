@@ -1,7 +1,7 @@
 {
   "name": "Bento grid of features",
   "kind": "features",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A bento grid of feature cards of different sizes on a tinted background, the first one wide across two columns with a large title, the others square with an icon, a title and a sentence.",
   "tags": ["bento", "grid", "cards", "icons", "mixed sizes"],
   "mood": ["bold", "colorful"],

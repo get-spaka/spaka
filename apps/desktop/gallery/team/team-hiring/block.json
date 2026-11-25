@@ -1,7 +1,7 @@
 {
   "name": "Team with a hiring call",
   "kind": "team",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A four-column grid of square portraits with names and roles, ending with a primary-colored tile that says We're hiring and links to the open roles.",
   "tags": ["hiring", "jobs", "grid", "portraits", "call to action"],
   "mood": ["friendly", "colorful"],

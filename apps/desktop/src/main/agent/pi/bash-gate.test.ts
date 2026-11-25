@@ -33,7 +33,7 @@ describe("the simple commands of a command line", () => {
 });
 
 describe("the commands that run without asking (Q382)", () => {
-  const root = "/Users/x/Upstart/fleur";
+  const root = "/Users/x/Spaka/fleur";
 
   test("file commands on the project's files", () => {
     expect(safeCommand("rm -f data/hours/monday.md data/hours/sunday.md", root, "darwin")).toBe(true);
@@ -56,8 +56,8 @@ describe("the commands that run without asking (Q382)", () => {
     expect(safeCommand("", root, "darwin")).toBe(false);
   });
 
-  test("Upstart's own folder, git's, the project itself and all of its top folder are asked", () => {
-    expect(safeCommand("rm -rf .upstart/adaptation", root, "darwin")).toBe(false);
+  test("Spaka's own folder, git's, the project itself and all of its top folder are asked", () => {
+    expect(safeCommand("rm -rf .spaka/adaptation", root, "darwin")).toBe(false);
     expect(safeCommand("cat .git/config", root, "darwin")).toBe(false);
     expect(safeCommand("rm -rf .", root, "darwin")).toBe(false);
     expect(safeCommand(`rm -rf ${root}`, root, "darwin")).toBe(false);
@@ -68,10 +68,10 @@ describe("the commands that run without asking (Q382)", () => {
   });
 
   test("on Windows, Git Bash's paths and Windows' own", () => {
-    const winRoot = "C:\\Users\\x\\Documents\\Upstart\\fleur";
+    const winRoot = "C:\\Users\\x\\Documents\\Spaka\\fleur";
     expect(safeCommand("rm -f data/hours/monday.md", winRoot, "win32")).toBe(true);
-    expect(safeCommand("rm /c/Users/x/Documents/Upstart/fleur/data/a.md", winRoot, "win32")).toBe(true);
-    expect(safeCommand("rm 'C:\\Users\\x\\Documents\\Upstart\\fleur\\data\\a.md'", winRoot, "win32")).toBe(true);
+    expect(safeCommand("rm /c/Users/x/Documents/Spaka/fleur/data/a.md", winRoot, "win32")).toBe(true);
+    expect(safeCommand("rm 'C:\\Users\\x\\Documents\\Spaka\\fleur\\data\\a.md'", winRoot, "win32")).toBe(true);
     expect(safeCommand("rm -rf /c/Users/x", winRoot, "win32")).toBe(false);
     expect(safeCommand("rm -rf /d/other", winRoot, "win32")).toBe(false);
     expect(safeCommand("rm 'C:\\Windows\\System32\\x.dll'", winRoot, "win32")).toBe(false);

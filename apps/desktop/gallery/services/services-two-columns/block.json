@@ -1,7 +1,7 @@
 {
   "name": "Two-column services with durations",
   "kind": "services",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A heading and intro above a two-column list of services, each with a small icon, its name, a summary and how long it takes beside its price, on a soft base background.",
   "tags": ["two columns", "list", "icons", "durations", "prices"],
   "mood": ["minimal", "professional"],

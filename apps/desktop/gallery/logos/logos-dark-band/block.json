@@ -1,7 +1,7 @@
 {
   "name": "Logos on a dark band",
   "kind": "logos",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A full-width band in the neutral color with a short heading on the left and a row of large wordmarks or logos on the right, set apart by a thin vertical rule.",
   "tags": ["dark band", "trusted by", "wordmarks", "row", "clients"],
   "mood": ["dark", "bold"],

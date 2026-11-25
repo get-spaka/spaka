@@ -64,14 +64,14 @@ describe("the app's shell, launched in the background", () => {
       ["Publish…", "Shift+CommandOrControl+P"],
     ]);
     expect(menus.find((m) => m.label === "Help")!.items.map(([label]) => label)).toEqual([
-      "Tour of Upstart",
+      "Tour of Spaka",
       "Ask the Agent",
       "Keyboard Shortcuts",
-      ...(MAC ? [] : ["About Upstart"]),
+      ...(MAC ? [] : ["About Spaka"]),
     ]);
   });
 
-  test("the menus' About Upstart opens the settings at About Upstart (Q339)", async () => {
+  test("the menus' About Spaka opens the settings at About Spaka (Q339)", async () => {
     const { window } = launched;
     // The app menu's first item on macOS, Help's last elsewhere.
     const about = await launched.app.evaluate(({ Menu }, mac) => {
@@ -81,8 +81,8 @@ describe("the app's shell, launched in the background", () => {
       item?.click();
       return item?.label;
     }, MAC);
-    expect(about).toBe("About Upstart");
-    await window.getByTestId("settings-title").filter({ hasText: "About Upstart" }).waitFor();
+    expect(about).toBe("About Spaka");
+    await window.getByTestId("settings-title").filter({ hasText: "About Spaka" }).waitFor();
     await window.keyboard.press("Escape");
     await window.getByTestId("settings-title").waitFor({ state: "detached" });
   });
@@ -104,7 +104,7 @@ describe("the app's shell, launched in the background", () => {
     await window.getByTestId("sidebar").waitFor();
   });
 
-  test("a button shows its tooltip of Upstart's own, with its shortcut (Q329)", async () => {
+  test("a button shows its tooltip of Spaka's own, with its shortcut (Q329)", async () => {
     const { window } = launched;
     await window.getByRole("button", { name: "New website" }).hover();
     const tip = window.getByTestId("tip");
@@ -122,11 +122,11 @@ describe("the app's shell, launched in the background", () => {
   test("the interface reaches the main process only through the contract", async () => {
     const { window } = launched;
     // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge and the page's globals, untyped here
-    const info = await window.evaluate(() => (window as any).upstart.invoke("app:info"));
+    const info = await window.evaluate(() => (window as any).spaka.invoke("app:info"));
     expect(info.background).toBe(true);
     const refused = await window.evaluate(() =>
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge, untyped here
-      (window as any).upstart.invoke("nope:channel").then(
+      (window as any).spaka.invoke("nope:channel").then(
         () => "answered",
         (e: Error) => e.message,
       ),

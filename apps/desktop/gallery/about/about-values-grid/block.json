@@ -1,7 +1,7 @@
 {
   "name": "Values grid",
   "kind": "about",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A heading and a short introduction side by side above a grid of the business's values, each under a coloured rule with an icon in a solid circle, a title and a sentence.",
   "tags": ["values", "grid", "icons", "four columns", "principles"],
   "mood": ["friendly", "colorful"],

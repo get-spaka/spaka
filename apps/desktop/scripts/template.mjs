@@ -5,8 +5,8 @@
 // template:image` finds images and adds them with their credits, or generates
 // them with a key set in the terminal. The checks are
 // the app's own code, bundled here on the fly so that Node runs them as they are.
-// Upstart's own templates live in the public repository
-// upstart-gg/upstart-templates, a submodule at apps/desktop/templates (Q250,
+// Spaka's own templates live in the public repository
+// get-spaka/templates, a submodule at apps/desktop/templates (Q250,
 // Q265, Q267), and are released from it: `pnpm template:release <out> <tag>
 // [previous catalogue]` builds a release here as its CI does, `pnpm
 // template:release-script` rebuilds the script its CI runs, and `pnpm
@@ -48,7 +48,7 @@ async function releaseScript(out) {
       file: out,
       format: "esm",
       banner:
-        "// Built by `pnpm template:release-script` in Upstart's repository, from the app's own checks: do not edit.",
+        "// Built by `pnpm template:release-script` in Spaka's repository, from the app's own checks: do not edit.",
     },
   });
 }
@@ -71,7 +71,7 @@ if (command === "check") {
   process.exit(await releaseMain([templates, resolve(out), tag, ...(previous ? [previous] : [])]));
 } else if (command === "snapshot") {
   const { snapshotMain } = await cli();
-  process.exit(await snapshotMain(join(desktop, "templates-catalogue"), process.env.UPSTART_TEMPLATES_URL));
+  process.exit(await snapshotMain(join(desktop, "templates-catalogue"), process.env.SPAKA_TEMPLATES_URL));
 } else if (command === "release-script") {
   // The release script of the templates' repository, rebuilt after the checks change here.
   await releaseScript(join(templates, "scripts/release.mjs"));
@@ -93,15 +93,15 @@ if (command === "check") {
       env: { ...process.env, ...env },
       shell: process.platform === "win32",
     }).status ?? 1;
-  if (!args.includes("--no-build") && run("pnpm", ["--filter", "@upstart/desktop", "build"]) !== 0) process.exit(1);
+  if (!args.includes("--no-build") && run("pnpm", ["--filter", "@spaka/desktop", "build"]) !== 0) process.exit(1);
   process.exit(
     run(
       "npx",
       ["vitest", "run", "--config", "e2e/vitest.config.ts", "e2e/template-shoot.e2e.ts", "e2e/templates-again.e2e.ts"],
       {
-        UPSTART_BACKGROUND: "1",
-        UPSTART_TEMPLATE_SHOOT: resolve(target),
-        ...(clock ? { UPSTART_TEMPLATE_SHOOT_CLOCK: clock } : {}),
+        SPAKA_BACKGROUND: "1",
+        SPAKA_TEMPLATE_SHOOT: resolve(target),
+        ...(clock ? { SPAKA_TEMPLATE_SHOOT_CLOCK: clock } : {}),
       },
     ),
   );

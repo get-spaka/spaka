@@ -26,14 +26,14 @@ describe("plan mode", () => {
   const invoke = <T = unknown>(channel: string, ...args: unknown[]): Promise<T> =>
     launched.window.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      ([channel, args]) => (window as any).upstart.invoke(channel, ...(args as unknown[])),
+      ([channel, args]) => (window as any).spaka.invoke(channel, ...(args as unknown[])),
       [channel, args] as const,
     ) as Promise<T>;
   const planAnswers = async () =>
     (
       await launched.app.evaluate(
         // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-        () => (globalThis as any).upstart.replayed as string[],
+        () => (globalThis as any).spaka.replayed as string[],
       )
     )
       .filter((l) => l.startsWith("[ExitPlanMode] "))
@@ -46,9 +46,9 @@ describe("plan mode", () => {
   };
 
   beforeAll(async () => {
-    const file = join(mkdtempSync(join(tmpdir(), "upstart-plan-")), "plan.jsonl");
+    const file = join(mkdtempSync(join(tmpdir(), "spaka-plan-")), "plan.jsonl");
     writePlanRecording(file);
-    launched = await launchApp({ env: { UPSTART_AGENT_REPLAY: file } });
+    launched = await launchApp({ env: { SPAKA_AGENT_REPLAY: file } });
     await launched.window.getByTestId("message-input").waitFor();
   }, 60_000 * SLOW);
   afterAll(async () => {

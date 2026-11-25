@@ -9,12 +9,12 @@
 // differ (Q439): which hero each opens with, its fonts, its colors. Opt-in,
 // as the other checks with a real agent:
 //
-//   UPSTART_REAL_AGENT=1: Claude, in the packaged app (`pnpm package` first),
+//   SPAKA_REAL_AGENT=1: Claude, in the packaged app (`pnpm package` first),
 //     with .cache/agent-config signed in;
-//   UPSTART_REAL_PI=1: Gemini 4 Hydrogen in Upstart's own harness, with
+//   SPAKA_REAL_PI=1: Gemini 4 Hydrogen in Spaka's own harness, with
 //     GEMINI_API_KEY set in the terminal or in the repository's .env (never printed).
-//   UPSTART_DESIGN_LABEL=before|after|… (after by default).
-//   UPSTART_DESIGN_BRIEFS=tattoo,fineline: only these briefs.
+//   SPAKA_DESIGN_LABEL=before|after|… (after by default).
+//   SPAKA_DESIGN_BRIEFS=tattoo,fineline: only these briefs.
 //
 // Writes e2e/.runs/agent-design/<label>-<agent>-<brief>-<picture>.png,
 // <label>-<agent>.json (each turn's time, its lines, its block searches and
@@ -30,7 +30,7 @@ import { maker, walk } from "./real-maker.ts";
 
 const configDir = agentConfigDir();
 const shots = join(runsDir, "agent-design");
-const label = process.env.UPSTART_DESIGN_LABEL || "after";
+const label = process.env.SPAKA_DESIGN_LABEL || "after";
 
 const ALL_BRIEFS = [
   {
@@ -88,7 +88,7 @@ const PAIRS: [string, string][] = [
   ["tattoo", "fineline"],
   ["patisserie", "choux"],
 ];
-const chosen = process.env.UPSTART_DESIGN_BRIEFS?.split(",").map((s) => s.trim());
+const chosen = process.env.SPAKA_DESIGN_BRIEFS?.split(",").map((s) => s.trim());
 const BRIEFS = chosen ? ALL_BRIEFS.filter((b) => chosen.includes(b.id)) : ALL_BRIEFS;
 
 /** A call the agent made to the gallery's tools, as it streamed it. */
@@ -110,8 +110,8 @@ const PICTURES = [
 ];
 
 const CASES = [
-  { agent: "claude", run: process.env.UPSTART_REAL_AGENT === "1" },
-  { agent: "pi", run: process.env.UPSTART_REAL_PI === "1" },
+  { agent: "claude", run: process.env.SPAKA_REAL_AGENT === "1" },
+  { agent: "pi", run: process.env.SPAKA_REAL_PI === "1" },
 ];
 
 for (const { agent, run } of CASES)
@@ -121,16 +121,16 @@ for (const { agent, run } of CASES)
     const report: Record<string, unknown> = { agent, label };
     const sites: DesignSite[] = [];
     // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-    const main = <T>(fn: (upstart: any, arg: any) => T, arg?: unknown) =>
+    const main = <T>(fn: (spaka: any, arg: any) => T, arg?: unknown) =>
       launched.app.evaluate(
         (_electron, [source, arg]) =>
-          new Function("u", "a", `return (${source})(u, a)`)((globalThis as { upstart?: unknown }).upstart, arg),
+          new Function("u", "a", `return (${source})(u, a)`)((globalThis as { spaka?: unknown }).spaka, arg),
         [fn.toString(), arg] as const,
       ) as Promise<Awaited<T>>;
     const invoke = (channel: string, ...args: unknown[]) =>
       launched.window.evaluate(
         // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-        ([channel, args]) => (window as any).upstart.invoke(channel, ...args),
+        ([channel, args]) => (window as any).spaka.invoke(channel, ...args),
         [channel, args] as const,
       );
     const until = async (read: () => Promise<unknown>, timeout: number) => {
@@ -151,12 +151,12 @@ for (const { agent, run } of CASES)
           ? await launchApp({
               packaged: true,
               env: {
-                UPSTART_AGENT_REPLAY: "",
-                UPSTART_AGENT_CONFIG_DIR: configDir,
-                UPSTART_AGENT_RECORD: join(runsDir, `agent-design-${label}-claude.jsonl`),
+                SPAKA_AGENT_REPLAY: "",
+                SPAKA_AGENT_CONFIG_DIR: configDir,
+                SPAKA_AGENT_RECORD: join(runsDir, `agent-design-${label}-claude.jsonl`),
               },
             })
-          : await launchApp({ env: { UPSTART_AGENT_REPLAY: "" } });
+          : await launchApp({ env: { SPAKA_AGENT_REPLAY: "" } });
       await launched.window.getByTestId("message-input").waitFor({ timeout: 60_000 });
       if (agent === "claude") await until(async () => (await invoke("agent:status")).auth === "signed-in", 30_000);
       else {
@@ -174,7 +174,7 @@ for (const { agent, run } of CASES)
         const before = u.agent.o.onAgentEvent;
         u.agent.o.onAgentEvent = (id: string, e: { kind: string; name?: string; input?: Record<string, unknown> }) => {
           if (e.kind === "tool-input-end" && e.name && /find_blocks|use_block/.test(e.name) && e.input)
-            calls.push({ name: e.name.replace(/^mcp__upstart__/, ""), input: e.input });
+            calls.push({ name: e.name.replace(/^mcp__spaka__/, ""), input: e.input });
           before?.(id, e);
         };
       });

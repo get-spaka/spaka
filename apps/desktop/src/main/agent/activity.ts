@@ -1,13 +1,12 @@
 // The agent's steps as the conversation shows them: one line per tool call,
 // whichever agent made it (ADR 0012), its tools known by their canonical names
-// (Read, Write, Edit, Append, Bash, Glob, Grep, Upstart's own, a connector's).
+// (Read, Write, Edit, Append, Bash, Glob, Grep, Spaka's own, a connector's).
 
 import { realpathSync } from "node:fs";
 import { isAbsolute, relative } from "node:path";
 import type { ConversationEvent, Grounded } from "../../shared/conversation";
 import { en } from "../../shared/strings/en";
 import { CARD_TOOLS } from "./questions";
-import type { AgentEvent } from "./stream";
 import {
   FIND_BLOCKS_TOOL,
   FIND_IMAGES_TOOL,
@@ -15,7 +14,8 @@ import {
   LOOK_TOOL,
   USE_BLOCK_TOOL,
   USE_IMAGE_TOOL,
-} from "./upstart-tools";
+} from "./spaka-tools";
+import type { AgentEvent } from "./stream";
 
 type Known = { name: string; label: string; detail?: string; grounded?: Grounded };
 

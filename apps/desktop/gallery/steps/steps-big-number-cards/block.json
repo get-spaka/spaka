@@ -1,7 +1,7 @@
 {
   "name": "Step cards with big numbers",
   "kind": "steps",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A heading and a short text over a grid of soft cards, each led by a very large colored number 01, 02, 03, with a title and a sentence.",
   "tags": ["cards", "big numbers", "grid", "process", "how it works"],
   "mood": ["bold", "colorful"],

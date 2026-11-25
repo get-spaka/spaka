@@ -41,7 +41,7 @@ describe("an update ready to restart into", () => {
   test("the About page says which version waits for the restart", async () => {
     const { window } = launched;
     await window.evaluate(() =>
-      (window as unknown as { upstart: { invoke(c: string, p: string): Promise<void> } }).upstart.invoke(
+      (window as unknown as { spaka: { invoke(c: string, p: string): Promise<void> } }).spaka.invoke(
         "settings:open",
         "about",
       ),

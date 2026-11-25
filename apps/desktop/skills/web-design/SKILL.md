@@ -1,6 +1,6 @@
 ---
 name: web-design
-description: Upstart's rules for a website's design — read before a new page, a change of style, or a script.
+description: Spaka's rules for a website's design — read before a new page, a change of style, or a script.
 ---
 
 # A website's design
@@ -68,7 +68,7 @@ How much a site moves follows its character, from still to orchestrated:
 | Orchestrated | an event, a launch, an architecture or design studio | one moment the page is built around: the hero's letters arriving, a WebGL background (OGL), an image moving with the scroll (`Motion.scroll`); calm everywhere else |
 
 - One orchestrated moment a page at most; durations of 0.4 to 0.9 s, easing out.
-- CSS first (scroll-driven animations, `@starting-style`, transitions), then the libraries the site-scripts skill lists: Motion, Lenis, Splitting, Embla, OGL. GSAP stays out: its licence excludes tools like Upstart.
+- CSS first (scroll-driven animations, `@starting-style`, transitions), then the libraries the site-scripts skill lists: Motion, Lenis, Splitting, Embla, OGL. GSAP stays out: its licence excludes tools like Spaka.
 - Reduced motion is the floor: under `prefers-reduced-motion: reduce` the page is complete and still.
 - The site-scripts skill has the rules every script and stylesheet keeps: read it before writing one.
 

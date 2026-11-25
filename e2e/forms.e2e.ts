@@ -16,7 +16,7 @@ describe("forms in the preview", () => {
   const { invoke, until, page } = previewDriver(() => launched);
   const w = () => launched.window;
   const testRecords = (name: string) => {
-    const dir = join(path, ".upstart/test-records", name);
+    const dir = join(path, ".spaka/test-records", name);
     return existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".md")) : [];
   };
   const shown = () =>
@@ -61,11 +61,11 @@ describe("forms in the preview", () => {
       ].join("\n"),
     );
     write(
-      ".upstart/test-records/guestbook/2026-11-10-0800-aaaa.md",
+      ".spaka/test-records/guestbook/2026-11-10-0800-aaaa.md",
       "---\nname: Older\nsubmitted: 2026-11-10T08:00:00Z\n---\nLovely bread.\n",
     );
     write(
-      ".upstart/test-records/guestbook/2026-11-11-0800-bbbb.md",
+      ".spaka/test-records/guestbook/2026-11-11-0800-bbbb.md",
       "---\nname: Newer\nsubmitted: 2026-11-11T08:00:00Z\n---\nBest croissants.\n",
     );
     write(
@@ -92,7 +92,7 @@ describe("forms in the preview", () => {
     // Forms are tried in the visitor's view: in edit mode the page's own forms do nothing.
     await invoke("preview:set-mode", "visitor");
     // Until the page has it, the editor keeps the page's own submits and clicks.
-    await until(() => page(`document.querySelector("upstart-editor")?.dataset.mode === "visitor"`));
+    await until(() => page(`document.querySelector("spaka-editor")?.dataset.mode === "visitor"`));
   }, 90_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
@@ -120,7 +120,7 @@ describe("forms in the preview", () => {
     await until(async () => testRecords("guestbook").length === 3);
     const file = testRecords("guestbook").find((f) => !/aaaa|bbbb/.test(f))!;
     expect(file).toMatch(/^\d{4}-\d{2}-\d{2}-\d{4}-[0-9a-f]{4}\.md$/);
-    const text = readFileSync(join(path, ".upstart/test-records/guestbook", file), "utf8");
+    const text = readFileSync(join(path, ".spaka/test-records/guestbook", file), "utf8");
     expect(text).toMatch(/^---\nname: Claire\nsubmitted: .+\nstatus: pending\n---\nUn pain sans gluten \?\n$/);
     // Held for review: not shown.
     await invoke("preview:navigate", "/guestbook");
@@ -130,15 +130,15 @@ describe("forms in the preview", () => {
 
   test("without a fragment the built-in thanks answers; the record is shown at once", async () => {
     await submit("#contact", { email: "claire@example.com" });
-    await until(async () => (await page(`document.querySelector("[data-up-sent]")?.textContent`)) != null);
-    expect(await page(`document.querySelector("[data-up-sent]").textContent`)).toBe("Thank you, it was sent.");
+    await until(async () => (await page(`document.querySelector("[data-spaka-sent]")?.textContent`)) != null);
+    expect(await page(`document.querySelector("[data-spaka-sent]").textContent`)).toBe("Thank you, it was sent.");
     await until(async () => testRecords("contact").length === 1);
   });
 
   test("the agent is told of a page whose file starts with an underscore", async () => {
     const notes = await launched.app.evaluate(() =>
       // biome-ignore lint/suspicious/noExplicitAny: the main process's objects, set for checks
-      ((globalThis as any).upstart.preview.site.runtime.pageNotes() as { file: string }[]).map((n) => n.file),
+      ((globalThis as any).spaka.preview.site.runtime.pageNotes() as { file: string }[]).map((n) => n.file),
     );
     expect(notes).toEqual(["pages/_draft.liquid"]);
   });

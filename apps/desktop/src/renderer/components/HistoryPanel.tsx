@@ -2,7 +2,7 @@ import { ChevronRight, History as HistoryIcon, Undo2 } from "lucide-react";
 import { useState } from "react";
 import type { HistoryEntry } from "../../shared/ipc";
 import { useCommands } from "../hooks/useCommand";
-import { upstart } from "../lib/bridge";
+import { spaka } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { Button } from "./ui/button";
@@ -35,7 +35,7 @@ export function HistoryButtons({
 }) {
   const canUndo = !disabled && entries.length > 0 && !(entries.length === 1 && entries[0]!.current);
   // ⌘Z, when no text is being typed (Q335).
-  useCommands({ undo: () => canUndo && void upstart.invoke("history:undo") });
+  useCommands({ undo: () => canUndo && void spaka.invoke("history:undo") });
   return (
     <>
       <Button
@@ -43,7 +43,7 @@ export function HistoryButtons({
         size="icon-sm"
         className="no-drag text-muted-foreground"
         disabled={!canUndo}
-        onClick={() => void upstart.invoke("history:undo")}
+        onClick={() => void spaka.invoke("history:undo")}
         tip={t.history.undo}
         command="undo"
         data-testid="undo"
@@ -173,7 +173,7 @@ function Row({ entry, disabled, onRestore }: { entry: HistoryEntry; disabled: bo
           disabled={disabled}
           onClick={() => {
             onRestore();
-            void upstart.invoke("history:restore", entry.id);
+            void spaka.invoke("history:restore", entry.id);
           }}
           tip={t.history.restoreTip}
           data-testid="history-restore"

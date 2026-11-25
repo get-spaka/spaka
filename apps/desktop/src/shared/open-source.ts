@@ -1,4 +1,4 @@
-// What Upstart is made with, shown on its About page (Q339): the main
+// What Spaka is made with, shown on its About page (Q339): the main
 // components and their licences, each read from its package by
 // open-source.test.ts, and the collections the gallery's layouts come from,
 // whose licences are kept beside the gallery.
@@ -28,5 +28,5 @@ export const COMPONENTS: readonly Component[] = [
   { name: "Wicked Blocks", licence: "MIT" },
 ];
 
-/** Upstart's website. */
-export const UPSTART_SITE = "https://upstart.gg";
+/** Spaka's website. */
+export const SPAKA_SITE = "https://spaka.app";

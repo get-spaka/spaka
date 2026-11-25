@@ -1,7 +1,7 @@
 // Connectors extend the agent (ADR 0010): a remote one is an address the
 // agent's kit talks to; a local one is a program it launches, outside the
 // sandbox. The maker adds them for all their websites or for one, in which
-// case they are kept in the project's .upstart/connectors.json and travel
+// case they are kept in the project's .spaka/connectors.json and travel
 // with it, without their secrets.
 //
 // - Secrets (a header's value, an environment variable's value) are kept by
@@ -16,9 +16,9 @@ import type { ConnectorDraft, ConnectorInfo, ConnectorScope } from "../../shared
 import { replaceFile } from "../replace-file";
 
 /** Where a project keeps its connectors. */
-export const PROJECT_CONNECTORS = ".upstart/connectors.json";
-/** Taken by Upstart's own tools. */
-const RESERVED = new Set(["upstart"]);
+export const PROJECT_CONNECTORS = ".spaka/connectors.json";
+/** Taken by Spaka's own tools. */
+const RESERVED = new Set(["spaka"]);
 const NAME = /^[a-z0-9]+([_-][a-z0-9]+)*$/;
 const KEY = /^[A-Za-z][\w-]*$/;
 
@@ -127,7 +127,7 @@ export class Connectors {
     const name = draft.name.trim().toLowerCase();
     if (!NAME.test(name) || name.length > 40)
       throw new Error("A connector's name is lowercase letters, digits, hyphens or underscores.");
-    if (RESERVED.has(name)) throw new Error(`"${name}" is taken by Upstart itself.`);
+    if (RESERVED.has(name)) throw new Error(`"${name}" is taken by Spaka itself.`);
     const secretPairs = (draft.secrets ?? []).filter((s) => s.name.trim());
     for (const s of secretPairs) if (!KEY.test(s.name.trim())) throw new Error(`"${s.name}" is not a valid name.`);
     let def: ConnectorDef;

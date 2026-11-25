@@ -1,8 +1,8 @@
 {
-  "name": "@upstart/runtime",
+  "name": "@spaka/runtime",
   "private": true,
   "version": "0.1.0",
-  "description": "Renders an Upstart project (Liquid pages, shared parts, fragments, theme). Portable: the core uses no Node-only API.",
+  "description": "Renders a Spaka project (Liquid pages, shared parts, fragments, theme). Portable: the core uses no Node-only API.",
   "license": "MIT",
   "type": "module",
   "exports": {

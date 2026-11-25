@@ -1,7 +1,7 @@
 {
   "name": "Two columns of courses",
   "kind": "menu",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A heading and intro above the menu's courses set as white cards flowing in two columns on a soft background, each course listing its dishes with the price at the right, a description and diet badges.",
   "tags": ["menu", "two columns", "courses", "cards", "prices"],
   "mood": ["minimal", "professional"],

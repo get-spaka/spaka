@@ -1,7 +1,7 @@
 {
   "name": "Plans as rows",
   "kind": "pricing",
-  "source": "upstart",
+  "source": "spaka",
   "description": "Plans stacked as horizontal rows in one bordered panel, each with its name and description on the left, a two-column checklist of features in the middle and the price with a button on the right; the recommended plan sits on a tinted row with a badge beside its name.",
   "tags": ["rows", "list", "monthly", "checklist", "maintenance"],
   "mood": ["professional", "minimal"],

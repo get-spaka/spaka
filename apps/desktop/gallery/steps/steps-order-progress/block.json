@@ -1,7 +1,7 @@
 {
   "name": "Order stages in a progress bar",
   "kind": "steps",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A heading over a framed progress bar of numbered stages, the daisyUI steps component, across on a wide screen and down on a phone, each stage with a title and a short line.",
   "tags": ["progress", "order", "delivery", "stages", "numbered"],
   "mood": ["minimal", "professional"],

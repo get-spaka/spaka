@@ -4,9 +4,9 @@
 // open the menu, find both problems, fix them and look again. Each look is
 // timed. Opt-in, as the other checks with a real agent:
 //
-//   UPSTART_REAL_AGENT=1: Claude, in the packaged app (`pnpm package` first),
+//   SPAKA_REAL_AGENT=1: Claude, in the packaged app (`pnpm package` first),
 //     with .cache/agent-config signed in;
-//   UPSTART_REAL_PI=1: Gemini 4 Hydrogen in Upstart's own harness, with
+//   SPAKA_REAL_PI=1: Gemini 4 Hydrogen in Spaka's own harness, with
 //     GEMINI_API_KEY set in the terminal or in the repository's .env (never printed).
 //
 // Writes e2e/.runs/agent-looks-<agent>.json.
@@ -80,8 +80,8 @@ type Look = { at: number; ms: number; route: string | null; screen?: string; ste
 type Logged = { t: number; kind: string; name?: string; path?: string };
 
 const CASES = [
-  { agent: "claude", run: process.env.UPSTART_REAL_AGENT === "1" },
-  { agent: "pi", run: process.env.UPSTART_REAL_PI === "1" },
+  { agent: "claude", run: process.env.SPAKA_REAL_AGENT === "1" },
+  { agent: "pi", run: process.env.SPAKA_REAL_PI === "1" },
 ];
 
 for (const { agent, run } of CASES)
@@ -90,16 +90,16 @@ for (const { agent, run } of CASES)
     let folder: string;
     const report: Record<string, unknown> = { agent };
     // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-    const main = <T>(fn: (upstart: any, arg: any) => T, arg?: unknown) =>
+    const main = <T>(fn: (spaka: any, arg: any) => T, arg?: unknown) =>
       launched.app.evaluate(
         (_electron, [source, arg]) =>
-          new Function("u", "a", `return (${source})(u, a)`)((globalThis as { upstart?: unknown }).upstart, arg),
+          new Function("u", "a", `return (${source})(u, a)`)((globalThis as { spaka?: unknown }).spaka, arg),
         [fn.toString(), arg] as const,
       ) as Promise<Awaited<T>>;
     const invoke = (channel: string, ...args: unknown[]) =>
       launched.window.evaluate(
         // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-        ([channel, args]) => (window as any).upstart.invoke(channel, ...args),
+        ([channel, args]) => (window as any).spaka.invoke(channel, ...args),
         [channel, args] as const,
       );
     const until = async (read: () => Promise<unknown>, timeout: number) => {
@@ -120,12 +120,12 @@ for (const { agent, run } of CASES)
           ? await launchApp({
               packaged: true,
               env: {
-                UPSTART_AGENT_REPLAY: "",
-                UPSTART_AGENT_CONFIG_DIR: configDir,
-                UPSTART_AGENT_RECORD: join(runsDir, "agent-looks-claude.jsonl"),
+                SPAKA_AGENT_REPLAY: "",
+                SPAKA_AGENT_CONFIG_DIR: configDir,
+                SPAKA_AGENT_RECORD: join(runsDir, "agent-looks-claude.jsonl"),
               },
             })
-          : await launchApp({ env: { UPSTART_AGENT_REPLAY: "" } });
+          : await launchApp({ env: { SPAKA_AGENT_REPLAY: "" } });
       await launched.window.getByTestId("message-input").waitFor({ timeout: 60_000 });
       if (agent === "claude") await until(async () => (await invoke("agent:status")).auth === "signed-in", 30_000);
       else {
@@ -146,7 +146,7 @@ for (const { agent, run } of CASES)
         () =>
           launched.app.evaluate(() =>
             // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-            (globalThis as any).upstart.preview.view.webContents.executeJavaScript(
+            (globalThis as any).spaka.preview.view.webContents.executeJavaScript(
               "document.querySelector('h1')?.textContent === 'Drinks by the water'",
             ),
           ),
@@ -157,7 +157,7 @@ for (const { agent, run } of CASES)
         const looks: Look[] = [];
         const log: Logged[] = [];
         Object.assign(globalThis, { agentLooks: looks, agentLog: log });
-        const preview = (globalThis as { upstart?: { preview: Record<string, unknown> } }).upstart!.preview;
+        const preview = (globalThis as { spaka?: { preview: Record<string, unknown> } }).spaka!.preview;
         const look = (preview.look as (...a: unknown[]) => Promise<Record<string, unknown>>).bind(preview);
         preview.look = async (
           route?: string,
@@ -176,7 +176,7 @@ for (const { agent, run } of CASES)
           return seen;
         };
         // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-        const agents = (globalThis as any).upstart.agent;
+        const agents = (globalThis as any).spaka.agent;
         const before = agents.o.onAgentEvent;
         agents.o.onAgentEvent = (id: string, e: { kind: string; name?: string; input?: { file_path?: string } }) => {
           if (e.kind === "tool-input-end")
@@ -220,7 +220,7 @@ for (const { agent, run } of CASES)
         // The website as it is now, looked at on a phone from scratch.
         const after = (await main(async () => {
           // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-          const p = (globalThis as any).upstart.preview;
+          const p = (globalThis as any).spaka.preview;
           p.endTurn();
           const plain = await p.look("/", { screen: "phone", fresh: true });
           const opened = await p.look("/", { screen: "phone", steps: [{ action: "click", target: "#menu summary" }] });

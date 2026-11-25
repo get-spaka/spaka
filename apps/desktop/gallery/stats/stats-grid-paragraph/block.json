@@ -1,7 +1,7 @@
 {
   "name": "Two-by-two figures beside a paragraph",
   "kind": "stats",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A heading, two short paragraphs and a button on the left, and a two-by-two grid of figure tiles on the right, each with a number, a label and a note.",
   "tags": ["grid", "two columns", "paragraph", "tiles", "numbers", "button"],
   "mood": ["professional", "warm"],

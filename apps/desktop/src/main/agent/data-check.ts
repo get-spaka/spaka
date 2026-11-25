@@ -2,10 +2,10 @@
 // a record whose fields do not read is left out of the site (Q166), and the
 // agent fixes it in the same turn instead of finishing with a post missing.
 import { isAbsolute, join, relative } from "node:path";
-import { Datasources, DEFINITION_FILE, TEST_RECORDS_DIR } from "@upstart/runtime";
-import { diskSource } from "@upstart/runtime/node";
+import { Datasources, DEFINITION_FILE, TEST_RECORDS_DIR } from "@spaka/runtime";
+import { diskSource } from "@spaka/runtime/node";
 
-const DATA_FILE = /^(?:data|\.upstart\/test-records)\/([a-z0-9][\w-]*)\/([^/]+)$/i;
+const DATA_FILE = /^(?:data|\.spaka\/test-records)\/([a-z0-9][\w-]*)\/([^/]+)$/i;
 
 /** The datasource files a tool call touched: the one it wrote, or every one for a command. */
 function touched(root: string, tool: string, input: unknown): string[] | "all" {
@@ -44,5 +44,5 @@ export function dataProblemsAfter(root: string, tool: string, input: unknown): s
     }
   }
   if (!lines.length) return undefined;
-  return `Upstart could not use what you just wrote:\n${lines.join("\n")}\nFix it now, before you go on: quote a text that holds a colon followed by a space, or that starts with a sign YAML reads (the datasources skill lists them).`;
+  return `Spaka could not use what you just wrote:\n${lines.join("\n")}\nFix it now, before you go on: quote a text that holds a colon followed by a space, or that starts with a sign YAML reads (the datasources skill lists them).`;
 }

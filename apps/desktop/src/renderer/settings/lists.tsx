@@ -6,7 +6,7 @@ import { useState } from "react";
 import type { ConnectorInfo, ConnectorScope, SkillInfo } from "../../shared/ipc";
 import { NativeSelect } from "../components/ui/native-select";
 import { Tip } from "../components/ui/tip";
-import { upstart } from "../lib/bridge";
+import { spaka } from "../lib/bridge";
 import { messageOf } from "../lib/errors";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
@@ -19,8 +19,8 @@ export function SkillList({
   caption,
   addLabel = t.settings.skills.add,
 }: {
-  /** The maker's own skills only: the ones built into Upstart are not listed (Q123). */
-  origin: Exclude<SkillInfo["origin"], "upstart">;
+  /** The maker's own skills only: the ones built into Spaka are not listed (Q123). */
+  origin: Exclude<SkillInfo["origin"], "spaka">;
   title: string;
   skills: SkillInfo[];
   caption?: React.ReactNode;
@@ -38,8 +38,8 @@ export function SkillList({
   };
   const add = () =>
     run(async () => {
-      const folder = await upstart.invoke("skills:choose-folder");
-      if (folder) await upstart.invoke("skills:add", origin, folder);
+      const folder = await spaka.invoke("skills:choose-folder");
+      if (folder) await spaka.invoke("skills:add", origin, folder);
     });
   const exists = skills.some((s) => s.name === chosen);
   return (
@@ -61,7 +61,7 @@ export function SkillList({
           removeLabel={t.settings.skills.remove}
           onAdd={() => void add()}
           canRemove={exists}
-          onRemove={() => chosen && void run(() => upstart.invoke("skills:remove", origin, chosen))}
+          onRemove={() => chosen && void run(() => spaka.invoke("skills:remove", origin, chosen))}
         />
       }
     >
@@ -119,7 +119,7 @@ export function ConnectorList({
     if (!chosen) return;
     setError(undefined);
     try {
-      await upstart.invoke("connectors:remove", scope, chosen);
+      await spaka.invoke("connectors:remove", scope, chosen);
     } catch (e) {
       setError(messageOf(e));
     }
@@ -235,7 +235,7 @@ function ConnectorRow({
             <Push
               testid="connector-approve"
               tip={t.connectors.approveTip}
-              onClick={() => void run(() => upstart.invoke("connectors:approve", c.name))}
+              onClick={() => void run(() => spaka.invoke("connectors:approve", c.name))}
             >
               {t.connectors.approve}
             </Push>
@@ -250,7 +250,7 @@ function ConnectorRow({
               tip={t.connectors.signInTip}
               onClick={() =>
                 void run(async () => {
-                  await upstart.invoke("connectors:sign-in", c.name);
+                  await spaka.invoke("connectors:sign-in", c.name);
                   setSigningIn(true);
                 })
               }
@@ -266,7 +266,7 @@ function ConnectorRow({
           className="mx-3 mb-2.5 flex flex-wrap items-center gap-2"
           onSubmit={(event) => {
             event.preventDefault();
-            void run(() => upstart.invoke("connectors:set-secrets", c.scope, c.name, values));
+            void run(() => spaka.invoke("connectors:set-secrets", c.scope, c.name, values));
           }}
         >
           {missing.map((s) => (
@@ -324,7 +324,7 @@ function AddConnector({ scope, onDone }: { scope: ConnectorScope; onDone: () => 
   const submit = async () => {
     setError(null);
     try {
-      await upstart.invoke("connectors:add", scope, {
+      await spaka.invoke("connectors:add", scope, {
         name,
         kind,
         target,

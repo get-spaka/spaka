@@ -212,10 +212,10 @@ test("a form brings its collected datasource, its samples as test records and it
     (id) => (id === guestbook.id ? guestbook : undefined),
   );
   expect(placed.writes["data/guestbook/_datasource.yaml"]).toContain("collected: true");
-  expect(placed.writes[".upstart/test-records/guestbook/2026-11-02-0910-a1b2.md"]).toContain("Lovely place.");
+  expect(placed.writes[".spaka/test-records/guestbook/2026-11-02-0910-a1b2.md"]).toContain("Lovely place.");
   expect(placed.writes["data/guestbook/2026-11-02-0910-a1b2.md"]).toBeUndefined();
   expect(placed.writes["fragments/guestbook-thanks.liquid"]).toContain("Thank you!");
-  expect(placed.samples).toEqual([".upstart/test-records/guestbook/2026-11-02-0910-a1b2.md"]);
+  expect(placed.samples).toEqual([".spaka/test-records/guestbook/2026-11-02-0910-a1b2.md"]);
   const text = placedAnswer({ page: "pages/index.liquid", blocks: [] }, placed);
   expect(text).toContain("a form: what visitors send goes to data/guestbook/");
   expect(text).toContain("answered with fragments/guestbook-thanks.liquid");

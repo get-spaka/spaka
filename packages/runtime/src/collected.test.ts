@@ -177,7 +177,7 @@ describe("the runtime with a store", () => {
     const r = runtime(store);
     await r.fetch(post("/_data/guestbook", { name: "Held", message: "x" }));
     const call = (path: string, method = "GET", token = "tok") =>
-      r.fetch(new Request(`http://site/_upstart/${path}`, { method, headers: { authorization: `Bearer ${token}` } }));
+      r.fetch(new Request(`http://site/_spaka/${path}`, { method, headers: { authorization: `Bearer ${token}` } }));
     expect((await call("ping", "GET", "nope")).status).toBe(401);
     expect(await (await call("ping")).json()).toEqual({ ok: true, datasources: ["contact", "guestbook"] });
     const { records } = (await (await call("records/guestbook")).json()) as { records: { id: string }[] };
@@ -191,7 +191,7 @@ describe("the runtime with a store", () => {
 
   test("without a token there is no management API; GET on /_data/ is refused", async () => {
     const r = new Runtime(site(), { collected: new SqlStore(sqlite()) });
-    expect((await r.fetch(new Request("http://site/_upstart/ping"))).status).toBe(404);
+    expect((await r.fetch(new Request("http://site/_spaka/ping"))).status).toBe(404);
     expect((await r.fetch(new Request("http://site/_data/guestbook"))).status).toBe(405);
   });
 

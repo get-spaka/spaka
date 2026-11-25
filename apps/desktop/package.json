@@ -1,16 +1,16 @@
 {
-  "name": "@upstart/desktop",
-  "productName": "Upstart",
+  "name": "@spaka/desktop",
+  "productName": "Spaka",
   "private": true,
   "version": "0.2.0",
   "description": "Build websites by talking to an agent, on your own machine.",
-  "author": "Upstart",
+  "author": "Spaka",
   "license": "MIT",
   "type": "module",
   "main": "out/main/index.js",
   "scripts": {
     "dev": "node scripts/bundle-hosts.mjs && electron-vite dev",
-    "dev:live": "node scripts/bundle-hosts.mjs && cross-env UPSTART_SHOW_INACTIVE=1 electron-vite dev --watch",
+    "dev:live": "node scripts/bundle-hosts.mjs && cross-env SPAKA_SHOW_INACTIVE=1 electron-vite dev --watch",
     "build": "electron-vite build && node scripts/bundle-hosts.mjs",
     "start": "pnpm build && electron .",
     "package": "pnpm build && node scripts/template.mjs snapshot && electron-builder --mac --arm64 --dir -c.mac.identity=null --publish never",
@@ -29,8 +29,8 @@
     "@earendil-works/pi-schema": "1.6.0",
     "@google/genai": "2.32.0",
     "@tailwindcss/browser": "4.3.5",
-    "@upstart/builder": "workspace:*",
-    "@upstart/runtime": "workspace:*",
+    "@spaka/builder": "workspace:*",
+    "@spaka/runtime": "workspace:*",
     "daisyui": "5.7.50",
     "electron-updater": "6.8.11",
     "htmx.org": "4.0.1",
@@ -62,8 +62,8 @@
     "vite": "8.3.7"
   },
   "build": {
-    "appId": "gg.upstart.desktop",
-    "productName": "Upstart",
+    "appId": "app.spaka.desktop",
+    "productName": "Spaka",
     "directories": {
       "output": "dist"
     },
@@ -132,15 +132,15 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "upstart-gg",
-        "repo": "upstart-editor",
+        "owner": "get-spaka",
+        "repo": "spaka",
         "releaseType": "draft"
       }
     ],
     "dmg": {
-      "artifactName": "Upstart-${version}-${arch}.${ext}"
+      "artifactName": "Spaka-${version}-${arch}.${ext}"
     },
-    "artifactName": "Upstart-${version}-${arch}.${ext}",
+    "artifactName": "Spaka-${version}-${arch}.${ext}",
     "win": {
       "target": [
         {
@@ -155,8 +155,8 @@
     "nsis": {
       "oneClick": true,
       "perMachine": false,
-      "artifactName": "Upstart-Setup-${version}-${arch}.${ext}",
-      "shortcutName": "Upstart",
+      "artifactName": "Spaka-Setup-${version}-${arch}.${ext}",
+      "shortcutName": "Spaka",
       "deleteAppDataOnUninstall": false
     }
   }

@@ -1,4 +1,4 @@
-// Recording what the models of Upstart's own harness answered, and playing it
+// Recording what the models of Spaka's own harness answered, and playing it
 // back in checks of the whole app, as replay.ts does for Claude: no key spent,
 // and the same answers each time. Only the model is played back: its tool
 // calls run for real, so the files, the blocks and the checks are the app's.
@@ -34,7 +34,7 @@ export type PiReplay = {
   search: (query: string) => Promise<SearchFound>;
 };
 
-/** What the played-back model was asked, request by request: for checks of what Upstart tells it. */
+/** What the played-back model was asked, request by request: for checks of what Spaka tells it. */
 export const piReplayed: { model: string; tools: string[]; last: string }[] = [];
 
 /**

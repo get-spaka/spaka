@@ -119,9 +119,9 @@ test("a refused search fails the tool call, which the agent reads", async () => 
   await expect(providerSearch({ models, model: terra, query: "x" })).rejects.toThrow(/web_search not allowed/);
 });
 
-// With the maker's real Gemini key, when asked: UPSTART_REAL_PI=1 and GEMINI_API_KEY set in
+// With the maker's real Gemini key, when asked: SPAKA_REAL_PI=1 and GEMINI_API_KEY set in
 // the terminal or in the repository's .env (Q438), never printed.
-const real = process.env.UPSTART_REAL_PI === "1";
+const real = process.env.SPAKA_REAL_PI === "1";
 test.skipIf(!real)(
   "Google Search answers with its sources, with a real Gemini key",
   async () => {

@@ -1,7 +1,7 @@
 {
   "name": "Featured event and the next ones",
   "kind": "events",
-  "source": "upstart",
+  "source": "spaka",
   "description": "The next event featured in a large bordered panel, its cover beside the date, title, summary, time, place, price and booking button, followed by the other upcoming events as small tiles.",
   "tags": ["featured", "next event", "split", "tiles", "booking"],
   "mood": ["editorial", "elegant"],

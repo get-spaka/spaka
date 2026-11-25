@@ -1,7 +1,7 @@
 {
   "name": "Count over a logo grid",
   "kind": "logos",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A large heading with a count, \"Over 200 local businesses work with us\", beside a short paragraph, over a two-row grid of logos or wordmarks drawn with thin lines like a ledger.",
   "tags": ["count", "clients", "grid", "two rows", "large heading"],
   "mood": ["bold", "professional"],

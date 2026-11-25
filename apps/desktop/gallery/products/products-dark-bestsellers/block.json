@@ -1,7 +1,7 @@
 {
   "name": "Bestsellers on a dark band",
   "kind": "products",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A dark band of the first four products, numbered, each with a tall picture (or a bright gradient), a badge, the name, a summary, the price and an Order button, under a bold heading and a Shop everything button; each product's page opens on a dark band with the name, the price and the order button beside the picture, then the description and three other products.",
   "tags": ["bestsellers", "dark", "numbered", "shop", "popular"],
   "mood": ["dark", "bold"],

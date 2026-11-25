@@ -20,7 +20,7 @@ export const PUBLISH_WAYS = ["static", "node", "cloudflare"] as const;
 /** The kinds of error counted: the agent's turn that failed, by the reason it was told, and an export that failed. */
 export const ERROR_TYPES = ["sign_in", "agent_limit", "agent_stopped", "agent_other", "export"] as const;
 
-/** Each event's properties, each with its set of values; a template is one of Upstart's ids, "imported" or "none". */
+/** Each event's properties, each with its set of values; a template is one of Spaka's ids, "imported" or "none". */
 const EVENTS = {
   launch: {},
   site_created: { template: "template" },
@@ -50,7 +50,7 @@ export type StatsDeps = {
   key: string;
   /** Only a packaged app sends: a development run counts nothing. */
   packaged: boolean;
-  /** Upstart's own templates' ids, the only ones named. */
+  /** Spaka's own templates' ids, the only ones named. */
   templates: () => string[];
   /** Where the day of the last launch counted is kept. */
   dayFile: string;
@@ -98,7 +98,7 @@ export class Stats {
         osName: this.deps.osName,
         osVersion: this.deps.osVersion,
         appVersion: this.deps.appVersion,
-        sdkVersion: `upstart@${this.deps.appVersion}`,
+        sdkVersion: `spaka@${this.deps.appVersion}`,
       },
       props,
     };
@@ -119,7 +119,7 @@ export class Stats {
   }
 }
 
-/** The properties kept to their sets: a value outside its set is dropped, a template not Upstart's is "imported". */
+/** The properties kept to their sets: a value outside its set is dropped, a template not Spaka's is "imported". */
 export function checked(event: StatEvent, props: Record<string, string>, templates: () => string[]) {
   const allowed: Record<string, readonly string[] | "template"> = EVENTS[event];
   const out: Record<string, string> = {};

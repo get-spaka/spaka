@@ -21,24 +21,24 @@ export type Snapshot = {
   files: Record<string, string>;
 };
 
-/** The preview's test records, which the history keeps although they are in Upstart's own folder (Q172). */
-const TEST_RECORDS = ".upstart/test-records";
+/** The preview's test records, which the history keeps although they are in Spaka's own folder (Q172). */
+const TEST_RECORDS = ".spaka/test-records";
 
 /**
- * What the history keeps out: Upstart's own folder (its test records
+ * What the history keeps out: Spaka's own folder (its test records
  * excepted), hidden files, installed packages.
  */
 export function tracked(path: string): boolean {
   const parts = path.split("/");
   if (parts.includes("node_modules")) return false;
-  if (path === ".upstart" || path === TEST_RECORDS || path.startsWith(`${TEST_RECORDS}/`))
+  if (path === ".spaka" || path === TEST_RECORDS || path.startsWith(`${TEST_RECORDS}/`))
     return !parts.slice(2).some((part) => part.startsWith("."));
   return !parts.some((part) => part.startsWith("."));
 }
 
-/** What an export copies: what the history keeps, without Upstart's own folder (Q172: test records never published). */
+/** What an export copies: what the history keeps, without Spaka's own folder (Q172: test records never published). */
 export function published(path: string): boolean {
-  return tracked(path) && path.split("/")[0] !== ".upstart";
+  return tracked(path) && path.split("/")[0] !== ".spaka";
 }
 
 export class History {
@@ -102,7 +102,7 @@ export class History {
     const target = this.list().find((s) => s.id === id);
     if (!target) throw new Error("This version is no longer in the history.");
     // What the maker changed by hand since the last snapshot is kept too.
-    this.snapshot("outside", "Changes made outside Upstart");
+    this.snapshot("outside", "Changes made outside Spaka");
     const now = this.scan();
     for (const [path, hash] of Object.entries(target.files)) {
       if (now[path] === hash) continue;

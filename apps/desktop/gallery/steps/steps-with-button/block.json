@@ -1,7 +1,7 @@
 {
   "name": "Steps with a booking button",
   "kind": "steps",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A dark band with a centered heading over three steps in a row, each with a ringed icon, its number and a sentence, ending with a large button to book.",
   "tags": ["call to action", "button", "dark", "three steps", "booking"],
   "mood": ["dark", "bold"],

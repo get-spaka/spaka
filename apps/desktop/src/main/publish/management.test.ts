@@ -61,8 +61,8 @@ describe("calling a published site", () => {
     expect(await reason(callSite("http://127.0.0.1:1", "t", "ping"))).toBe("unreachable");
     for (const [status, body, expected] of [
       [401, "{}", "wrong-token"],
-      [404, "not found", "not-upstart"],
-      [200, "<html>", "not-upstart"],
+      [404, "not found", "not-spaka"],
+      [200, "<html>", "not-spaka"],
       [500, '{"error":"no table"}', "failed"],
       [200, '{"ok":true}', "ok"],
     ] as const) {

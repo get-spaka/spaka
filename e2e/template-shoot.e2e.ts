@@ -23,7 +23,7 @@ import { previewDriver } from "./preview-driver.ts";
 // or `shoot.clock` in its template.json), whatever the day of the shoot.
 // Every image loads at once, lazy or not; a page's whole picture is taken with
 // the page held still (stillPageScript), the cover and the hover moving.
-const dir = process.env.UPSTART_TEMPLATE_SHOOT ?? "";
+const dir = process.env.SPAKA_TEMPLATE_SHOOT ?? "";
 const DEVICES = [
   { name: "desktop", width: 1440, height: 900, out: 1200 },
   { name: "phone", width: 390, height: 844, out: 780 },
@@ -40,7 +40,7 @@ describe.skipIf(!dir)("a template's pictures", () => {
   const files = dir ? readTemplateFolder(dir) : new Map();
   const manifest = JSON.parse(files.get("template.json")?.toString("utf8") ?? "{}");
   const id = manifest.id as string;
-  const at = dir ? shootClock(manifest, process.env.UPSTART_TEMPLATE_SHOOT_CLOCK) : undefined;
+  const at = dir ? shootClock(manifest, process.env.SPAKA_TEMPLATE_SHOOT_CLOCK) : undefined;
   /**
    * The windows' preloads (the DevTools protocol hangs a window not yet
    * loaded): the clock, the images loaded at once, and for a page's whole
@@ -89,9 +89,10 @@ describe.skipIf(!dir)("a template's pictures", () => {
           await win.webContents.insertCSS("html { scrollbar-width: none !important; }");
           // Visitor mode, as the preview's own script sets it.
           await js(
-            "document.documentElement.setAttribute('data-up-moving', ''); window.__upStart && window.__upStart.go()",
+            "document.documentElement.setAttribute('data-spaka-moving', ''); window.__spakaStart && window.__spakaStart.go()",
           );
-          for (let i = 0; i < 100 && !(await js("!window.__upStart || window.__upStart.started")); i++) await wait(50);
+          for (let i = 0; i < 100 && !(await js("!window.__spakaStart || window.__spakaStart.started")); i++)
+            await wait(50);
           await js("document.fonts.ready.then(() => true)");
           // biome-ignore lint/security/noGlobalEval: the step, written by the check itself
           return await eval(act)({ wait, js, png, resize });
@@ -114,13 +115,13 @@ describe.skipIf(!dir)("a template's pictures", () => {
     }
     const project = await launched.app.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      (_electron, path) => (globalThis as any).upstart.projects.openFolder(path),
+      (_electron, path) => (globalThis as any).spaka.projects.openFolder(path),
       copy,
     );
     await invoke("projects:open", project.id);
     origin = (await until(() =>
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      launched.app.evaluate(() => (globalThis as any).upstart.preview.origin as string),
+      launched.app.evaluate(() => (globalThis as any).spaka.preview.origin as string),
     )) as string;
   }, 60_000 * SLOW);
   afterAll(async () => {
@@ -159,7 +160,7 @@ describe.skipIf(!dir)("a template's pictures", () => {
             `async ({ wait, js, png, resize }) => {
             await wait(600);
             await js("for (const el of document.querySelectorAll('*')) if (getComputedStyle(el).position === 'sticky') el.style.position = 'static'");
-            await js("__upStill.pin()");
+            await js("__spakaStill.pin()");
             // The page's height once its images have come, for an image of no set size.
             await js("Promise.race([Promise.all([...document.images].filter((i) => !i.complete).map((i) => new Promise((done) => { i.addEventListener('load', done); i.addEventListener('error', done); }))), new Promise((done) => setTimeout(done, 8000))])");
             const tall = Math.min(await js("document.documentElement.scrollHeight"), ${PAGE_MAX});

@@ -20,7 +20,7 @@ import {
   siteAssets,
   TAILWIND_THEME,
   themeStyle,
-} from "@upstart/runtime";
+} from "@spaka/runtime";
 import { compile } from "tailwindcss";
 import type { BuildOptions, BuildProject, ImageCopies } from "./builder.ts";
 
@@ -208,7 +208,7 @@ export function writeEnv(out: Output, token: string | undefined) {
   if (!token) return;
   out.write(
     ".env",
-    `# The website's management token, with which Upstart reads what visitors send. Keep it private.\nUPSTART_TOKEN=${token}\n`,
+    `# The website's management token, with which Spaka reads what visitors send. Keep it private.\nSPAKA_TOKEN=${token}\n`,
   );
 }
 

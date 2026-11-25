@@ -1,7 +1,7 @@
 {
   "name": "Call us card",
   "kind": "cta",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A white card centered on a soft gradient, with a round phone icon, a heading, a large phone number to tap, the hours to call and a button to call or send a message.",
   "tags": ["phone", "card", "gradient", "centered", "call"],
   "mood": ["friendly", "warm"],

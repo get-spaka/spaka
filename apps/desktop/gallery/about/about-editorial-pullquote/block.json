@@ -1,7 +1,7 @@
 {
   "name": "Editorial about with pull quote",
   "kind": "about",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A magazine-style about page section: a large serif headline over a wide picture with its caption below, then two columns of text with a pull quote set off by a coloured rule.",
   "tags": ["editorial", "pull quote", "wide image", "serif", "magazine"],
   "mood": ["editorial", "elegant"],

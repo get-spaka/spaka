@@ -9,18 +9,18 @@ test("the agent's environment keeps nothing of the session that launched the app
     CLAUDE_CONFIG_DIR: "/c",
     CLAUDECODE: "1",
     ELECTRON_RUN_AS_NODE: "1",
-    UPSTART_BACKGROUND: "1",
+    SPAKA_BACKGROUND: "1",
   });
   expect(env).toEqual({ PATH: "/usr/bin", HOME: "/Users/x" });
 });
 
 test("the agent writes only in the project and the temporary folder, and never asks", () => {
   const options = confinement({
-    projectDir: "/Users/x/Documents/Upstart/site",
+    projectDir: "/Users/x/Documents/Spaka/site",
     readable: ["/Users/x/bin"],
     platform: "darwin",
   });
-  expect(options.cwd).toBe("/Users/x/Documents/Upstart/site");
+  expect(options.cwd).toBe("/Users/x/Documents/Spaka/site");
   expect(options.permissionMode).toBe("acceptEdits");
   // Where the sandbox is not known to hold, auto mode stays (Q221).
   expect(confinement({ projectDir: "/p", readable: [], platform: "win32" }).permissionMode).toBe("auto");
@@ -36,20 +36,20 @@ test("the agent writes only in the project and the temporary folder, and never a
     allowUnsandboxedCommands: false,
   });
   expect(options.settings.sandbox).toMatchObject({
-    filesystem: { allowRead: ["/Users/x/Documents/Upstart/site", "/Users/x/bin"] },
+    filesystem: { allowRead: ["/Users/x/Documents/Spaka/site", "/Users/x/bin"] },
   });
 });
 
 test("on Windows, which has no sandbox for the shell, auto mode guards it, and the rules take Windows paths", () => {
   const options = confinement({
-    projectDir: "C:\\Users\\x\\Documents\\Upstart\\site",
+    projectDir: "C:\\Users\\x\\Documents\\Spaka\\site",
     readable: [],
-    skillsDir: "C:\\Users\\x\\AppData\\Roaming\\Upstart\\skills\\site",
+    skillsDir: "C:\\Users\\x\\AppData\\Roaming\\Spaka\\skills\\site",
     platform: "win32",
   });
   expect(options.permissionMode).toBe("auto");
   expect(options.settings.sandbox).toEqual({ enabled: false });
-  expect(options.settings.permissions.deny).toEqual(["Edit(//c/Users/x/AppData/Roaming/Upstart/skills/site/**)"]);
+  expect(options.settings.permissions.deny).toEqual(["Edit(//c/Users/x/AppData/Roaming/Spaka/skills/site/**)"]);
   expect(ruleDir("/Users/x/skills", "darwin")).toBe("//Users/x/skills");
 });
 
@@ -64,9 +64,9 @@ test("without auto mode, a sandboxed command, a connector's tool or a skill is g
   expect(ok("Bash", {})).toBe(false);
   expect(ok("Write", { file_path: "/Users/x/escape.txt" })).toBe(false);
   expect(ok("Edit", { file_path: "/Users/x/.zshrc" })).toBe(false);
-  expect(ok("mcp__upstart__use_block", { page: "pages/index.liquid" })).toBe(true);
+  expect(ok("mcp__spaka__use_block", { page: "pages/index.liquid" })).toBe(true);
   expect(ok("mcp__notion__search", { query: "x" })).toBe(true);
-  expect(ok("Skill", { skill: "upstart:gallery" })).toBe(true);
+  expect(ok("Skill", { skill: "spaka:gallery" })).toBe(true);
 });
 
 test("the app's node launcher comes first on the search path, under one key", () => {

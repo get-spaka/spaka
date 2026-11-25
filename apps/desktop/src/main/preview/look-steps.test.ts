@@ -33,7 +33,7 @@ describe("the steps the agent gives", () => {
     expect(problem([{ action: "press", key: "Tab" }, { action: "click" }])).toMatch(/^Step 2: click needs a `target`/);
     expect(problem([{ action: "scroll" }])).toMatch(/"down", "up", "top", "bottom"/);
     expect(problem([{ action: "press" }])).toMatch(/press needs a `key`/);
-    expect(problem([{ action: "press", key: "F13" }])).toMatch(/"F13" is not one Upstart can press/);
+    expect(problem([{ action: "press", key: "F13" }])).toMatch(/"F13" is not one Spaka can press/);
     expect(problem([{ action: "type", target: "input" }])).toMatch(/type needs the `text`/);
     expect(problem(Array.from({ length: 13 }, () => ({ action: "press", key: "Tab" })))).toMatch(/At most 12/);
   });
@@ -99,7 +99,7 @@ describe("doing the steps", () => {
 
   test("a click on an element on the screen: moved to, pressed, released, and where it led", async () => {
     const { view, sent } = fake((code) => {
-      if (code.includes('data-up-look", ""')) return 'a "Visit" (parts/header.liquid:9)';
+      if (code.includes('data-spaka-look", ""')) return 'a "Visit" (parts/header.liquid:9)';
       if (code.includes("y >= 0 && y < innerHeight")) return true;
       if (code.includes("elementFromPoint")) return { x: 200, y: 40, editable: false };
       return undefined;
@@ -124,7 +124,7 @@ describe("doing the steps", () => {
       if (code.includes("elementFromPoint"))
         return { problem: 'it is covered by div "We use cookies" (parts/cookies.liquid:2)' };
       if (code.includes("y >= 0 && y < innerHeight")) return true;
-      if (code.includes('data-up-look", ""')) return 'button "Menu" (parts/header.liquid:20)';
+      if (code.includes('data-spaka-look", ""')) return 'button "Menu" (parts/header.liquid:20)';
       return null;
     });
     const done = await runSteps(view, [

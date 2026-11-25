@@ -7,7 +7,7 @@
 // in the same reply, not yet on the disk, or the disk.
 import { realpathSync } from "node:fs";
 import { isAbsolute, relative } from "node:path";
-import { repairTemplate } from "@upstart/runtime";
+import { repairTemplate } from "@spaka/runtime";
 import type { AgentEvent } from "../agent/stream";
 
 export type TapTarget = {

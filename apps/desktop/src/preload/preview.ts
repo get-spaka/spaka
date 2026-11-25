@@ -1,4 +1,4 @@
-// Upstart's script inside the preview. With contextIsolation it runs in a
+// Spaka's script inside the preview. With contextIsolation it runs in a
 // JavaScript world of its own: it shares the page's DOM and nothing else, so
 // the project's scripts can neither break it nor reach it (ADR 0008).
 //
@@ -19,9 +19,9 @@ const invoke = <C extends keyof PreviewInvokes>(channel: C, ...args: Parameters<
  * nothing else. It takes no click on its content; the click, the right click
  * and the pointer coming and going are passed on.
  */
-const thumbnail = process.argv.includes("--upstart-thumbnail");
+const thumbnail = process.argv.includes("--spaka-thumbnail");
 /** The agent's own view (Q314): the page as a visitor sees it, with no editing. */
-const agent = process.argv.includes("--upstart-agent");
+const agent = process.argv.includes("--spaka-agent");
 
 const editor =
   thumbnail || agent
@@ -39,7 +39,7 @@ const editor =
           send: () => invoke("preview:comments-send"),
           discard: () => invoke("preview:comments-discard"),
         },
-        process.argv.includes("--upstart-checks"),
+        process.argv.includes("--spaka-checks"),
       );
 
 if (thumbnail) {
@@ -103,10 +103,10 @@ function render(html: string, final: boolean) {
   const doc = new DOMParser().parseFromString(html, "text/html");
   // The site's modules stop first, on the page their start changed, which they put back;
   // they start again once the rendering is complete (ADR 0011).
-  if (moving) pageWorld("window.__upStart && window.__upStart.stop()");
+  if (moving) pageWorld("window.__spakaStart && window.__spakaStart.stop()");
   syncHead(doc);
   syncAttributes(document.documentElement, doc.documentElement);
-  if (moving) document.documentElement.setAttribute("data-up-moving", "");
+  if (moving) document.documentElement.setAttribute("data-spaka-moving", "");
   syncAttributes(document.body, doc.body);
   Idiomorph.morph(document.body, [...doc.body.childNodes], {
     morphStyle: "innerHTML",
@@ -137,7 +137,7 @@ function render(html: string, final: boolean) {
     // htmx lives in the page's world: ask it, from there, to take the new elements in hand.
     pageWorld("window.htmx && htmx.process(document.body)");
     // The site's modules start again on the new rendering (ADR 0011).
-    if (moving) pageWorld("window.__upStart && window.__upStart.start()");
+    if (moving) pageWorld("window.__spakaStart && window.__spakaStart.start()");
   }
   editor?.rendered();
   send({ type: "rendered", ms: performance.now() - started });
@@ -153,13 +153,13 @@ function keptByVisitor(name: string, node: Element, type: "update" | "remove"): 
 }
 
 /**
- * The page's own stylesheets (marked data-up-page by the runtime) and its
+ * The page's own stylesheets (marked data-spaka-page by the runtime) and its
  * title follow the new rendering. What the runtime or a library put in the
  * head (Tailwind's generated styles among them) is left alone.
  */
 function syncHead(doc: Document) {
   if (doc.title !== document.title) document.title = doc.title;
-  const own = (root: Document) => [...root.head.querySelectorAll("[data-up-page]")];
+  const own = (root: Document) => [...root.head.querySelectorAll("[data-spaka-page]")];
   const wanted = own(doc).map((el) => el.outerHTML);
   const present = own(document);
   for (const el of present) if (!wanted.includes(el.outerHTML)) el.remove();
@@ -201,15 +201,15 @@ function setMoving(on: boolean) {
   if (on === moving) return;
   moving = on;
   if (on) {
-    document.documentElement.setAttribute("data-up-moving", "");
-    pageWorld("window.__upStart && window.__upStart.go()");
+    document.documentElement.setAttribute("data-spaka-moving", "");
+    pageWorld("window.__spakaStart && window.__spakaStart.go()");
   } else if (document.querySelector("script[data-wait]")) location.reload();
-  else document.documentElement.removeAttribute("data-up-moving");
+  else document.documentElement.removeAttribute("data-spaka-moving");
 }
 
 function pageWorld(code: string) {
   const script = document.createElement("script");
-  script.setAttribute("data-up-runtime", "");
+  script.setAttribute("data-spaka-runtime", "");
   script.textContent = code;
   document.documentElement.append(script);
   script.remove();
@@ -224,10 +224,10 @@ let clipped = 0;
 function thumbStyle(top: number) {
   clipped = top;
   if (!document.head) return;
-  let style = document.getElementById("up-thumb");
+  let style = document.getElementById("spaka-thumb");
   if (!style) {
     style = document.createElement("style");
-    style.id = "up-thumb";
+    style.id = "spaka-thumb";
     document.head.append(style);
   }
   style.textContent = `html{overflow:hidden!important;scrollbar-width:none!important${top ? `;translate:0 ${-top}px` : ""}}`;
@@ -239,17 +239,17 @@ function thumbStyle(top: number) {
  * of its own in the head, which the renderings leave alone.
  */
 function hideScrollbar() {
-  if (!document.head || document.getElementById("up-scroll")) return;
+  if (!document.head || document.getElementById("spaka-scroll")) return;
   const style = document.createElement("style");
-  style.id = "up-scroll";
+  style.id = "spaka-scroll";
   style.textContent = "html{scrollbar-width:none!important}";
   document.head.append(style);
 }
 
 function setTheme(css: string, styles?: string) {
-  const style = document.getElementById("up-theme");
+  const style = document.getElementById("spaka-theme");
   if (style && style.textContent !== css) style.textContent = css;
   // Tailwind's browser build watches its style: a change compiles the page again.
-  const own = document.getElementById("up-styles");
+  const own = document.getElementById("spaka-styles");
   if (own && styles !== undefined && own.textContent !== styles) own.textContent = styles;
 }

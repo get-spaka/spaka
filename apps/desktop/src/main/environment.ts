@@ -35,12 +35,12 @@ export type Environment = {
   imagesGenerated: boolean;
   /** Where to record the agent's stream, to play it back in later checks. */
   agentRecord: string | undefined;
-  /** Recorded replies of a model of Upstart's own harness, played back instead of asking it (pi/replay.ts). */
+  /** Recorded replies of a model of Spaka's own harness, played back instead of asking it (pi/replay.ts). */
   piReplay: string | undefined;
   /** Where to record the replies of the harness's models. */
   piRecord: string | undefined;
   /**
-   * Where Upstart's templates are released (Q250): the app then reads their
+   * Where Spaka's templates are released (Q250): the app then reads their
    * catalogue and downloads them, as a packaged app does from the public
    * repository's releases; unset in development, where they are read from the
    * repository's folder.
@@ -63,21 +63,21 @@ export function readEnvironment(
   documents: string = join(homedir(), "Documents"),
 ): Environment {
   return {
-    background: env.UPSTART_BACKGROUND === "1",
-    showInactive: env.UPSTART_SHOW_INACTIVE === "1",
-    dataDir: env.UPSTART_DATA_DIR || undefined,
-    projectsDir: env.UPSTART_PROJECTS_DIR || join(documents, "Upstart"),
-    agentConfigDir: env.UPSTART_AGENT_CONFIG_DIR || undefined,
-    agentReplay: env.UPSTART_AGENT_REPLAY || undefined,
-    agentReplaySpeed: Number(env.UPSTART_AGENT_REPLAY_SPEED) || 4,
-    imagesFixture: env.UPSTART_IMAGES_FIXTURE || undefined,
-    imagesGenerated: env.UPSTART_IMAGES_GENERATED === "1",
-    statsLog: env.UPSTART_STATS_LOG || undefined,
-    agentRecord: env.UPSTART_AGENT_RECORD || undefined,
-    piReplay: env.UPSTART_PI_REPLAY || undefined,
-    piRecord: env.UPSTART_PI_RECORD || undefined,
-    templatesUrl: env.UPSTART_TEMPLATES_URL || undefined,
-    templatesSnapshot: env.UPSTART_TEMPLATES_SNAPSHOT || undefined,
-    nameReply: env.UPSTART_NAME_REPLY || undefined,
+    background: env.SPAKA_BACKGROUND === "1",
+    showInactive: env.SPAKA_SHOW_INACTIVE === "1",
+    dataDir: env.SPAKA_DATA_DIR || undefined,
+    projectsDir: env.SPAKA_PROJECTS_DIR || join(documents, "Spaka"),
+    agentConfigDir: env.SPAKA_AGENT_CONFIG_DIR || undefined,
+    agentReplay: env.SPAKA_AGENT_REPLAY || undefined,
+    agentReplaySpeed: Number(env.SPAKA_AGENT_REPLAY_SPEED) || 4,
+    imagesFixture: env.SPAKA_IMAGES_FIXTURE || undefined,
+    imagesGenerated: env.SPAKA_IMAGES_GENERATED === "1",
+    statsLog: env.SPAKA_STATS_LOG || undefined,
+    agentRecord: env.SPAKA_AGENT_RECORD || undefined,
+    piReplay: env.SPAKA_PI_REPLAY || undefined,
+    piRecord: env.SPAKA_PI_RECORD || undefined,
+    templatesUrl: env.SPAKA_TEMPLATES_URL || undefined,
+    templatesSnapshot: env.SPAKA_TEMPLATES_SNAPSHOT || undefined,
+    nameReply: env.SPAKA_NAME_REPLY || undefined,
   };
 }

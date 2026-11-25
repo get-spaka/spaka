@@ -14,7 +14,7 @@ describe("a project folder in the preview", () => {
   const inPage = (code: string) =>
     launched.app.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      (_electron, code) => (globalThis as any).upstart.preview.view.webContents.executeJavaScript(code),
+      (_electron, code) => (globalThis as any).spaka.preview.view.webContents.executeJavaScript(code),
       code,
     );
   const until = async (code: string, timeout = 5000) => {
@@ -33,7 +33,7 @@ describe("a project folder in the preview", () => {
     await launched.window.getByTestId("message-input").waitFor();
     const project = await launched.window.evaluate(() =>
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      (window as any).upstart.invoke("projects:create", "Chez Margot"),
+      (window as any).spaka.invoke("projects:create", "Chez Margot"),
     );
     folder = project.path;
   });
@@ -43,7 +43,7 @@ describe("a project folder in the preview", () => {
 
   test("a new project opens on an empty page", async () => {
     await expect(launched.window.getByTestId("project-name").textContent()).resolves.toBe("Chez Margot");
-    await until("document.readyState === 'complete' && !!document.getElementById('up-theme')");
+    await until("document.readyState === 'complete' && !!document.getElementById('spaka-theme')");
     await expect(inPage("document.body.children.length")).resolves.toBe(0);
   });
 
@@ -68,7 +68,9 @@ describe("a project folder in the preview", () => {
     );
     await until("document.querySelector('h1')?.textContent === 'Bread since 1952'");
     await expect(inPage("window.__sameDocument")).resolves.toBe(true);
-    await expect(inPage("document.querySelector('h1').dataset.upSrc")).resolves.toMatch(/^pages\/index.liquid:6:\d+$/);
+    await expect(inPage("document.querySelector('h1').dataset.spakaSrc")).resolves.toMatch(
+      /^pages\/index.liquid:6:\d+$/,
+    );
     await expect(inPage("document.title")).resolves.toBe("Chez Margot");
     await until("getComputedStyle(document.querySelector('h1')).color === 'rgb(180, 83, 9)'");
     // Tailwind's browser build styles what the morph added (text-5xl).
@@ -76,7 +78,7 @@ describe("a project folder in the preview", () => {
     mkdirSync(runsDir, { recursive: true });
     const png = await launched.app.evaluate(async () =>
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      ((await (globalThis as any).upstart.preview.capture()) as Buffer).toString("base64"),
+      ((await (globalThis as any).spaka.preview.capture()) as Buffer).toString("base64"),
     );
     writeFileSync(join(runsDir, "preview.png"), Buffer.from(png, "base64"));
     const window = await launched.capture("preview-window");
@@ -108,7 +110,7 @@ describe("a project folder in the preview", () => {
   test("a reload while a page is being opened, as new scripts ask, opens that page rather than the one before", async () => {
     await launched.app.evaluate(async () => {
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      const preview = (globalThis as any).upstart.preview;
+      const preview = (globalThis as any).spaka.preview;
       const going = preview.navigate("/menu", true);
       preview.reload();
       await going;
@@ -123,7 +125,7 @@ describe("a project folder in the preview", () => {
       launched.app.evaluate(
         async (_electron, { route, options }) => {
           // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-          const seen = await (globalThis as any).upstart.preview.look(route, options);
+          const seen = await (globalThis as any).spaka.preview.look(route, options);
           // A PNG's width and height, from its header.
           const size = seen.png && { width: seen.png.readUInt32BE(16), height: seen.png.readUInt32BE(20) };
           return { route: seen.route, screen: seen.screen, size, notes: seen.notes };
@@ -155,7 +157,7 @@ describe("a project folder in the preview", () => {
     // Asked at once, as the agent may: each answered, with its page's picture.
     const all = await launched.app.evaluate(async () => {
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      const preview = (globalThis as any).upstart.preview;
+      const preview = (globalThis as any).spaka.preview;
       const seen = await Promise.all(["/", "/menu", "/"].map((r) => preview.look(r)));
       return seen.map((s: { route: string; png?: Buffer }) => [s.route, !!s.png]);
     });
@@ -169,7 +171,7 @@ describe("a project folder in the preview", () => {
     // The turn over, a look with no address starts again from the page the maker sees.
     await launched.app.evaluate(() =>
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      (globalThis as any).upstart.preview.endTurn(),
+      (globalThis as any).spaka.preview.endTurn(),
     );
     await expect(look()).resolves.toMatchObject({ route: "/", screen: "desktop" });
   });
@@ -215,11 +217,11 @@ describe("a project folder in the preview", () => {
     expect(await w.getByTestId("tip").getAttribute("data-side")).toBe("bottom");
     await expect
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      .poll(() => launched.app.evaluate(() => (globalThis as any).upstart.tips.shown))
+      .poll(() => launched.app.evaluate(() => (globalThis as any).spaka.tips.shown))
       .toContain("Phone");
     const tip = await launched.app.evaluate(async () => {
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      const { view } = (globalThis as any).upstart.tips;
+      const { view } = (globalThis as any).spaka.tips;
       return { bounds: view.getBounds(), png: (await view.webContents.capturePage()).toPNG().toString("base64") };
     });
     writeFileSync(join(runsDir, "tooltip-over-page.png"), Buffer.from(tip.png, "base64"));
@@ -228,11 +230,11 @@ describe("a project folder in the preview", () => {
     await w.getByTestId("mode-edit").hover();
     await expect
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      .poll(() => launched.app.evaluate(() => (globalThis as any).upstart.tips.shown))
+      .poll(() => launched.app.evaluate(() => (globalThis as any).spaka.tips.shown))
       .toContain("Edit the page");
     const long = await launched.app.evaluate(async () => {
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      const { view } = (globalThis as any).upstart.tips;
+      const { view } = (globalThis as any).spaka.tips;
       await new Promise((r) => setTimeout(r, 200));
       const lines = await view.webContents.executeJavaScript(
         "Math.round(document.querySelector('#tip span').getBoundingClientRect().height / parseFloat(getComputedStyle(document.querySelector('#tip')).lineHeight))",
@@ -245,14 +247,14 @@ describe("a project folder in the preview", () => {
     await w.mouse.move(400, 500, { steps: 4 });
     await w.mouse.move(410, 520);
     // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-    await expect.poll(() => launched.app.evaluate(() => (globalThis as any).upstart.tips.shown)).toBeUndefined();
+    await expect.poll(() => launched.app.evaluate(() => (globalThis as any).spaka.tips.shown)).toBeUndefined();
   });
 
   test("a page cannot leave the preview, open windows or reach the app", async () => {
     await inPage("window.open('https://example.com'); location.href = 'https://example.com'; 1");
     await new Promise((r) => setTimeout(r, 500));
     await expect(inPage("location.origin.startsWith('http://127.0.0.1')")).resolves.toBe(true);
-    await expect(inPage("typeof window.upstart + typeof window.require + typeof window.Idiomorph")).resolves.toBe(
+    await expect(inPage("typeof window.spaka + typeof window.require + typeof window.Idiomorph")).resolves.toBe(
       "undefinedundefinedundefined",
     );
   });
@@ -262,13 +264,13 @@ describe("a project folder in the preview", () => {
     const visible = () =>
       launched.app.evaluate(() =>
         // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-        (globalThis as any).upstart.preview.view.getVisible(),
+        (globalThis as any).spaka.preview.view.getVisible(),
       );
     expect(await visible()).toBe(true);
     // Another project, then back to this one from the list.
     await launched.window.evaluate(() =>
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      (window as any).upstart.invoke("projects:create", "Second"),
+      (window as any).spaka.invoke("projects:create", "Second"),
     );
     const listed = () => launched.window.getByTestId("project-item").allTextContents();
     // The new website, changed by nothing yet, is the latest: it comes first (Q393).
@@ -286,7 +288,7 @@ describe("a project folder in the preview", () => {
       await expect
         .poll(() =>
           // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-          launched.window.evaluate(() => (window as any).upstart.invoke("projects:current").then((p: any) => p?.name)),
+          launched.window.evaluate(() => (window as any).spaka.invoke("projects:current").then((p: any) => p?.name)),
         )
         .toBe(name);
       await new Promise((r) => setTimeout(r, 300));
@@ -312,7 +314,7 @@ describe("a project folder in the preview", () => {
     // From the default order, also on a retry.
     await w.evaluate(() =>
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      (window as any).upstart.invoke("settings:set", { projectOrder: "updated" }),
+      (window as any).spaka.invoke("settings:set", { projectOrder: "updated" }),
     );
     await w.getByTestId("project-order").click();
     await expect(w.getByTestId("project-order-choice").allTextContents()).resolves.toEqual([
@@ -336,7 +338,7 @@ describe("a project folder in the preview", () => {
     // Kept with the app's settings.
     await expect(
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      w.evaluate(() => (window as any).upstart.invoke("settings:get").then((s: any) => s.projectOrder)),
+      w.evaluate(() => (window as any).spaka.invoke("settings:get").then((s: any) => s.projectOrder)),
     ).resolves.toBe("created");
     await choose("updated");
     await expect.poll(listed).toEqual(["Chez Margot", "Second"]);
@@ -370,7 +372,7 @@ describe("a project folder in the preview", () => {
     await expect.poll(listed).toEqual(["Boulangerie Margot", "Second"]);
     const current = await w.evaluate(() =>
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      (window as any).upstart.invoke("projects:current"),
+      (window as any).spaka.invoke("projects:current"),
     );
     expect(current.name).toBe("Boulangerie Margot");
     expect(current.path).toBe(folder);
@@ -385,9 +387,9 @@ describe("a project folder in the preview", () => {
   test("a website on a model taken off the list moves to the latest of its family, and says so (Q399)", async () => {
     const w = launched.window;
     // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-    const bridge = (channel: string) => w.evaluate((c) => (window as any).upstart.invoke(c), channel);
+    const bridge = (channel: string) => w.evaluate((c) => (window as any).spaka.invoke(c), channel);
     const second = (await bridge("projects:list")).find((p: { name: string }) => p.name === "Second");
-    const file = join(second.path, ".upstart", "project.json");
+    const file = join(second.path, ".spaka", "project.json");
     writeFileSync(file, JSON.stringify({ ...JSON.parse(readFileSync(file, "utf8")), model: "claude-opus-4-8" }));
     await w.getByTestId("project-item").filter({ hasText: "Second" }).click();
     await expect.poll(async () => (await bridge("projects:current"))?.model).toBe("claude-opus-5-5");

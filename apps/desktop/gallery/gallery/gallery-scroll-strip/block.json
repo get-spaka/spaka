@@ -1,7 +1,7 @@
 {
   "name": "Scrolling strip of pictures",
   "kind": "gallery",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A horizontal strip of tall pictures on a dark band that scrolls and snaps without JavaScript, each with a title and caption below.",
   "tags": ["carousel", "horizontal scroll", "strip", "dark band", "captions"],
   "mood": ["dark", "bold"],

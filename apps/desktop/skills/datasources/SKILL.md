@@ -1,11 +1,11 @@
 ---
 name: datasources
-description: How to write datasources in an Upstart project — a definition and one Markdown file per record under data/, lists in pages with data.<name>, a page per record with pages/<folder>/[<name>].liquid, image fields from the media library, and collected datasources that forms post to (contact, guestbook, reviews, sign-ups) with their test records. Use before writing a site that lists posts, products, team members, events, dishes or anything else made of similar items, before writing any form, and when the maker asks to add, change or reorder such items.
+description: How to write datasources in a Spaka project — a definition and one Markdown file per record under data/, lists in pages with data.<name>, a page per record with pages/<folder>/[<name>].liquid, image fields from the media library, and collected datasources that forms post to (contact, guestbook, reviews, sign-ups) with their test records. Use before writing a site that lists posts, products, team members, events, dishes or anything else made of similar items, before writing any form, and when the maker asks to add, change or reorder such items.
 ---
 
 # Datasources
 
-A datasource holds the items a site lists: blog posts, products, team members, events, dishes. The maker edits them in Upstart's Content tab, as a form per record; you write them as files. Write a datasource whenever a page shows several items of the same shape, rather than writing them out in the page: the maker can then add one without asking you.
+A datasource holds the items a site lists: blog posts, products, team members, events, dishes. The maker edits them in Spaka's Content tab, as a form per record; you write them as files. Write a datasource whenever a page shows several items of the same shape, rather than writing them out in the page: the maker can then add one without asking you.
 
 ## Files
 
@@ -84,7 +84,7 @@ Sourdough loaves, viennoiseries, and coffee from a local roaster.
 
 - The id is the file's name: lowercase words with dashes, made from the title, in the site's language (`opening-day.md` for "Opening day"; on an English site about a Lyon bistro, `pike-quenelle.md` for "Pike quenelle", not `quenelle-de-brochet.md`). It is the record page's address, so keep it short. Write the title first in your head, then name the file after it.
 - Write believable records, three to six unless asked otherwise, each complete: every required field, a real text.
-- A value of the wrong kind shows empty, and a file whose fields do not read as YAML is left out of the site. Upstart says so right after you write it: fix it at once.
+- A value of the wrong kind shows empty, and a file whose fields do not read as YAML is left out of the site. Spaka says so right after you write it: fix it at once.
 - Images: find them with find_images and add them with use_image, then write the address it gives (`/media/…`) in the field. Never an external address. For an images field, give use_image all of a record's images at once (`images: [{id, name, alt}, …]`) and write the addresses it answers, in that order.
 - Several pictures of one record go in one `images` field, never in numbered fields (`photo_1`, `photo_2`…): the maker adds, removes and reorders them in the Content tab and in the page, and the template shows as many as it has. Keep an `image` field for a picture with its own role (a cover, a portrait, a floor plan).
 
@@ -166,7 +166,7 @@ The page for the list is an ordinary page beside it (`pages/blog/index.liquid` f
 
 ## Collected datasources and forms
 
-What visitors send through a form (a contact message, a guestbook entry, a review, a sign-up) goes to a collected datasource. Its records are not files you write: Upstart keeps them where the site is published, and the maker reads, approves and deletes them in the Content tab.
+What visitors send through a form (a contact message, a guestbook entry, a review, a sign-up) goes to a collected datasource. Its records are not files you write: Spaka keeps them where the site is published, and the maker reads, approves and deletes them in the Content tab.
 
 ```yaml
 label: Livre d'or
@@ -195,10 +195,10 @@ fields:
 
 - `collected: true`, and no record file under `data/<name>/`.
 - `review: true` holds each record until the maker approves it: always for what a page shows publicly (a guestbook, reviews), never for a form whose records no page shows (contact).
-- `answer`: the fragment a valid submission is answered with (`fragments/guestbook-thanks.liquid`), the new record in `record`. Without one, Upstart answers with `messages.sent`.
-- `messages`: the sentences of the alert Upstart shows when what was sent is wrong, in the site's language; `{field}` is the field's label. Give every field a `label` in the site's language too.
+- `answer`: the fragment a valid submission is answered with (`fragments/guestbook-thanks.liquid`), the new record in `record`. Without one, Spaka answers with `messages.sent`.
+- `messages`: the sentences of the alert Spaka shows when what was sent is wrong, in the site's language; `{field}` is the field's label. Give every field a `label` in the site's language too.
 - Kinds: text, markdown (a long text, shown as plain paragraphs: what visitors type is never read as HTML or Markdown), number, boolean (a checkbox), date, choice, list (checkboxes with `choices`), link, email, phone. No image or images: visitors cannot send files.
-- Upstart adds the record's `id` and `submitted` (when it was sent, an ISO date and time): never declare them as fields.
+- Spaka adds the record's `id` and `submitted` (when it was sent, an ISO date and time): never declare them as fields.
 
 The form posts to `/_data/<name>`, each input named after a field:
 
@@ -224,7 +224,7 @@ The form posts to `/_data/<name>`, each input named after a field:
 - A valid submission replaces the form with the `answer` fragment (`hx-target="this" hx-swap="outerHTML"`).
 - A wrong one is answered with status 422 and a small alert listing what is wrong; `hx-status:422` puts it in the form's empty element, which needs an id of its own on the page.
 - Give inputs `required`, `type="email"`, `type="tel"`, `type="number"` and `maxlength`, so that the browser catches most mistakes first.
-- Never add a hidden anti-spam field: Upstart adds one to every such form, and limits how often one visitor sends.
+- Never add a hidden anti-spam field: Spaka adds one to every such form, and limits how often one visitor sends.
 
 The fragment it answers with:
 
@@ -236,7 +236,7 @@ Pages show a collected datasource like any other, with `data.<name>`, newest fir
 
 ### Test records
 
-In the preview, a collected datasource holds test records, which are never published. They are files like the records of an authored datasource, in `.upstart/test-records/<name>/<id>.md`, with `submitted` among their fields and the long text below:
+In the preview, a collected datasource holds test records, which are never published. They are files like the records of an authored datasource, in `.spaka/test-records/<name>/<id>.md`, with `submitted` among their fields and the long text below:
 
 ```markdown
 ---

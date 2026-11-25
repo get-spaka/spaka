@@ -1,7 +1,7 @@
 {
   "name": "Certification badges",
   "kind": "logos",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A centered heading and intro over a row of round badges ringed in the primary color, each holding a certification's logo or an award icon, with its name and a caption below.",
   "tags": ["certifications", "badges", "awards", "labels", "centered"],
   "mood": ["professional", "warm"],

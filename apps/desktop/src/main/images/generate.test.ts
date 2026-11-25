@@ -9,7 +9,7 @@ import { generateIntoMedia, readReferences } from "./into-media";
 
 let root: string;
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), "upstart-images-"));
+  root = mkdtempSync(join(tmpdir(), "spaka-images-"));
   mkdirSync(join(root, "media"));
 });
 afterEach(() => rmSync(root, { recursive: true, force: true }));

@@ -1,4 +1,4 @@
-// The agent's tools of Upstart's own, described once for both agent layers
+// The agent's tools of Spaka's own, described once for both agent layers
 // (ADR 0012): a look at a page, to check its work, in a view of its own on the
 // screen it names, after steps done as a visitor would (Q314–Q324), a search
 // in the gallery of blocks and their placing into a page (Q97, Q98,
@@ -16,16 +16,16 @@ import type { GenerateInput } from "../images/into-media";
 import { type LookOptions, lookText, MAX_STEPS, readSteps, type Seen, STEP_ACTIONS } from "../preview/look-steps";
 import { PAGES_DESCRIPTION, PAGES_SHAPE, PAGES_TOOL_NAME } from "../templates/pages-card";
 
-export const UPSTART_SERVER = "upstart";
+export const SPAKA_SERVER = "spaka";
 /** The names the app knows these tools by, whichever agent calls them: the Agent SDK's. */
-export const upstartToolName = (name: string) => `mcp__${UPSTART_SERVER}__${name}`;
-export const LOOK_TOOL = upstartToolName("look_at_preview");
-export const FIND_BLOCKS_TOOL = upstartToolName("find_blocks");
-export const FIND_IMAGES_TOOL = upstartToolName("find_images");
-export const USE_IMAGE_TOOL = upstartToolName("use_image");
-export const USE_BLOCK_TOOL = upstartToolName("use_block");
-export const PAGES_TOOL = upstartToolName(PAGES_TOOL_NAME);
-export const GENERATE_IMAGE_TOOL = upstartToolName("generate_image");
+export const spakaToolName = (name: string) => `mcp__${SPAKA_SERVER}__${name}`;
+export const LOOK_TOOL = spakaToolName("look_at_preview");
+export const FIND_BLOCKS_TOOL = spakaToolName("find_blocks");
+export const FIND_IMAGES_TOOL = spakaToolName("find_images");
+export const USE_IMAGE_TOOL = spakaToolName("use_image");
+export const USE_BLOCK_TOOL = spakaToolName("use_block");
+export const PAGES_TOOL = spakaToolName(PAGES_TOOL_NAME);
+export const GENERATE_IMAGE_TOOL = spakaToolName("generate_image");
 
 export type Look = (route?: string, options?: LookOptions) => Promise<Seen>;
 export type FindBlocks = (query: string, kind: string | undefined, limit: number) => Block[];
@@ -41,7 +41,7 @@ export type UseBlocks = (input: Placing) => string;
 export type ChoosePages = (input: unknown, signal?: AbortSignal) => Promise<string>;
 /** Generates an image with the maker's account and adds it to media/ (Q423); answers with its address or why not. */
 export type GenerateImage = (input: GenerateInput, signal?: AbortSignal) => Promise<string>;
-export type UpstartTools = {
+export type SpakaTools = {
   look: Look;
   findBlocks: FindBlocks;
   findImages: FindImages;
@@ -55,9 +55,9 @@ export type UpstartTools = {
 /** What a tool answers: text, and images the model looks at. */
 export type ToolContent = { type: "text"; text: string } | { type: "image"; data: string; mimeType: string };
 
-/** One of Upstart's tools, as either agent layer declares it. */
-export type UpstartToolDef = {
-  /** Its short name; the Agent SDK prefixes it (upstartToolName). */
+/** One of Spaka's tools, as either agent layer declares it. */
+export type SpakaToolDef = {
+  /** Its short name; the Agent SDK prefixes it (spakaToolName). */
   name: string;
   description: string;
   /** Its input, field by field. */
@@ -109,7 +109,7 @@ No block of the gallery fits: write this section yourself.`;
   });
   const own = found.some(({ blocks }) => blocks.some((b) => b.design));
   return [
-    "Blocks of Upstart's gallery. Choose one per section, then put them into the page with use_block, in reading order: it writes each as a shared part with its datasource and sample records, and the page's {% render %} lines.",
+    "Blocks of Spaka's gallery. Choose one per section, then put them into the page with use_block, in reading order: it writes each as a shared part with its datasource and sample records, and the page's {% render %} lines.",
     ...(own
       ? [
           "Blocks marked \"this site's own design\" come from the template this site started from, in its blocks/ folder: prefer them when they fit, they keep the site's style and effects.",
@@ -122,14 +122,14 @@ No block of the gallery fits: write this section yourself.`;
 const text = (t: string): ToolContent[] => [{ type: "text", text: t }];
 
 /** look_at_preview, as the agent reads it (Q314–Q324); nothing says when to look on a phone (Q319). */
-const LOOK_DESCRIPTION = `Looks at a page of the website as a visitor sees it, in a browser of your own that the maker does not see, and answers with a picture of one screen and, in text: the page, which screen of it this is ("screen 2 of 5") and the files of what is on it; the steps done; the problems Upstart measured on that screen, each with its file and line (the page wider than the screen, text cut off, elements still hidden once the page settled, images that did not load, links to an address no page has); the page's errors, and what Upstart had to repair or skip to render it.
+const LOOK_DESCRIPTION = `Looks at a page of the website as a visitor sees it, in a browser of your own that the maker does not see, and answers with a picture of one screen and, in text: the page, which screen of it this is ("screen 2 of 5") and the files of what is on it; the steps done; the problems Spaka measured on that screen, each with its file and line (the page wider than the screen, text cut off, elements still hidden once the page settled, images that did not load, links to an address no page has); the page's errors, and what Spaka had to repair or skip to render it.
 
 Name the screen: desktop, tablet or phone. Before the picture, \`steps\` are done in order, as a visitor would: hover, click, scroll, press a key, type into a field. A link within the website is followed; a form is never sent. One look shows one screen: \`at\` ends it on a part further down, so a long page is seen part by part, down to its footer. What the steps changed (a menu opened, a field filled) stays from one look to the next until the end of your turn, through the files you write; \`fresh\` starts again from the page as it loads.
 
 Use it to check your work when something may be wrong, and on each page after rewriting a website's texts; it is not needed after every change.`;
 
-/** Upstart's tools for one project's agent. */
-export function upstartTools({
+/** Spaka's tools for one project's agent. */
+export function spakaTools({
   look,
   findBlocks,
   findImages,
@@ -137,12 +137,12 @@ export function upstartTools({
   useBlocks,
   choosePages,
   generateImage,
-}: UpstartTools): UpstartToolDef[] {
+}: SpakaTools): SpakaToolDef[] {
   return [
     {
       name: "find_blocks",
       description:
-        "Searches Upstart's gallery of ready-made sections (banners, headers, heroes, about, features, services, key figures, steps, logos, team, testimonials, pictures, blog, events, menus, products, pricing, comparisons, questions, contact and hours, forms, newsletters, calls to action, footers), styled with daisyUI and the theme. Ask for every section of a page in one call: for each, a few words in any language on what it holds and how it looks. Answers with the best blocks for each, described: their id, what they hold, their mood, and what a block that lists things lists. Then put the chosen ones in with use_block.",
+        "Searches Spaka's gallery of ready-made sections (banners, headers, heroes, about, features, services, key figures, steps, logos, team, testimonials, pictures, blog, events, menus, products, pricing, comparisons, questions, contact and hours, forms, newsletters, calls to action, footers), styled with daisyUI and the theme. Ask for every section of a page in one call: for each, a few words in any language on what it holds and how it looks. Answers with the best blocks for each, described: their id, what they hold, their mood, and what a block that lists things lists. Then put the chosen ones in with use_block.",
       shape: {
         sections: z
           .array(
@@ -162,7 +162,7 @@ export function upstartTools({
     {
       name: "use_block",
       description:
-        "Puts blocks of Upstart's gallery, chosen with find_blocks, into one page, as the maker's drag does: each becomes a shared part, parts/<name>.liquid, named after its role; a block that lists things brings its datasource (a collection the site has already is reused), its sample records, and its page per record; a header or footer reads the site's navigation. The page gets the {% render %} lines in the order given, a banner and header at its top and a footer at its end. A page that does not exist yet is created with the site's head, header and footer. Answers with what was written; then read each part and write this site's texts and records in place of the gallery's.",
+        "Puts blocks of Spaka's gallery, chosen with find_blocks, into one page, as the maker's drag does: each becomes a shared part, parts/<name>.liquid, named after its role; a block that lists things brings its datasource (a collection the site has already is reused), its sample records, and its page per record; a header or footer reads the site's navigation. The page gets the {% render %} lines in the order given, a banner and header at its top and a footer at its end. A page that does not exist yet is created with the site's head, header and footer. Answers with what was written; then read each part and write this site's texts and records in place of the gallery's.",
       shape: {
         page: z.string().describe('The page\'s file, e.g. "pages/index.liquid" for the home page, "pages/menu.liquid"'),
         title: z.string().optional().describe("For a page that does not exist yet: its title, in the site's language"),
@@ -252,7 +252,7 @@ export function upstartTools({
             },
             openWorld: true,
             run: async (input: GenerateInput, signal?: AbortSignal) => text(await generateImage(input, signal)),
-          } satisfies UpstartToolDef,
+          } satisfies SpakaToolDef,
         ]
       : []),
     {

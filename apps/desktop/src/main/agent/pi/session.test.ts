@@ -13,9 +13,9 @@ import { afterEach, beforeEach, expect, test } from "vitest";
 import { applyEvent, type ConversationEvent, type ConversationItem } from "../../../shared/conversation";
 import type { ProjectInfo } from "../../../shared/ipc";
 import { FileTap } from "../../live/tap";
+import type { SpakaTools } from "../spaka-tools";
 import type { AgentEvent } from "../stream";
 import type { TurnChecks } from "../turn-checks";
-import type { UpstartTools } from "../upstart-tools";
 import { VaultSignIns } from "./connectors";
 import { STDIO_SERVER } from "./mcp-test-server";
 import { PiRecorder, piReplay, piReplayed } from "./replay";
@@ -26,7 +26,7 @@ let project: ProjectInfo;
 let dataDir: string;
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), "upstart-pi-"));
+  dir = mkdtempSync(join(tmpdir(), "spaka-pi-"));
   project = { id: "p1", name: "Fleur", path: join(dir, "site"), model: "openai/gpt-6.1-terra", effort: "medium" };
   dataDir = join(dir, "data");
   for (const d of [project.path, dataDir]) mkdirSync(d, { recursive: true });
@@ -52,7 +52,7 @@ function faux(provider = "openai", models = [{ id: "gpt-6.1-terra", reasoning: t
   return { f, models: collection };
 }
 
-const noTools: UpstartTools = {
+const noTools: SpakaTools = {
   look: async () => ({ route: "/", errors: [], notes: [] }),
   findBlocks: () => [],
   findImages: async () => "",
@@ -85,7 +85,7 @@ function session(
       models,
       apiKey: () => "test-key",
       kit: () => ({ tools: noTools, checks: checks() }),
-      instructions: (family) => `Upstart's instructions for ${family}.`,
+      instructions: (family) => `Spaka's instructions for ${family}.`,
       env: () => ({}),
       readable: [],
       shell: false,
@@ -162,7 +162,7 @@ test("its memory is kept between launches, without the instructions; starting ov
   const second = session(models);
   await second.turn("Encore moi");
   expect(JSON.stringify(seen)).toContain("Bonjour.");
-  expect(JSON.stringify(seen)).toContain("Upstart's instructions for openai.");
+  expect(JSON.stringify(seen)).toContain("Spaka's instructions for openai.");
   second.s.startOver();
   expect(existsSync(join(dataDir, "pi-session.json"))).toBe(false);
 });
@@ -188,7 +188,7 @@ test("the checks: a note after a tool joins its answer; what it left behind send
     kit: () => ({
       tools: noTools,
       checks: checks({
-        afterTool: (tool) => (tool === "Write" ? "Upstart could not use what you just wrote." : undefined),
+        afterTool: (tool) => (tool === "Write" ? "Spaka could not use what you just wrote." : undefined),
         beforeStop: (again) => {
           stops.push(again);
           return again ? undefined : "You left sample records.";
@@ -197,7 +197,7 @@ test("the checks: a note after a tool joins its answer; what it left behind send
     }),
   });
   await turn("Ajoute un évènement");
-  expect(requests[1]).toContain("Upstart could not use what you just wrote.");
+  expect(requests[1]).toContain("Spaka could not use what you just wrote.");
   expect(requests[2]).toContain("You left sample records.");
   expect(stops).toEqual([false, true]);
   expect(events.at(-1)).toEqual({ type: "turn-end", status: "done" });
@@ -327,7 +327,7 @@ test("a switch between Claude and the harness: what was said so far, for the new
   expect(note).toContain("The maker: Ajoute une page menu\n(That turn stopped.)");
 });
 
-test("the maker's connectors: Upstart connects them, the agent calls their tools, the interface sees their state", async () => {
+test("the maker's connectors: Spaka connects them, the agent calls their tools, the interface sees their state", async () => {
   const { f, models } = faux();
   writeFileSync(join(dir, "notes.mjs"), STDIO_SERVER);
   const servers = { notes: { type: "stdio" as const, command: process.execPath, args: [join(dir, "notes.mjs")] } };
@@ -489,7 +489,7 @@ test("stopping while a question waits leaves it unanswered, and the agent is tol
   );
 });
 
-test("a question left when Upstart closes is read, at the next launch, as not answered", async () => {
+test("a question left when Spaka closes is read, at the next launch, as not answered", async () => {
   seen.length = 0;
   const { f, models } = faux();
   f.setResponses([askReply()]);
@@ -504,7 +504,7 @@ test("a question left when Upstart closes is read, at the next launch, as not an
   await second.turn("Bonjour");
   const results = seen[0]!.messages.filter((m) => m.role === "toolResult");
   expect(results).toHaveLength(1);
-  expect(JSON.stringify(results[0]!.content)).toContain("Upstart was closed while it waited");
+  expect(JSON.stringify(results[0]!.content)).toContain("Spaka was closed while it waited");
 });
 
 test("questions without the tool's form are refused by the tool's schema, and no card shows", async () => {
@@ -558,7 +558,7 @@ test("plan mode: what writes is refused, the plan waits; changes, then Build, an
   expect(readFileSync(join(project.path, "pages/index.liquid"), "utf8")).toBe("<h1>Fleur</h1>");
   const said = seen[0]!.messages;
   // The plan-mode instructions came with the maker's message.
-  expect(JSON.stringify(said.find((m) => m.role === "user")?.content)).toContain("[Upstart: plan mode.");
+  expect(JSON.stringify(said.find((m) => m.role === "user")?.content)).toContain("[Spaka: plan mode.");
   const results = said.filter((m) => m.role === "toolResult").map((m) => JSON.stringify(m.content));
   expect(results[0]).toContain("Plan mode: nothing is written");
   expect(results[1]).toContain("The maker wants changes to the plan: Une page pour les mariages");
@@ -652,7 +652,7 @@ test("near the model's window, the earlier turns are summarized by the model; th
   expect(sent[2]?.[1]).toMatch(/You summarize the earlier part of your own work/);
   const third = sent[3]!;
   // The instructions first still, then the summary before the latest turn.
-  expect(third[0]).toBe("Upstart's instructions for openai.");
+  expect(third[0]).toBe("Spaka's instructions for openai.");
   expect(third[1]).toMatch(
     /\[What happened earlier in this conversation, summarized:\]\\nThe maker wants a florist's site/,
   );
@@ -718,5 +718,5 @@ test("a mode chosen while the agent works takes effect when its turn ends, under
   expect(readFileSync(join(project.path, "pages/index.liquid"), "utf8")).toBe("<h1>Fleur</h1>");
   // The next message is in plan mode.
   await turn("Et une page mariages ?");
-  expect(said[0]).toContain("[Upstart: plan mode.");
+  expect(said[0]).toContain("[Spaka: plan mode.");
 });

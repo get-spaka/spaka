@@ -15,7 +15,7 @@ const vault = {
 let dir: string;
 let servers: Server[] = [];
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), "upstart-connectors-"));
+  dir = mkdtempSync(join(tmpdir(), "spaka-connectors-"));
 });
 afterEach(async () => {
   for (const s of servers) s.close();
@@ -112,7 +112,7 @@ async function oauthServer() {
         code_challenge_methods_supported: ["S256"],
         token_endpoint_auth_methods_supported: ["none"],
       });
-    if (url.pathname === "/register") return json(201, { ...JSON.parse(body), client_id: "upstart-client" });
+    if (url.pathname === "/register") return json(201, { ...JSON.parse(body), client_id: "spaka-client" });
     if (url.pathname === "/authorize") {
       const back = new URL(url.searchParams.get("redirect_uri")!);
       back.searchParams.set("code", "code-e2e");
@@ -156,7 +156,7 @@ test("a remote connector asks for a sign-in; the browser's return connects it, t
   expect(set.status()).toEqual([{ name: "crm", status: "needs-auth" }]);
   const page = await set.signIn("crm");
   expect(page).toMatch(/\/authorize\?/);
-  // The maker's browser: the authorization page sends it back to Upstart on this computer.
+  // The maker's browser: the authorization page sends it back to Spaka on this computer.
   await fetch(page!);
   for (let i = 0; i < 100 && set.status()[0]?.status !== "connected"; i++) await new Promise((r) => setTimeout(r, 20));
   expect(set.status()).toEqual([{ name: "crm", status: "connected" }]);

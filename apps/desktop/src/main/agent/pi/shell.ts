@@ -1,7 +1,7 @@
-// The shell of Upstart's own harness (Q278): each command runs under a
-// sandbox-exec profile of Upstart's own, which lets it write in the project
+// The shell of Spaka's own harness (Q278): each command runs under a
+// sandbox-exec profile of Spaka's own, which lets it write in the project
 // and the temporary folders only, and read the project, the system and
-// Upstart's own Node, not the maker's other files: the same confinement as
+// Spaka's own Node, not the maker's other files: the same confinement as
 // the official binary's sandbox gives Claude (confinement.ts). On macOS only:
 // on Windows the shell is Git Bash with no sandbox (Q381), behind the gate of
 // bash-gate.ts (Q382).

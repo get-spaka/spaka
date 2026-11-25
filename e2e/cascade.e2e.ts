@@ -15,11 +15,11 @@ describe("a site's own button styles", () => {
   let siteOrigin = "";
   const out = join(runsDir, "cascade");
   // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-  const main = <T>(fn: (upstart: any, arg: any, electron: any) => T, arg?: unknown) =>
+  const main = <T>(fn: (spaka: any, arg: any, electron: any) => T, arg?: unknown) =>
     launched.app.evaluate(
       (electron, [source, arg]) =>
         new Function("u", "a", "e", `return (${source})(u, a, e)`)(
-          (globalThis as { upstart?: unknown }).upstart,
+          (globalThis as { spaka?: unknown }).spaka,
           arg,
           electron,
         ),
@@ -28,7 +28,7 @@ describe("a site's own button styles", () => {
   const invoke = (channel: string, ...args: unknown[]) =>
     launched.window.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      ([channel, args]) => (window as any).upstart.invoke(channel, ...args),
+      ([channel, args]) => (window as any).spaka.invoke(channel, ...args),
       [channel, args] as const,
     );
   const until = async (read: () => Promise<unknown>, timeout = 15_000) => {

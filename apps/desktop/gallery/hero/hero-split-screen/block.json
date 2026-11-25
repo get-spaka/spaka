@@ -1,7 +1,7 @@
 {
   "name": "Split-screen hero",
   "kind": "hero",
-  "source": "upstart",
+  "source": "spaka",
   "description": "Half and half, edge to edge, the full height of the screen: a picture bleeding to the window's right edge and, on the left, a panel in the primary color with the headline, a line and two actions. The picture comes first on a phone.",
   "tags": ["split screen", "half and half", "edge to edge", "color panel", "saturated color", "full height"],
   "mood": ["bold", "colorful"],

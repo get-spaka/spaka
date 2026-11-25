@@ -1,5 +1,5 @@
 // "Gallery v2" with the real agent, in the packaged app (the enlarged
-// gallery, step 13). Opt-in like agent.e2e.ts: UPSTART_REAL_AGENT=1, with
+// gallery, step 13). Opt-in like agent.e2e.ts: SPAKA_REAL_AGENT=1, with
 // .cache/agent-config signed in, and the app packaged first.
 // One message asks for a restaurant: a menu, the team, events and a booking
 // form. The agent should take each from the gallery with use_block, write the
@@ -11,7 +11,7 @@ import { join, relative } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { agentConfigDir, type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 
-const real = process.env.UPSTART_REAL_AGENT === "1";
+const real = process.env.SPAKA_REAL_AGENT === "1";
 const configDir = agentConfigDir();
 const dataDir = join(import.meta.dirname, "../.cache/gallery-v2-data");
 const shots = join(runsDir, "gallery-v2");
@@ -30,19 +30,19 @@ describe.skipIf(!real)("Gallery v2 with the real agent, packaged", () => {
   const invoke = (channel: string, ...args: unknown[]) =>
     launched.window.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      ([channel, args]) => (window as any).upstart.invoke(channel, ...args),
+      ([channel, args]) => (window as any).spaka.invoke(channel, ...args),
       [channel, args] as const,
     );
   const preview = <T>(code: string): Promise<T> =>
     launched.app.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      (_electron, code) => (globalThis as any).upstart.preview.view.webContents.executeJavaScript(code),
+      (_electron, code) => (globalThis as any).spaka.preview.view.webContents.executeJavaScript(code),
       code,
     );
   const capture = (): Promise<string> =>
     launched.app.evaluate(async () =>
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      ((await (globalThis as any).upstart.preview.view.webContents.capturePage()) as Electron.NativeImage)
+      ((await (globalThis as any).spaka.preview.view.webContents.capturePage()) as Electron.NativeImage)
         .toPNG()
         .toString("base64"),
     );
@@ -67,10 +67,10 @@ describe.skipIf(!real)("Gallery v2 with the real agent, packaged", () => {
     launched = await launchApp({
       packaged: true,
       env: {
-        UPSTART_AGENT_REPLAY: "",
-        UPSTART_AGENT_CONFIG_DIR: configDir,
-        UPSTART_AGENT_RECORD: record,
-        UPSTART_DATA_DIR: dataDir,
+        SPAKA_AGENT_REPLAY: "",
+        SPAKA_AGENT_CONFIG_DIR: configDir,
+        SPAKA_AGENT_RECORD: record,
+        SPAKA_DATA_DIR: dataDir,
       },
     });
     await launched.window.getByTestId("message-input").waitFor();
@@ -102,7 +102,7 @@ describe.skipIf(!real)("Gallery v2 with the real agent, packaged", () => {
       const checks: Record<string, boolean> = {};
 
       // The gallery searched, and its blocks put in with use_block.
-      report.searches = calls("mcp__upstart__find_blocks");
+      report.searches = calls("mcp__spaka__find_blocks");
       // Shell commands refused, and those joining a cd to a command (Q220).
       const uses = new Map<string, unknown>();
       for (const m of messages())
@@ -114,7 +114,7 @@ describe.skipIf(!real)("Gallery v2 with the real agent, packaged", () => {
       report.cdCommands = (calls("Bash") as { command: string }[])
         .map((c) => c.command)
         .filter((c) => /^\s*cd\s/.test(c));
-      const placed = calls("mcp__upstart__use_block") as { page: string; blocks: { block: string; name: string }[] }[];
+      const placed = calls("mcp__spaka__use_block") as { page: string; blocks: { block: string; name: string }[] }[];
       report.placed = placed.map((p) => ({ page: p.page, blocks: p.blocks.map((b) => b.block) }));
       const ids = placed.flatMap((p) => p.blocks.map((b) => b.block));
       checks.searched = (report.searches as unknown[]).length >= 1;
@@ -124,14 +124,14 @@ describe.skipIf(!real)("Gallery v2 with the real agent, packaged", () => {
       // The restaurant's own records, not the gallery's samples.
       let samples: Record<string, string> = {};
       try {
-        samples = JSON.parse(read(".upstart/gallery-samples.json"));
+        samples = JSON.parse(read(".spaka/gallery-samples.json"));
       } catch {}
       report.samplesLeft = Object.entries(samples)
         .filter(([file, sum]) => createHash("sha256").update(read(file)).digest("hex") === sum && read(file) !== "")
         .map(([file]) => file);
       checks["no samples left"] = (report.samplesLeft as string[]).length === 0;
       // Each record is named after its title (Q218, Q219): a sample the agent rewrote is renamed
-      // by Upstart; a record it wrote itself it names after its title, in the site's language.
+      // by Spaka; a record it wrote itself it names after its title, in the site's language.
       const idOf = (title: string) =>
         title
           .normalize("NFKD")

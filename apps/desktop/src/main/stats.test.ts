@@ -1,7 +1,7 @@
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { BUILDERS } from "@upstart/builder";
+import { BUILDERS } from "@spaka/builder";
 import { describe, expect, test } from "vitest";
 import { en } from "../shared/strings/en";
 import { checked, errorType, PUBLISH_WAYS, Stats, type StatsDeps } from "./stats";
@@ -37,12 +37,12 @@ describe("anonymous statistics (Q331, Q334)", () => {
       osName: "macOS",
       osVersion: "26.1",
       appVersion: "2.0.0",
-      sdkVersion: "upstart@2.0.0",
+      sdkVersion: "spaka@2.0.0",
     });
     expect(body.sessionId).toMatch(/^\d{18}$/);
   });
 
-  test("a value outside its set is dropped; a template not Upstart's is only 'imported'", () => {
+  test("a value outside its set is dropped; a template not Spaka's is only 'imported'", () => {
     const templates = () => ["ember"];
     // biome-ignore lint/suspicious/noExplicitAny: a value no caller can type, as a page could send
     expect(checked("message_sent", { provider: "My secret prompt" } as any, templates)).toEqual({});

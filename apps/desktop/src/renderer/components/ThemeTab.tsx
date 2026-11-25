@@ -6,7 +6,7 @@ import { AlertTriangle, Moon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { FontChoice, ThemeValues } from "../../shared/ipc";
 import { contrast, PALETTES, type PaletteColors, parseColor, READ_TOGETHER } from "../../shared/palettes";
-import { upstart } from "../lib/bridge";
+import { spaka } from "../lib/bridge";
 import { messageOf } from "../lib/errors";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
@@ -26,7 +26,7 @@ export function ThemeTab({ theme, working, onAskDark }: { theme: string; working
   const gesture = useRef(false);
   useEffect(() => {
     if (gesture.current || !theme) return;
-    void upstart.invoke("theme:get").then((got) => {
+    void spaka.invoke("theme:get").then((got) => {
       if (gesture.current) return;
       setValues(got.values);
       setFonts(got.fonts);
@@ -42,14 +42,14 @@ export function ThemeTab({ theme, working, onAskDark }: { theme: string; working
     gesture.current = true;
     setValues((v) => ({ ...v, ...next }));
     if (editingOwn.current) setOwn((o) => ({ ...o, ...next }));
-    void upstart.invoke("theme:show", next);
+    void spaka.invoke("theme:show", next);
   };
   const apply = (next: ThemeValues, ownToo = false) => {
     gesture.current = false;
     setError(undefined);
     setValues((v) => ({ ...v, ...next }));
     if (ownToo) setOwn((o) => ({ ...o, ...next }));
-    void upstart.invoke("theme:apply", next, ownToo).catch((e) => setError(messageOf(e)));
+    void spaka.invoke("theme:apply", next, ownToo).catch((e) => setError(messageOf(e)));
   };
   const applyColor = (next: ThemeValues) => apply(next, gesture.current ? editingOwn.current : isOwn(values));
 

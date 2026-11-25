@@ -30,7 +30,7 @@ export async function fetchPage(
   if (cached && Date.now() - cached.at < CACHE_MS) return cached.page;
   let at = url;
   for (let hops = 0; ; hops++) {
-    const response = await get(at.href, { signal, redirect: "manual", headers: { "user-agent": "Upstart" } });
+    const response = await get(at.href, { signal, redirect: "manual", headers: { "user-agent": "Spaka" } });
     if (response.status >= 300 && response.status < 400 && response.headers.get("location")) {
       const next = new URL(response.headers.get("location")!, at);
       if (next.host !== at.host) return { redirect: next.href };

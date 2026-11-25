@@ -2,15 +2,15 @@
 // builders (Q181, Q186): the app knows only their common interface.
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { basename, join, relative } from "node:path";
-import { BUILDERS, type BuildProject, builderById, collectedUse } from "@upstart/builder";
-import { diskSource } from "@upstart/runtime/node";
+import { BUILDERS, type BuildProject, builderById, collectedUse } from "@spaka/builder";
+import { diskSource } from "@spaka/runtime/node";
 import type { ExportResult, PublishInfo } from "../shared/ipc";
 import { published } from "./history/history";
 import { webpCopies } from "./media/library";
 import { slug } from "./projects";
 
-/** Marks a folder as an export of Upstart's, which a new export may replace. */
-const MARKER = ".upstart-export";
+/** Marks a folder as an export of Spaka's, which a new export may replace. */
+const MARKER = ".spaka-export";
 
 /**
  * The folder the export goes into: the chosen one when it is empty or holds a
@@ -90,7 +90,7 @@ export async function exportProject(projectDir: string, chosen: string, options:
     ...(options.formServices ? { formServices: options.formServices } : {}),
     ...(builder.needs.managementToken ? { managementToken: options.managementToken() } : {}),
   });
-  writeFileSync(join(folder, MARKER), "This folder was exported by Upstart. A new export replaces what it holds.\n");
+  writeFileSync(join(folder, MARKER), "This folder was exported by Spaka. A new export replaces what it holds.\n");
   return {
     folder,
     builder: builder.id,

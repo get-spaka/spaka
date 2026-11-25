@@ -1,7 +1,7 @@
 {
   "name": "Row of figures with dividers",
   "kind": "stats",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A left-aligned heading and intro over a full-width row of key figures split by thin dividers, each a small label, a large number and an optional note.",
   "tags": ["numbers", "row", "dividers", "left aligned", "stats"],
   "mood": ["professional", "minimal"],

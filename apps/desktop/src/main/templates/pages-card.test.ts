@@ -1,4 +1,4 @@
-// The card of pages (Q302, Q310): what the agent may show, what Upstart
+// The card of pages (Q302, Q310): what the agent may show, what Spaka
 // refuses, and what the maker's answer does to the adaptation.
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -11,7 +11,7 @@ import { pagesAnswered, readPagesCard } from "./pages-card";
 const EMBER = join(import.meta.dirname, "../../../templates/ember");
 
 function ember() {
-  const root = mkdtempSync(join(tmpdir(), "upstart-pages-card-"));
+  const root = mkdtempSync(join(tmpdir(), "spaka-pages-card-"));
   copyTemplate(EMBER, root);
   return root;
 }
@@ -70,7 +70,7 @@ describe("the card of pages", () => {
     expect(read.pages.find((p) => p.route === "/story")).toMatchObject({ name: "Story", checked: true });
   });
 
-  test("Upstart refuses a card it cannot show, saying why", () => {
+  test("Spaka refuses a card it cannot show, saying why", () => {
     const root = ember();
     const problem = (input: unknown) => {
       const read = readPagesCard(root, input);
@@ -85,7 +85,7 @@ describe("the card of pages", () => {
     expect(problem({ ...CARD, new: [{ route: "/menu", name: "Menu", line: "" }] })).toMatch(/put it in `pages`/);
     expect(problem(CARD)).toBe("");
     // Outside an adaptation, and once the maker chose.
-    expect("problem" in readPagesCard(mkdtempSync(join(tmpdir(), "upstart-no-adaptation-")), CARD)).toBe(true);
+    expect("problem" in readPagesCard(mkdtempSync(join(tmpdir(), "spaka-no-adaptation-")), CARD)).toBe(true);
     const read = readPagesCard(root, CARD);
     if (!("pages" in read)) throw new Error(read.problem);
     pagesAnswered(root, read.pages, { kind: "skipped" });

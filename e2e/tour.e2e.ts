@@ -12,7 +12,7 @@ describe("the tour", () => {
   let launched: LaunchedApp;
   const { invoke, until, page } = previewDriver(() => launched);
   const w = () => launched.window;
-  const shadow = "document.querySelector('upstart-editor').shadowRoot";
+  const shadow = "document.querySelector('spaka-editor').shadowRoot";
   const inPage = (testid: string) => `${shadow}.querySelector('[data-testid="${testid}"]')`;
   const shownInPage = (testid: string) =>
     page(`(() => { const el = ${inPage(testid)}; return !!el && getComputedStyle(el).display !== "none"; })()`);
@@ -21,14 +21,14 @@ describe("the tour", () => {
   const helpTour = () =>
     launched.app.evaluate(({ Menu }) => {
       const help = Menu.getApplicationMenu()?.items.find((m) => m.role === "help");
-      help?.submenu?.items.find((i) => i.label === "Tour of Upstart")?.click();
+      help?.submenu?.items.find((i) => i.label === "Tour of Spaka")?.click();
     });
 
   /** The page alone, which the interface's capture does not hold (a native view over it). */
   const capturePage = async (name: string) => {
     const png = await launched.app.evaluate(async () => {
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      const image = await (globalThis as any).upstart.preview.view.webContents.capturePage();
+      const image = await (globalThis as any).spaka.preview.view.webContents.capturePage();
       return image.toPNG().toString("base64") as string;
     });
     writeFileSync(join(runsDir, `${name}.png`), Buffer.from(png, "base64"));

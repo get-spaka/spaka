@@ -1,7 +1,7 @@
 {
   "name": "Split header with centred logo",
   "kind": "header",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A one-row header with the links on the left, the logo and business name centred in the middle in spaced capitals, and an outlined booking button on the right; links fold into a dropdown menu on mobile.",
   "tags": ["centered logo", "split", "links", "button", "mobile menu"],
   "mood": ["elegant", "editorial"],

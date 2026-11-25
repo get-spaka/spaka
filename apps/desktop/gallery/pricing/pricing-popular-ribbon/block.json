@@ -1,7 +1,7 @@
 {
   "name": "Four plans with a Most popular ribbon",
   "kind": "pricing",
-  "source": "upstart",
+  "source": "spaka",
   "description": "Four plan cards on a soft colored gradient, two then four in a row, each with its name, short description, price, checklist and button; the highlighted plan opens with a full-width “Most popular” ribbon across the top of its card and a primary border.",
   "tags": ["four plans", "ribbon", "most popular", "memberships", "cards", "classes"],
   "mood": ["friendly", "colorful"],

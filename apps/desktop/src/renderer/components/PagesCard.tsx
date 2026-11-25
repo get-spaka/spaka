@@ -6,7 +6,7 @@
 import { Check, Lock, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { PagesCard as Card, PageChoice, QuestionAnswer } from "../../shared/conversation";
-import { upstart } from "../lib/bridge";
+import { spaka } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { Button } from "./ui/button";
@@ -22,7 +22,7 @@ function WaitingCard({ card }: { card: Card }) {
   const [sent, setSent] = useState(false);
   const send = (answer: QuestionAnswer) => {
     setSent(true);
-    void upstart.invoke("conversation:answer", card.id, answer).catch(() => setSent(false));
+    void spaka.invoke("conversation:answer", card.id, answer).catch(() => setSent(false));
   };
   const toggle = (page: PageChoice) => {
     if (page.route === "/") return;
@@ -124,7 +124,7 @@ function PagePicture({ route, isNew }: { route: string; isNew: boolean }) {
   useEffect(() => {
     if (isNew) return;
     let live = true;
-    void upstart
+    void spaka
       .invoke("adaptation:picture", route)
       .then((u) => live && setUrl(u))
       .catch(() => live && setUrl(null));

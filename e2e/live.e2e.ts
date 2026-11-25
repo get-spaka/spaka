@@ -8,7 +8,7 @@ describe("the preview follows what the agent writes", () => {
   let launched: LaunchedApp;
 
   beforeAll(async () => {
-    launched = await launchApp({ env: { UPSTART_AGENT_REPLAY_SPEED: "0.5" } });
+    launched = await launchApp({ env: { SPAKA_AGENT_REPLAY_SPEED: "0.5" } });
     await launched.window.getByTestId("message-input").waitFor();
   });
   afterAll(async () => {
@@ -20,7 +20,7 @@ describe("the preview follows what the agent writes", () => {
     await launched.app.evaluate(() => {
       const { existsSync } = process.getBuiltinModule("node:fs");
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      const u = (globalThis as any).upstart;
+      const u = (globalThis as any).spaka;
       const samples: { t: number; onDisk: boolean; visible: boolean; heading: string | null; sections: number }[] = [];
       const started = Date.now();
       u.samples = samples;
@@ -48,7 +48,7 @@ describe("the preview follows what the agent writes", () => {
     await new Promise((r) => setTimeout(r, 300));
     const samples = await launched.app.evaluate(() => {
       // biome-ignore lint/suspicious/noExplicitAny: idem
-      const u = (globalThis as any).upstart;
+      const u = (globalThis as any).spaka;
       clearInterval(u.sampler);
       return u.samples as { t: number; onDisk: boolean; visible: boolean; heading: string | null; sections: number }[];
     });
@@ -66,7 +66,7 @@ describe("the preview follows what the agent writes", () => {
     await expect(
       launched.app.evaluate(() =>
         // biome-ignore lint/suspicious/noExplicitAny: idem
-        (globalThis as any).upstart.preview.view.webContents.executeJavaScript(
+        (globalThis as any).spaka.preview.view.webContents.executeJavaScript(
           "performance.getEntriesByType('navigation').length",
         ),
       ),

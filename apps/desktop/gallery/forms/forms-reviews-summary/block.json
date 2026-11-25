@@ -1,7 +1,7 @@
 {
   "name": "Rating summary with the latest reviews",
   "kind": "forms",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A compact reviews block: the average rating in large type with its stars, the number of reviews and a bar for each star count on the left, the last three reviews in a divided list on the right, and a Write a review form that opens from a fold below.",
   "tags": ["reviews", "rating summary", "average", "stars", "compact"],
   "mood": ["minimal", "professional"],

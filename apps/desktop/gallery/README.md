@@ -17,11 +17,11 @@ Ready-made page sections the maker drags into a page and the agent finds with `f
 - No script, no style, no remote address. Interactive parts work without JavaScript (`<details>`, daisyUI's collapse and dropdown); mobile first.
 - A block that lists things is a data block (Q197): `"data": { "name": "faq", "family": "section" }`. Its template loops over `data.<name>` and reads no other datasource; every other block holds literal texts only, with no Liquid.
   - A **collection** (team, services, blog, events, menu, products, gallery, testimonials, hours, navigation, and the forms' contact, bookings, guestbook, reviews and newsletter) keeps its name for the whole site: dropping a second block reuses it.
-  - A **section list** (questions, features, plans, figures, logos, steps, values, milestones, a tasting menu) is renamed after the page it is dropped on (`home-faq`): write `data.faq`, Upstart rewrites it.
+  - A **section list** (questions, features, plans, figures, logos, steps, values, milestones, a tasting menu) is renamed after the page it is dropped on (`home-faq`): write `data.faq`, Spaka rewrites it.
 - A **form** (contact, booking, guestbook, reviews, newsletter) is a data block over a collected collection (`collected: true` in its definition), as at step 4 (Q194):
   - its `<form>` posts to its own datasource, `hx-post="/_data/<name>" hx-target="this" hx-swap="outerHTML"`, and puts the alert of a wrong submission in an element of the block named after it, `hx-status:422="target:#<id>-problems swap:innerHTML"` with `<div id="<id>-problems"></div>`;
-  - every field has a `label`, each input is named after a field, and each required field has its input, with `required`, `type` and `maxlength` so that the browser catches most mistakes first; no hidden anti-spam field, which Upstart adds;
-  - `review: true` when a page shows what visitors send (a guestbook, reviews), and then three to six test records in `data/` with `submitted` among their fields, which Upstart writes into the preview's `.upstart/test-records/`; none for a form no page shows (contact, booking, newsletter);
+  - every field has a `label`, each input is named after a field, and each required field has its input, with `required`, `type` and `maxlength` so that the browser catches most mistakes first; no hidden anti-spam field, which Spaka adds;
+  - `review: true` when a page shows what visitors send (a guestbook, reviews), and then three to six test records in `data/` with `submitted` among their fields, which Spaka writes into the preview's `.spaka/test-records/`; none for a form no page shows (contact, booking, newsletter);
   - its answer fragment thanks the visitor, with the new record as `record`.
 - Nothing floats over the rest: no badge, sticker, rating or card placed over a picture or straddling its edge, no tilted or stacked pictures. An absolutely placed element is only ever a hidden decoration (`aria-hidden="true"`), such as a blurred shape behind a hero.
 - A hero alone may lay its own headline over its own picture, the move it is made for (Q440): a full-bleed photo under its text, darkened by a scrim in the theme's colors, or a panel overlapping the picture's edge. It layers them in the grid (`col-start-1 row-start-1`, or overlapping columns with `relative z-10`), never by absolute placement.
@@ -39,4 +39,4 @@ Layouts adapted from these collections, each under the MIT licence kept beside t
 - `meraki-ui`: Meraki UI, `LICENSE-Meraki-UI`;
 - `mamba-ui`: Mamba UI, `LICENSE-Mamba-UI`;
 - `wicked-blocks`: Wicked Blocks, `LICENSE-Wicked-Blocks`;
-- `upstart`: written by us.
+- `spaka`: written by us.

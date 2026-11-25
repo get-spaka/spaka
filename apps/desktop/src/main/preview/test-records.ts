@@ -1,5 +1,5 @@
 // The preview's test records (Q172): records of collected datasources kept as
-// files in .upstart/test-records/<name>/<id>.md, in an authored record's
+// files in .spaka/test-records/<name>/<id>.md, in an authored record's
 // format, never published. The agent writes them like any file, so the
 // preview follows one being written; a form tried in the preview adds one.
 import { mkdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
@@ -13,8 +13,8 @@ import {
   readRecordFile,
   type StoredRecord,
   TEST_RECORDS_DIR,
-} from "@upstart/runtime";
-import { diskSource } from "@upstart/runtime/node";
+} from "@spaka/runtime";
+import { diskSource } from "@spaka/runtime/node";
 
 const PREFIX = `${TEST_RECORDS_DIR}/`;
 
@@ -41,7 +41,7 @@ export function testRecordFile(name: string, id: string): string {
 
 /** Whether a project file is a test record's. */
 export function isTestRecord(path: string): boolean {
-  return /^\.upstart\/test-records\/[a-z0-9][\w-]*\/[a-z0-9][\w-]*\.md$/i.test(path);
+  return /^\.spaka\/test-records\/[a-z0-9][\w-]*\/[a-z0-9][\w-]*\.md$/i.test(path);
 }
 
 /** Where a form tried in the preview keeps what was sent: a new test record's file. */
@@ -80,7 +80,7 @@ export class TestRecordStore implements CollectedStore {
     const file = testRecordFile(datasource, record.id);
     const abs = join(this.root, file);
     mkdirSync(dirname(abs), { recursive: true });
-    const tmp = join(dirname(abs), `.${record.id}.upstart-tmp`);
+    const tmp = join(dirname(abs), `.${record.id}.spaka-tmp`);
     writeFileSync(tmp, newRecordText(values, typeof body === "string" ? body : ""));
     renameSync(tmp, abs);
     this.written(file);

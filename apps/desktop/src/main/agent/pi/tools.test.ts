@@ -4,18 +4,18 @@ import { join } from "node:path";
 import { afterEach, beforeEach, expect, test } from "vitest";
 import { findGitBash } from "../git-bash";
 import { instructionsFor } from "../instructions";
-import { upstartTools } from "../upstart-tools";
-import { canonicalTool, type HarnessTool, piFileTools, piUpstartTools } from "./tools";
+import { spakaTools } from "../spaka-tools";
+import { canonicalTool, type HarnessTool, piFileTools, piSpakaTools } from "./tools";
 import { pageMarkdown } from "./web-fetch";
 
 let dir: string;
 let root: string;
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), "upstart-tools-"));
+  dir = mkdtempSync(join(tmpdir(), "spaka-tools-"));
   root = join(dir, "site");
   mkdirSync(join(root, "pages"), { recursive: true });
-  mkdirSync(join(dir, "skills/upstart/skills/datasources"), { recursive: true });
-  writeFileSync(join(dir, "skills/upstart/skills/datasources/SKILL.md"), "# Datasources\n");
+  mkdirSync(join(dir, "skills/spaka/skills/datasources"), { recursive: true });
+  writeFileSync(join(dir, "skills/spaka/skills/datasources/SKILL.md"), "# Datasources\n");
   writeFileSync(join(dir, "secret.txt"), "not yours");
 });
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
@@ -41,11 +41,11 @@ test("the file tools reach the project, and Read the skills too; nothing else", 
     /data\/team\/emma\.md/,
   );
   expect(await call("Read", { file_path: "pages/menu.liquid", offset: 2 })).toBe("     2\t<p>Tarte</p>");
-  expect(await call("Read", { file_path: join(dir, "skills/upstart/skills/datasources/SKILL.md") })).toBe(
+  expect(await call("Read", { file_path: join(dir, "skills/spaka/skills/datasources/SKILL.md") })).toBe(
     "     1\t# Datasources\n     2\t",
   );
   await expect(call("Read", { file_path: "../secret.txt" })).rejects.toThrow(/outside the project/);
-  await expect(call("Write", { file_path: join(dir, "skills/upstart/x.md"), content: "x" })).rejects.toThrow(
+  await expect(call("Write", { file_path: join(dir, "skills/spaka/x.md"), content: "x" })).rejects.toThrow(
     /outside the project/,
   );
   await expect(call("Write", { file_path: "/etc/x", content: "x" })).rejects.toThrow(/outside the project/);
@@ -112,8 +112,8 @@ test("reads run together; a reply that changes the project runs in order", () =>
     piFileTools({ root, readable: [], family: "gemini" }).map((t) => [t.name, t.executionMode]),
   );
   expect(modes).toMatchObject({ Read: "parallel", Grep: "parallel", Write: "sequential", Append: "sequential" });
-  const upstart = piUpstartTools(
-    upstartTools({
+  const spaka = piSpakaTools(
+    spakaTools({
       look: async () => ({ route: "/", errors: [], notes: [] }),
       findBlocks: () => [],
       findImages: async () => "",
@@ -122,15 +122,15 @@ test("reads run together; a reply that changes the project runs in order", () =>
       choosePages: async () => "",
     }),
   );
-  expect(Object.fromEntries(upstart.map((t) => [t.name, t.executionMode]))).toMatchObject({
+  expect(Object.fromEntries(spaka.map((t) => [t.name, t.executionMode]))).toMatchObject({
     find_images: "parallel",
     use_image: "sequential",
     use_block: "sequential",
   });
 });
 
-test("Upstart's tools keep their short names for the model, and the SDK's names for the app", async () => {
-  const defs = upstartTools({
+test("Spaka's tools keep their short names for the model, and the SDK's names for the app", async () => {
+  const defs = spakaTools({
     look: async () => ({ route: "/", errors: [], notes: [] }),
     findBlocks: () => [],
     findImages: async (q) => `images of ${q}`,
@@ -138,7 +138,7 @@ test("Upstart's tools keep their short names for the model, and the SDK's names 
     useBlocks: () => "",
     choosePages: async () => "",
   });
-  const harness = piUpstartTools(defs);
+  const harness = piSpakaTools(defs);
   expect(harness.map((t) => t.name)).toEqual([
     "find_blocks",
     "use_block",
@@ -160,14 +160,14 @@ test("Upstart's tools keep their short names for the model, and the SDK's names 
     required: ["action"],
   });
   expect((await look.execute("id", { steps: [{ action: "press", key: "F13" }] })).content).toEqual([
-    { type: "text", text: 'Step 1: the key "F13" is not one Upstart can press.' },
+    { type: "text", text: 'Step 1: the key "F13" is not one Spaka can press.' },
   ]);
   expect((await look.execute("id", { route: "/" })).content).toEqual([
     { type: "text", text: "Page: /.\n\nNo errors in the page." },
   ]);
-  const upstart = new Set(defs.map((d) => d.name));
-  expect(canonicalTool("look_at_preview", upstart)).toBe("mcp__upstart__look_at_preview");
-  expect(canonicalTool("Write", upstart)).toBe("Write");
+  const spaka = new Set(defs.map((d) => d.name));
+  expect(canonicalTool("look_at_preview", spaka)).toBe("mcp__spaka__look_at_preview");
+  expect(canonicalTool("Write", spaka)).toBe("Write");
 });
 
 test("the harness's instructions: Claude's rules with its own tools, long files in parts for Gemini, skills as files", () => {
@@ -238,7 +238,7 @@ test.skipIf(!bash)(
   },
 );
 
-test("generate_image is among Upstart's tools only with an account that generates images, and plan mode refuses it (Q423)", async () => {
+test("generate_image is among Spaka's tools only with an account that generates images, and plan mode refuses it (Q423)", async () => {
   const base = {
     look: async () => ({ route: "/", errors: [], notes: [] }),
     findBlocks: () => [],
@@ -247,22 +247,22 @@ test("generate_image is among Upstart's tools only with an account that generate
     useBlocks: () => "",
     choosePages: async () => "",
   };
-  expect(upstartTools(base).map((d) => d.name)).not.toContain("generate_image");
+  expect(spakaTools(base).map((d) => d.name)).not.toContain("generate_image");
   const asked: unknown[] = [];
-  const defs = upstartTools({
+  const defs = spakaTools({
     ...base,
     generateImage: async (input) => {
       asked.push(input);
       return "Generated and added as /media/linen.webp";
     },
   });
-  const tool = piUpstartTools(defs).find((t) => t.name === "generate_image")!;
+  const tool = piSpakaTools(defs).find((t) => t.name === "generate_image")!;
   expect(tool.executionMode).toBe("sequential");
   const result = await tool.execute("id", { prompt: "Linen", aspect: "16:9", name: "linen", alt: "Lin" });
   expect(result.content).toEqual([{ type: "text", text: "Generated and added as /media/linen.webp" }]);
   expect(asked).toEqual([{ prompt: "Linen", aspect: "16:9", name: "linen", alt: "Lin" }]);
   await expect(tool.execute("id", { prompt: "x", aspect: "2:1", name: "a", alt: "" })).rejects.toThrow();
   const { PLAN_WRITERS, readsOnly } = await import("../questions");
-  expect(PLAN_WRITERS.has("mcp__upstart__generate_image")).toBe(true);
-  expect(readsOnly("mcp__upstart__generate_image")).toBe(false);
+  expect(PLAN_WRITERS.has("mcp__spaka__generate_image")).toBe(true);
+  expect(readsOnly("mcp__spaka__generate_image")).toBe(false);
 });

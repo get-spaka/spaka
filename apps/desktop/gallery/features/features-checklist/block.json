@@ -1,7 +1,7 @@
 {
   "name": "Compact features checklist",
   "kind": "features",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A compact panel with a heading on top and a two-column checklist of features, each an icon and a bold title on one line with a short line of small text below.",
   "tags": ["checklist", "two columns", "compact", "icons", "panel"],
   "mood": ["minimal", "professional"],

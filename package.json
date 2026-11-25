@@ -1,7 +1,7 @@
 {
-  "name": "upstart",
+  "name": "spaka",
   "private": true,
-  "description": "Upstart: build websites by talking to an agent, on your own machine.",
+  "description": "Spaka: build websites by talking to an agent, on your own machine.",
   "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@10.12.1",
@@ -15,7 +15,7 @@
     "format": "biome check --write . && cd apps/desktop/templates && biome check --write --no-errors-on-unmatched .",
     "typecheck": "pnpm -r --parallel typecheck && tsc -p tsconfig.json",
     "test": "vitest run",
-    "e2e": "pnpm --filter @upstart/desktop build && pnpm background-electron && vitest run --config e2e/vitest.config.ts",
+    "e2e": "pnpm --filter @spaka/desktop build && pnpm background-electron && vitest run --config e2e/vitest.config.ts",
     "background-electron": "node scripts/background-electron.ts",
     "template:check": "node apps/desktop/scripts/template.mjs check",
     "template:shoot": "node apps/desktop/scripts/template.mjs shoot",
@@ -23,7 +23,7 @@
     "template:release": "node apps/desktop/scripts/template.mjs release",
     "template:snapshot": "node apps/desktop/scripts/template.mjs snapshot",
     "template:release-script": "node apps/desktop/scripts/template.mjs release-script",
-    "start": "pnpm --filter @upstart/desktop start",
+    "start": "pnpm --filter @spaka/desktop start",
     "prepare": "node scripts/hooks.mjs"
   },
   "devDependencies": {

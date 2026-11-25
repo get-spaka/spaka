@@ -56,7 +56,7 @@ const HOME = page(
 
 /** A made-up turn of the agent's: one look on a phone after clicking the menu, then a sentence. */
 function lookRecording(file: string) {
-  const LOOK = "mcp__upstart__look_at_preview";
+  const LOOK = "mcp__spaka__look_at_preview";
   const input = { route: "/", screen: "phone", steps: [{ action: "click", target: "parts/header.liquid:4" }] };
   const event = (t: number, e: object) => ({ t, m: { type: "stream_event", parent_tool_use_id: null, event: e } });
   const lines = [
@@ -125,7 +125,7 @@ describe("the agent's look at a page", () => {
     launched.app.evaluate(
       async (_electron, { route, options }) => {
         // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-        const seen = await (globalThis as any).upstart.preview.look(route, options);
+        const seen = await (globalThis as any).spaka.preview.look(route, options);
         return { ...seen, png: !!seen.png };
       },
       { route, options },
@@ -134,14 +134,14 @@ describe("the agent's look at a page", () => {
   const inView = (code: string) =>
     launched.app.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      (_electron, code) => (globalThis as any).upstart.preview.agentView.run(code),
+      (_electron, code) => (globalThis as any).spaka.preview.agentView.run(code),
       code,
     );
   /** Code run in the maker's preview. */
   const inPreview = (code: string) =>
     launched.app.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      (_electron, code) => (globalThis as any).upstart.preview.view.webContents.executeJavaScript(code),
+      (_electron, code) => (globalThis as any).spaka.preview.view.webContents.executeJavaScript(code),
       code,
     );
   const until = async (read: () => Promise<unknown>, timeout = 8000) => {
@@ -156,13 +156,13 @@ describe("the agent's look at a page", () => {
   };
 
   beforeAll(async () => {
-    const recording = join(mkdtempSync(join(tmpdir(), "upstart-looks-")), "looks.jsonl");
+    const recording = join(mkdtempSync(join(tmpdir(), "spaka-looks-")), "looks.jsonl");
     lookRecording(recording);
-    launched = await launchApp({ env: { UPSTART_AGENT_REPLAY: recording } });
+    launched = await launchApp({ env: { SPAKA_AGENT_REPLAY: recording } });
     await launched.window.getByTestId("message-input").waitFor();
     const project = await launched.window.evaluate(() =>
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      (window as any).upstart.invoke("projects:create", "Wick"),
+      (window as any).spaka.invoke("projects:create", "Wick"),
     );
     folder = project.path;
     writeFileSync(join(folder, "theme.css"), ":root { --theme-color-primary: #b45309; }\n");
@@ -224,7 +224,7 @@ describe("the agent's look at a page", () => {
       "/ ana@example.com",
     );
     // No test record either.
-    expect(existsSync(join(folder, ".upstart/test-records"))).toBe(false);
+    expect(existsSync(join(folder, ".spaka/test-records"))).toBe(false);
   });
 
   test("`at` ends the look on a part further down, scrolled to as a person would", async () => {
@@ -256,7 +256,7 @@ describe("the agent's look at a page", () => {
   test("the problems on the screen looked at are measured, each with its file and line (Q318)", async () => {
     const phone = (await launched.app.evaluate(async () => {
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      const seen = await (globalThis as any).upstart.preview.look("/problems", { screen: "phone" });
+      const seen = await (globalThis as any).spaka.preview.look("/problems", { screen: "phone" });
       return seen.problems;
     })) as string[];
     expect(phone).toEqual([
@@ -273,7 +273,7 @@ describe("the agent's look at a page", () => {
     // On desktop the banner fits.
     const desktop = (await launched.app.evaluate(async () => {
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      const seen = await (globalThis as any).upstart.preview.look("/problems", { screen: "desktop" });
+      const seen = await (globalThis as any).spaka.preview.look("/problems", { screen: "desktop" });
       return seen.problems;
     })) as string[];
     expect(desktop.some((p) => p.startsWith("The page is wider"))).toBe(false);
@@ -292,7 +292,7 @@ describe("the agent's look at a page", () => {
     await expect(inView("document.getElementById('menu').open")).resolves.toBe(true);
     await launched.app.evaluate(() =>
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      (globalThis as any).upstart.preview.endTurn(),
+      (globalThis as any).spaka.preview.endTurn(),
     );
     await look("/");
     await expect(inView("document.getElementById('menu').open")).resolves.toBe(false);
@@ -300,7 +300,7 @@ describe("the agent's look at a page", () => {
     // The view is never shown and never takes the focus (Q314).
     const shown = await launched.app.evaluate(({ BrowserWindow }) => {
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      const agent = (globalThis as any).upstart.preview.agentView.contents;
+      const agent = (globalThis as any).spaka.preview.agentView.contents;
       return BrowserWindow.getAllWindows()
         .filter((w) => w.webContents === agent)
         .map((w) => ({ visible: w.isVisible(), focused: w.isFocused() }));
@@ -311,12 +311,12 @@ describe("the agent's look at a page", () => {
   test("a turn's look, played back, runs for real; its line names the page, the screen and the click (Q320)", async () => {
     await launched.window.evaluate(() =>
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      (window as any).upstart.invoke("conversation:send", "Check the menu on a phone"),
+      (window as any).spaka.invoke("conversation:send", "Check the menu on a phone"),
     );
     const item = (await until(async () => {
       const { items } = await launched.window.evaluate(() =>
         // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-        (window as any).upstart.invoke("conversation:get"),
+        (window as any).spaka.invoke("conversation:get"),
       );
       const last = items.at(-1);
       return last?.kind === "agent" && last.status !== "working" ? last : undefined;
@@ -327,10 +327,10 @@ describe("the agent's look at a page", () => {
     ]);
     const replayed = (await launched.app.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      () => (globalThis as any).upstart.replayed as string[],
+      () => (globalThis as any).spaka.replayed as string[],
     )) as string[];
-    expect(replayed.find((l) => l.startsWith("[mcp__upstart__look_at_preview] "))).toMatch(
-      /^\[mcp__upstart__look_at_preview\] Page: \/ \(“Wick”\), on a phone \(393×852\), screen 1 of \d+\.[\s\S]*1\. clicked summary "Menu" \(parts\/header\.liquid:4\)/,
+    expect(replayed.find((l) => l.startsWith("[mcp__spaka__look_at_preview] "))).toMatch(
+      /^\[mcp__spaka__look_at_preview\] Page: \/ \(“Wick”\), on a phone \(393×852\), screen 1 of \d+\.[\s\S]*1\. clicked summary "Menu" \(parts\/header\.liquid:4\)/,
     );
   });
 });

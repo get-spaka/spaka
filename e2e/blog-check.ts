@@ -33,18 +33,18 @@ export async function buildBlog(launched: LaunchedApp, record: string, timeout =
   const invoke = (channel: string, ...args: unknown[]) =>
     launched.window.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      ([channel, args]) => (window as any).upstart.invoke(channel, ...args),
+      ([channel, args]) => (window as any).spaka.invoke(channel, ...args),
       [channel, args] as const,
     );
   const page = (code: string) =>
     launched.app.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      (_electron, code) => (globalThis as any).upstart.preview.view.webContents.executeJavaScript(code),
+      (_electron, code) => (globalThis as any).spaka.preview.view.webContents.executeJavaScript(code),
       code,
     );
   const routes = async () =>
     // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-    ((await launched.app.evaluate(() => (globalThis as any).upstart.preview.state())) as { routes: Route[] }).routes;
+    ((await launched.app.evaluate(() => (globalThis as any).spaka.preview.state())) as { routes: Route[] }).routes;
 
   const started = Date.now();
   const report: BlogReport = {
@@ -62,8 +62,8 @@ export async function buildBlog(launched: LaunchedApp, record: string, timeout =
   for (;;) {
     const seen = (await page(`({
       text: document.body ? document.body.innerText.trim().length : 0,
-      standIns: document.querySelectorAll('[data-up-rec=""]').length,
-      real: document.querySelectorAll('[data-up-rec]:not([data-up-rec=""])').length,
+      standIns: document.querySelectorAll('[data-spaka-rec=""]').length,
+      real: document.querySelectorAll('[data-spaka-rec]:not([data-spaka-rec=""])').length,
     })`).catch(() => undefined)) as { text: number; standIns: number; real: number } | undefined;
     const at = Date.now() - started;
     if (seen) {
@@ -100,7 +100,7 @@ export async function buildBlog(launched: LaunchedApp, record: string, timeout =
   report.recordRoutes = recordRoutes.map((r) => r.route);
   expect(recordRoutes.length).toBeGreaterThanOrEqual(3);
 
-  // Images found and used through Upstart's tools, with their alt text and credits.
+  // Images found and used through Spaka's tools, with their alt text and credits.
   const messages = readFileSync(record, "utf8")
     .split("\n")
     .filter(Boolean)
@@ -109,7 +109,7 @@ export async function buildBlog(launched: LaunchedApp, record: string, timeout =
     messages
       .filter((m) => m?.type === "assistant")
       .flatMap((m) => m.message.content)
-      .filter((c: { type: string; name?: string }) => c.type === "tool_use" && c.name === `mcp__upstart__${name}`)
+      .filter((c: { type: string; name?: string }) => c.type === "tool_use" && c.name === `mcp__spaka__${name}`)
       .map((c: { input: unknown }) => c.input);
   report.imageSearches = uses("find_images");
   report.imagesUsed = uses("use_image");

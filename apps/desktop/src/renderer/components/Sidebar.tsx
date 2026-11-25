@@ -3,7 +3,7 @@ import { useState } from "react";
 import { type ListedProject, PROJECT_ORDERS, type ProjectInfo, type ProjectOrder } from "../../shared/ipc";
 import { ordered } from "../../shared/project-order";
 import { useAppSettings } from "../hooks/useMain";
-import { upstart } from "../lib/bridge";
+import { spaka } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { RenameField } from "./RenameField";
@@ -72,7 +72,7 @@ export function Sidebar({
           variant="ghost"
           size="sm"
           className="w-full justify-start text-muted-foreground"
-          onClick={() => void upstart.invoke("projects:choose-folder")}
+          onClick={() => void spaka.invoke("projects:choose-folder")}
           tip={t.sidebar.openFolderTip}
           tipSide="right"
           command="open-folder"
@@ -101,7 +101,7 @@ export function Sidebar({
             <DropdownMenuLabel>{t.sidebar.orderBy}</DropdownMenuLabel>
             <DropdownMenuRadioGroup
               value={projectOrder}
-              onValueChange={(order) => void upstart.invoke("settings:set", { projectOrder: order as ProjectOrder })}
+              onValueChange={(order) => void spaka.invoke("settings:set", { projectOrder: order as ProjectOrder })}
             >
               {PROJECT_ORDERS.map((order) => (
                 <DropdownMenuRadioItem key={order} value={order} data-testid="project-order-choice" data-order={order}>
@@ -131,7 +131,7 @@ export function Sidebar({
                   onDone={(name) => {
                     setRenaming(null);
                     const clean = name?.trim();
-                    if (clean && clean !== project.name) void upstart.invoke("projects:rename", project.id, clean);
+                    if (clean && clean !== project.name) void spaka.invoke("projects:rename", project.id, clean);
                   }}
                 />
               ) : (
@@ -148,7 +148,7 @@ export function Sidebar({
                     type="button"
                     data-testid="project-item"
                     // The open website is not opened again: a double-click renames it.
-                    onClick={() => current?.id !== project.id && void upstart.invoke("projects:open", project.id)}
+                    onClick={() => current?.id !== project.id && void spaka.invoke("projects:open", project.id)}
                     onDoubleClick={() => setRenaming(project.id)}
                     className="min-w-0 flex-1 px-2 py-1.5 text-left text-sm"
                   >

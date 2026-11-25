@@ -1,9 +1,9 @@
 // "Starting from a template" with the real agent, in the packaged app (templates
-// slice 10, Q229, Q246, Q247). Opt-in like agent.e2e.ts: UPSTART_REAL_AGENT=1,
+// slice 10, Q229, Q246, Q247). Opt-in like agent.e2e.ts: SPAKA_REAL_AGENT=1,
 // with .cache/agent-config signed in, and the app packaged first.
 // The maker chooses a template, downloaded from the public repository's latest
 // release, and describes a business of their own: Reel for a ceramics studio,
-// in English; Corner for a cheese shop, in French (UPSTART_TEMPLATE_CASE runs
+// in English; Corner for a cheese shop, in French (SPAKA_TEMPLATE_CASE runs
 // one). The agent should rewrite every text and record for it, in the maker's
 // language, replace the images, keep the design and its effects, and leave
 // none of the template's sentences.
@@ -14,7 +14,7 @@ import { sentencesOf, templateTexts } from "../apps/desktop/src/main/templates/a
 import { readTemplateFolder } from "../apps/desktop/src/main/templates/reader.ts";
 import { agentConfigDir, type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 
-const real = process.env.UPSTART_REAL_AGENT === "1";
+const real = process.env.SPAKA_REAL_AGENT === "1";
 const configDir = agentConfigDir();
 const dataRoot = join(import.meta.dirname, "../.cache/agent-template-data");
 const CASES = [
@@ -41,7 +41,7 @@ const CASES = [
     lang: "fr",
   },
 ];
-const only = process.env.UPSTART_TEMPLATE_CASE;
+const only = process.env.SPAKA_TEMPLATE_CASE;
 
 const walk = (dir: string): string[] =>
   existsSync(dir)
@@ -62,19 +62,19 @@ describe.skipIf(!real).each(CASES.filter((c) => !only || c.name === only))(
     const invoke = (channel: string, ...args: unknown[]) =>
       launched.window.evaluate(
         // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-        ([channel, args]) => (window as any).upstart.invoke(channel, ...args),
+        ([channel, args]) => (window as any).spaka.invoke(channel, ...args),
         [channel, args] as const,
       );
     const preview = <T>(code: string): Promise<T> =>
       launched.app.evaluate(
         // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-        (_electron, code) => (globalThis as any).upstart.preview.view.webContents.executeJavaScript(code),
+        (_electron, code) => (globalThis as any).spaka.preview.view.webContents.executeJavaScript(code),
         code,
       );
     const capture = (): Promise<string> =>
       launched.app.evaluate(async () =>
         // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-        ((await (globalThis as any).upstart.preview.view.webContents.capturePage()) as Electron.NativeImage)
+        ((await (globalThis as any).spaka.preview.view.webContents.capturePage()) as Electron.NativeImage)
           .toPNG()
           .toString("base64"),
       );
@@ -99,10 +99,10 @@ describe.skipIf(!real).each(CASES.filter((c) => !only || c.name === only))(
       launched = await launchApp({
         packaged: true,
         env: {
-          UPSTART_AGENT_REPLAY: "",
-          UPSTART_AGENT_CONFIG_DIR: configDir,
-          UPSTART_AGENT_RECORD: record,
-          UPSTART_DATA_DIR: dataDir(),
+          SPAKA_AGENT_REPLAY: "",
+          SPAKA_AGENT_CONFIG_DIR: configDir,
+          SPAKA_AGENT_RECORD: record,
+          SPAKA_DATA_DIR: dataDir(),
         },
       });
       await launched.window.getByTestId("start").waitFor();
@@ -159,14 +159,14 @@ describe.skipIf(!real).each(CASES.filter((c) => !only || c.name === only))(
         report.inventedLeft = siteFiles.filter((f) => invented.test(read(f)));
         checks["no invented business left"] = (report.inventedLeft as string[]).length === 0;
         checks["about the maker's business"] = business.test(siteFiles.map(read).join("\n"));
-        // Upstart named what was left at the end of a turn, if anything was (Q246).
+        // Spaka named what was left at the end of a turn, if anything was (Q246).
         report.toldOfTemplateTexts = messages().filter(
           (m) => m?.type === "user" && JSON.stringify(m).includes("of the template's invented business"),
         ).length;
 
         // The images replaced, with their credits; none of the template's still shown.
-        report.findImages = calls("mcp__upstart__find_images").length;
-        report.useImage = calls("mcp__upstart__use_image").length;
+        report.findImages = calls("mcp__spaka__find_images").length;
+        report.useImage = calls("mcp__spaka__use_image").length;
         const templateMedia = [...files.keys()].filter((f) => f.startsWith("media/") && !f.endsWith(".json"));
         const shown = siteFiles.map(read).join("\n") + read("theme.css");
         report.templateImagesShown = templateMedia.filter((f) => shown.includes(f.slice("media/".length)));
@@ -204,7 +204,7 @@ describe.skipIf(!real).each(CASES.filter((c) => !only || c.name === only))(
         await invoke("preview:navigate", "/");
         await new Promise((r) => setTimeout(r, 3_000));
         checks["moving in the preview"] = await preview<boolean>(
-          "document.documentElement.hasAttribute('data-up-moving')",
+          "document.documentElement.hasAttribute('data-spaka-moving')",
         ).catch(() => false);
         const recordPages = pages.filter((p) => p.includes("["));
         const recordRoutes = recordPages.flatMap((p) => {

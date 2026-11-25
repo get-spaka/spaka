@@ -6,7 +6,7 @@ import { ChevronLeft, FileText, ImageOff, Search, Trash2, Upload } from "lucide-
 import { type DragEvent, useCallback, useEffect, useRef, useState } from "react";
 import { IMAGE_MODELS } from "../../shared/image-models";
 import type { MediaFound, MediaItem } from "../../shared/ipc";
-import { upstart } from "../lib/bridge";
+import { spaka } from "../lib/bridge";
 import { messageOf } from "../lib/errors";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
@@ -15,7 +15,7 @@ import { Tip } from "./ui/tip";
 
 // Small copies of the library's images, kept until a media file changes.
 const thumbs = new Map<string, Promise<string | null>>();
-if (typeof window !== "undefined") upstart.on("content:changed", () => thumbs.clear());
+if (typeof window !== "undefined") spaka.on("content:changed", () => thumbs.clear());
 
 export function MediaThumb({ path, className }: { path: string; className?: string }) {
   const clean = path.replace(/^\//, "");
@@ -25,7 +25,7 @@ export function MediaThumb({ path, className }: { path: string; className?: stri
     if (!thumbs.has(clean))
       thumbs.set(
         clean,
-        upstart.invoke("media:thumbnail", clean).catch(() => null),
+        spaka.invoke("media:thumbnail", clean).catch(() => null),
       );
     void thumbs.get(clean)!.then((u) => live && setUrl(u));
     return () => {
@@ -46,7 +46,7 @@ export function useMediaList() {
   const [list, setList] = useState<MediaItem[]>();
   const load = useCallback(
     () =>
-      void upstart
+      void spaka
         .invoke("media:list")
         .then(setList)
         .catch(() => setList([])),
@@ -54,7 +54,7 @@ export function useMediaList() {
   );
   useEffect(() => {
     load();
-    return upstart.on("content:changed", load);
+    return spaka.on("content:changed", load);
   }, [load]);
   return [list, load] as const;
 }
@@ -79,7 +79,7 @@ export function useFileDrop(onFiles: (paths: string[]) => void) {
         if (!files(e)) return;
         e.preventDefault();
         setOver(false);
-        const paths = [...e.dataTransfer.files].map((f) => upstart.pathOf(f)).filter(Boolean);
+        const paths = [...e.dataTransfer.files].map((f) => spaka.pathOf(f)).filter(Boolean);
         if (paths.length) onFiles(paths);
       },
     },
@@ -95,7 +95,7 @@ export function MediaLibrary({ onError }: { onError: (message: string | undefine
     onError(undefined);
     run().catch((e) => onError(messageOf(e)));
   };
-  const drop = useFileDrop((paths) => add(() => upstart.invoke("media:add-files", paths)));
+  const drop = useFileDrop((paths) => add(() => spaka.invoke("media:add-files", paths)));
   useEffect(() => {
     if (!deleted) return;
     const timer = setTimeout(() => setDeleted(undefined), 8000);
@@ -128,7 +128,7 @@ export function MediaLibrary({ onError }: { onError: (message: string | undefine
           size="sm"
           variant="outline"
           tip={t.media.addFilesTip}
-          onClick={() => add(() => upstart.invoke("media:choose-files"))}
+          onClick={() => add(() => spaka.invoke("media:choose-files"))}
         >
           <Upload />
           {t.media.addFiles}
@@ -206,7 +206,7 @@ export function MediaLibrary({ onError }: { onError: (message: string | undefine
               className="ml-auto rounded px-1.5 py-0.5 font-medium hover:bg-background/20"
               onClick={() => {
                 setDeleted(undefined);
-                void upstart.invoke("history:undo");
+                void spaka.invoke("history:undo");
               }}
             >
               {t.content.undo}
@@ -240,20 +240,20 @@ function MediaDetail({
     const value = pending.current;
     pending.current = undefined;
     if (value === undefined) return Promise.resolve();
-    return upstart.invoke("media:set-alt", item.path, value).catch((e) => onError(messageOf(e)));
+    return spaka.invoke("media:set-alt", item.path, value).catch((e) => onError(messageOf(e)));
   }, [item.path, onError]);
   const writing = useRef(write);
   writing.current = write;
   // Leaving the file: what is left is written, then its version (Q162).
-  useEffect(() => () => void writing.current().then(() => upstart.invoke("content:leave")), []);
+  useEffect(() => () => void writing.current().then(() => spaka.invoke("content:leave")), []);
   const stem = item.name.replace(/\.[^.]+$/, "");
   const rename = () => {
     const to = name?.trim();
     setName(undefined);
     if (!to || to === stem) return;
     void write()
-      .then(() => upstart.invoke("content:leave"))
-      .then(() => upstart.invoke("media:rename", item.path, to))
+      .then(() => spaka.invoke("content:leave"))
+      .then(() => spaka.invoke("media:rename", item.path, to))
       .then((r) => onRenamed(r.path))
       .catch((e) => onError(messageOf(e)));
   };
@@ -273,7 +273,7 @@ function MediaDetail({
           disabled={item.uses.length > 0}
           data-testid="media-delete"
           onClick={() =>
-            void upstart
+            void spaka
               .invoke("media:delete", item.path)
               .then(onDeleted)
               .catch((e) => onError(messageOf(e)))
@@ -382,7 +382,7 @@ export function ImageSearch({
     if (!q) return;
     setBusy("search");
     onError(undefined);
-    void upstart
+    void spaka
       .invoke("media:search", q)
       .then(setResult)
       .catch((e) => onError(messageOf(e)))
@@ -390,7 +390,7 @@ export function ImageSearch({
   };
   const choose = (image: MediaFound) => {
     setBusy(image.id);
-    void upstart
+    void spaka
       .invoke("media:add-found", image.id, image.title)
       .then((r) => onAdded(r.path))
       .catch((e) => onError(messageOf(e)))

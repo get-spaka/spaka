@@ -1,4 +1,4 @@
-// The problems a look measures (Q318): the page's own, and the links Upstart
+// The problems a look measures (Q318): the page's own, and the links Spaka
 // checks against the website's pages. The measure itself runs in a page:
 // e2e/looks.e2e.ts checks it, e2e/looks-templates.e2e.ts over the templates.
 import { describe, expect, test } from "vitest";

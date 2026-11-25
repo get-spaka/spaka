@@ -8,7 +8,7 @@
 import { Check, MessageCircleQuestion } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { AgentQuestion, QuestionCard as Card, QuestionAnswer, QuestionOption } from "../../shared/conversation";
-import { upstart } from "../lib/bridge";
+import { spaka } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { MediaThumb } from "./MediaLibrary";
@@ -57,7 +57,7 @@ function WaitingCard({ card }: { card: Card }) {
 
   const send = (answer: QuestionAnswer) => {
     setSent(true);
-    void upstart.invoke("conversation:answer", card.id, answer).catch(() => setSent(false));
+    void spaka.invoke("conversation:answer", card.id, answer).catch(() => setSent(false));
   };
   /** Sends what was answered; a question not answered is one skipped, and a card with none answered is skipped. */
   const finish = (passed: Set<string>) => {
@@ -320,7 +320,7 @@ function BlockPreview({ id }: { id: string }) {
   const [url, setUrl] = useState<string | null>();
   useEffect(() => {
     let live = true;
-    void upstart
+    void spaka
       .invoke("gallery:thumbnail", id)
       .then((u) => live && setUrl(u))
       .catch(() => live && setUrl(null));

@@ -1,8 +1,8 @@
 // What every way of exporting a website offers (Q181, Q186): the app lists
 // BUILDERS, asks each whether the project can use it, builds with the one the
-// maker picks and shows its guide. A new destination (a hosting of Upstart's
+// maker picks and shows its guide. A new destination (a hosting of Spaka's
 // own, for one) is one more file in builders/ and one more line in BUILDERS.
-import type { ProjectSource } from "@upstart/runtime";
+import type { ProjectSource } from "@spaka/runtime";
 
 /** The project being exported. */
 export type BuildProject = {

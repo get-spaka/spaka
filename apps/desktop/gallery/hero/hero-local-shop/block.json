@@ -1,7 +1,7 @@
 {
   "name": "Local shop hero",
   "kind": "hero",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A welcoming headline with a badge, subtitle and two buttons for a local shop, beside a card with the opening hours, the address and a phone number.",
   "tags": ["local details", "headline", "opening hours", "address", "phone", "local business", "buttons"],
   "mood": ["warm", "friendly"],

@@ -8,7 +8,7 @@ import { ChevronDown, ChevronRight, Search, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { matchesBlock } from "../../shared/block-filter";
 import { BLOCK_DRAG_TYPE, BLOCK_KINDS, type BlockKind, type GalleryBlock } from "../../shared/ipc";
-import { upstart } from "../lib/bridge";
+import { spaka } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { Tip } from "./ui/tip";
@@ -31,7 +31,7 @@ export function BlocksTab({
   // biome-ignore lint/correctness/useExhaustiveDependencies: another project has other blocks of its own
   useEffect(() => {
     let live = true;
-    void upstart.invoke("gallery:list").then((list) => live && setBlocks(list));
+    void spaka.invoke("gallery:list").then((list) => live && setBlocks(list));
     return () => {
       live = false;
     };
@@ -198,14 +198,14 @@ function BlockCard({ block, theme, disabled }: { block: GalleryBlock; theme: str
   const resting = useRef<ReturnType<typeof setTimeout>>(undefined);
   const peek = (on: boolean) => {
     clearTimeout(resting.current);
-    if (on) resting.current = setTimeout(() => upstart.send("gallery:peek", block.id), 150);
-    else upstart.send("gallery:peek", null);
+    if (on) resting.current = setTimeout(() => spaka.send("gallery:peek", block.id), 150);
+    else spaka.send("gallery:peek", null);
   };
   // Leaving the tab while resting on a block hides it.
   useEffect(
     () => () => {
       clearTimeout(resting.current);
-      upstart.send("gallery:peek", null);
+      spaka.send("gallery:peek", null);
     },
     [],
   );
@@ -265,7 +265,7 @@ function useThumbnail(id: string, theme: string) {
   useEffect(() => {
     if (!seen || !theme) return;
     let live = true;
-    void upstart
+    void spaka
       .invoke("gallery:thumbnail", id)
       .then((url) => live && setShown({ theme, url }))
       .catch(() => {});

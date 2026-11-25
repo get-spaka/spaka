@@ -1,6 +1,6 @@
 // `pnpm template:check <folder or .zip>`: a template's checks, for its author
 // (and for us, making the app's own); `pnpm template:image`, its images;
-// `pnpm template:release` and `pnpm template:snapshot`, Upstart's releases.
+// `pnpm template:release` and `pnpm template:snapshot`, Spaka's releases.
 // Bundled and run by scripts/template.mjs.
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";

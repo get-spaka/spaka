@@ -12,7 +12,7 @@ import { en } from "../../shared/strings/en";
 import type { AssembledSkills } from "../skills/skills";
 import { Activities } from "./activity";
 import { confinement } from "./confinement";
-import { UPSTART_INSTRUCTIONS } from "./instructions";
+import { SPAKA_INSTRUCTIONS } from "./instructions";
 import {
   ASK_TOOL,
   BAD_FORM,
@@ -40,7 +40,7 @@ import { type AgentEvent, StreamReader } from "./stream";
 export const TOOLS = ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebSearch", "WebFetch", ASK_TOOL, PLAN_TOOL];
 
 export const DENY_MESSAGE =
-  "Upstart does not ask the maker for permissions. This action is refused: find another way or say what you could not do.";
+  "Spaka does not ask the maker for permissions. This action is refused: find another way or say what you could not do.";
 
 export type QueryFn = (params: { prompt: AsyncIterable<SDKUserMessage>; options: Record<string, unknown> }) => Query;
 
@@ -51,7 +51,7 @@ export type SessionDeps = {
   /** Folders the sandboxed shell may read although they sit in a denied place. */
   readable: string[];
   query: QueryFn;
-  /** Options added to each start: Upstart's own tool server. */
+  /** Options added to each start: Spaka's own tool server. */
   extraOptions?: (project: { id: string; path: string }) => {
     mcpServers?: Record<string, unknown>;
     allowedTools?: string[];
@@ -60,7 +60,7 @@ export type SessionDeps = {
   };
   /** The connectors the agent is given, by server name, for the isolation check. */
   connectors?: string[];
-  /** Which of Upstart's tools the agent is given (generate_image with an account for it, Q423): it starts again when that changes. */
+  /** Which of Spaka's tools the agent is given (generate_image with an account for it, Q423): it starts again when that changes. */
   toolsKey?: (project: ProjectInfo) => string;
   /** The maker's connectors that are on for a project (ADR 0010), as the kit takes them. */
   connectorServers?: {
@@ -74,7 +74,7 @@ export type SessionDeps = {
     /** Changes when the skills the agent would get change. */
     fingerprint(projectDir: string): string;
   };
-  /** The instructions a session starts with; Upstart's own when not given. */
+  /** The instructions a session starts with; Spaka's own when not given. */
   instructions?: () => string;
   /** Keeps the agent's stream, to play it back in checks (replay.ts). */
   recorder?: { turn(): void; message(m: unknown): void };
@@ -110,7 +110,7 @@ export class AgentSession implements AgentRunner {
   private skills: { assembled: AssembledSkills; fingerprint: string } | undefined;
   /** The maker's connectors the running agent was given, and their fingerprint at the time. */
   private connectors: { names: string[]; fingerprint: string } | undefined;
-  /** Which of Upstart's tools the running agent was given (toolsKey). */
+  /** Which of Spaka's tools the running agent was given (toolsKey). */
   private toolsKey: string | undefined;
   /** The connectors' state as the agent's kit last reported it. */
   private serverStatus: { name: string; status: string; error?: string }[] = [];
@@ -179,9 +179,9 @@ export class AgentSession implements AgentRunner {
         env: this.deps.env(),
         model: this.project.model,
         effort: this.project.effort,
-        systemPrompt: { type: "custom", prompt: this.deps.instructions?.() ?? UPSTART_INSTRUCTIONS, snapshot: false },
+        systemPrompt: { type: "custom", prompt: this.deps.instructions?.() ?? SPAKA_INSTRUCTIONS, snapshot: false },
         tools: skills?.enabled.length ? [...TOOLS, "Skill"] : TOOLS,
-        // Only Upstart's skills: the ones built into the binary stay hidden.
+        // Only Spaka's skills: the ones built into the binary stay hidden.
         skills: skills?.enabled ?? [],
         ...(skills?.plugins.length ? { plugins: skills.plugins } : {}),
         includePartialMessages: true,
@@ -384,7 +384,7 @@ export class AgentSession implements AgentRunner {
   /**
    * Starts signing in to one of the maker's connectors that asks for it, by
    * the agent's kit's own sign-in (the official program keeps the token, in
-   * the agent's data; Upstart never sees it). Answers the address the maker
+   * the agent's data; Spaka never sees it). Answers the address the maker
    * opens in their browser, or nothing when no sign-in is needed any more.
    */
   async signInConnector(name: string): Promise<string | undefined> {
@@ -540,8 +540,8 @@ export class AgentSession implements AgentRunner {
 }
 
 /**
- * What would show that the agent did not start in Upstart's isolated setup
- * (ADR 0010): a tool or a connector Upstart did not give it.
+ * What would show that the agent did not start in Spaka's isolated setup
+ * (ADR 0010): a tool or a connector Spaka did not give it.
  */
 export function isolationProblem(
   init: Extract<AgentEvent, { kind: "init" }>,
@@ -555,7 +555,7 @@ export function isolationProblem(
   if (extraTools.length) return `unexpected tools: ${extraTools.join(", ")}`;
   const extraServers = init.mcpServers.filter((s) => !connectors.includes(s.name));
   if (extraServers.length) return `unexpected connectors: ${extraServers.map((s) => s.name).join(", ")}`;
-  // The binary's own plugins are built in; any other must be one Upstart assembled.
+  // The binary's own plugins are built in; any other must be one Spaka assembled.
   const ours = new Set(skills?.plugins.map((p) => p.path));
   const extraPlugins = init.plugins.filter((p) => p.path !== "builtin" && !ours.has(p.path));
   if (extraPlugins.length) return `unexpected plugins: ${extraPlugins.map((p) => p.name).join(", ")}`;

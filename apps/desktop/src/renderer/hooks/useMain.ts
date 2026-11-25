@@ -15,7 +15,7 @@ import {
   type SkillInfo,
   type UpdateState,
 } from "../../shared/ipc";
-import { upstart } from "../lib/bridge";
+import { spaka } from "../lib/bridge";
 
 /** The known projects and the open one, kept in step with the main process. */
 export function useProjects() {
@@ -25,11 +25,11 @@ export function useProjects() {
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
     void Promise.all([
-      upstart.invoke("projects:list").then(setProjects),
-      upstart.invoke("projects:current").then(setCurrent),
+      spaka.invoke("projects:list").then(setProjects),
+      spaka.invoke("projects:current").then(setCurrent),
     ]).then(() => setLoaded(true));
-    const offList = upstart.on("projects:changed", setProjects);
-    const offOpen = upstart.on("project:opened", setCurrent);
+    const offList = spaka.on("projects:changed", setProjects);
+    const offOpen = spaka.on("project:opened", setCurrent);
     return () => {
       offList();
       offOpen();
@@ -45,10 +45,10 @@ export function useConversation(projectId: string | undefined) {
     let live = true;
     setState(null);
     // Events and answers come in order: what the answer holds is not applied twice.
-    const off = upstart.on("conversation:event", ({ projectId: id, event }) =>
+    const off = spaka.on("conversation:event", ({ projectId: id, event }) =>
       setState((s) => (s && s.projectId === id ? { ...s, items: applyEvent(s.items, event) } : s)),
     );
-    if (projectId) void upstart.invoke("conversation:get").then((s) => live && setState(s));
+    if (projectId) void spaka.invoke("conversation:get").then((s) => live && setState(s));
     return () => {
       live = false;
       off();
@@ -62,8 +62,8 @@ export function useHistory(projectId: string | undefined) {
   const [state, setState] = useState<{ projectId: string; entries: HistoryEntry[] } | null>(null);
   useEffect(() => {
     let live = true;
-    const off = upstart.on("history:changed", (message) => setState(message));
-    if (projectId) void upstart.invoke("history:list").then((entries) => live && setState({ projectId, entries }));
+    const off = spaka.on("history:changed", (message) => setState(message));
+    if (projectId) void spaka.invoke("history:list").then((entries) => live && setState({ projectId, entries }));
     return () => {
       live = false;
       off();
@@ -84,8 +84,8 @@ const NO_STATUS: AgentStatus = {
 export function useWaiting() {
   const [ids, setIds] = useState<string[]>([]);
   useEffect(() => {
-    void upstart.invoke("agent:waiting").then(setIds);
-    return upstart.on("agent:waiting", setIds);
+    void spaka.invoke("agent:waiting").then(setIds);
+    return spaka.on("agent:waiting", setIds);
   }, []);
   return ids;
 }
@@ -101,8 +101,8 @@ function watchUpdate() {
     lastUpdate = state;
     for (const listener of updateListeners) listener(state);
   };
-  upstart.on("app:update", set);
-  void upstart.invoke("app:update-state").then((state) => {
+  spaka.on("app:update", set);
+  void spaka.invoke("app:update-state").then((state) => {
     // An event that came first is the newer.
     if (lastUpdate.state === "idle") set(state);
   });
@@ -125,8 +125,8 @@ export function useUpdate() {
 export function useAgentStatus() {
   const [status, setStatus] = useState<AgentStatus>(NO_STATUS);
   useEffect(() => {
-    void upstart.invoke("agent:status").then(setStatus);
-    return upstart.on("agent:status", setStatus);
+    void spaka.invoke("agent:status").then(setStatus);
+    return spaka.on("agent:status", setStatus);
   }, []);
   return status;
 }
@@ -144,7 +144,7 @@ const EMPTY_PREVIEW: PreviewState = {
 
 export function usePreviewState() {
   const [state, setState] = useState<PreviewState>(EMPTY_PREVIEW);
-  useEffect(() => upstart.on("preview:state", setState), []);
+  useEffect(() => spaka.on("preview:state", setState), []);
   return state;
 }
 
@@ -154,8 +154,8 @@ export function useComments(projectId: string | undefined) {
   // biome-ignore lint/correctness/useExhaustiveDependencies: another project has its own comments
   useEffect(() => {
     let live = true;
-    void upstart.invoke("comments:list").then((list) => live && setComments(list));
-    const off = upstart.on("comments:changed", setComments);
+    void spaka.invoke("comments:list").then((list) => live && setComments(list));
+    const off = spaka.on("comments:changed", setComments);
     return () => {
       live = false;
       off();
@@ -170,8 +170,8 @@ export function useSkills(projectId: string | undefined) {
   // biome-ignore lint/correctness/useExhaustiveDependencies: another project has other skills
   useEffect(() => {
     let live = true;
-    void upstart.invoke("skills:list").then((list) => live && setSkills(list));
-    const off = upstart.on("skills:changed", setSkills);
+    void spaka.invoke("skills:list").then((list) => live && setSkills(list));
+    const off = spaka.on("skills:changed", setSkills);
     return () => {
       live = false;
       off();
@@ -186,8 +186,8 @@ export function useConnectors(projectId: string | undefined) {
   // biome-ignore lint/correctness/useExhaustiveDependencies: another project has other connectors
   useEffect(() => {
     let live = true;
-    void upstart.invoke("connectors:list").then((list) => live && setConnectors(list));
-    const off = upstart.on("connectors:changed", setConnectors);
+    void spaka.invoke("connectors:list").then((list) => live && setConnectors(list));
+    const off = spaka.on("connectors:changed", setConnectors);
     return () => {
       live = false;
       off();
@@ -201,8 +201,8 @@ export function useAppSettings() {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_APP_SETTINGS);
   useEffect(() => {
     let live = true;
-    void upstart.invoke("settings:get").then((s) => live && setSettings(s));
-    const off = upstart.on("settings:changed", setSettings);
+    void spaka.invoke("settings:get").then((s) => live && setSettings(s));
+    const off = spaka.on("settings:changed", setSettings);
     return () => {
       live = false;
       off();
@@ -215,7 +215,7 @@ export function useAppSettings() {
 export function useAppInfo() {
   const [info, setInfo] = useState<AppInfo>();
   useEffect(() => {
-    void upstart.invoke("app:info").then(setInfo);
+    void spaka.invoke("app:info").then(setInfo);
   }, []);
   return info;
 }

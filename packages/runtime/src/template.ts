@@ -4,8 +4,8 @@
 // repairTemplate(): cut the unfinished tail (half a Liquid tag, half an HTML
 //   tag, an unfinished <script>/<style>), then close what is still open, so
 //   that LiquidJS can parse it and the browser gets a well-formed tree.
-// injectTrace(): add data-up-src="file:line:offset" to every HTML start tag,
-//   data-up-rec="{{ item.__ref }}" inside loops, and HTML comments around each
+// injectTrace(): add data-spaka-src="file:line:offset" to every HTML start tag,
+//   data-spaka-rec="{{ item.__ref }}" inside loops, and HTML comments around each
 //   shared part a page includes, before Liquid renders, so any previewed
 //   element can be traced back to its page, shared part or record, and to the
 //   exact place the app writes to when the maker edits it.
@@ -329,13 +329,13 @@ export function injectTrace(src: string, file: string): string {
       } else if (t.name === "endfor" || t.name === "endtablerow") loops.pop();
       else if (t.name === "render" || t.name === "include") {
         const marked = !inText;
-        if (marked) inserts.push({ at: t.start, text: `<!--up-inc ${file}:${t.start}:${t.end}-->` });
+        if (marked) inserts.push({ at: t.start, text: `<!--spaka-inc ${file}:${t.start}:${t.end}-->` });
         if (record() && !/\b__rec\s*:/.test(t.args)) {
           // Hand the current record down to the shared part: {% render 'card', book: book, __rec: book.__ref %}
           const close = src.slice(t.start, t.end).search(/-?%\}$/);
           if (close > 0) inserts.push({ at: t.start + close, text: `, __rec: ${record()} ` });
         }
-        if (marked) inserts.push({ at: t.end, text: "<!--/up-inc-->" });
+        if (marked) inserts.push({ at: t.end, text: "<!--/spaka-inc-->" });
       }
     } else if (t.type === "htmlOpen" && (t.name === "title" || t.name === "textarea") && !t.selfClosing) {
       inText = t.name;
@@ -343,9 +343,9 @@ export function injectTrace(src: string, file: string): string {
       inText = null;
     }
     if (t.type === "htmlOpen" && !UNTRACED.has(t.name)) {
-      let text = ` data-up-src="${file}:${lineAt(t.start)}:${t.start}"`;
+      let text = ` data-spaka-src="${file}:${lineAt(t.start)}:${t.start}"`;
       const rec = trace();
-      if (rec) text += ` data-up-rec="${rec}"`;
+      if (rec) text += ` data-spaka-rec="${rec}"`;
       inserts.push({ at: t.nameEnd, text });
     }
   }

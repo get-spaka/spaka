@@ -1,6 +1,6 @@
-// On Windows, Claude's shell is Git Bash, from Git for Windows, which Upstart
+// On Windows, Claude's shell is Git Bash, from Git for Windows, which Spaka
 // asks the maker to install at the first launch (Q375): the official binary
-// has no sandbox there, and Upstart keeps one shell, bash, as elsewhere.
+// has no sandbox there, and Spaka keeps one shell, bash, as elsewhere.
 
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";

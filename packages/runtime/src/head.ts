@@ -19,7 +19,7 @@ export const VENDOR = {
 /**
  * The preview's head. Tailwind is compiled in the page by its browser build,
  * so a class the agent has just written is styled at once; an export compiles
- * the stylesheet instead. Every element carries data-up-runtime, so that the
+ * the stylesheet instead. Every element carries data-spaka-runtime, so that the
  * preview tells them apart from the page's own.
  */
 export function previewHead({
@@ -37,16 +37,16 @@ export function previewHead({
 }): string {
   const base = vendorBase.replace(/\/$/, "");
   return [
-    `<meta charset="utf-8" data-up-runtime>`,
-    `<meta name="viewport" content="width=device-width, initial-scale=1" data-up-runtime>`,
-    `<style id="up-layers" data-up-runtime>${LAYER_ORDER}</style>`,
-    `<link rel="stylesheet" href="${base}/daisyui.css" data-up-runtime>`,
-    `<style id="up-theme" data-up-runtime>${themeStyle(theme)}</style>`,
-    `<style id="up-bridge" data-up-runtime>${BRIDGE_CSS}</style>`,
-    `<style id="up-still" data-up-runtime>${STILL_CSS}</style>`,
-    `<style id="up-styles" type="text/tailwindcss" data-up-runtime>${tailwindStyle(styles)}</style>`,
-    `<script src="${base}/tailwind.js" data-up-runtime></script>`,
-    `<script src="${base}/htmx.js" data-up-runtime></script>`,
+    `<meta charset="utf-8" data-spaka-runtime>`,
+    `<meta name="viewport" content="width=device-width, initial-scale=1" data-spaka-runtime>`,
+    `<style id="spaka-layers" data-spaka-runtime>${LAYER_ORDER}</style>`,
+    `<link rel="stylesheet" href="${base}/daisyui.css" data-spaka-runtime>`,
+    `<style id="spaka-theme" data-spaka-runtime>${themeStyle(theme)}</style>`,
+    `<style id="spaka-bridge" data-spaka-runtime>${BRIDGE_CSS}</style>`,
+    `<style id="spaka-still" data-spaka-runtime>${STILL_CSS}</style>`,
+    `<style id="spaka-styles" type="text/tailwindcss" data-spaka-runtime>${tailwindStyle(styles)}</style>`,
+    `<script src="${base}/tailwind.js" data-spaka-runtime></script>`,
+    `<script src="${base}/htmx.js" data-spaka-runtime></script>`,
     ...scriptTags(assets, `${base}/${START_SCRIPT}`, { wait: true }),
   ].join("");
 }
@@ -56,8 +56,8 @@ export function tailwindStyle(styles: string): string {
   return styles ? `${TAILWIND_THEME}\n${styles}` : TAILWIND_THEME;
 }
 
-/** Upstart's start script (ADR 0011), served beside the libraries in the preview, in assets/ once exported. */
-export const START_SCRIPT = "up-start.js";
+/** Spaka's start script (ADR 0011), served beside the libraries in the preview, in assets/ once exported. */
+export const START_SCRIPT = "spaka-start.js";
 
 /** Where an export puts the site's own assets: the compiled stylesheet and htmx. */
 export const ASSETS = "assets";

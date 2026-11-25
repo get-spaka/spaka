@@ -25,7 +25,7 @@ const EMBER = join(import.meta.dirname, "../../../templates/ember");
 const ROUTES = ["/", "/events", "/menu", "/private-dining", "/story", "/visit", "/wine"];
 
 function ember() {
-  const root = mkdtempSync(join(tmpdir(), "upstart-adaptation-"));
+  const root = mkdtempSync(join(tmpdir(), "spaka-adaptation-"));
   copyTemplate(EMBER, root);
   return root;
 }
@@ -97,7 +97,7 @@ describe("an adaptation", () => {
     expect(readAdaptation(root)).toBeUndefined();
   });
 
-  test("a turn stopped or left by Upstart closing keeps its page being adapted; Continue takes it up again", () => {
+  test("a turn stopped or left by Spaka closing keeps its page being adapted; Continue takes it up again", () => {
     const root = ember();
     choosePages(root, ["/menu"], {}, []);
     turnEnded(root, true);
@@ -156,6 +156,6 @@ describe("the check for the template's texts during the adaptation (Q305)", () =
   });
 
   test("outside an adaptation, every file", () => {
-    expect(adaptationScope(mkdtempSync(join(tmpdir(), "upstart-none-")))).toBeUndefined();
+    expect(adaptationScope(mkdtempSync(join(tmpdir(), "spaka-none-")))).toBeUndefined();
   });
 });

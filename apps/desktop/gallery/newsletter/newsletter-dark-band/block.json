@@ -1,7 +1,7 @@
 {
   "name": "Dark newsletter band",
   "kind": "newsletter",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A dark band with a heading and sentence on one side and an email field with its button on the other, stacked on a phone.",
   "tags": ["dark", "band", "inline", "email", "sign-up"],
   "mood": ["dark", "bold"],

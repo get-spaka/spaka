@@ -1,13 +1,13 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { LAYER_ORDER, layersOf, memorySource } from "@upstart/runtime";
+import { LAYER_ORDER, layersOf, memorySource } from "@spaka/runtime";
 import { afterEach, beforeEach, expect, test } from "vitest";
 import { buildStatic, candidates, copyAddress, imagesIn, withSrcset } from "./index.ts";
 
 let out: string;
 beforeEach(() => {
-  out = mkdtempSync(join(tmpdir(), "upstart-build-"));
+  out = mkdtempSync(join(tmpdir(), "spaka-build-"));
 });
 afterEach(() => rmSync(out, { recursive: true, force: true }));
 
@@ -35,7 +35,7 @@ test("pages, fragments, a stylesheet with the classes used, the theme", async ()
   expect(home).toContain('<link rel="stylesheet" href="/theme.css">');
   expect(home).toContain("Chez Margot");
   // No preview machinery in the export.
-  expect(home).not.toMatch(/data-up-|tailwindcss|up-theme/);
+  expect(home).not.toMatch(/data-spaka-|tailwindcss|spaka-theme/);
   expect(readFileSync(join(out, "menu/index.html"), "utf8")).toContain('class="font-bold"');
   expect(readFileSync(join(out, "fragments/hours/index.html"), "utf8")).toBe(`<p class="italic">7am to 7pm</p>`);
 

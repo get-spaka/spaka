@@ -2,7 +2,7 @@
 // (decisions, Q90). Each function takes a file's text and a place in it, and
 // returns the new text, or throws with a reason the maker can read. Nothing
 // here touches the disk.
-import { locate, type Range, replaceTexts, sections, textRuns } from "@upstart/runtime";
+import { locate, type Range, replaceTexts, sections, textRuns } from "@spaka/runtime";
 import { en } from "../../shared/strings/en";
 
 export class EditRefused extends Error {}

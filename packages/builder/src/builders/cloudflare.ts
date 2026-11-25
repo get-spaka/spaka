@@ -1,17 +1,17 @@
 // A Cloudflare Worker with Static Assets (Q175, Q187), set up the way
 // Cloudflare advises today: wrangler.jsonc, the files of public/ served
-// without waking the Worker, the Worker run first for /_data/ and /_upstart/,
+// without waking the Worker, the Worker run first for /_data/ and /_spaka/,
 // the records in D1 (created by the first deploy, its table by the
 // migration), the management token a required secret. Node.js compatibility
 // comes with the compatibility date: from 2026-08-04 on, Workers turn on
 // nodejs_compat by default, for the npm packages a site may use one day.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { RECORDS_SCHEMA } from "@upstart/runtime";
+import { RECORDS_SCHEMA } from "@spaka/runtime";
 import type { Builder } from "../builder.ts";
 import { Output, slug, writeEnv, writePublishedSite } from "../shared.ts";
 
-/** The wrangler the export installs, the one Upstart is tested with. */
+/** The wrangler the export installs, the one Spaka is tested with. */
 export const WRANGLER_VERSION = "4.160.1";
 /** The first compatibility date with nodejs_compat on by default. */
 export const NODE_COMPAT_DATE = "2026-08-04";
@@ -40,14 +40,14 @@ export function databaseIdIn(config: string | undefined): string | undefined {
 }
 
 export function wranglerConfig(name: string, date: string, databaseId?: string): string {
-  return `// Upstart's Cloudflare export: see README.md.
+  return `// Spaka's Cloudflare export: see README.md.
 ${JSON.stringify(
   {
     $schema: "./node_modules/wrangler/config-schema.json",
     name,
     main: "worker.mjs",
     compatibility_date: date,
-    assets: { directory: "./public", run_worker_first: ["/_data/*", "/_upstart/*"] },
+    assets: { directory: "./public", run_worker_first: ["/_data/*", "/_spaka/*"] },
     // Without database_id, the first deploy creates the database and writes it here.
     d1_databases: [
       {
@@ -57,7 +57,7 @@ ${JSON.stringify(
         migrations_dir: "migrations",
       },
     ],
-    secrets: { required: ["UPSTART_TOKEN"] },
+    secrets: { required: ["SPAKA_TOKEN"] },
     observability: { enabled: true },
   },
   null,
@@ -69,7 +69,7 @@ ${JSON.stringify(
 const guide = (name: string) => `# Putting ${name} online with Cloudflare
 
 This folder is a Cloudflare Worker: \`worker.mjs\` answers the pages, the forms
-and Upstart's management API; \`public/\` holds the files Cloudflare serves as
+and Spaka's management API; \`public/\` holds the files Cloudflare serves as
 they are; \`site.json\` holds the pages and data. What visitors send is kept in
 a D1 database, \`${name}-records\`.
 
@@ -81,7 +81,7 @@ You need Node.js and a Cloudflare account (the free plan is enough).
        npx wrangler login
 
 2. Deploy. \`npm run deploy\` also gives the Worker the website's management
-   token, which Upstart wrote into \`.env\` (keep that file private: git leaves
+   token, which Spaka wrote into \`.env\` (keep that file private: git leaves
    it out). The first deploy creates the database and writes its id into
    wrangler.jsonc: keep this folder, and export into it next time.
 
@@ -93,7 +93,7 @@ You need Node.js and a Cloudflare account (the free plan is enough).
 
 4. Give the site's address (\`https://${name}.<your-subdomain>.workers.dev\`, or
    your own domain once added in Cloudflare) in the website's settings in
-   Upstart, to see what visitors sent.
+   Spaka, to see what visitors sent.
 
 To try it on this machine first: \`npx wrangler d1 migrations apply DB --local\`,
 then \`npm run dev\`. It uses the test token in \`.dev.vars\`.
@@ -134,7 +134,7 @@ export const cloudflareBuilder: Builder = {
     const local = Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => b.toString(16).padStart(2, "0")).join(
       "",
     );
-    out.write(".dev.vars", `# A token for trying the site on this machine only.\nUPSTART_TOKEN=${local}\n`);
+    out.write(".dev.vars", `# A token for trying the site on this machine only.\nSPAKA_TOKEN=${local}\n`);
     writeEnv(out, options.managementToken);
     out.write(".gitignore", "node_modules/\n.wrangler/\n.dev.vars\n.env\n");
     out.write("README.md", guide(name));

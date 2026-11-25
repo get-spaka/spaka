@@ -1,7 +1,7 @@
 {
   "name": "Event cards with covers",
   "kind": "events",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A grid of event cards on a soft background, each with a cover picture (or a colored placeholder), the date and time, the title, a summary, the place, the price and a Book button.",
   "tags": ["cards", "grid", "covers", "workshops", "booking"],
   "mood": ["friendly", "warm", "colorful"],

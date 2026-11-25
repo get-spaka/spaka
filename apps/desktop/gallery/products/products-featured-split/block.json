@@ -1,7 +1,7 @@
 {
   "name": "Featured product and the others",
   "kind": "products",
-  "source": "upstart",
+  "source": "spaka",
   "description": "The first product shown large in a card with its picture, badge, category, summary, price and an Order button, beside a column of the next four as small rows with a thumbnail, the name and the price; each product's page puts the picture beside a price card with the order button, then the description and the other products.",
   "tags": ["featured", "split", "highlight", "shop", "list"],
   "mood": ["bold", "friendly"],

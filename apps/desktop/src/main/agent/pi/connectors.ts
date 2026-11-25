@@ -1,8 +1,8 @@
-// The maker's connectors in Upstart's own harness (Q277, ADR 0010): Upstart
+// The maker's connectors in Spaka's own harness (Q277, ADR 0010): Spaka
 // connects them itself, through pi-mcp, as Claude's kit does for Claude. A
 // local one is a program launched outside the sandbox, in the project's
 // folder; a remote one is reached over Streamable HTTP, and its OAuth sign-in
-// goes through the maker's browser and back to Upstart on this computer. The
+// goes through the maker's browser and back to Spaka on this computer. The
 // tokens are encrypted by the system's keychain (the Vault), as connectors'
 // secrets are, never written in a project's files.
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
@@ -42,7 +42,7 @@ export type ConnectorStatus = { name: string; status: ConnectorState; error?: st
 
 /** How long the agent's first message waits for its connectors. */
 const READY_WAIT_MS = 15_000;
-const CLIENT = { name: "Upstart", version: "2" };
+const CLIENT = { name: "Spaka", version: "2" };
 
 /** The sign-ins of remote connectors, encrypted in one file; one store per server. */
 export class VaultSignIns {
@@ -192,7 +192,7 @@ export class PiConnectors {
   /**
    * Starts signing in to a remote connector: answers the page to open in the
    * browser, or nothing when its stored sign-in could be renewed. The browser
-   * comes back to Upstart on this computer, which finishes the sign-in and
+   * comes back to Spaka on this computer, which finishes the sign-in and
    * connects the connector.
    */
   async signIn(name: string): Promise<string | undefined> {
@@ -206,7 +206,7 @@ export class PiConnectors {
     const callback = await listenForLoopbackSignIn({ ...options, renderPage: signInPage });
     const signIn = {
       ...options,
-      clientName: "Upstart",
+      clientName: "Spaka",
       redirectUrl: callback.redirectUrl,
       challenge: server.challenge,
     };
@@ -303,7 +303,7 @@ export class PiConnectors {
                     authProvider: createMcpAuthProvider({
                       ...this.oauth(server),
                       settings: () => this.oauth(server).settings,
-                      clientName: "Upstart",
+                      clientName: "Spaka",
                       onChallenge: (challenge) => {
                         server.challenge = challenge;
                       },
@@ -338,11 +338,11 @@ export class PiConnectors {
   }
 }
 
-/** The page the browser shows when it comes back to Upstart. */
+/** The page the browser shows when it comes back to Spaka. */
 function signInPage(page: OAuthCallbackPage): string {
   const text = page.ok ? en.connectors.signedInPage : en.connectors.signInFailedPage(page.message);
   const escaped = text.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
-  return `<!doctype html><meta charset="utf-8"><title>Upstart</title><body style="font:16px system-ui;margin:20vh auto;max-width:28rem;text-align:center"><p>${escaped}</p></body>`;
+  return `<!doctype html><meta charset="utf-8"><title>Spaka</title><body style="font:16px system-ui;margin:20vh auto;max-width:28rem;text-align:center"><p>${escaped}</p></body>`;
 }
 
 function message(e: unknown) {

@@ -3,7 +3,7 @@
 // (streamFunctionCallArguments): a first part with the call's name, then the
 // pieces of its arguments, each a JSON path and a value, a string coming in
 // several pieces. pi-ai 1.5.2 neither asks for these pieces nor reads them: it
-// would take each part for a call of its own. So Upstart asks for them, keeps
+// would take each part for a call of its own. So Spaka asks for them, keeps
 // them out of what pi-ai reads, and tells the conversation the call as it
 // grows, as OpenAI's arrive, with the same events; pi-ai reads the call once
 // whole, as before.
@@ -13,7 +13,7 @@
 // `file_path`, and the preview could not know which file is being written
 // until it is done. So the model sees two names changed, Write's `content` as
 // `text` and Edit's `new_string` as `replacement`, the path and the text to
-// replace coming first; the rest of Upstart sees the usual names.
+// replace coming first; the rest of Spaka sees the usual names.
 import {
   type Api,
   type AssistantMessage,
@@ -34,7 +34,7 @@ export const GCLOUD_SIGN_IN = "<application-default-credentials>";
 /** How the maker connected Vertex AI (Q280): a key of its express mode, or gcloud's sign-in and a project. */
 export type VertexConfig = { key: string } | { project: string; location: string };
 
-/** The names Vertex sees in place of Upstart's, per tool, so that a call's arguments come in a useful order. */
+/** The names Vertex sees in place of Spaka's, per tool, so that a call's arguments come in a useful order. */
 const RENAMED: Record<string, Record<string, string>> = {
   Write: { content: "text" },
   Edit: { new_string: "replacement" },
@@ -115,8 +115,8 @@ function renameKeys(value: Record<string, unknown>, names: Record<string, string
   return Object.fromEntries(Object.entries(value).map(([k, v]) => [names[k] ?? k, v]));
 }
 
-/** Upstart's names back, in the order the arguments came. */
-function upstartNames(tool: string, args: Record<string, unknown>): Record<string, unknown> {
+/** Spaka's names back, in the order the arguments came. */
+function spakaNames(tool: string, args: Record<string, unknown>): Record<string, unknown> {
   const names = RENAMED[tool];
   if (!names) return args;
   const back = Object.fromEntries(Object.entries(names).map(([ours, theirs]) => [theirs, ours]));
@@ -193,7 +193,7 @@ class StreamedCalls {
         // A call sent whole carries Vertex's names too.
         kept.push(
           call?.name && call.args
-            ? { ...part, functionCall: { ...call, args: upstartNames(call.name, call.args) } }
+            ? { ...part, functionCall: { ...call, args: spakaNames(call.name, call.args) } }
             : part,
         );
         continue;
@@ -221,7 +221,7 @@ class StreamedCalls {
   /** The call's arguments told so far, as a JSON text that only grows. */
   private tell(open: Open, last: PartialArg | undefined) {
     if (open.sent === undefined) return;
-    const full = JSON.stringify(upstartNames(open.name, open.args));
+    const full = JSON.stringify(spakaNames(open.name, open.args));
     // A string still coming stays open; what follows the last value comes with the next one.
     const growing = last?.willContinue && last.stringValue !== undefined;
     const text = growing ? full.replace(/"?[\]}]*$/, "") : full.replace(/[\]}]*$/, "");
@@ -240,7 +240,7 @@ class StreamedCalls {
     const open = this.open!;
     this.open = undefined;
     // The arguments' JSON told to its end, as a call streamed by OpenAI is.
-    const full = JSON.stringify(upstartNames(open.name, open.args));
+    const full = JSON.stringify(spakaNames(open.name, open.args));
     if (open.sent !== undefined && full.startsWith(open.sent) && full.length > open.sent.length)
       this.push({
         type: "toolcall_delta",
@@ -249,7 +249,7 @@ class StreamedCalls {
         partial: this.partial(open),
       });
     return {
-      functionCall: { id: open.id, name: open.name, args: upstartNames(open.name, open.args) },
+      functionCall: { id: open.id, name: open.name, args: spakaNames(open.name, open.args) },
       ...(open.signature ? { thoughtSignature: open.signature } : {}),
     };
   }
@@ -262,7 +262,7 @@ class StreamedCalls {
       type: "toolCall",
       id: open.id,
       name: open.name,
-      arguments: upstartNames(open.name, open.args) as ToolCall["arguments"],
+      arguments: spakaNames(open.name, open.args) as ToolCall["arguments"],
     };
     return { ...output, content };
   }

@@ -1,4 +1,4 @@
-// The web search of Upstart's own harness (Q276): the provider's own search,
+// The web search of Spaka's own harness (Q276): the provider's own search,
 // OpenAI's web_search or Google Search, so no other key is needed and the
 // queries stay with the maker's provider. It runs as a request of its own,
 // made by the WebSearch tool: Google Search beside function tools needs

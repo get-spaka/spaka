@@ -3,8 +3,8 @@
 // the repository's .env (Q438). Each account runs when its key is there, and
 // Vertex AI on gcloud's sign-in when its project is given:
 //
-//   UPSTART_REAL_IMAGES=1 pnpm exec vitest run src/main/images/generate.real.test.ts
-//   UPSTART_REAL_IMAGES=1 UPSTART_REAL_IMAGES_VERTEX_PROJECT=<project> pnpm exec vitest run src/main/images/generate.real.test.ts
+//   SPAKA_REAL_IMAGES=1 pnpm exec vitest run src/main/images/generate.real.test.ts
+//   SPAKA_REAL_IMAGES=1 SPAKA_REAL_IMAGES_VERTEX_PROJECT=<project> pnpm exec vitest run src/main/images/generate.real.test.ts
 import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -13,14 +13,14 @@ import { devKey } from "../dev-keys";
 import { generateImage, type ImageCredentials } from "./generate";
 import { generateIntoMedia } from "./into-media";
 
-const real = process.env.UPSTART_REAL_IMAGES === "1";
+const real = process.env.SPAKA_REAL_IMAGES === "1";
 const gemini = real ? devKey("GEMINI_API_KEY") : undefined;
 const openai = real ? devKey("OPENAI_API_KEY") : undefined;
-const vertexProject = real ? process.env.UPSTART_REAL_IMAGES_VERTEX_PROJECT?.trim() : undefined;
+const vertexProject = real ? process.env.SPAKA_REAL_IMAGES_VERTEX_PROJECT?.trim() : undefined;
 
 let root: string;
 beforeAll(() => {
-  root = mkdtempSync(join(tmpdir(), "upstart-generate-"));
+  root = mkdtempSync(join(tmpdir(), "spaka-generate-"));
   mkdirSync(join(root, "media"));
 });
 afterAll(() => rmSync(root, { recursive: true, force: true }));

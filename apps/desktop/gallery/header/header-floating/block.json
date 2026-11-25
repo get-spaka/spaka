@@ -1,7 +1,7 @@
 {
   "name": "Floating header",
   "kind": "header",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A navigation bar shaped as a floating rounded pill with a soft shadow over a light gradient, holding a small logo, compact links and a round call-to-action button; links fold into a dropdown menu on mobile.",
   "tags": ["floating", "rounded", "pill", "logo", "button", "mobile menu"],
   "mood": ["playful", "friendly", "minimal"],

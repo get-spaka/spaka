@@ -16,11 +16,11 @@ const built = existsSync(
   join(
     import.meta.dirname,
     process.platform === "win32"
-      ? "../apps/desktop/dist/win-unpacked/Upstart.exe"
-      : "../apps/desktop/dist/mac-arm64/Upstart.app",
+      ? "../apps/desktop/dist/win-unpacked/Spaka.exe"
+      : "../apps/desktop/dist/mac-arm64/Spaka.app",
   ),
 );
-const real = process.env.UPSTART_REAL_AGENT === "1";
+const real = process.env.SPAKA_REAL_AGENT === "1";
 const configDir = agentConfigDir();
 
 const invokeIn =
@@ -29,7 +29,7 @@ const invokeIn =
   (channel: string, ...args: unknown[]): Promise<any> =>
     launched.window.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      ([channel, args]) => (window as any).upstart.invoke(channel, ...args),
+      ([channel, args]) => (window as any).spaka.invoke(channel, ...args),
       [channel, args] as const,
     );
 const until = async (read: () => Promise<unknown>, timeout: number) => {
@@ -65,7 +65,7 @@ async function serve(folder: string) {
 /** Loads a page in a view of its own, offscreen, and returns its text and whether its stylesheet applied. */
 async function load(launched: LaunchedApp, url: string) {
   return launched.app.evaluate(async (electron, url) => {
-    const win = (globalThis as { upstart?: { win: Electron.BrowserWindow } }).upstart!.win;
+    const win = (globalThis as { spaka?: { win: Electron.BrowserWindow } }).spaka!.win;
     const view = new electron.WebContentsView({ webPreferences: { partition: "packaged-check" } });
     win.contentView.addChildView(view);
     view.setBounds({ x: 0, y: 0, width: 1000, height: 800 });
@@ -81,17 +81,17 @@ async function load(launched: LaunchedApp, url: string) {
   }, url);
 }
 
-// Run after `pnpm --filter @upstart/desktop package`.
+// Run after `pnpm --filter @spaka/desktop package`.
 describe.runIf(built && (process.platform === "darwin" || process.platform === "win32"))("the packaged app", () => {
   test(
-    "starts in the background, with Upstart's skills, and exports a website",
+    "starts in the background, with Spaka's skills, and exports a website",
     async () => {
       const launched = await launchApp({ packaged: true });
       try {
         const invoke = invokeIn(launched);
         await launched.window.getByTestId("message-input").waitFor();
         expect(await launched.app.evaluate(({ app }) => app.isPackaged)).toBe(true);
-        // Upstart's templates, from the release's catalogue shipped with the app (Q247), their covers with it.
+        // Spaka's templates, from the release's catalogue shipped with the app (Q247), their covers with it.
         const templates = await invoke("templates:list");
         expect(templates.map((t: { id: string }) => t.id)).toEqual(expect.arrayContaining(["reel", "ember", "beacon"]));
         expect(await invoke("templates:picture", "reel", "cover")).toMatch(/^data:image\/webp;base64,/);
@@ -103,7 +103,7 @@ describe.runIf(built && (process.platform === "darwin" || process.platform === "
           "gallery",
           "htmx-patterns",
           "site-scripts",
-          "upstart-help",
+          "spaka-help",
           "web-design",
           "writing-skills",
         ]);
@@ -139,10 +139,10 @@ describe.runIf(built && (process.platform === "darwin" || process.platform === "
       const launched = await launchApp({
         packaged: true,
         env: {
-          UPSTART_AGENT_REPLAY: "",
-          UPSTART_AGENT_CONFIG_DIR: configDir,
-          UPSTART_AGENT_RECORD: join(runsDir, "packaged-real.jsonl"),
-          UPSTART_DATA_DIR: dataDir,
+          SPAKA_AGENT_REPLAY: "",
+          SPAKA_AGENT_CONFIG_DIR: configDir,
+          SPAKA_AGENT_RECORD: join(runsDir, "packaged-real.jsonl"),
+          SPAKA_DATA_DIR: dataDir,
         },
       });
       try {
@@ -159,8 +159,8 @@ describe.runIf(built && (process.platform === "darwin" || process.platform === "
           () =>
             launched.app.evaluate(() =>
               (
-                globalThis as { upstart?: { preview: { view: Electron.WebContentsView } } }
-              ).upstart!.preview.view.getVisible(),
+                globalThis as { spaka?: { preview: { view: Electron.WebContentsView } } }
+              ).spaka!.preview.view.getVisible(),
             ),
           20_000,
         );
@@ -198,8 +198,8 @@ describe.runIf(built && (process.platform === "darwin" || process.platform === "
         const problems = await launched.app.evaluate(() =>
           [
             ...(
-              globalThis as { upstart?: { agent: { sessions: Map<string, { problems: string[] }> } } }
-            ).upstart!.agent.sessions.values(),
+              globalThis as { spaka?: { agent: { sessions: Map<string, { problems: string[] }> } } }
+            ).spaka!.agent.sessions.values(),
           ].flatMap((s) => s.problems),
         );
         expect(problems).toEqual([]);
@@ -221,10 +221,10 @@ describe.runIf(built && (process.platform === "darwin" || process.platform === "
       const launched = await launchApp({
         packaged: true,
         env: {
-          UPSTART_AGENT_REPLAY: "",
-          UPSTART_AGENT_CONFIG_DIR: configDir,
-          UPSTART_AGENT_RECORD: join(runsDir, "packaged-step2.jsonl"),
-          UPSTART_DATA_DIR: dataDir,
+          SPAKA_AGENT_REPLAY: "",
+          SPAKA_AGENT_CONFIG_DIR: configDir,
+          SPAKA_AGENT_RECORD: join(runsDir, "packaged-step2.jsonl"),
+          SPAKA_DATA_DIR: dataDir,
         },
       });
       const { page, click, typeText, key, drawn, picture } = previewDriver(() => launched);
@@ -251,7 +251,7 @@ describe.runIf(built && (process.platform === "darwin" || process.platform === "
         // Written in the language of the message, not the city's (Q88).
         expect(liquid().join("\n")).toMatch(/<html[^>]*lang="en/);
         await invoke("preview:navigate", "/");
-        await until(() => page("!!document.querySelector('upstart-editor') && location.pathname === '/'"), 20_000);
+        await until(() => page("!!document.querySelector('spaka-editor') && location.pathname === '/'"), 20_000);
 
         // A block, added where its kind goes.
         const parts = readdirSync(join(project.path, "parts")).length;
@@ -319,8 +319,8 @@ describe.runIf(built && (process.platform === "darwin" || process.platform === "
         const problems = await launched.app.evaluate(() =>
           [
             ...(
-              globalThis as { upstart?: { agent: { sessions: Map<string, { problems: string[] }> } } }
-            ).upstart!.agent.sessions.values(),
+              globalThis as { spaka?: { agent: { sessions: Map<string, { problems: string[] }> } } }
+            ).spaka!.agent.sessions.values(),
           ].flatMap((s) => s.problems),
         );
         expect(problems).toEqual([]);
@@ -346,10 +346,10 @@ describe.runIf(built && (process.platform === "darwin" || process.platform === "
       const launched = await launchApp({
         packaged: true,
         env: {
-          UPSTART_AGENT_REPLAY: "",
-          UPSTART_AGENT_CONFIG_DIR: configDir,
-          UPSTART_AGENT_RECORD: record,
-          UPSTART_DATA_DIR: dataDir,
+          SPAKA_AGENT_REPLAY: "",
+          SPAKA_AGENT_CONFIG_DIR: configDir,
+          SPAKA_AGENT_RECORD: record,
+          SPAKA_DATA_DIR: dataDir,
         },
       });
       const { page, click, typeText, key } = previewDriver(() => launched);
@@ -391,17 +391,17 @@ describe.runIf(built && (process.platform === "darwin" || process.platform === "
         const editor = (file: string, at: number) =>
           launched.app.evaluate(
             // biome-ignore lint/suspicious/noExplicitAny: the main process's objects, set for checks
-            (_electron, [file, at]) => (globalThis as any).upstart.editor.info(file, at),
+            (_electron, [file, at]) => (globalThis as any).spaka.editor.info(file, at),
             [file, at] as const,
           );
         const traced = async (selector: string) =>
           (await page(
-            `[...document.querySelectorAll(${JSON.stringify(selector)})].map((e, i) => { e.setAttribute("data-check", String(i)); return e.getAttribute("data-up-src"); })`,
+            `[...document.querySelectorAll(${JSON.stringify(selector)})].map((e, i) => { e.setAttribute("data-check", String(i)); return e.getAttribute("data-spaka-src"); })`,
           )) as string[];
         const route = report.recordRoutes[1] ?? report.recordRoutes[0]!;
         await invoke("preview:navigate", route);
         await until(
-          () => page(`location.pathname === ${JSON.stringify(route)} && !!document.querySelector("[data-up-src]")`),
+          () => page(`location.pathname === ${JSON.stringify(route)} && !!document.querySelector("[data-spaka-src]")`),
           10_000,
         );
         let editedInPlace = false;
@@ -439,7 +439,7 @@ describe.runIf(built && (process.platform === "darwin" || process.platform === "
           await until(
             () =>
               page(
-                `!!document.querySelector('upstart-editor').shadowRoot.querySelector('[data-testid="editor-replace"]')`,
+                `!!document.querySelector('spaka-editor').shadowRoot.querySelector('[data-testid="editor-replace"]')`,
               ),
             5_000,
           );
@@ -475,8 +475,8 @@ describe.runIf(built && (process.platform === "darwin" || process.platform === "
         const problems = await launched.app.evaluate(() =>
           [
             ...(
-              globalThis as { upstart?: { agent: { sessions: Map<string, { problems: string[] }> } } }
-            ).upstart!.agent.sessions.values(),
+              globalThis as { spaka?: { agent: { sessions: Map<string, { problems: string[] }> } } }
+            ).spaka!.agent.sessions.values(),
           ].flatMap((s) => s.problems),
         );
         expect(problems).toEqual([]);
@@ -500,10 +500,10 @@ describe.runIf(built && (process.platform === "darwin" || process.platform === "
       const launched = await launchApp({
         packaged: true,
         env: {
-          UPSTART_AGENT_REPLAY: "",
-          UPSTART_AGENT_CONFIG_DIR: configDir,
-          UPSTART_AGENT_RECORD: join(runsDir, "packaged-step4.jsonl"),
-          UPSTART_DATA_DIR: dataDir,
+          SPAKA_AGENT_REPLAY: "",
+          SPAKA_AGENT_CONFIG_DIR: configDir,
+          SPAKA_AGENT_RECORD: join(runsDir, "packaged-step4.jsonl"),
+          SPAKA_DATA_DIR: dataDir,
         },
       });
       const log = (line: string) => process.stdout.write(`[step4] ${line}\n`);
@@ -535,7 +535,7 @@ describe.runIf(built && (process.platform === "darwin" || process.platform === "
         const base = `http://127.0.0.1:${port}`;
         server = spawn(process.execPath, ["server.mjs"], {
           cwd: out,
-          env: { ...process.env, PORT: String(port), HOST: "127.0.0.1", UPSTART_TOKEN: token },
+          env: { ...process.env, PORT: String(port), HOST: "127.0.0.1", SPAKA_TOKEN: token },
           stdio: "ignore",
         });
         await until(async () => (await fetch(`${base}/`)).ok, 15_000);

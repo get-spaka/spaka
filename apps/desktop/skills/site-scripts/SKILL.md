@@ -1,21 +1,21 @@
 ---
 name: site-scripts
-description: How to give an Upstart site its own JavaScript and stylesheet — scripts/*.js modules with start(root) and stop(root), styles/*.css, the libraries Upstart has checked (Motion, Lenis, Splitting, Embla, OGL) and how to add another — for reveals on scroll, smooth scrolling, sliders, split text, WebGL backgrounds. Use before writing any script or stylesheet for a site.
+description: How to give a Spaka site its own JavaScript and stylesheet — scripts/*.js modules with start(root) and stop(root), styles/*.css, the libraries Spaka has checked (Motion, Lenis, Splitting, Embla, OGL) and how to add another — for reveals on scroll, smooth scrolling, sliders, split text, WebGL backgrounds. Use before writing any script or stylesheet for a site.
 ---
 
 # A site's own scripts and stylesheet
 
 How much a site moves follows its character, from still to orchestrated: the web-design skill says which. Tailwind's classes, daisyUI and htmx already cover layouts, menus, accordions, tabs and forms; a script is for the movement they cannot do. Try CSS first: much movement needs no script at all (below).
 
-Pages never hold `<script>`, `<style>` or `<link>` tags. Upstart loads, for every page:
+Pages never hold `<script>`, `<style>` or `<link>` tags. Spaka loads, for every page:
 
 - `styles/*.css`, the site's stylesheet, compiled with Tailwind's: `@apply`, Tailwind's functions and the theme's variables (`var(--color-primary)`, `var(--radius-box)`) work there. To restyle one of daisyUI's components (`.btn`, `.card`…), write the rule in `@layer components`: it comes after daisyUI's, and Tailwind's classes on an element still win over it. Set the properties themselves (`border-radius`, `padding-inline`), not daisyUI's own variables such as `--btn-p`, which daisyUI may change in any release;
 - the libraries listed in `scripts/libraries.json`, from their address, then those in `scripts/lib/*.js`, in name order;
-- `scripts/*.js`, the site's modules, which Upstart imports and starts.
+- `scripts/*.js`, the site's modules, which Spaka imports and starts.
 
 ## Rules that keep the site editable
 
-The maker edits the page in Upstart's preview with no script running and no animation playing: they see it as it is when everything has finished moving. Once published, and in the preview's visitor mode, it moves. So:
+The maker edits the page in Spaka's preview with no script running and no animation playing: they see it as it is when everything has finished moving. Once published, and in the preview's visitor mode, it moves. So:
 
 1. **The page must look right with no script.** Never hide something in the stylesheet waiting for a script to show it (`opacity: 0` on `.reveal`): set the hidden state from the script, in `start`, just before animating it.
 2. **Texts stay in the templates.** A script animates the elements that are there; it never writes the site's texts, which the maker edits in place.
@@ -62,13 +62,13 @@ export function stop() {
 
 - Move with Motion's own `x`, `y`, `scale` and `rotate` (`y: [24, 0]`), or with keyframes of the same functions (`transform: ["translateY(24px)", "translateY(0px)"]`): never to `transform: "none"`, which Motion turns into a transform that shrinks the element to nothing.
 - `start(root)` is called with `document` once the page has loaded, then with each element htmx brings in. That element may itself be the one to start, hence `within`.
-- `stop(root)` undoes what `start` set up: observers, listeners, library instances (`lenis.destroy()`, `embla.destroy()`), styles it set, elements it moved or added. In the preview, after each change of a file, Upstart calls `stop(document)` on the page as `start` left it, puts the new rendering in its place, then calls `start(document)` again on the same elements. So `start` must work a second time:
+- `stop(root)` undoes what `start` set up: observers, listeners, library instances (`lenis.destroy()`, `embla.destroy()`), styles it set, elements it moved or added. In the preview, after each change of a file, Spaka calls `stop(document)` on the page as `start` left it, puts the new rendering in its place, then calls `start(document)` again on the same elements. So `start` must work a second time:
   - Give every animated value where it starts from: `opacity: [0, 1]`, never `opacity: 1`. Motion remembers the last value it set on an element and would see nothing to animate, leaving it hidden.
   - Leave what `start` needs again: stop a WebGL loop and clear the canvas, but keep its context (no `WEBGL_lose_context`), since the same canvas starts again.
 - Mark what a script acts on with a `data-` attribute (`data-reveal`, `data-split`, `data-carousel`) rather than a class: the maker's classes stay theirs.
 - One module per effect, named after it: `scripts/reveal.js`, `scripts/smooth-scroll.js`, `scripts/carousel.js`.
 
-## Libraries Upstart has checked
+## Libraries Spaka has checked
 
 Put the ones you use in `scripts/libraries.json`, exactly as below: their addresses pin a version, and their licences allow a website builder.
 
@@ -99,7 +99,7 @@ html.lenis, html.lenis body { height: auto; }
 
 Splitting sets `--word-index` and `--char-index` on each piece: enough to stagger them with CSS, `transition-delay: calc(var(--char-index) * 20ms)`.
 
-**Never GSAP**: its licence forbids tools that compete with Webflow, which Upstart is.
+**Never GSAP**: its licence forbids tools that compete with Webflow, which Spaka is.
 
 ### Another library
 

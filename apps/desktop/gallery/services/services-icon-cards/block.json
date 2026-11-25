@@ -1,7 +1,7 @@
 {
   "name": "Service cards with icons",
   "kind": "services",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A centred heading and intro above a grid of bordered cards, each service with its icon in a tinted square, a short summary, its price and duration, and a Learn more link.",
   "tags": ["cards", "grid", "icons", "three columns", "prices"],
   "mood": ["friendly", "professional"],

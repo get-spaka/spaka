@@ -1,7 +1,7 @@
 // Finding, in a template's source, what a previewed element came from, so the
 // app can write the maker's own edits (decisions, Q90): the element's extent,
 // its texts, and the sections of a page. Everything here reads the source as
-// it is on disk; the offsets are those injectTrace() puts in data-up-src.
+// it is on disk; the offsets are those injectTrace() puts in data-spaka-src.
 
 import { scan, type Token } from "./template.ts";
 

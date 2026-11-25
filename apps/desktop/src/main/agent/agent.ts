@@ -1,5 +1,5 @@
 // The app's side of the agent: one session per open project, on Claude or in
-// Upstart's own harness after the project's model (ADR 0012), the
+// Spaka's own harness after the project's model (ADR 0012), the
 // conversations as shown (kept in the app's data, ADR 0001), the sign-ins and
 // the models on offer.
 import { readFileSync, writeFileSync } from "node:fs";
@@ -44,7 +44,7 @@ export type AgentOptions = {
   auth: AgentAuth;
   /** The session's dependencies; `env` is filled in from the sign-in. */
   session: Omit<SessionDeps, "env">;
-  /** Upstart's own harness: its accounts, and what its sessions need besides them. */
+  /** Spaka's own harness: its accounts, and what its sessions need besides them. */
   pi?: {
     accounts: PiAccounts;
     deps: Omit<PiDeps, "models" | "apiKey">;
@@ -176,7 +176,7 @@ export class Agent {
     }
   }
 
-  /** A line in the conversation from Upstart itself. */
+  /** A line in the conversation from Spaka itself. */
   notice(projectId: string, text: string) {
     this.record(projectId, { type: "notice", id: `${Date.now().toString(36)}-n`, text, at: Date.now() });
   }
@@ -322,7 +322,7 @@ export class Agent {
     };
   }
 
-  /** An OpenAI, Gemini or Vertex AI key for Upstart's own harness; null removes it. */
+  /** An OpenAI, Gemini or Vertex AI key for Spaka's own harness; null removes it. */
   setKey(account: KeyAccount, key: string | null) {
     this.o.pi?.accounts.setKey(account, key);
   }
@@ -417,7 +417,7 @@ export class Agent {
               models: pi.replay?.models ?? pi.accounts.models,
               ...(pi.replay ? { search: pi.replay.search } : {}),
               apiKey: (account) => pi.accounts.apiKey(account),
-              // On gcloud's sign-in, the maker signs in again in a terminal, not in Upstart.
+              // On gcloud's sign-in, the maker signs in again in a terminal, not in Spaka.
               signInHelp: (account) =>
                 account === "vertex" && pi.accounts.vertexGcloud() && !pi.accounts.hasVertexKey()
                   ? en.errors.gcloudSignInNeeded
@@ -464,7 +464,7 @@ export function modelChoices(infos: ModelInfo[]): ModelChoice[] {
   return claudeChoices(infos);
 }
 
-/** The models of Upstart's own harness for the accounts connected (Q270, Q275). */
+/** The models of Spaka's own harness for the accounts connected (Q270, Q275). */
 export function piChoices(connected: string[]): ModelChoice[] {
   return PI_MODELS.filter((m) => connected.includes(m.account)).flatMap((m) => {
     const model = piModel(m.account, m.id);

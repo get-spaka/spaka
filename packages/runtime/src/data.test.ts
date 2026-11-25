@@ -95,7 +95,7 @@ describe("in pages", () => {
 
   test("a loop over data.posts, each element traced to its record", () => {
     const result = runtime.renderRoute("/");
-    expect(result.html).toMatch(/<li data-up-src="pages\/index.liquid:[\d:]+" data-up-rec="posts\/second">/);
+    expect(result.html).toMatch(/<li data-spaka-src="pages\/index.liquid:[\d:]+" data-spaka-rec="posts\/second">/);
     expect(result.html.indexOf("Second")).toBeLessThan(result.html.indexOf("Hello world"));
     // The notes of the datasource reach the render, for the agent's look at the preview.
     expect(result.notes.map((n) => n.file)).toEqual(
@@ -116,7 +116,7 @@ describe("in pages", () => {
     const result = runtime.renderRoute("/blog/hello-world");
     expect(result.status).toBe(200);
     expect(result.html).toContain("<h1>Hi</h1>");
-    expect(result.html).toMatch(/<article data-up-src="[^"]+" data-up-rec="posts\/hello-world">/);
+    expect(result.html).toMatch(/<article data-spaka-src="[^"]+" data-spaka-rec="posts\/hello-world">/);
     expect(runtime.routeOf("data/posts/second.md")).toBe("/blog/second");
     expect(runtime.renderRoute("/blog/nope").status).toBe(404);
   });
@@ -175,7 +175,7 @@ describe("media (Q155, Q157)", () => {
   test("a /credits page for the images used whose licence asks for it, linked at the end of the footer", () => {
     const html = runtime.renderRoute("/").html;
     expect(html).toMatch(
-      />Bakery<\/p><p data-up-credits[^>]*><a href="\/credits"[^>]*>Image credits<\/a><\/p><\/footer>/,
+      />Bakery<\/p><p data-spaka-credits[^>]*><a href="\/credits"[^>]*>Image credits<\/a><\/p><\/footer>/,
     );
     expect(runtime.routes().at(-1)).toEqual({ route: "/credits", file: "media", generated: true });
     const credits = runtime.renderRoute("/credits");
@@ -187,8 +187,8 @@ describe("media (Q155, Q157)", () => {
   });
 
   test("the credits link is added even when a stylesheet in the page names it", () => {
-    expect(addCreditsLink("<style>footer [data-up-credits] { opacity: 0.6 }</style><footer>x</footer>")).toMatch(
-      /x<p data-up-credits[^>]*>.*<\/p><\/footer>$/,
+    expect(addCreditsLink("<style>footer [data-spaka-credits] { opacity: 0.6 }</style><footer>x</footer>")).toMatch(
+      /x<p data-spaka-credits[^>]*>.*<\/p><\/footer>$/,
     );
     const once = addCreditsLink("<footer>x</footer>");
     expect(addCreditsLink(once)).toBe(once);
@@ -203,7 +203,7 @@ describe("media (Q155, Q157)", () => {
       const html = `<footer><p>${written}</p></footer>`;
       expect(addCreditsLink(html)).toBe(html);
     }
-    expect(addCreditsLink(`<footer><a href="/credits-and-thanks">Thanks</a></footer>`)).toContain("data-up-credits");
+    expect(addCreditsLink(`<footer><a href="/credits-and-thanks">Thanks</a></footer>`)).toContain("data-spaka-credits");
     const site = new Runtime(
       memorySource({
         ...project,
@@ -229,7 +229,7 @@ describe("media (Q155, Q157)", () => {
         "pages/index.liquid": `<!doctype html>\n<html lang="fr">\n<head><title>T</title></head>\n<body><img src="/media/cafe.jpg"><footer>Boulangerie</footer></body>\n</html>`,
       }),
     );
-    expect(french.renderRoute("/").html).toMatch(/Boulangerie<p data-up-credits[^>]*><a [^>]*>Crédits photos<\/a>/);
+    expect(french.renderRoute("/").html).toMatch(/Boulangerie<p data-spaka-credits[^>]*><a [^>]*>Crédits photos<\/a>/);
     const credits = french.renderRoute("/credits").html;
     expect(credits).toContain(`<html lang="fr"`);
     expect(credits).toContain("<title>Crédits photos</title>");

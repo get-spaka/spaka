@@ -47,13 +47,13 @@ export async function buildGuestbook(launched: LaunchedApp, timeout = 900_000): 
   const invoke = (channel: string, ...args: unknown[]) =>
     launched.window.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      ([channel, args]) => (window as any).upstart.invoke(channel, ...args),
+      ([channel, args]) => (window as any).spaka.invoke(channel, ...args),
       [channel, args] as const,
     );
   const page = (code: string) =>
     launched.app.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      (_electron, code) => (globalThis as any).upstart.preview.view.webContents.executeJavaScript(code),
+      (_electron, code) => (globalThis as any).spaka.preview.view.webContents.executeJavaScript(code),
       code,
     );
   const report: GuestbookReport = { turnMs: 0, collected: [], forms: [], tried: [], notes: [] };
@@ -74,7 +74,7 @@ export async function buildGuestbook(launched: LaunchedApp, timeout = 900_000): 
 
   // The collected datasources and their test records.
   const data = join(path, "data");
-  const tests = join(path, ".upstart/test-records");
+  const tests = join(path, ".spaka/test-records");
   for (const name of existsSync(data) ? readdirSync(data) : []) {
     const file = join(data, name, "_datasource.yaml");
     if (!existsSync(file)) continue;
@@ -137,7 +137,7 @@ export async function buildGuestbook(launched: LaunchedApp, timeout = 900_000): 
   }
   report.notes = await launched.app.evaluate(
     // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-    () => (globalThis as any).upstart.preview.site.runtime.pageNotes(),
+    () => (globalThis as any).spaka.preview.site.runtime.pageNotes(),
   );
   for (const t of report.tried) {
     expect(t.empty, JSON.stringify(t)).toBe(422);

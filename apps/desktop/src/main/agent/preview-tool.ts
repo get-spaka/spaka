@@ -1,26 +1,26 @@
-// Upstart's tools and turn checks as the Agent SDK takes them (Claude's
+// Spaka's tools and turn checks as the Agent SDK takes them (Claude's
 // layer, ADR 0012): the tools through an in-process server, the checks as the
 // SDK's hooks.
 import { createSdkMcpServer, tool } from "@anthropic-ai/claude-agent-sdk";
 import { grantedInSandbox } from "./confinement";
 import type { AgentKit } from "./runner";
-import { UPSTART_SERVER, type UpstartTools, upstartToolName, upstartTools } from "./upstart-tools";
+import { SPAKA_SERVER, type SpakaTools, spakaToolName, spakaTools } from "./spaka-tools";
 
 export {
   blocksAnswer,
   FIND_BLOCKS_TOOL,
   FIND_IMAGES_TOOL,
   LOOK_TOOL,
-  UPSTART_SERVER,
+  SPAKA_SERVER,
   USE_BLOCK_TOOL,
   USE_IMAGE_TOOL,
-} from "./upstart-tools";
+} from "./spaka-tools";
 
 /** A new in-process server for one agent process. */
-export function upstartServer(tools: UpstartTools) {
-  const defs = upstartTools(tools);
+export function spakaServer(tools: SpakaTools) {
+  const defs = spakaTools(tools);
   const server = createSdkMcpServer({
-    name: UPSTART_SERVER,
+    name: SPAKA_SERVER,
     version: "1.0.0",
     tools: defs.map((def) =>
       tool(
@@ -44,15 +44,15 @@ export function upstartServer(tools: UpstartTools) {
   // A recording played back runs the card of pages as the server would (replay.ts): it waits for the maker.
   return Object.assign(server, {
     runTool: async (name: string, input: unknown, signal?: AbortSignal) =>
-      (await defs.find((def) => upstartToolName(def.name) === name)?.run(input, signal)) ?? [],
+      (await defs.find((def) => spakaToolName(def.name) === name)?.run(input, signal)) ?? [],
   });
 }
 
-/** The options a Claude session adds for one project: Upstart's tools, and its checks as hooks. */
+/** The options a Claude session adds for one project: Spaka's tools, and its checks as hooks. */
 export function claudeExtras({ tools, checks }: AgentKit) {
   return {
-    mcpServers: { [UPSTART_SERVER]: upstartServer(tools) },
-    allowedTools: upstartTools(tools).map((def) => upstartToolName(def.name)),
+    mcpServers: { [SPAKA_SERVER]: spakaServer(tools) },
+    allowedTools: spakaTools(tools).map((def) => spakaToolName(def.name)),
     hooks: {
       // What the agent tool would ask for, granted when the sandbox confines it (Q220, Q221).
       PermissionRequest: [

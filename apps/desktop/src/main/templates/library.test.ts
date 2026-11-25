@@ -1,11 +1,11 @@
-// The start screen's templates (Q249, Q264): Upstart's own and the maker's
+// The start screen's templates (Q249, Q264): Spaka's own and the maker's
 // imported ones, listed originals first; an import read, shown, then added.
 // Of a released template's versions, the newest the app's version opens (Q368).
 import { createHash } from "node:crypto";
 import { cpSync, existsSync, mkdtempSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Runtime } from "@upstart/runtime";
+import { Runtime } from "@spaka/runtime";
 import { describe, expect, test } from "vitest";
 import { TemplateLibrary } from "./library";
 import { MANIFEST } from "./manifest";
@@ -15,7 +15,7 @@ import { pagesOf } from "./viewer";
 import { writeZip } from "./zip";
 
 const BUILT_IN = join(import.meta.dirname, "../../../templates");
-const scratch = () => mkdtempSync(join(tmpdir(), "upstart-templates-"));
+const scratch = () => mkdtempSync(join(tmpdir(), "spaka-templates-"));
 
 /** Beacon, copied under another id, as an outside author's template. */
 function outsideTemplate(id: string): string {
@@ -23,7 +23,7 @@ function outsideTemplate(id: string): string {
   cpSync(join(BUILT_IN, "beacon"), dir, { recursive: true });
   const manifest = JSON.parse(readFileSync(join(dir, "template.json"), "utf8"));
   writeFileSync(join(dir, "template.json"), JSON.stringify({ ...manifest, id, name: "Lighthouse" }));
-  const skills = join(dir, ".upstart/skills");
+  const skills = join(dir, ".spaka/skills");
   renameSync(join(skills, "beacon-design"), join(skills, `${id}-design`));
   const skill = join(skills, `${id}-design/SKILL.md`);
   writeFileSync(skill, readFileSync(skill, "utf8").replace("name: beacon-design", `name: ${id}-design`));
@@ -63,7 +63,7 @@ describe("the templates to start from", () => {
     expect(() => library.accept(answer.token)).toThrow(/import it again/);
   });
 
-  test("an import refused: not a template, or named as one of Upstart's", () => {
+  test("an import refused: not a template, or named as one of Spaka's", () => {
     const library = new TemplateLibrary({ folder: BUILT_IN }, scratch());
     const empty = scratch();
     expect(library.read(empty)).toEqual({ problems: [expect.stringMatching(/template\.json/)] });
@@ -74,7 +74,7 @@ describe("the templates to start from", () => {
 });
 
 describe("the version of a template an app takes (Q368)", () => {
-  const RELEASES = "https://releases.example/upstart-templates/releases";
+  const RELEASES = "https://releases.example/spaka-templates/releases";
 
   /**
    * Aspect as released: 1.0.0 in v8, which any app opens, kept in v10 beside

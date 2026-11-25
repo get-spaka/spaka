@@ -1,4 +1,4 @@
-// The Claude models Upstart offers (Q398): a list kept by hand in
+// The Claude models Spaka offers (Q398): a list kept by hand in
 // claude-models.json, the two latest versions of each family, newest first.
 // Of them, the maker sees those the official binary says the account can use,
 // with the efforts it gives. A website on a model taken off the list moves to

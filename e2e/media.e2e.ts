@@ -27,13 +27,13 @@ describe("the media library", () => {
   const routes = async () => {
     const state = (await launched.app.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the main process's objects, set for checks
-      () => (globalThis as any).upstart.preview.state(),
+      () => (globalThis as any).spaka.preview.state(),
     )) as { routes: { route: string }[] };
     return state.routes.map((r) => r.route);
   };
 
   beforeAll(async () => {
-    launched = await launchApp({ env: { UPSTART_IMAGES_FIXTURE: FIXTURE, UPSTART_IMAGES_GENERATED: "1" } });
+    launched = await launchApp({ env: { SPAKA_IMAGES_FIXTURE: FIXTURE, SPAKA_IMAGES_GENERATED: "1" } });
     await w().getByTestId("message-input").waitFor();
     await invoke("conversation:send", "A bakery in Lyon. Warm colours please.");
     await until(() => w().locator('[data-testid="agent-message"][data-status="done"]').count(), 30_000);
@@ -170,7 +170,7 @@ describe("the media library", () => {
     const replace = async (selector: string, choose: string) => {
       await click(selector);
       await until(() =>
-        page("!!document.querySelector('upstart-editor').shadowRoot.querySelector('[data-testid=\"editor-replace\"]')"),
+        page("!!document.querySelector('spaka-editor').shadowRoot.querySelector('[data-testid=\"editor-replace\"]')"),
       );
       await click('[data-testid="editor-replace"]', true);
       await w().getByTestId("media-picker").waitFor();
@@ -194,7 +194,7 @@ describe("the media library", () => {
 
   test("an image file dropped onto an image: added to the library and used, one version", async () => {
     const at = Number(
-      String(await page("document.querySelector('img.hero').getAttribute('data-up-src')"))
+      String(await page("document.querySelector('img.hero').getAttribute('data-spaka-src')"))
         .split(":")
         .pop(),
     );
@@ -202,7 +202,7 @@ describe("the media library", () => {
     // What the preview sends for a drop: a real one cannot be made in the background.
     await launched.app.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the main process's objects, set for checks
-      (_electron, action) => (globalThis as any).upstart.editor.edit(action),
+      (_electron, action) => (globalThis as any).spaka.editor.edit(action),
       { type: "image", file: "pages/blog.liquid", at, src: "", from: join(FIXTURE, "shop-front.jpg") },
     );
     await until(async () =>
@@ -218,7 +218,7 @@ describe("the media library", () => {
     const answer = (await launched.app.evaluate(
       async (_electron, project) => {
         // biome-ignore lint/suspicious/noExplicitAny: the main process's objects, set for checks
-        const u = (globalThis as any).upstart;
+        const u = (globalThis as any).spaka;
         return u.kitFor(project).tools.generateImage({
           prompt: "A sage-green ceramic cup on a linen tablecloth, morning light",
           aspect: "4:3",

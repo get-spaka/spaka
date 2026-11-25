@@ -34,8 +34,8 @@ describe.skipIf(SHOWN)("a template's adaptation, page by page", () => {
       await new Promise((r) => setTimeout(r, 100));
     }
   };
-  const received = () => main<string[]>("globalThis.upstart.replayed");
-  const state = () => JSON.parse(readFileSync(join(root, ".upstart/adaptation/state.json"), "utf8"));
+  const received = () => main<string[]>("globalThis.spaka.replayed");
+  const state = () => JSON.parse(readFileSync(join(root, ".spaka/adaptation/state.json"), "utf8"));
   const status = (route: string) =>
     launched.window.locator(`[data-testid="adaptation-step"][data-route="${route}"]`).getAttribute("data-status");
   const turnsDone = (n: number) =>
@@ -44,10 +44,10 @@ describe.skipIf(SHOWN)("a template's adaptation, page by page", () => {
     );
 
   beforeAll(async () => {
-    const file = join(mkdtempSync(join(tmpdir(), "upstart-adaptation-")), "adaptation.jsonl");
+    const file = join(mkdtempSync(join(tmpdir(), "spaka-adaptation-")), "adaptation.jsonl");
     writeAdaptationRecording(file);
     // A new maker: the tour waits for the adaptation's end (Q328).
-    launched = await launchApp({ tour: true, env: { UPSTART_AGENT_REPLAY: file } });
+    launched = await launchApp({ tour: true, env: { SPAKA_AGENT_REPLAY: file } });
     await launched.window.getByTestId("start").waitFor();
   });
   afterAll(async () => {
@@ -91,7 +91,7 @@ describe.skipIf(SHOWN)("a template's adaptation, page by page", () => {
     root = (
       await w.evaluate(() =>
         // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-        (window as any).upstart.invoke("projects:current"),
+        (window as any).spaka.invoke("projects:current"),
       )
     ).path;
     // Reel's page types in the guide's order, then the new page; the agent's checks.
@@ -114,7 +114,7 @@ describe.skipIf(SHOWN)("a template's adaptation, page by page", () => {
     await expect(card.locator('[data-route="/shop"] img').count()).resolves.toBe(0);
     await launched.capture("adaptation-pages-card");
     // Nothing changed yet but the template's copy.
-    expect(existsSync(join(root, ".upstart/adaptation/TEMPLATE.md"))).toBe(true);
+    expect(existsSync(join(root, ".spaka/adaptation/TEMPLATE.md"))).toBe(true);
     expect(state().chosen).toBe(false);
 
     // The home page cannot be unchecked; the maker keeps the studio after all.
@@ -127,7 +127,7 @@ describe.skipIf(SHOWN)("a template's adaptation, page by page", () => {
     // The card folds to the pages kept; the agent read them, in order.
     const settled = w.locator('[data-testid="pages-card"][data-state="answered"]');
     await expect(settled.textContent()).resolves.toMatch(/5 pages kept: Home, Pieces, Studio, Contact, Shop/);
-    const answer = (await received()).find((r) => r.startsWith("[mcp__upstart__choose_pages]"));
+    const answer = (await received()).find((r) => r.startsWith("[mcp__spaka__choose_pages]"));
     expect(answer).toMatch(
       /The maker kept these pages, adapted one at a time in this order: Home \(\/\), Pieces \(\/work\), Studio \(\/studio\), Contact \(\/contact\), Shop \(\/shop, new\)\./,
     );
@@ -179,7 +179,7 @@ describe.skipIf(SHOWN)("a template's adaptation, page by page", () => {
     // Over: the list goes, a notice says so, the adaptation's folder is gone.
     await until(async () => (await w.getByTestId("adaptation-bar").count()) === 0);
     await expect(w.locator('[data-testid="notice"]').last().textContent()).resolves.toMatch(/Your website is adapted/);
-    expect(existsSync(join(root, ".upstart/adaptation"))).toBe(false);
+    expect(existsSync(join(root, ".spaka/adaptation"))).toBe(false);
     // Then the tour, from its first step; Skip ends it.
     await w.getByTestId("tour").waitFor();
     await expect(w.getByTestId("tour").getAttribute("data-step")).resolves.toBe("conversation");

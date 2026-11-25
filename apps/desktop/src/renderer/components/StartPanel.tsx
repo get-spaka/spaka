@@ -16,7 +16,7 @@ import {
   type TemplateSummary,
   type TemplateViewState,
 } from "../../shared/ipc";
-import { upstart } from "../lib/bridge";
+import { spaka } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { MessageBox, modelName, useNewSettings } from "./Conversation";
@@ -49,11 +49,11 @@ export function StartPanel({
   const [viewing, setViewing] = useState<string>();
   const [importing, setImporting] = useState<TemplateImport>();
   const viewState = useTemplateView();
-  const load = () => upstart.invoke("templates:list").then(setTemplates);
+  const load = () => spaka.invoke("templates:list").then(setTemplates);
   // biome-ignore lint/correctness/useExhaustiveDependencies: loaded once, then again when the latest catalogue changes it
   useEffect(() => {
     void load();
-    return upstart.on("templates:changed", () => void load());
+    return spaka.on("templates:changed", () => void load());
   }, []);
 
   const [draft, setDraft] = useState("");
@@ -67,7 +67,7 @@ export function StartPanel({
     if (!text || sending) return;
     setSending(true);
     setSendProblem(undefined);
-    void upstart
+    void spaka
       .invoke("conversation:send", text, {
         ...newSettings,
         ...(chosen ? { template: chosen } : {}),
@@ -85,17 +85,17 @@ export function StartPanel({
   const view = (id: string | undefined) => {
     setViewing(id);
     setViewProblem(undefined);
-    void upstart.invoke("templates:view", id ?? null).then((problem) => problem && setViewProblem(problem));
+    void spaka.invoke("templates:view", id ?? null).then((problem) => problem && setViewProblem(problem));
   };
   // Leaving the start screen hides the template shown large.
-  useEffect(() => () => void upstart.invoke("templates:view", null), []);
+  useEffect(() => () => void spaka.invoke("templates:view", null), []);
 
   const runImport = async () => {
-    const answer = await upstart.invoke("templates:import");
+    const answer = await spaka.invoke("templates:import");
     if (answer) setImporting(answer);
   };
   const accept = async (token: string) => {
-    const added = await upstart.invoke("templates:accept-import", token);
+    const added = await spaka.invoke("templates:accept-import", token);
     // An earlier import of the same template had other pictures.
     pictures.delete(`${added.id}/cover`);
     pictures.delete(`${added.id}/hover`);
@@ -374,12 +374,12 @@ function TemplateLarge({
   useLayoutEffect(() => {
     const element = frame.current;
     if (!element || hidden) {
-      upstart.send("templates:bounds", null);
+      spaka.send("templates:bounds", null);
       return;
     }
     const send = () => {
       const r = element.getBoundingClientRect();
-      upstart.send("templates:bounds", {
+      spaka.send("templates:bounds", {
         x: Math.round(r.x),
         y: Math.round(r.y),
         width: Math.round(r.width),
@@ -393,7 +393,7 @@ function TemplateLarge({
     return () => {
       observer.disconnect();
       window.removeEventListener("resize", send);
-      upstart.send("templates:bounds", null);
+      spaka.send("templates:bounds", null);
     };
   }, [hidden]);
   useEffect(() => {
@@ -418,7 +418,7 @@ function TemplateLarge({
             size="xs"
             className="hover:bg-accent"
             value={state.pages.some((p) => p.route === state.route) ? (state.route ?? "/") : ""}
-            onChange={(event) => void upstart.invoke("templates:view", template.id, event.target.value)}
+            onChange={(event) => void spaka.invoke("templates:view", template.id, event.target.value)}
           >
             {!state.pages.some((p) => p.route === state.route) && <option value="">{state.title}</option>}
             {state.pages.map((p) => (
@@ -550,7 +550,7 @@ function usePicture(id: string, which: "cover" | "hover", wanted: boolean) {
     if (!pictures.has(key))
       pictures.set(
         key,
-        upstart.invoke("templates:picture", id, which).catch(() => null),
+        spaka.invoke("templates:picture", id, which).catch(() => null),
       );
     void pictures.get(key)!.then((u) => live && setUrl(u));
     return () => {
@@ -562,6 +562,6 @@ function usePicture(id: string, which: "cover" | "hover", wanted: boolean) {
 
 function useTemplateView() {
   const [state, setState] = useState<TemplateViewState>(NO_VIEW);
-  useEffect(() => upstart.on("templates:view-state", setState), []);
+  useEffect(() => spaka.on("templates:view-state", setState), []);
   return state;
 }

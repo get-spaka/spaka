@@ -1,7 +1,7 @@
 {
   "name": "Headline quote with smaller ones",
   "kind": "testimonials",
-  "source": "upstart",
+  "source": "spaka",
   "description": "One large left-aligned serif customer quote with a big quotation mark and the author, followed by a row of three smaller quotes with headlines under a fine line.",
   "tags": ["editorial", "large quote", "serif", "three columns", "quotes"],
   "mood": ["editorial", "elegant"],

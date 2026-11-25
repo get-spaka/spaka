@@ -87,14 +87,14 @@ export type RuntimeOptions = {
   /** HTML put at the top of every page's <head>: styles and scripts the runtime provides. */
   head?: () => string;
   /**
-   * Mark the page's own stylesheets in its head with data-up-page (the
+   * Mark the page's own stylesheets in its head with data-spaka-page (the
    * preview), so that they can be told apart from what the runtime or a
    * library adds to the page while it runs.
    */
   markPageStyles?: boolean;
   /** Stand-in records while a datasource is being written (the preview, Q161). Default false. */
   standIns?: boolean;
-  /** The preview's test records, `<name>/<id>.md` under .upstart/test-records/ (Q172). */
+  /** The preview's test records, `<name>/<id>.md` under .spaka/test-records/ (Q172). */
   testRecords?: ProjectSource;
   /** Where what visitors send is kept: the test records' writer in the preview, SQLite once published. */
   collected?: CollectedStore;
@@ -206,7 +206,7 @@ export class Runtime {
       )
       .map((file) => ({
         file,
-        note: "gets no address: addresses starting with an underscore are Upstart's own (/_data/, /_upstart/); rename it",
+        note: "gets no address: addresses starting with an underscore are Spaka's own (/_data/, /_spaka/); rename it",
       }));
   }
 
@@ -546,16 +546,16 @@ export function injectHead(html: string, head: string): string {
   return `<!doctype html><html><head>${head}</head><body>${html}</body></html>`;
 }
 
-/** Adds data-up-page to the <style> and <link rel="stylesheet"> elements of the page's head. */
+/** Adds data-spaka-page to the <style> and <link rel="stylesheet"> elements of the page's head. */
 export function markPageStyles(html: string): string {
   const end = html.search(/<\/head\s*>/i);
   if (end < 0) return html;
   const head = html
     .slice(0, end)
-    .replace(/<(style|link)\b(?![^>]*\sdata-up-(?:page|runtime)\b)([^>]*)>/gi, (tag, name: string, rest: string) =>
+    .replace(/<(style|link)\b(?![^>]*\sdata-spaka-(?:page|runtime)\b)([^>]*)>/gi, (tag, name: string, rest: string) =>
       name.toLowerCase() === "link" && !/\brel\s*=\s*["']?stylesheet/i.test(rest)
         ? tag
-        : `<${name} data-up-page${rest}>`,
+        : `<${name} data-spaka-page${rest}>`,
     );
   return head + html.slice(end);
 }

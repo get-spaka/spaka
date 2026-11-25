@@ -1,7 +1,7 @@
 {
   "name": "Figures on a coloured band",
   "kind": "stats",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A full-width band in the theme's main colour holding a centred heading and a row of large figures, each with its label and an optional note.",
   "tags": ["band", "coloured background", "centered", "numbers", "row"],
   "mood": ["bold", "colorful"],

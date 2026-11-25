@@ -14,7 +14,7 @@ export type MenuActions = {
   /** The interface does what the command's button does. */
   send(command: Command): void;
   settings(): void;
-  /** The About page of the settings, which Settings → About Upstart shows too (Q339). */
+  /** The About page of the settings, which Settings → About Spaka shows too (Q339). */
   about(): void;
   /** One step larger or smaller, or back to the usual size. */
   textSize(step: 1 | -1 | 0): void;

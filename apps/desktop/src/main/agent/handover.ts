@@ -1,5 +1,5 @@
 // What a new agent is told when the maker switches between Claude and a model
-// of Upstart's own harness (Q274): a fresh memory, from a summary of the
+// of Spaka's own harness (Q274): a fresh memory, from a summary of the
 // conversation as shown. What the maker changed by hand since reaches it
 // through the usual notes (editing/notes.ts).
 import { answerText, type ConversationItem } from "../../shared/conversation";

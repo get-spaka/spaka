@@ -28,7 +28,7 @@ describe("the gallery of blocks", () => {
     await invoke("preview:set-view", "page");
     path = (await invoke("projects:current")).path;
     await invoke("preview:navigate", "/");
-    await until(() => page("!!document.querySelector('upstart-editor') && location.pathname === '/'"));
+    await until(() => page("!!document.querySelector('spaka-editor') && location.pathname === '/'"));
     blocks = await invoke("gallery:list");
   }, 60_000 * SLOW);
   afterAll(async () => {
@@ -110,7 +110,7 @@ describe("the gallery of blocks", () => {
       const peek = () =>
         launched.app.evaluate(() => {
           // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-          const u = (globalThis as any).upstart;
+          const u = (globalThis as any).spaka;
           const v = u.peek.view;
           return {
             shown: u.peek.shown as string | undefined,
@@ -129,10 +129,10 @@ describe("the gallery of blocks", () => {
       expect(p.bounds).toEqual(p.preview);
       const card = await launched.app.evaluate(async () => {
         // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-        const contents = (globalThis as any).upstart.peek.view.webContents as Electron.WebContents;
+        const contents = (globalThis as any).spaka.peek.view.webContents as Electron.WebContents;
         const zoom = contents.getZoomFactor();
         const r = await contents.executeJavaScript(
-          "(() => { const r = document.getElementById('up-peek-card').getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height, vw: innerWidth, vh: innerHeight, backdrop: getComputedStyle(document.documentElement).backgroundColor }; })()",
+          "(() => { const r = document.getElementById('spaka-peek-card').getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height, vw: innerWidth, vh: innerHeight, backdrop: getComputedStyle(document.documentElement).backgroundColor }; })()",
         );
         return { ...r, zoom };
       });
@@ -146,7 +146,7 @@ describe("the gallery of blocks", () => {
         Buffer.from(
           await launched.app.evaluate(async () =>
             // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-            ((await (globalThis as any).upstart.peek.view.webContents.capturePage()) as Electron.NativeImage)
+            ((await (globalThis as any).spaka.peek.view.webContents.capturePage()) as Electron.NativeImage)
               .toPNG()
               .toString("base64"),
           ),
@@ -156,23 +156,23 @@ describe("the gallery of blocks", () => {
       // The block keeps its own colors on its card, as its thumbnail shows them.
       const banner = await launched.app.evaluate(async () => {
         // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-        const { peek } = (globalThis as any).upstart;
+        const { peek } = (globalThis as any).spaka;
         await peek.show("banner-dark-event");
         return peek.view.webContents.executeJavaScript(
-          "(() => { const b = document.getElementById('up-peek-card').firstElementChild; const probe = document.createElement('div'); probe.style.background = 'var(--color-neutral)'; document.body.append(probe); const want = getComputedStyle(probe).backgroundColor; probe.remove(); return { got: getComputedStyle(b).backgroundColor, want }; })()",
+          "(() => { const b = document.getElementById('spaka-peek-card').firstElementChild; const probe = document.createElement('div'); probe.style.background = 'var(--color-neutral)'; document.body.append(probe); const want = getComputedStyle(probe).backgroundColor; probe.remove(); return { got: getComputedStyle(b).backgroundColor, want }; })()",
         );
       });
       expect(banner.got).toBe(banner.want);
       // A block taller than the column is scaled down to fit it, whole.
       const scaled = await launched.app.evaluate(async (_electron, id) => {
         // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-        const { peek } = (globalThis as any).upstart;
+        const { peek } = (globalThis as any).spaka;
         const area = peek.view.getBounds();
         peek.setArea({ ...area, height: 200 });
         await peek.show(id);
         const contents = peek.view.webContents as Electron.WebContents;
         const r = await contents.executeJavaScript(
-          "(() => { const r = document.getElementById('up-peek-card').getBoundingClientRect(); return { top: r.y, bottom: r.bottom, vh: innerHeight }; })()",
+          "(() => { const r = document.getElementById('spaka-peek-card').getBoundingClientRect(); return { top: r.y, bottom: r.bottom, vh: innerHeight }; })()",
         );
         peek.setArea(area);
         return { ...r, zoom: contents.getZoomFactor() };
@@ -182,7 +182,7 @@ describe("the gallery of blocks", () => {
       expect(scaled.bottom).toBeLessThanOrEqual(scaled.vh + 1);
       const text = await launched.app.evaluate(() =>
         // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-        (globalThis as any).upstart.peek.view.webContents.executeJavaScript("document.body.innerText"),
+        (globalThis as any).spaka.peek.view.webContents.executeJavaScript("document.body.innerText"),
       );
       expect(text.trim().length).toBeGreaterThan(20);
       // The site under it is untouched.
@@ -216,7 +216,7 @@ describe("the gallery of blocks", () => {
     const entries = await invoke("history:list");
     expect(entries.at(-1)).toMatchObject({ kind: "hand", label: "Block added" });
     // The page shows it.
-    await until(() => page(`!!document.querySelector('[data-up-src^="parts/${cta.id}.liquid"]')`));
+    await until(() => page(`!!document.querySelector('[data-spaka-src^="parts/${cta.id}.liquid"]')`));
     // Added again: a second, independent part.
     await invoke("gallery:add", cta.id);
     await until(async () => home().includes(`{% render '${cta.id}-2' %}`));
@@ -230,7 +230,7 @@ describe("the gallery of blocks", () => {
       const first = document.querySelector('main > *, body > section');
       const r = first.getBoundingClientRect();
       const data = new DataTransfer();
-      data.setData('application/x-upstart-block', ${JSON.stringify(hero.id)});
+      data.setData('application/x-spaka-block', ${JSON.stringify(hero.id)});
       const event = new DragEvent(${JSON.stringify(type)}, { bubbles: true, cancelable: true, dataTransfer: data,
         clientX: 200, clientY: Math.round(Math.min(r.bottom - 2, r.top + r.height * 0.75)) });
       return !document.elementFromPoint(200, 10).dispatchEvent(event);
@@ -242,7 +242,7 @@ describe("the gallery of blocks", () => {
     await until(async () => (await pressed("edit")) === "true");
     await until(() =>
       page(
-        "getComputedStyle(document.querySelector('upstart-editor').shadowRoot.querySelector('[data-testid=insertion-line]')).display !== 'none'",
+        "getComputedStyle(document.querySelector('spaka-editor').shadowRoot.querySelector('[data-testid=insertion-line]')).display !== 'none'",
       ),
     );
     await picture("gallery-drop-line");
@@ -275,7 +275,7 @@ describe("the gallery of blocks", () => {
         writeFileSync(join(path, "theme.css"), css);
         const origin = await launched.app.evaluate(
           // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-          () => (globalThis as any).upstart.preview.origin as string,
+          () => (globalThis as any).spaka.preview.origin as string,
         );
         await until(async () =>
           (await (await fetch(`${origin}/theme.css`)).text()).includes(colors["--theme-color-primary"]),
@@ -291,7 +291,7 @@ describe("the gallery of blocks", () => {
             const out: string[] = [];
             try {
               for (const id of ids) {
-                await win.loadURL(`${origin}/__up/block/${id}`);
+                await win.loadURL(`${origin}/__spaka/block/${id}`);
                 out.push(...((await win.webContents.executeJavaScript(check)) as string[]).map((f) => `${id}: ${f}`));
               }
             } finally {
@@ -316,7 +316,7 @@ describe("the gallery of blocks", () => {
  */
 const CONTRAST_CHECK = `new Promise((done) => {
   const started = Date.now();
-  const styled = () => [...document.querySelectorAll("style")].some((s) => !s.hasAttribute("data-up-runtime") && s.textContent.length > 0);
+  const styled = () => [...document.querySelectorAll("style")].some((s) => !s.hasAttribute("data-spaka-runtime") && s.textContent.length > 0);
   const wait = () => styled() || Date.now() - started > 3000 ? requestAnimationFrame(() => requestAnimationFrame(() => done(check()))) : setTimeout(wait, 30);
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = 1;

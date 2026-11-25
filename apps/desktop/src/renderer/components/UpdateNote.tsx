@@ -3,7 +3,7 @@
 // hidden, a dot on the button that shows it.
 import { PanelLeft } from "lucide-react";
 import { useUpdate } from "../hooks/useMain";
-import { upstart } from "../lib/bridge";
+import { spaka } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { Button } from "./ui/button";
 
@@ -16,7 +16,7 @@ export function UpdateNote() {
       <Button
         size="sm"
         className="h-6 px-2 text-xs"
-        onClick={() => void upstart.invoke("app:restart-to-update")}
+        onClick={() => void spaka.invoke("app:restart-to-update")}
         tip={t.sidebar.restartTip(update.version)}
         tipSide="right"
         data-testid="update-restart"

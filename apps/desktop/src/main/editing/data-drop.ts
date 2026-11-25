@@ -8,14 +8,7 @@
 // datasource, its samples as the preview's test records, and the fragment it
 // answers with (Q194, Q182). Pure: it reads the project
 // through `ProjectView` and returns the files to write.
-import {
-  addDefinitionFields,
-  newRecordText,
-  recordIdFrom,
-  sections,
-  setOrder,
-  TEST_RECORDS_DIR,
-} from "@upstart/runtime";
+import { addDefinitionFields, newRecordText, recordIdFrom, sections, setOrder, TEST_RECORDS_DIR } from "@spaka/runtime";
 import { copyName } from "./edits";
 import { loremBlock } from "./lorem";
 

@@ -1,7 +1,7 @@
 {
   "name": "Compact café board",
   "kind": "menu",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A compact café menu: a colored panel with a coffee cup, a sentence and the opening hours beside a white board listing drinks first, then pastries and the rest, in small rows with prices, a line of description and diet badges.",
   "tags": ["cafe", "coffee", "pastries", "compact", "opening hours"],
   "mood": ["friendly", "warm", "colorful"],

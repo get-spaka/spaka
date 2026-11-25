@@ -55,7 +55,7 @@ export function readZip(zip: Buffer, limits: ZipLimits = ZIP_LIMITS): Map<string
     if (name.startsWith("__MACOSX/") || name.split("/").at(-1) === ".DS_Store") continue;
     if (!safePath(name)) throw new Error(`This .zip holds a file outside the template: ${name}`);
     if (flags & 1) throw new Error("This .zip is encrypted.");
-    if (method !== 0 && method !== 8) throw new Error(`${name} is compressed in a way Upstart does not read.`);
+    if (method !== 0 && method !== 8) throw new Error(`${name} is compressed in a way Spaka does not read.`);
     total += size;
     if (total > limits.bytes) throw new Error(`This .zip holds more than ${limits.bytes / 1024 / 1024} MB.`);
 

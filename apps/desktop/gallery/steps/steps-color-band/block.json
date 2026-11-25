@@ -1,7 +1,7 @@
 {
   "name": "Three steps on a colored band",
   "kind": "steps",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A compact strip on a colored band, a short heading beside three numbered steps in a row joined by small arrows, stacked on a phone.",
   "tags": ["band", "compact", "three steps", "arrows", "booking"],
   "mood": ["colorful", "minimal"],

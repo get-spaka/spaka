@@ -1,11 +1,11 @@
 ---
 name: htmx-patterns
-description: Worked htmx 4 patterns for Upstart projects — content loaded on demand from fragments, tabs, "show more", a filtered list, a section refreshed on its own. Use when a page needs something to change without loading a new page.
+description: Worked htmx 4 patterns for Spaka projects — content loaded on demand from fragments, tabs, "show more", a filtered list, a section refreshed on its own. Use when a page needs something to change without loading a new page.
 ---
 
-# htmx 4 patterns in an Upstart project
+# htmx 4 patterns in a Spaka project
 
-The page already loads htmx 4; the cheat sheet in your instructions has the syntax. In an Upstart project htmx asks for a fragment, `fragments/<name>.liquid`, served at `/fragments/<name>` with its query parameters in `params`, or posts a form to a collected datasource at `/_data/<name>` (the datasources skill shows the form, its answer and its errors). There is no server code. Prefer plain links and plain HTML; reach for htmx when something must change in place.
+The page already loads htmx 4; the cheat sheet in your instructions has the syntax. In a Spaka project htmx asks for a fragment, `fragments/<name>.liquid`, served at `/fragments/<name>` with its query parameters in `params`, or posts a form to a collected datasource at `/_data/<name>` (the datasources skill shows the form, its answer and its errors). There is no server code. Prefer plain links and plain HTML; reach for htmx when something must change in place.
 
 Put each hx- attribute on the element that makes the request: inheritance needs the `:inherited` modifier in htmx 4.
 

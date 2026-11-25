@@ -5,8 +5,8 @@
 // in `data-tip`.
 
 export const TIP_STYLE = `
-.tip { position: fixed; display: none; max-width: 256px; padding: 4px 8px; border-radius: 6px; background: var(--up-text);
-  color: var(--up-surface); font-size: 12px; line-height: 1.3; box-shadow: 0 4px 12px rgb(0 0 0 / .15); pointer-events: none; width: max-content; overflow-wrap: break-word; }
+.tip { position: fixed; display: none; max-width: 256px; padding: 4px 8px; border-radius: 6px; background: var(--spaka-text);
+  color: var(--spaka-surface); font-size: 12px; line-height: 1.3; box-shadow: 0 4px 12px rgb(0 0 0 / .15); pointer-events: none; width: max-content; overflow-wrap: break-word; }
 `;
 
 const DELAY = 300;

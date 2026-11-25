@@ -1,7 +1,7 @@
 {
   "name": "Wall of short quotes",
   "kind": "testimonials",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A heading above customer quotes in masonry-like columns of uneven cards, each with stars, the quote and a small initials avatar with name and role.",
   "tags": ["masonry", "columns", "wall of love", "stars", "cards"],
   "mood": ["friendly", "minimal"],

@@ -27,13 +27,13 @@ describe("the agent's questions", () => {
   const invoke = <T = unknown>(channel: string, ...args: unknown[]): Promise<T> =>
     launched.window.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      ([channel, args]) => (window as any).upstart.invoke(channel, ...(args as unknown[])),
+      ([channel, args]) => (window as any).spaka.invoke(channel, ...(args as unknown[])),
       [channel, args] as const,
     ) as Promise<T>;
   const replayed = () =>
     launched.app.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      () => (globalThis as any).upstart.replayed as string[],
+      () => (globalThis as any).spaka.replayed as string[],
     );
   const answerOf = async (index = -1) => {
     const line = (await replayed()).filter((l) => l.startsWith("[AskUserQuestion] ")).at(index)!;
@@ -47,9 +47,9 @@ describe("the agent's questions", () => {
   };
 
   beforeAll(async () => {
-    const file = join(mkdtempSync(join(tmpdir(), "upstart-questions-")), "questions.jsonl");
+    const file = join(mkdtempSync(join(tmpdir(), "spaka-questions-")), "questions.jsonl");
     writeQuestionsRecording(file);
-    launched = await launchApp({ env: { UPSTART_AGENT_REPLAY: file } });
+    launched = await launchApp({ env: { SPAKA_AGENT_REPLAY: file } });
     await launched.window.getByTestId("message-input").waitFor();
   }, 60_000 * SLOW);
   afterAll(async () => {

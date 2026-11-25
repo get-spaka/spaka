@@ -1,7 +1,7 @@
 {
   "name": "Numbered features list",
   "kind": "features",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A heading over a list of features separated by thin rules, each led by a large numeral 01, 02, 03, with a small icon, a title and a sentence beside it.",
   "tags": ["numbered", "list", "large numbers", "rules", "steps"],
   "mood": ["editorial", "minimal"],

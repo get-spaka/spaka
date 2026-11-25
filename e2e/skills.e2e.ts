@@ -6,22 +6,22 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { type LaunchedApp, launchApp, openSettings, SLOW } from "./app.ts";
 
 // Skills (ADR 0010), with the recorded agent: the settings window lists
-// Upstart's and the maker's skills for every website (Q116), a website's own
+// Spaka's and the maker's skills for every website (Q116), a website's own
 // are in its settings (Q118); a skill added there or written into the project
 // reaches the agent's assembled plugins without restarting the app.
 describe("skills", () => {
   let launched: LaunchedApp;
   // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-  const main = <T>(fn: (upstart: any, arg: any) => T, arg?: unknown) =>
+  const main = <T>(fn: (spaka: any, arg: any) => T, arg?: unknown) =>
     launched.app.evaluate(
       (_electron, [source, arg]) =>
-        new Function("u", "a", `return (${source})(u, a)`)((globalThis as { upstart?: unknown }).upstart, arg),
+        new Function("u", "a", `return (${source})(u, a)`)((globalThis as { spaka?: unknown }).spaka, arg),
       [fn.toString(), arg] as const,
     ) as Promise<Awaited<T>>;
   const invoke = (channel: string, ...args: unknown[]) =>
     launched.window.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      ([channel, args]) => (window as any).upstart.invoke(channel, ...args),
+      ([channel, args]) => (window as any).spaka.invoke(channel, ...args),
       [channel, args] as const,
     );
   const until = async (read: () => Promise<unknown>, timeout = 10_000) => {
@@ -58,15 +58,15 @@ describe("skills", () => {
 
   let settings: Page;
 
-  test("the settings do not list Upstart's own skills, which the agent still gets; the page is hidden meanwhile", async () => {
+  test("the settings do not list Spaka's own skills, which the agent still gets; the page is hidden meanwhile", async () => {
     settings = await openSettings(launched.window);
     await settings.getByTestId("settings-page-skills").click();
     await settings.getByTestId("skills-app").waitFor();
-    expect(await settings.getByTestId("skills-upstart").count()).toBe(0);
-    expect(await settings.getByTestId("settings").getByText("upstart-help").count()).toBe(0);
+    expect(await settings.getByTestId("skills-spaka").count()).toBe(0);
+    expect(await settings.getByTestId("settings").getByText("spaka-help").count()).toBe(0);
     await until(async () => !(await main((u) => u.preview.view.getVisible())));
-    // The agent got them from the start, as plugins Upstart assembled.
-    expect(existsSync(join(await assembled(), "upstart/skills/upstart-help/SKILL.md"))).toBe(true);
+    // The agent got them from the start, as plugins Spaka assembled.
+    expect(existsSync(join(await assembled(), "spaka/skills/spaka-help/SKILL.md"))).toBe(true);
   });
 
   test("a skill added for all websites is shown, copied, and given to the agent", async () => {
@@ -86,7 +86,7 @@ describe("skills", () => {
   test("a skill written into the project appears in its own settings and reaches the agent", async () => {
     const w = launched.window;
     const { path } = await invoke("projects:current");
-    skill(join(path, ".upstart/skills"), "menu-format", "How this bakery's menu is written.");
+    skill(join(path, ".spaka/skills"), "menu-format", "How this bakery's menu is written.");
     await w.getByTestId("project-settings").first().click();
     const sheet = w.getByTestId("site-settings");
     await until(() => sheet.getByTestId("skills-project").getByText("menu-format").count());
@@ -98,7 +98,7 @@ describe("skills", () => {
     await sheet.getByTestId("skills-project").getByTestId("skill").click();
     await sheet.getByTestId("skills-project-remove").click();
     await until(async () => (await sheet.getByTestId("skills-project").getByTestId("skill").count()) === 0);
-    expect(existsSync(join(path, ".upstart/skills/menu-format"))).toBe(false);
+    expect(existsSync(join(path, ".spaka/skills/menu-format"))).toBe(false);
     await until(async () => !(await assembledHas("project/skills/menu-format/SKILL.md")));
     await sheet.getByTestId("site-settings-done").click();
     await until(() => main((u) => u.preview.view.getVisible()));

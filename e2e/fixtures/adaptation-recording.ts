@@ -86,15 +86,15 @@ export function writeAdaptationRecording(file: string) {
       session_id: "replay-adaptation",
       cwd: "/recorded/reel",
       model: "claude-sonnet-5-5",
-      tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "mcp__upstart__choose_pages"],
-      mcp_servers: [{ name: "upstart", status: "connected" }],
+      tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "mcp__spaka__choose_pages"],
+      mcp_servers: [{ name: "spaka", status: "connected" }],
       skills: [],
       apiKeySource: "none",
       claude_code_version: "2.1.321",
     },
   };
   const turns: Line[][] = [
-    [init, ...call(200, "pages-1", "mcp__upstart__choose_pages", CARD), ...words(300, ENDS[0]!), result(400, ENDS[0]!)],
+    [init, ...call(200, "pages-1", "mcp__spaka__choose_pages", CARD), ...words(300, ENDS[0]!), result(400, ENDS[0]!)],
     ...ENDS.slice(1).map((end) => [...words(100, end), result(200, end)]),
   ];
   writeFileSync(

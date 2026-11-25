@@ -1,7 +1,7 @@
 {
   "name": "Founder featured, team below",
   "kind": "team",
-  "source": "upstart",
+  "source": "spaka",
   "description": "The first person shown large as the founder, with a tall portrait, their role, a word in large type beside a colored rule and a button to write to them, then the rest of the team as small round photos with names and roles.",
   "tags": ["founder", "featured", "portrait", "owner", "small avatars"],
   "mood": ["warm", "editorial"],

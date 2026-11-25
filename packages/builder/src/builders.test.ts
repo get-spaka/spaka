@@ -2,7 +2,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "no
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { memorySource } from "@upstart/runtime";
+import { memorySource } from "@spaka/runtime";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import {
   BUILDERS,
@@ -18,7 +18,7 @@ import {
 
 let out: string;
 beforeEach(() => {
-  out = mkdtempSync(join(tmpdir(), "upstart-builders-"));
+  out = mkdtempSync(join(tmpdir(), "spaka-builders-"));
 });
 afterEach(() => rmSync(out, { recursive: true, force: true }));
 
@@ -113,7 +113,7 @@ describe("the Node export", () => {
     expect(docker).toContain("VOLUME /data");
     expect(readFileSync(join(out, "README.md"), "utf8")).toContain("--env-file .env chez-margot");
     // The token is in .env, which git and the Docker image leave out (Q191).
-    expect(readFileSync(join(out, ".env"), "utf8")).toMatch(/^UPSTART_TOKEN=the-token$/m);
+    expect(readFileSync(join(out, ".env"), "utf8")).toMatch(/^SPAKA_TOKEN=the-token$/m);
     expect(readFileSync(join(out, ".dockerignore"), "utf8")).toContain(".env");
     expect(readFileSync(join(out, ".gitignore"), "utf8")).toContain(".env");
     expect(builderById("node")!.guide(result)[0]).toEqual({ id: "try", command: "node server.mjs" });
@@ -137,9 +137,9 @@ describe("the Cloudflare export", () => {
       name: "chez-margot",
       main: "worker.mjs",
       compatibility_date: "2026-11-09",
-      assets: { directory: "./public", run_worker_first: ["/_data/*", "/_upstart/*"] },
+      assets: { directory: "./public", run_worker_first: ["/_data/*", "/_spaka/*"] },
       d1_databases: [{ binding: "DB", database_name: "chez-margot-records", migrations_dir: "migrations" }],
-      secrets: { required: ["UPSTART_TOKEN"] },
+      secrets: { required: ["SPAKA_TOKEN"] },
       observability: { enabled: true },
     });
     expect(config.compatibility_flags).toBeUndefined();
@@ -148,7 +148,7 @@ describe("the Cloudflare export", () => {
     expect(pkg.devDependencies.wrangler).toMatch(/^\d+\.\d+\.\d+$/);
     // The deploy sends the token in .env as the Worker's secret (Q191).
     expect(pkg.scripts.deploy).toBe("wrangler deploy --secrets-file .env");
-    expect(read(".env")).toMatch(/^UPSTART_TOKEN=the-token$/m);
+    expect(read(".env")).toMatch(/^SPAKA_TOKEN=the-token$/m);
     expect(read("migrations/0001_records.sql")).toContain("CREATE TABLE IF NOT EXISTS records");
     const kept = '{\n  "d1_databases": [{ "binding": "DB", "database_id": "0f2c-11ab" }]\n}';
     await builderById("cloudflare")!.build(contact(), { outDir: out, serverBundle: "//" });
@@ -158,7 +158,7 @@ describe("the Cloudflare export", () => {
     expect(JSON.parse(read("wrangler.jsonc").replace(/^\s*\/\/.*$/gm, "")).d1_databases[0].database_id).toBe(
       "0f2c-11ab",
     );
-    expect(read(".dev.vars")).toMatch(/^UPSTART_TOKEN=[0-9a-f]{24}$/m);
+    expect(read(".dev.vars")).toMatch(/^SPAKA_TOKEN=[0-9a-f]{24}$/m);
     expect(read(".gitignore")).toContain(".dev.vars");
     expect(existsSync(join(out, "public/assets/site.css"))).toBe(true);
   });
@@ -203,8 +203,8 @@ describe("a site's scripts and stylesheet (ADR 0011)", () => {
     const page = readFileSync(join(out, "index.html"), "utf8");
     expect(page).toContain('<script src="https://unpkg.com/lenis@1.3.4/dist/lenis.min.js"></script>');
     expect(page).toContain('<script src="/scripts/lib/split.js"></script>');
-    expect(page).toContain('<script src="/assets/up-start.js" data-modules="/scripts/reveal.js" defer></script>');
-    expect(readFileSync(join(out, "assets/up-start.js"), "utf8")).toContain("__upStart");
+    expect(page).toContain('<script src="/assets/spaka-start.js" data-modules="/scripts/reveal.js" defer></script>');
+    expect(readFileSync(join(out, "assets/spaka-start.js"), "utf8")).toContain("__spakaStart");
     expect(readFileSync(join(out, "scripts/reveal.js"), "utf8")).toContain("export function start");
     const css = readFileSync(join(out, "assets/site.css"), "utf8");
     // @apply and the theme's names work in it.
@@ -219,14 +219,14 @@ describe("a site's scripts and stylesheet (ADR 0011)", () => {
     await builderById("node")!.build(animated(), { outDir: out, serverBundle: "// server" });
     const site = JSON.parse(readFileSync(join(out, "site.json"), "utf8"));
     expect(site.assets.modules).toEqual(["scripts/reveal.js"]);
-    expect(existsSync(join(out, "public/assets/up-start.js"))).toBe(true);
+    expect(existsSync(join(out, "public/assets/spaka-start.js"))).toBe(true);
     expect(existsSync(join(out, "public/scripts/reveal.js"))).toBe(true);
     expect(existsSync(join(out, "public/styles/edges/wave.svg"))).toBe(true);
   });
 
   test("a site without them gets no start script", async () => {
     await builderById("static")!.build(contact(), { outDir: out, formServices: {} });
-    expect(existsSync(join(out, "assets/up-start.js"))).toBe(false);
-    expect(readFileSync(join(out, "index.html"), "utf8")).not.toContain("up-start");
+    expect(existsSync(join(out, "assets/spaka-start.js"))).toBe(false);
+    expect(readFileSync(join(out, "index.html"), "utf8")).not.toContain("spaka-start");
   });
 });

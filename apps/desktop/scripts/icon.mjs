@@ -1,4 +1,4 @@
-// Makes the app's icon from build/icon.svg, Upstart's own artwork (from the
+// Makes the app's icon from build/icon.svg, Spaka's own artwork (from the
 // brand's assets): placed on macOS's icon grid, an 824-point shape in a
 // 1024-point canvas, its corners those of macOS's icons, with the system's
 // shadow under it, so that it sits beside the other apps in the Dock. Writes
@@ -6,7 +6,7 @@
 // (electron-builder's, every size macOS asks for), and build/icon.ico for
 // Windows, whose icons are the shape alone, filling their square, from 16 to
 // 256 pixels. Run it again after the artwork changes:
-// pnpm --filter @upstart/desktop icon.
+// pnpm --filter @spaka/desktop icon.
 import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -47,7 +47,7 @@ const icon = await sharp(shadow)
   .toBuffer();
 await sharp(icon).toFile(join(build, "icon.png"));
 
-const work = mkdtempSync(join(tmpdir(), "upstart-icon-"));
+const work = mkdtempSync(join(tmpdir(), "spaka-icon-"));
 const set = join(work, "icon.iconset");
 mkdirSync(set);
 for (const size of [16, 32, 128, 256, 512]) {

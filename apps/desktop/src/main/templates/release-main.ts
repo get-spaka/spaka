@@ -1,5 +1,5 @@
 // `node scripts/release.mjs <templates folder> <out folder> <tag> [previous
-// catalogue]`: the release of Upstart's templates, as the public repository's
+// catalogue]`: the release of Spaka's templates, as the public repository's
 // CI builds it (Q250, Q265). The previous catalogue, a path or an address (the
 // CI gives the latest release's), holds the earlier versions older apps still
 // need (Q368). Bundled, with all it needs, into that repository by `pnpm

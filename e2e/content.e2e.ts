@@ -115,7 +115,7 @@ describe("the Content tab", () => {
     await until(async () => (await records()).join() === "third-post,second,first");
     const routes = (await launched.app.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the main process's objects, set for checks
-      () => (globalThis as any).upstart.preview.state(),
+      () => (globalThis as any).spaka.preview.state(),
     )) as { routes: { route: string; group?: string }[] };
     expect(routes.routes.filter((r) => r.group === "Posts").map((r) => r.route)).toEqual([
       "/blog/third-post",

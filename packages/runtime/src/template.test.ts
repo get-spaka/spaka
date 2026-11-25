@@ -105,15 +105,19 @@ test("injects the source of each element, and the record inside a loop", () => {
   const html = render(traced, { books });
   // file:line:offset, the offset being where the start tag begins.
   const li = src.indexOf("<li");
-  assert.match(html, /<main data-up-src="pages\/index.liquid:1:0">/);
-  assert.match(html, /<ul data-up-src="pages\/index.liquid:2:9">/);
-  assert.ok(html.includes(`<li data-up-src="pages/index.liquid:4:${li}" data-up-rec="books/1" class="row">Dune</li>`));
-  assert.ok(html.includes(`<li data-up-src="pages/index.liquid:4:${li}" data-up-rec="books/2" class="row">Emma</li>`));
+  assert.match(html, /<main data-spaka-src="pages\/index.liquid:1:0">/);
+  assert.match(html, /<ul data-spaka-src="pages\/index.liquid:2:9">/);
+  assert.ok(
+    html.includes(`<li data-spaka-src="pages/index.liquid:4:${li}" data-spaka-rec="books/1" class="row">Dune</li>`),
+  );
+  assert.ok(
+    html.includes(`<li data-spaka-src="pages/index.liquid:4:${li}" data-spaka-rec="books/2" class="row">Emma</li>`),
+  );
 });
 
 test("a range loop carries no record attribute", () => {
   const traced = injectTrace("{% for i in (1..2) %}<i>{{ i }}</i>{% endfor %}", "p.liquid");
-  assert.equal(render(traced), '<i data-up-src="p.liquid:1:21">1</i><i data-up-src="p.liquid:1:21">2</i>');
+  assert.equal(render(traced), '<i data-spaka-src="p.liquid:1:21">1</i><i data-spaka-src="p.liquid:1:21">2</i>');
 });
 
 test("a record is traced through a shared part and into a fragment; each include is marked", () => {
@@ -123,8 +127,8 @@ test("a record is traced through a shared part and into a fragment; each include
   );
   assert.equal(
     page,
-    `<ul data-up-src="pages/index.liquid:1:0">{% for b in books %}<!--up-inc pages/index.liquid:24:52-->{% render 'book', book: b , __rec: b.__ref %}<!--/up-inc-->{% endfor %}</ul>` +
-      `<!--up-inc pages/index.liquid:69:92-->{%- render 'footer' -%}<!--/up-inc-->`,
+    `<ul data-spaka-src="pages/index.liquid:1:0">{% for b in books %}<!--spaka-inc pages/index.liquid:24:52-->{% render 'book', book: b , __rec: b.__ref %}<!--/spaka-inc-->{% endfor %}</ul>` +
+      `<!--spaka-inc pages/index.liquid:69:92-->{%- render 'footer' -%}<!--/spaka-inc-->`,
   );
   const part = injectTrace("<li><b>{{ book.title }}</b>{% render 'stars', n: book.rating %}</li>", "parts/book.liquid");
   const stars = injectTrace("<i>{{ n }}</i>", "parts/stars.liquid");
@@ -134,14 +138,14 @@ test("a record is traced through a shared part and into a fragment; each include
   const html = e.parseAndRenderSync(page, { books: [{ title: "Dune", rating: 5, __ref: "books/1" }] });
   assert.equal(
     html,
-    `<ul data-up-src="pages/index.liquid:1:0"><!--up-inc pages/index.liquid:24:52--><li data-up-src="parts/book.liquid:1:0" data-up-rec="books/1"><b data-up-src="parts/book.liquid:1:4" data-up-rec="books/1">Dune</b>` +
-      `<!--up-inc parts/book.liquid:27:63--><i data-up-src="parts/stars.liquid:1:0" data-up-rec="books/1">5</i><!--/up-inc--></li><!--/up-inc--></ul>` +
-      `<!--up-inc pages/index.liquid:69:92--><footer data-up-src="parts/footer.liquid:1:0" data-up-rec="">f</footer><!--/up-inc-->`,
+    `<ul data-spaka-src="pages/index.liquid:1:0"><!--spaka-inc pages/index.liquid:24:52--><li data-spaka-src="parts/book.liquid:1:0" data-spaka-rec="books/1"><b data-spaka-src="parts/book.liquid:1:4" data-spaka-rec="books/1">Dune</b>` +
+      `<!--spaka-inc parts/book.liquid:27:63--><i data-spaka-src="parts/stars.liquid:1:0" data-spaka-rec="books/1">5</i><!--/spaka-inc--></li><!--/spaka-inc--></ul>` +
+      `<!--spaka-inc pages/index.liquid:69:92--><footer data-spaka-src="parts/footer.liquid:1:0" data-spaka-rec="">f</footer><!--/spaka-inc-->`,
   );
   const fragment = injectTrace("<li>{{ record.title }}</li>", "fragments/books-created.liquid");
   assert.equal(
     render(fragment, { record: { title: "Emma", __ref: "books/2" } }),
-    '<li data-up-src="fragments/books-created.liquid:1:0" data-up-rec="books/2">Emma</li>',
+    '<li data-spaka-src="fragments/books-created.liquid:1:0" data-spaka-rec="books/2">Emma</li>',
   );
 });
 
@@ -149,8 +153,11 @@ test("inside a loop over a record's links, the trace names the record and which 
   const src =
     '{% for item in data.navigation %}<li><a>{{ item.label }}</a>{% for link in item.links %}<a href="{{ link.href }}">{{ link.label }}</a>{% endfor %}</li>{% endfor %}';
   const traced = injectTrace(src, "parts/header.liquid");
-  assert.match(traced, /<li data-up-src="[^"]+" data-up-rec="\{\{ item\.__ref \}\}">/);
-  assert.match(traced, /<a data-up-src="[^"]+" data-up-rec="\{\{ item\.__ref \}\}#\{\{ forloop\.index0 \}\}" href=/);
+  assert.match(traced, /<li data-spaka-src="[^"]+" data-spaka-rec="\{\{ item\.__ref \}\}">/);
+  assert.match(
+    traced,
+    /<a data-spaka-src="[^"]+" data-spaka-rec="\{\{ item\.__ref \}\}#\{\{ forloop\.index0 \}\}" href=/,
+  );
   const html = new Liquid().parseAndRenderSync(traced, {
     __rec: "",
     data: {
@@ -159,7 +166,7 @@ test("inside a loop over a record's links, the trace names the record and which 
       ],
     },
   });
-  assert.match(html, /data-up-rec="navigation\/services#1"[^>]*>Cakes</);
+  assert.match(html, /data-spaka-rec="navigation\/services#1"[^>]*>Cakes</);
 });
 
 test("inside a loop over a record's images, the trace names which image, an offset or a reversed order counted (Q355)", () => {
@@ -171,11 +178,11 @@ test("inside a loop over a record's images, the trace names which image, an offs
     n: 1,
     record: { __ref: "homes/wren", photos: ["/media/a.jpg", "/media/b.jpg", "/media/c.jpg"] },
   });
-  assert.match(html, /<img [^>]*data-up-rec="homes\/wren#1" src="\/media\/b.jpg">/);
-  assert.match(html, /<i [^>]*data-up-rec="homes\/wren#1">\/media\/b.jpg</);
-  assert.match(html, /<i [^>]*data-up-rec="homes\/wren#2">\/media\/c.jpg</);
-  assert.match(html, /<b [^>]*data-up-rec="homes\/wren#2">\/media\/c.jpg</);
-  assert.match(html, /<b [^>]*data-up-rec="homes\/wren#0">\/media\/a.jpg</);
+  assert.match(html, /<img [^>]*data-spaka-rec="homes\/wren#1" src="\/media\/b.jpg">/);
+  assert.match(html, /<i [^>]*data-spaka-rec="homes\/wren#1">\/media\/b.jpg</);
+  assert.match(html, /<i [^>]*data-spaka-rec="homes\/wren#2">\/media\/c.jpg</);
+  assert.match(html, /<b [^>]*data-spaka-rec="homes\/wren#2">\/media\/c.jpg</);
+  assert.match(html, /<b [^>]*data-spaka-rec="homes\/wren#0">\/media\/a.jpg</);
   // An offset the template computes: which image cannot be known, so none is named.
-  assert.match(html, /<u [^>]*data-up-rec="homes\/wren">/);
+  assert.match(html, /<u [^>]*data-spaka-rec="homes\/wren">/);
 });

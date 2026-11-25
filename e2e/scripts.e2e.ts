@@ -36,7 +36,7 @@ export function stop() {
 <button id="load" hx-get="/fragments/more" hx-target="#more" hx-swap="innerHTML">More</button>
 <div id="more"></div>
 </main></body></html>`;
-  const moving = () => page("document.documentElement.hasAttribute('data-up-moving')");
+  const moving = () => page("document.documentElement.hasAttribute('data-spaka-moving')");
   const animation = () => page("getComputedStyle(document.querySelector('h1')).animationName");
 
   beforeAll(async () => {
@@ -114,29 +114,29 @@ export function stop() {
     expect(await page("window.__version")).toBeUndefined();
     expect(await page("window.__starts")).toBeUndefined();
     // Not one script of the site in the page, nor fetched.
-    expect(await page("document.querySelectorAll('script:not([data-up-runtime])').length")).toBe(0);
+    expect(await page("document.querySelectorAll('script:not([data-spaka-runtime])').length")).toBe(0);
     expect(
       await page("performance.getEntriesByType('resource').filter((e) => e.name.includes('/scripts/')).length"),
     ).toBe(0);
     await invoke("preview:set-mode", "visitor");
     // Until the page has it, the editor keeps the page's own submits and clicks.
-    await until(() => page(`document.querySelector("upstart-editor")?.dataset.mode === "visitor"`));
+    await until(() => page(`document.querySelector("spaka-editor")?.dataset.mode === "visitor"`));
     await until(() => page("window.__version === 2 && window.__lib === 1"));
     expect(await animation()).toBe("rise");
   });
 
   test("a script of the page reaches nothing of the app (ADR 0011)", async () => {
     const reach = await page(`(() => ({
-      require: typeof require, process: typeof process, module: typeof module, upstart: typeof window.upstart,
-      ipcRenderer: typeof window.ipcRenderer, electron: typeof window.electron, bridge: typeof window.__upstartBridge,
+      require: typeof require, process: typeof process, module: typeof module, spaka: typeof window.spaka,
+      ipcRenderer: typeof window.ipcRenderer, electron: typeof window.electron, bridge: typeof window.__spakaBridge,
       opener: window.opener === null || window.opener === undefined,
-      editorRoot: document.querySelector('upstart-editor') ? 'host' : 'none',
+      editorRoot: document.querySelector('spaka-editor') ? 'host' : 'none',
     }))()`);
     expect(reach).toEqual({
       require: "undefined",
       process: "undefined",
       module: "undefined",
-      upstart: "undefined",
+      spaka: "undefined",
       ipcRenderer: "undefined",
       electron: "undefined",
       bridge: "undefined",

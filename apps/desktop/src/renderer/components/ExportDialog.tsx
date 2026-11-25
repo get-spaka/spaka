@@ -1,7 +1,7 @@
 import { ArrowRight, Check, Copy, FolderOpen, TriangleAlert, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ExportResult, ProjectInfo, PublishInfo } from "../../shared/ipc";
-import { upstart } from "../lib/bridge";
+import { spaka } from "../lib/bridge";
 import { messageOf } from "../lib/errors";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
@@ -65,7 +65,7 @@ export function ExportDialog({
   const [anyway, setAnyway] = useState(false);
 
   useEffect(() => {
-    void upstart
+    void spaka
       .invoke("export:choices")
       .then((loaded) => {
         setInfo(loaded);
@@ -73,7 +73,7 @@ export function ExportDialog({
         const last = loaded.choices.find((c) => c.id === loaded.last && !c.refused?.length);
         if (last) {
           setChoice(last.id);
-          void upstart.invoke("export:last", last.id).then(setFolder);
+          void spaka.invoke("export:last", last.id).then(setFolder);
         }
       })
       .catch((e) => setError(messageOf(e)));
@@ -90,7 +90,7 @@ export function ExportDialog({
     setResult(null);
     setError(null);
     setFolder(null);
-    void upstart.invoke("export:last", id).then(setFolder);
+    void spaka.invoke("export:last", id).then(setFolder);
   };
 
   const run = async (target: string) => {
@@ -98,7 +98,7 @@ export function ExportDialog({
     setBusy(true);
     setError(null);
     try {
-      setResult(await upstart.invoke("export:run", target, choice));
+      setResult(await spaka.invoke("export:run", target, choice));
       setFolder(target);
     } catch (e) {
       setError(messageOf(e));
@@ -107,7 +107,7 @@ export function ExportDialog({
     }
   };
   const choose = async () => {
-    const picked = await upstart.invoke("export:choose-folder");
+    const picked = await spaka.invoke("export:choose-folder");
     if (picked) await run(picked);
   };
 
@@ -159,7 +159,7 @@ export function ExportDialog({
                 tip={t.adaptation.publish.continueTip}
                 onClick={() => {
                   onClose();
-                  void upstart.invoke("adaptation:continue");
+                  void spaka.invoke("adaptation:continue");
                 }}
               >
                 {t.adaptation.publish.continue}
@@ -261,7 +261,7 @@ export function ExportDialog({
                     <button
                       type="button"
                       className="mt-1 max-w-full truncate text-left font-mono text-xs text-muted-foreground underline-offset-2 hover:underline"
-                      onClick={() => void upstart.invoke("export:reveal", result.folder)}
+                      onClick={() => void spaka.invoke("export:reveal", result.folder)}
                     >
                       {result.folder}
                     </button>
@@ -303,7 +303,7 @@ export function ExportDialog({
                                   <button
                                     type="button"
                                     className="font-medium underline-offset-2 hover:underline"
-                                    onClick={() => void upstart.invoke("export:open-host", host)}
+                                    onClick={() => void spaka.invoke("export:open-host", host)}
                                   >
                                     {t.export.hosts[host].name}
                                   </button>
@@ -339,7 +339,7 @@ function FormService({ name, initial }: { name: string; initial: string }) {
       onSubmit={(event) => {
         event.preventDefault();
         setError(null);
-        upstart
+        spaka
           .invoke("projects:set-form-service", name, value)
           .then(() => {
             setSaved(true);

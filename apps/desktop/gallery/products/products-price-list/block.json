@@ -1,7 +1,7 @@
 {
   "name": "Compact price list",
   "kind": "products",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A compact list of products in one card, a row each with a small picture (or a colored placeholder), the name, a badge, a short summary, the category, the price and an Order button, with a note on tax and delivery; each product's page puts the picture beside the name, the price and the order button, the description below and the rest of the list after it.",
   "tags": ["price list", "compact", "rows", "thumbnails", "shop"],
   "mood": ["minimal", "professional"],

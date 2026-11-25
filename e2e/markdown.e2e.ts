@@ -56,7 +56,7 @@ describe("the agent's Markdown in the conversation", () => {
   const last = () => w().getByTestId("agent-message").last();
 
   beforeAll(async () => {
-    launched = await launchApp({ env: { UPSTART_AGENT_REPLAY: fixture(), UPSTART_AGENT_REPLAY_SPEED: "1" } });
+    launched = await launchApp({ env: { SPAKA_AGENT_REPLAY: fixture(), SPAKA_AGENT_REPLAY_SPEED: "1" } });
     await w().getByTestId("message-input").waitFor();
     await invoke("conversation:send", "A bakery in Lyon. Warm colours please.");
     await until(() => w().locator('[data-testid="agent-message"][data-status="done"]').count(), 30_000);
@@ -88,7 +88,7 @@ describe("the agent's Markdown in the conversation", () => {
     const url = w().url();
     await last().getByTestId("agent-link").filter({ hasText: "the menu" }).click();
     // biome-ignore lint/suspicious/noExplicitAny: the main process's objects, set for checks
-    const route = () => launched.app.evaluate(() => (globalThis as any).upstart.preview.state().route as string);
+    const route = () => launched.app.evaluate(() => (globalThis as any).spaka.preview.state().route as string);
     await until(async () => (await route()) === "/menu", 10_000);
     await last().getByTestId("agent-link").filter({ hasText: "daisyUI" }).click();
     expect(w().url()).toBe(url);

@@ -1,7 +1,7 @@
 {
   "name": "Our story and our promise",
   "kind": "about",
-  "source": "upstart",
+  "source": "spaka",
   "description": "Two columns split by a thin rule: on the left the business's story in two paragraphs, on the right its promise as three checked commitments.",
   "tags": ["story", "promise", "two columns", "commitments", "checklist"],
   "mood": ["professional", "friendly"],

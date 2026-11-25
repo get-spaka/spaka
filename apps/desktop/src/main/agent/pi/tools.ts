@@ -1,4 +1,4 @@
-// The tools of Upstart's own harness (ADR 0012), under the names and with the
+// The tools of Spaka's own harness (ADR 0012), under the names and with the
 // inputs the app already knows from Claude's (Read, Write, Edit, Bash, Glob,
 // Grep; Append for Gemini's long files, Q273), so that the live preview, the
 // conversation's lines and the checks read them alike. The file tools reach
@@ -29,7 +29,7 @@ import {
   PLAN_TOOL,
   readQuestions,
 } from "../questions";
-import { type UpstartToolDef, upstartToolName } from "../upstart-tools";
+import { type SpakaToolDef, spakaToolName } from "../spaka-tools";
 import { safeCommand } from "./bash-gate";
 import { GREP_LIMIT, GREP_TYPES, type GrepInput, grepExpression, grepFiles } from "./grep";
 import type { PiFamily } from "./models";
@@ -106,7 +106,7 @@ function place(path: string, root: string, roots: string[]): { abs: string; show
 const slashed = (path: string) => path.split(sep).join("/");
 
 const outside = (path: string) =>
-  new Error(`${path} is outside the project. Upstart's agent reads and writes the project's files only.`);
+  new Error(`${path} is outside the project. Spaka's agent reads and writes the project's files only.`);
 
 const IMAGES: Record<string, string> = {
   ".png": "image/png",
@@ -115,7 +115,7 @@ const IMAGES: Record<string, string> = {
   ".webp": "image/webp",
   ".gif": "image/gif",
 };
-// Never searched: the project's history and installed packages. Its .upstart/ folder is, when asked for by name (Q433).
+// Never searched: the project's history and installed packages. Its .spaka/ folder is, when asked for by name (Q433).
 const SKIPPED = new Set([".git", "node_modules"]);
 const GLOB_LIMIT = 100;
 const BASH_DEFAULT_MS = 120_000;
@@ -178,7 +178,7 @@ export function piFileTools({ root, readable, family, shell, search, summarize }
     if (read === undefined) throw new Error(`Read ${at.shown} before changing it.`);
     if (stamp(at.abs) !== read)
       throw new Error(
-        `${at.shown} changed since you read it (the maker or one of Upstart's tools may have edited it): read it again before changing it.`,
+        `${at.shown} changed since you read it (the maker or one of Spaka's tools may have edited it): read it again before changing it.`,
       );
   };
   const tools: HarnessTool[] = [
@@ -303,7 +303,7 @@ export function piFileTools({ root, readable, family, shell, search, summarize }
       name: "Glob",
       label: "Glob",
       description:
-        "Lists the project's files whose path matches a glob pattern, such as pages/**/*.liquid, data/*/_datasource.yaml or .upstart/test-records/**/*.md, the most recently changed first.",
+        "Lists the project's files whose path matches a glob pattern, such as pages/**/*.liquid, data/*/_datasource.yaml or .spaka/test-records/**/*.md, the most recently changed first.",
       parameters: fileSchema(
         { pattern: str("The glob pattern"), path: str("The folder to search in; the project by default") },
         ["pattern"],
@@ -435,7 +435,7 @@ export function piFileTools({ root, readable, family, shell, search, summarize }
       description: `${
         shell.gate
           ? "Runs a shell command (bash) in the project folder. A plain file command on the project's files (rm, mv, cp, mkdir, ls, cat, with paths inside the project) runs at once; any other waits for the maker's approval."
-          : "Runs a shell command (bash) in the project folder, in Upstart's sandbox: it may write in the project and the temporary folder only."
+          : "Runs a shell command (bash) in the project folder, in Spaka's sandbox: it may write in the project and the temporary folder only."
       } For what the file tools cannot do, such as deleting or moving files. It stops after \`timeout\` milliseconds (2 minutes by default, 10 at most).`,
       parameters: fileSchema(
         {
@@ -474,8 +474,8 @@ export function piFileTools({ root, readable, family, shell, search, summarize }
 
 const WRITERS = new Set(["Write", "Edit", "Append", "Bash"]);
 
-/** Upstart's own tools for the harness, under their short names; the app knows them by the SDK's. */
-export function piUpstartTools(defs: UpstartToolDef[]): HarnessTool[] {
+/** Spaka's own tools for the harness, under their short names; the app knows them by the SDK's. */
+export function piSpakaTools(defs: SpakaToolDef[]): HarnessTool[] {
   return defs.map((def) => ({
     name: def.name,
     label: def.name,
@@ -540,15 +540,15 @@ export function piPlanTool(
   };
 }
 
-/** The names the app knows a harness tool by: Upstart's own under the SDK's names. */
-export function canonicalTool(name: string, upstart: Set<string>): string {
-  return upstart.has(name) ? upstartToolName(name) : name;
+/** The names the app knows a harness tool by: Spaka's own under the SDK's names. */
+export function canonicalTool(name: string, spaka: Set<string>): string {
+  return spaka.has(name) ? spakaToolName(name) : name;
 }
 
 function walk(dir: string, prefix = ""): string[] {
   const out: string[] = [];
   for (const entry of readdirSync(join(dir, prefix), { withFileTypes: true })) {
-    // Hidden folders and files (.upstart/, .git) only when the search names them, as Glob does.
+    // Hidden folders and files (.spaka/, .git) only when the search names them, as Glob does.
     if (SKIPPED.has(entry.name) || entry.name.startsWith(".")) continue;
     const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
     if (entry.isDirectory()) out.push(...walk(dir, rel));

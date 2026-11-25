@@ -49,7 +49,7 @@ if (process.argv.includes("--list")) process.exit(0);
 run("types", ["typecheck"]);
 run("unit tests", ["exec", "vitest", "run", "--bail", "1"]);
 if (chosen.length) {
-  run("build", ["--filter", "@upstart/desktop", "build"]);
+  run("build", ["--filter", "@spaka/desktop", "build"]);
   run("background Electron", ["background-electron"]);
   // Vitest takes a name as part of a path: gallery.e2e.ts also runs agent-gallery.e2e.ts, which without a real
   // agent skips at once.

@@ -1,7 +1,7 @@
 {
   "name": "Opening hours table",
   "kind": "contact",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A clean table of opening hours, one row per day with its hours on the right and an optional note below the day, beside a short introduction with the address, phone number and email.",
   "tags": ["opening hours", "table", "address", "phone", "email"],
   "mood": ["minimal", "elegant"],

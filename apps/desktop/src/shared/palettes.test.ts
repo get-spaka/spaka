@@ -1,4 +1,4 @@
-import { STATUS_TEXT_AT, STATUS_TONES } from "@upstart/runtime";
+import { STATUS_TEXT_AT, STATUS_TONES } from "@spaka/runtime";
 import { expect, test } from "vitest";
 import { contrast, PALETTES, parseColor, READ_TOGETHER } from "./palettes";
 

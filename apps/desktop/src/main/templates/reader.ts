@@ -1,4 +1,4 @@
-// A template read from a folder or a .zip (Q236, Q240): an Upstart project's
+// A template read from a folder or a .zip (Q236, Q240): a Spaka project's
 // files plus its manifest, its blocks in blocks/ and its pictures in
 // pictures/. Both give the same thing, the files by path, from which the
 // template is made; what a new project copies of them is projectFiles().
@@ -11,7 +11,7 @@ import {
   infoFile,
   memorySource,
   siteAssets,
-} from "@upstart/runtime";
+} from "@spaka/runtime";
 import { type Block, filesTree, readBlocks } from "../gallery/catalogue";
 import { MANIFEST, Manifest } from "./manifest";
 import { readZip, safePath, ZIP_LIMITS } from "./zip";
@@ -37,7 +37,7 @@ export type Template = {
 
 export const PICTURES = "pictures";
 export const BLOCKS = "blocks";
-export const DESIGN_SKILL = (id: string) => `.upstart/skills/${id}-design`;
+export const DESIGN_SKILL = (id: string) => `.spaka/skills/${id}-design`;
 /** Its guide, for the agent that adapts it (Q299): kept for the adaptation only, never among the website's files (Q307). */
 export const GUIDE = "TEMPLATE.md";
 
@@ -55,7 +55,7 @@ export const TEMPLATE_ENTRIES = new Set([
   "styles",
   "blocks",
   "pictures",
-  ".upstart",
+  ".spaka",
   "TEMPLATE.md",
   "README.md",
   "LICENSE",
@@ -67,8 +67,8 @@ export const TEMPLATE_ENTRIES = new Set([
 /** Folders and files never part of a template. */
 const LEFT_OUT = new Set([".git", "node_modules", ".DS_Store", "Thumbs.db"]);
 
-/** Of .upstart/, a template keeps its skills and its test records only: never a project's id or history. */
-const KEPT_HIDDEN = /^\.upstart\/(?:skills|test-records)\//;
+/** Of .spaka/, a template keeps its skills and its test records only: never a project's id or history. */
+const KEPT_HIDDEN = /^\.spaka\/(?:skills|test-records)\//;
 
 /** The files of a template folder, by path; what is no template's is left out. */
 export function readTemplateFolder(dir: string): TemplateFiles {
@@ -79,9 +79,9 @@ export function readTemplateFolder(dir: string): TemplateFiles {
       if (LEFT_OUT.has(entry.name)) continue;
       const child = join(abs, entry.name);
       const path = relative(dir, child).split(sep).join("/");
-      if (path.startsWith(".") && !path.startsWith(".upstart")) continue;
+      if (path.startsWith(".") && !path.startsWith(".spaka")) continue;
       if (entry.isDirectory()) walk(child);
-      else if (entry.isFile() && (!path.startsWith(".upstart/") || KEPT_HIDDEN.test(path))) {
+      else if (entry.isFile() && (!path.startsWith(".spaka/") || KEPT_HIDDEN.test(path))) {
         if (files.size >= ZIP_LIMITS.files) throw new Error(`This folder holds more than ${ZIP_LIMITS.files} files.`);
         const bytes = readFileSync(child);
         total += bytes.length;
@@ -111,7 +111,7 @@ export function readTemplateZip(zip: Buffer): TemplateFiles {
   for (const [path, bytes] of files) {
     const parts = path.split("/");
     if (parts.some((p) => LEFT_OUT.has(p))) continue;
-    if (path.startsWith(".") && !(path.startsWith(".upstart/") && KEPT_HIDDEN.test(path))) continue;
+    if (path.startsWith(".") && !(path.startsWith(".spaka/") && KEPT_HIDDEN.test(path))) continue;
     kept.set(path, bytes);
   }
   return kept;

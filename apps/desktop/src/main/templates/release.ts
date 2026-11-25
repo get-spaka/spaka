@@ -1,5 +1,5 @@
-// A release of Upstart's templates (Q247, Q250): built by the CI of the public
-// repository upstart-gg/upstart-templates from the template folders it holds,
+// A release of Spaka's templates (Q247, Q250): built by the CI of the public
+// repository get-spaka/templates from the template folders it holds,
 // and attached to a GitHub release — catalogue.json (each template's manifest,
 // its .zip's sha256 and size, its pictures), each template's cover and hover
 // sequence, and one .zip per template. The app ships a snapshot of the

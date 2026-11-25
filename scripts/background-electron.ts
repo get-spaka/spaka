@@ -28,18 +28,18 @@ export function backgroundElectron(): string {
 }
 
 /**
- * The same for a packaged Upstart.app: a copy marked as an agent app, for a
+ * The same for a packaged Spaka.app: a copy marked as an agent app, for a
  * check of the packaged build in the background. Returns its executable.
  */
-export function backgroundPackagedApp(bundle = join(root, "apps/desktop/dist/mac-arm64/Upstart.app")): string {
-  // Windows: the unpacked build, run as it is; a check keeps its window hidden by itself (UPSTART_BACKGROUND).
-  if (process.platform === "win32") return join(root, "apps/desktop/dist/win-unpacked/Upstart.exe");
-  const target = join(root, ".cache/packaged-background/Upstart.app");
+export function backgroundPackagedApp(bundle = join(root, "apps/desktop/dist/mac-arm64/Spaka.app")): string {
+  // Windows: the unpacked build, run as it is; a check keeps its window hidden by itself (SPAKA_BACKGROUND).
+  if (process.platform === "win32") return join(root, "apps/desktop/dist/win-unpacked/Spaka.exe");
+  const target = join(root, ".cache/packaged-background/Spaka.app");
   rmSync(dirname(target), { recursive: true, force: true });
   mkdirSync(dirname(target), { recursive: true });
   cpSync(bundle, target, { recursive: true, verbatimSymlinks: true });
   execFileSync("/usr/libexec/PlistBuddy", ["-c", "Add :LSUIElement bool true", join(target, "Contents/Info.plist")]);
-  return join(target, "Contents/MacOS/Upstart");
+  return join(target, "Contents/MacOS/Spaka");
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) console.log(backgroundElectron());

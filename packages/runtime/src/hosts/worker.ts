@@ -1,7 +1,7 @@
 // The Cloudflare export's Worker (Q175): pages, fragments, form submissions
 // and the management API answered by the runtime, the records kept in D1.
 // The files of public/ are served by Workers Static Assets before the Worker
-// is woken; wrangler.jsonc sends /_data/ and /_upstart/ to it first.
+// is woken; wrangler.jsonc sends /_data/ and /_spaka/ to it first.
 import { SqlStore } from "../sql.ts";
 import { type PublishedSite, siteRuntime } from "./site.ts";
 
@@ -14,7 +14,7 @@ type D1 = {
     };
   };
 };
-export type WorkerEnv = { DB: D1; UPSTART_TOKEN?: string };
+export type WorkerEnv = { DB: D1; SPAKA_TOKEN?: string };
 
 export function siteWorker(site: PublishedSite) {
   let runtime: ReturnType<typeof siteRuntime> | undefined;
@@ -36,7 +36,7 @@ export function siteWorker(site: PublishedSite) {
                 .run()
             ).meta.changes,
         }),
-        env.UPSTART_TOKEN,
+        env.SPAKA_TOKEN,
       );
       const visitor = request.headers.get("cf-connecting-ip") ?? undefined;
       return runtime.fetch(request, visitor ? { visitor } : {});

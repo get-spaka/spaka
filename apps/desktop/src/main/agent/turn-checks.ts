@@ -1,4 +1,4 @@
-// What Upstart tells the agent while it works, whichever agent it is (ADR
+// What Spaka tells the agent while it works, whichever agent it is (ADR
 // 0012): after a tool call, that a datasource file it wrote does not read
 // (Q170); before it stops, the sample records, lorem ipsum and template texts
 // it left behind (Q217, Q218, Q223, Q246) and the pages taken off the website (Q307), once.

@@ -1,7 +1,7 @@
 {
   "name": "Compact agenda table",
   "kind": "events",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A compact agenda as a table, one row per event with its date and weekday, title, time, place, price and a small Book button, the less important columns hidden on a phone.",
   "tags": ["table", "agenda", "compact", "schedule", "dates"],
   "mood": ["minimal", "professional"],

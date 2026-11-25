@@ -1,7 +1,7 @@
 {
   "name": "What's on, dark band",
   "kind": "events",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A dark band headed \"What's on\" in big capitals, one event per row between fine lines: the date and weekday in large type, the title, time and place, the price and a Tickets button.",
   "tags": ["dark", "band", "rows", "concerts", "tickets"],
   "mood": ["dark", "bold"],

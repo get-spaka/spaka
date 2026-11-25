@@ -1,4 +1,4 @@
-// A website's own settings (Q118), as a dialog centred on Upstart's window,
+// A website's own settings (Q118), as a dialog centred on Spaka's window,
 // opened from the button on its row in the websites list or the one before its
 // name over the conversation: its model and effort, its
 // own skills and connectors, all kept in its folder; and which connectors it
@@ -7,7 +7,7 @@
 import { House } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { AgentStatus, ConnectorInfo, ProjectInfo, SiteCheck, SkillInfo } from "../../shared/ipc";
-import { upstart } from "../lib/bridge";
+import { spaka } from "../lib/bridge";
 import { messageOf } from "../lib/errors";
 import { t } from "../lib/strings";
 import { ConnectorList, SkillList } from "../settings/lists";
@@ -67,7 +67,7 @@ export function SiteSettings({
                 onDone={(name) => {
                   setRenaming(false);
                   const clean = name?.trim();
-                  if (clean && clean !== project.name) void upstart.invoke("projects:rename", project.id, clean);
+                  if (clean && clean !== project.name) void spaka.invoke("projects:rename", project.id, clean);
                 }}
               />
             ) : (
@@ -91,7 +91,7 @@ export function SiteSettings({
                 <button
                   type="button"
                   data-testid="site-folder"
-                  onClick={() => void upstart.invoke("projects:reveal")}
+                  onClick={() => void spaka.invoke("projects:reveal")}
                   className="min-w-0 truncate font-mono underline-offset-2 hover:text-foreground hover:underline"
                 >
                   {project.path.split(/[\\/]/).pop()}
@@ -109,8 +109,8 @@ export function SiteSettings({
             model={project.model}
             effort={project.effort}
             onChange={(next) => {
-              if (next.model) void upstart.invoke("agent:set-model", next.model);
-              if (next.effort) void upstart.invoke("agent:set-effort", next.effort);
+              if (next.model) void spaka.invoke("agent:set-model", next.model);
+              if (next.effort) void spaka.invoke("agent:set-effort", next.effort);
             }}
           />
         </Group>
@@ -134,7 +134,7 @@ export function SiteSettings({
                 <button
                   type="button"
                   className="underline underline-offset-2 hover:text-foreground"
-                  onClick={() => void upstart.invoke("settings:open", "connectors")}
+                  onClick={() => void spaka.invoke("settings:open", "connectors")}
                   data-testid="site-open-settings"
                 >
                   {t.site.fromSettings}
@@ -166,16 +166,16 @@ function PublishedSite({ project }: { project: ProjectInfo }) {
   const [shown, setShown] = useState(false);
   const [copied, setCopied] = useState(false);
   useEffect(() => {
-    void upstart.invoke("site:token").then(setToken);
+    void spaka.invoke("site:token").then(setToken);
   }, []);
   const save = async () => {
     setError(undefined);
     setCheck(undefined);
     try {
-      await upstart.invoke("projects:set-site-url", address);
+      await spaka.invoke("projects:set-site-url", address);
       if (address.trim()) {
         setCheck("checking");
-        setCheck(await upstart.invoke("site:check"));
+        setCheck(await spaka.invoke("site:check"));
       }
     } catch (e) {
       setError(messageOf(e));
@@ -242,7 +242,7 @@ function PublishedSite({ project }: { project: ProjectInfo }) {
           tip={p.newTokenTip}
           onClick={() => {
             if (!window.confirm(p.newTokenConfirm)) return;
-            void upstart.invoke("site:new-token").then((next) => {
+            void spaka.invoke("site:new-token").then((next) => {
               setToken(next);
               setShown(true);
             });

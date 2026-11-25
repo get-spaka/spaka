@@ -35,7 +35,7 @@ export function settingsFrom(data: unknown): AppSettings {
 export function chosenFrom(data: unknown): Partial<AppSettings> {
   const d = (data && typeof data === "object" ? data : {}) as Record<string, unknown>;
   const chosen: Partial<AppSettings> = {};
-  // A model taken off Upstart's list gives way to the latest of its family (Q399).
+  // A model taken off Spaka's list gives way to the latest of its family (Q399).
   if (typeof d.newModel === "string" && d.newModel.trim())
     chosen.newModel = claudeReplacement(d.newModel) ?? d.newModel;
   if (typeof d.newEffort === "string" && isEffort(d.newEffort)) chosen.newEffort = d.newEffort;

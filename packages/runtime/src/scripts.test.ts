@@ -34,29 +34,29 @@ test("published, the libraries load first, then the start script imports the mod
   const lenis = head.indexOf('<script src="https://unpkg.com/lenis@1.3.4/dist/lenis.min.js"></script>');
   const lib = head.indexOf('<script src="/scripts/lib/splitting.js"></script>');
   const start = head.indexOf(
-    '<script src="/assets/up-start.js" data-modules="/scripts/b-scroll.mjs /scripts/reveal.js" defer></script>',
+    '<script src="/assets/spaka-start.js" data-modules="/scripts/b-scroll.mjs /scripts/reveal.js" defer></script>',
   );
   expect(lenis).toBeGreaterThan(0);
   expect(lib).toBeGreaterThan(lenis);
   expect(start).toBeGreaterThan(lib);
   expect(head).not.toContain("data-wait");
-  expect(exportHead(true)).not.toContain("up-start");
+  expect(exportHead(true)).not.toContain("spaka-start");
 });
 
 test("in the preview no script of the site is in the head: the start script loads them in visitor mode (Q242)", () => {
   const { assets } = siteAssets(site);
-  const head = previewHead({ vendorBase: "/__up/vendor", theme: "", assets, styles: ".hero { color: red; }" });
+  const head = previewHead({ vendorBase: "/__spaka/vendor", theme: "", assets, styles: ".hero { color: red; }" });
   expect(head).not.toContain('<script src="https://unpkg.com');
   expect(head).not.toContain('<script src="/scripts/');
   expect(head).toContain(
-    '<script src="/__up/vendor/up-start.js" data-libraries="https://unpkg.com/lenis@1.3.4/dist/lenis.min.js /scripts/lib/splitting.js" data-modules="/scripts/b-scroll.mjs /scripts/reveal.js" data-wait defer data-up-runtime></script>',
+    '<script src="/__spaka/vendor/spaka-start.js" data-libraries="https://unpkg.com/lenis@1.3.4/dist/lenis.min.js /scripts/lib/splitting.js" data-modules="/scripts/b-scroll.mjs /scripts/reveal.js" data-wait defer data-spaka-runtime></script>',
   );
   // Still until visitor mode, and the site's stylesheet compiled by Tailwind with the theme's names.
-  expect(head).toContain('<style id="up-still" data-up-runtime>html:not([data-up-moving])');
+  expect(head).toContain('<style id="spaka-still" data-spaka-runtime>html:not([data-spaka-moving])');
   expect(head).toMatch(
-    /<style id="up-styles" type="text\/tailwindcss" data-up-runtime>@theme inline[\s\S]*\.hero \{ color: red; \}<\/style>/,
+    /<style id="spaka-styles" type="text\/tailwindcss" data-spaka-runtime>@theme inline[\s\S]*\.hero \{ color: red; \}<\/style>/,
   );
-  expect(previewHead({ vendorBase: "/v", theme: "" })).not.toContain("up-start");
+  expect(previewHead({ vendorBase: "/v", theme: "" })).not.toContain("spaka-start");
 });
 
 test("the start script starts the modules on load and on what htmx brings, waits in the preview, and stops and starts them around a new rendering", async () => {
@@ -73,7 +73,7 @@ test("the start script starts the modules on load and on what htmx brings, waits
       listeners[type] = fn;
     },
   };
-  const window: { __upStart?: { go(): Promise<void>; stop(): void; start(): Promise<void>; started: boolean } } = {};
+  const window: { __spakaStart?: { go(): Promise<void>; stop(): void; start(): Promise<void>; started: boolean } } = {};
   const module = {
     start: (root: unknown) => void calls.push(`start ${root === document ? "document" : "part"}`),
     stop: () => void calls.push("stop"),
@@ -81,21 +81,21 @@ test("the start script starts the modules on load and on what htmx brings, waits
   // The script as the page runs it, its import answered by the module above.
   const run = new Function("document", "window", "__import", START_JS.replace(/import\(path\)/, "__import(path)"));
   run(document, window, async () => module);
-  expect(window.__upStart?.started).toBe(false);
+  expect(window.__spakaStart?.started).toBe(false);
   listeners["htmx:after:process"]!({ target: {} });
   expect(calls).toEqual([]);
-  await window.__upStart!.go();
+  await window.__spakaStart!.go();
   expect(calls).toEqual(["start document"]);
   listeners["htmx:after:process"]!({ target: body });
   listeners["htmx:after:process"]!({ target: {} });
   await new Promise((r) => setTimeout(r, 0));
   expect(calls).toEqual(["start document", "start part"]);
   // Before a new rendering, stopped at once; started again once it is complete, once.
-  window.__upStart!.stop();
-  window.__upStart!.stop();
+  window.__spakaStart!.stop();
+  window.__spakaStart!.stop();
   expect(calls.slice(2)).toEqual(["stop"]);
-  await window.__upStart!.start();
-  await window.__upStart!.start();
+  await window.__spakaStart!.start();
+  await window.__spakaStart!.start();
   expect(calls.slice(2)).toEqual(["stop", "start document"]);
 });
 

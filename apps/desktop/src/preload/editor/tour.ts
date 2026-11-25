@@ -9,18 +9,18 @@ export const TOUR_STYLE = `
 .tour-hole { position: fixed; border-radius: 8px; box-shadow: 0 0 0 200vmax rgb(0 0 0 / .4); pointer-events: none; display: none; }
 .tour-catch { position: fixed; inset: 0; pointer-events: auto; display: none; }
 .tour-bubble { position: fixed; display: none; width: 280px; box-sizing: border-box; padding: 12px 14px; border-radius: 10px;
-  background: var(--up-surface); color: var(--up-text); border: 1px solid var(--up-border); box-shadow: 0 12px 32px rgb(0 0 0 / .25);
+  background: var(--spaka-surface); color: var(--spaka-text); border: 1px solid var(--spaka-border); box-shadow: 0 12px 32px rgb(0 0 0 / .25);
   pointer-events: auto; font-size: 13px; line-height: 1.4; }
 .tour-bubble h3 { all: unset; display: block; font-weight: 600; margin-bottom: 4px; }
-.tour-bubble p { all: unset; display: block; color: var(--up-text-2); }
+.tour-bubble p { all: unset; display: block; color: var(--spaka-text-2); }
 .tour-bubble .row { display: flex; align-items: center; gap: 6px; margin-top: 10px; }
-.tour-bubble .count { flex: 1; color: var(--up-muted); font-size: 12px; }
+.tour-bubble .count { flex: 1; color: var(--spaka-muted); font-size: 12px; }
 .tour-bubble button { all: unset; padding: 4px 10px; border-radius: 6px; cursor: default; font-weight: 500; }
-.tour-bubble button.skip { color: var(--up-text-2); }
-.tour-bubble button.skip:hover { background: var(--up-hover); }
-.tour-bubble button.next { background: var(--up-text); color: var(--up-surface); }
-.tour-bubble .arrow { position: absolute; width: 10px; height: 10px; background: var(--up-surface); transform: rotate(45deg);
-  border: 1px solid var(--up-border); }
+.tour-bubble button.skip { color: var(--spaka-text-2); }
+.tour-bubble button.skip:hover { background: var(--spaka-hover); }
+.tour-bubble button.next { background: var(--spaka-text); color: var(--spaka-surface); }
+.tour-bubble .arrow { position: absolute; width: 10px; height: 10px; background: var(--spaka-surface); transform: rotate(45deg);
+  border: 1px solid var(--spaka-border); }
 `;
 
 /** What a bubble points at on the page: its first heading in view, else its first image. */

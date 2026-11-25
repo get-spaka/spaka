@@ -1,5 +1,5 @@
-// The templates a new website may start from (Q245, Q249): Upstart's own and
-// those the maker imported, kept in the app's data. Upstart's come from a
+// The templates a new website may start from (Q245, Q249): Spaka's own and
+// those the maker imported, kept in the app's data. Spaka's come from a
 // folder while it is developed, or from the catalogue of the public
 // repository's releases (Q247, Q250): the app ships a snapshot of it with the
 // pictures, reads the latest one when it starts, and downloads a template's
@@ -21,12 +21,12 @@ import { ZIP_LIMITS } from "./zip";
 /** An imported template waits this long for the maker to add it. */
 const PENDING_MS = 30 * 60_000;
 
-/** The public repository's releases (Q250): upstart-gg/upstart-templates, never the old Upstart's upstart-gg/templates. */
-export const TEMPLATES_RELEASES = "https://github.com/upstart-gg/upstart-templates/releases";
+/** The public repository's releases (Q250): get-spaka/templates. */
+export const TEMPLATES_RELEASES = "https://github.com/get-spaka/templates/releases";
 
-/** Where Upstart's own templates come from. */
+/** Where Spaka's own templates come from. */
 export type TemplateSource =
-  /** A folder of template folders: the repository's, while Upstart is developed. */
+  /** A folder of template folders: the repository's, while Spaka is developed. */
   | { folder: string }
   | {
       /** The releases' address: `<releases>/latest/download/catalogue.json`, `<releases>/download/<tag>/<file>`. */
@@ -85,11 +85,11 @@ export class TemplateLibrary {
    */
   async dir(id: string): Promise<string> {
     const summary = this.get(id);
-    if (!summary) throw new Error("Upstart has no such template.");
+    if (!summary) throw new Error("Spaka has no such template.");
     if (summary.imported) return join(this.imported, id);
     if ("folder" in this.source) return join(this.source.folder, id);
     const entry = this.entries().find((t) => t.id === id);
-    if (!entry) throw new Error("Upstart has no such template.");
+    if (!entry) throw new Error("Spaka has no such template.");
     const dir = join(this.source.cache, "templates", id, entry.version);
     if (existsSync(join(dir, MANIFEST))) return dir;
     const key = `${id}@${entry.version}`;
@@ -211,7 +211,7 @@ export class TemplateLibrary {
     if (check.errors.length || !check.template) return { problems: check.errors };
     const { manifest, pictures } = check.template;
     const known = this.get(manifest.id);
-    if (known && !known.imported) return { problems: [`Upstart already has a template named "${manifest.id}".`] };
+    if (known && !known.imported) return { problems: [`Spaka already has a template named "${manifest.id}".`] };
     this.forget();
     const token = randomUUID();
     this.pending.set(token, { files, at: Date.now() });

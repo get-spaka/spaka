@@ -10,8 +10,8 @@
 /* Windows: the window's own buttons sit at the top right, over the interface; macOS's at the top left. */
 @custom-variant win (&:where(.platform-win, .platform-win *));
 
-/* shadcn/ui tokens (neutral), with Upstart's own: warning, success, scrim and the settings' panel.
-   Primary is the violet of Upstart's icon (#817FCC), a little deeper for white labels (Q341): the same
+/* shadcn/ui tokens (neutral), with Spaka's own: warning, success, scrim and the settings' panel.
+   Primary is the violet of Spaka's icon (#817FCC), a little deeper for white labels (Q341): the same
    in light and dark, on main buttons and on whatever marks a choice (Q342); the focus ring is it too. */
 :root {
   --radius: 0.625rem;
@@ -131,7 +131,7 @@
     @apply bg-background text-foreground antialiased select-none;
     font-size: 14px;
   }
-  /* The system's checkboxes and sliders in Upstart's violet rather than macOS's accent. */
+  /* The system's checkboxes and sliders in Spaka's violet rather than macOS's accent. */
   input[type="checkbox"],
   input[type="radio"],
   input[type="range"] {

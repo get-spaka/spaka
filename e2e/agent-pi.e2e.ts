@@ -1,12 +1,12 @@
-// Checks of Upstart's own harness with a real model (ADR 0012). They spend a
+// Checks of Spaka's own harness with a real model (ADR 0012). They spend a
 // little of the maker's Gemini key, so they run only when asked:
-// UPSTART_REAL_PI=1, with GEMINI_API_KEY set in the terminal or in the
+// SPAKA_REAL_PI=1, with GEMINI_API_KEY set in the terminal or in the
 // repository's .env (Q438). The key goes from there to the app's main process,
-// never printed. With UPSTART_PI_RECORD=<file>, the model's replies are
+// never printed. With SPAKA_PI_RECORD=<file>, the model's replies are
 // recorded, for agent-pi-replay.e2e.ts to play back. With
-// UPSTART_REAL_PI_VERTEX_PROJECT=<project>, Gemini runs on Vertex AI instead,
+// SPAKA_REAL_PI_VERTEX_PROJECT=<project>, Gemini runs on Vertex AI instead,
 // on the Google Cloud sign-in made with gcloud (Q280), its calls' arguments
-// streamed to the preview. With UPSTART_REAL_PI_OPENAI=1, the harness runs
+// streamed to the preview. With SPAKA_REAL_PI_OPENAI=1, the harness runs
 // OpenAI's default model on OPENAI_API_KEY instead, searching with OpenAI's
 // own web search.
 import { existsSync, readdirSync, readFileSync, utimesSync, writeFileSync } from "node:fs";
@@ -16,9 +16,9 @@ import { devKey as key } from "../apps/desktop/src/main/dev-keys.ts";
 import { type LaunchedApp, launchApp, SLOW } from "./app.ts";
 import { maker } from "./real-maker.ts";
 
-const real = process.env.UPSTART_REAL_PI === "1";
-const vertexProject = process.env.UPSTART_REAL_PI_VERTEX_PROJECT;
-const openai = process.env.UPSTART_REAL_PI_OPENAI === "1";
+const real = process.env.SPAKA_REAL_PI === "1";
+const vertexProject = process.env.SPAKA_REAL_PI_VERTEX_PROJECT;
+const openai = process.env.SPAKA_REAL_PI_OPENAI === "1";
 const account = vertexProject ? "vertex" : openai ? "openai" : "gemini";
 /** The model that builds, and another the account offers. */
 const [model, other, modelName] = openai
@@ -30,19 +30,19 @@ const say = (line: string) => process.stdout.write(`${line}\n`);
 
 type Logged = { t: number; kind: string; name?: string; path?: string; length?: number };
 
-describe.skipIf(!real)(`Upstart's own harness, with ${modelName} on ${account}`, () => {
+describe.skipIf(!real)(`Spaka's own harness, with ${modelName} on ${account}`, () => {
   let launched: LaunchedApp;
   // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-  const main = <T>(fn: (upstart: any, arg: any) => T, arg?: unknown) =>
+  const main = <T>(fn: (spaka: any, arg: any) => T, arg?: unknown) =>
     launched.app.evaluate(
       (_electron, [source, arg]) =>
-        new Function("u", "a", `return (${source})(u, a)`)((globalThis as { upstart?: unknown }).upstart, arg),
+        new Function("u", "a", `return (${source})(u, a)`)((globalThis as { spaka?: unknown }).spaka, arg),
       [fn.toString(), arg] as const,
     ) as Promise<Awaited<T>>;
   const invoke = (channel: string, ...args: unknown[]) =>
     launched.window.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      ([channel, args]) => (window as any).upstart.invoke(channel, ...args),
+      ([channel, args]) => (window as any).spaka.invoke(channel, ...args),
       [channel, args] as const,
     );
   const until = async (read: () => Promise<unknown>, timeout: number) => {
@@ -69,8 +69,8 @@ describe.skipIf(!real)(`Upstart's own harness, with ${modelName} on ${account}`,
   const problems = () => main((u) => [...u.agent.sessions.values()].flatMap((s: { problems: string[] }) => s.problems));
 
   beforeAll(async () => {
-    const record = process.env.UPSTART_PI_RECORD;
-    launched = await launchApp({ env: { UPSTART_AGENT_REPLAY: "", ...(record ? { UPSTART_PI_RECORD: record } : {}) } });
+    const record = process.env.SPAKA_PI_RECORD;
+    launched = await launchApp({ env: { SPAKA_AGENT_REPLAY: "", ...(record ? { SPAKA_PI_RECORD: record } : {}) } });
     await launched.window.getByTestId("message-input").waitFor();
     if (vertexProject) await main((u, p) => u.piAccounts.setVertexGcloud(p), vertexProject);
     else if (openai) {
@@ -133,7 +133,7 @@ describe.skipIf(!real)(`Upstart's own harness, with ${modelName} on ${account}`,
         const at = (e?: Logged) => (e ? `${((e.t - started) / 1000).toFixed(1)} s` : "-");
         // The first change the maker sees: a file being written, or a block placed (ADR 0009).
         const firstWrite = log.find((e) => e.kind === "tool-input" && e.length);
-        const firstBlock = log.find((e) => e.kind === "tool-result" && e.name === "mcp__upstart__use_block");
+        const firstBlock = log.find((e) => e.kind === "tool-result" && e.name === "mcp__spaka__use_block");
         const calls = log.filter((e) => e.kind === "tool-input-end");
         // How finely the home page reached the preview: each piece is a new rendering of it.
         const pagePieces = log.filter((e) => e.kind === "tool-input" && e.path === "pages/index.liquid" && e.length);

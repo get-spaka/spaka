@@ -1,7 +1,7 @@
 {
   "name": "Dark band of services",
   "kind": "services",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A dark neutral band with a heading and intro on the left and the services in a grid on the right, each with an outlined icon, name, summary and price, separated by fine lines.",
   "tags": ["dark", "band", "grid", "icons", "split"],
   "mood": ["dark", "bold", "professional"],

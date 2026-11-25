@@ -9,7 +9,7 @@ import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { dirname, isAbsolute } from "node:path";
 import type { ModelInfo, Query, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
 import { CARD_TOOLS } from "./questions";
-import { LOOK_TOOL, PAGES_TOOL, UPSTART_SERVER } from "./upstart-tools";
+import { LOOK_TOOL, PAGES_TOOL, SPAKA_SERVER } from "./spaka-tools";
 
 type Line = { t: number; m: Record<string, unknown> & { type: string } };
 
@@ -59,7 +59,7 @@ const MODELS: ModelInfo[] = [
  * `speed`. The files the agent wrote are written again, in the project being
  * checked, so that the preview sees them as it would.
  */
-/** What the played-back agent received, message by message: for checks of what Upstart tells it. */
+/** What the played-back agent received, message by message: for checks of what Spaka tells it. */
 export const replayed: string[] = [];
 
 export function replayQuery(file: string, speed = 1) {
@@ -78,8 +78,8 @@ export function replayQuery(file: string, speed = 1) {
     const ask = params.options.canUseTool as
       | ((name: string, input: Record<string, unknown>, options: { signal: AbortSignal }) => Promise<unknown>)
       | undefined;
-    // The card of pages is one of Upstart's tools, which the binary runs without asking: run here.
-    const runTool = (params.options.mcpServers as Record<string, { runTool?: RunTool }> | undefined)?.[UPSTART_SERVER]
+    // The card of pages is one of Spaka's tools, which the binary runs without asking: run here.
+    const runTool = (params.options.mcpServers as Record<string, { runTool?: RunTool }> | undefined)?.[SPAKA_SERVER]
       ?.runTool;
 
     async function* messages() {

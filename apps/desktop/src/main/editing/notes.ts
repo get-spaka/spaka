@@ -29,6 +29,6 @@ export class AgentNotes {
     this.changes = [];
     if (!parts.length) return undefined;
     const text = parts.join("; ").replace(/^since then/, "since your last turn");
-    return `[Upstart: ${text}. The files may differ from what you remember: read a file again before editing it.]`;
+    return `[Spaka: ${text}. The files may differ from what you remember: read a file again before editing it.]`;
   }
 }

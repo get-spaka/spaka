@@ -1,7 +1,7 @@
 {
   "name": "Strip with a New badge",
   "kind": "banner",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A light strip holding one rounded pill link with a small primary New badge, a short piece of news and a chevron, centred above the header.",
   "tags": ["badge", "pill", "news", "light background", "thin strip"],
   "mood": ["minimal", "friendly"],

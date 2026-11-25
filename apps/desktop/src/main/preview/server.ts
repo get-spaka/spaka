@@ -5,13 +5,13 @@ import { createReadStream, readFileSync, statSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { createRequire } from "node:module";
 import { extname, join, normalize, resolve, sep } from "node:path";
-import type { Runtime } from "@upstart/runtime";
-import { daisyuiBelowComponents, START_JS, START_SCRIPT, VENDOR } from "@upstart/runtime";
+import type { Runtime } from "@spaka/runtime";
+import { daisyuiBelowComponents, START_JS, START_SCRIPT, VENDOR } from "@spaka/runtime";
 
 /** Named so that it does not collide with the `require` electron-vite adds to ESM output. */
 const nodeRequire = createRequire(import.meta.url);
 
-export const VENDOR_BASE = "/__up/vendor";
+export const VENDOR_BASE = "/__spaka/vendor";
 
 let daisyui: string | undefined;
 /** daisyui.css with its components below the site's (daisyuiBelowComponents), made once. */
@@ -50,7 +50,7 @@ export class PreviewServer {
   /**
    * `site()` gives what is served now: the open project, or nothing. `block(id)`
    * gives a gallery block's template, shown alone with the project's theme at
-   * /__up/block/<id>, for its thumbnail.
+   * /__spaka/block/<id>, for its thumbnail.
    */
   constructor(
     private readonly site: () => Site | undefined,
@@ -104,7 +104,7 @@ export class PreviewServer {
     }
 
     // A shipped font, for a theme the Theme tab shows before writing it.
-    const font = /^\/__up\/fonts\/([a-z0-9-]+\/(?:normal|italic)\.woff2)$/.exec(url.pathname);
+    const font = /^\/__spaka\/fonts\/([a-z0-9-]+\/(?:normal|italic)\.woff2)$/.exec(url.pathname);
     if (font) {
       const file = this.font(font[1]!);
       if (!file || !isFile(file)) return notFound(res);
@@ -116,7 +116,7 @@ export class PreviewServer {
     const site = this.site();
     if (!site) return notFound(res);
 
-    const block = /^\/__up\/block\/([a-z0-9-]+)$/.exec(url.pathname);
+    const block = /^\/__spaka\/block\/([a-z0-9-]+)$/.exec(url.pathname);
     if (block) {
       const source = this.block(block[1]!);
       if (source === undefined) return notFound(res);

@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ContentDatasource, ContentField, ContentRecord, ContentRecordSummary } from "../../shared/ipc";
-import { upstart } from "../lib/bridge";
+import { spaka } from "../lib/bridge";
 import { messageOf } from "../lib/errors";
 import { pickImage, pickImages } from "../lib/picker";
 import { t } from "../lib/strings";
@@ -44,7 +44,7 @@ export function ContentTab({ working, onAsk }: { working: boolean; onAsk: (text:
   const [deleted, setDeleted] = useState<{ name: string; at: number }>();
   const load = useCallback(
     () =>
-      void upstart
+      void spaka
         .invoke("content:list")
         .then(setList)
         .catch((e) => setError(messageOf(e))),
@@ -52,7 +52,7 @@ export function ContentTab({ working, onAsk }: { working: boolean; onAsk: (text:
   );
   useEffect(() => {
     load();
-    return upstart.on("content:changed", load);
+    return spaka.on("content:changed", load);
   }, [load]);
   useEffect(() => {
     if (!deleted) return;
@@ -94,7 +94,7 @@ export function ContentTab({ working, onAsk }: { working: boolean; onAsk: (text:
           onAdd={() => setOpen({ datasource: ds.name, record: null, key: Date.now() })}
           onDeleteTest={(record) =>
             act(async () => {
-              await upstart.invoke("content:delete", ds.name, record.id);
+              await spaka.invoke("content:delete", ds.name, record.id);
               setDeleted({ name: record.title, at: Date.now() });
             })
           }
@@ -106,14 +106,14 @@ export function ContentTab({ working, onAsk }: { working: boolean; onAsk: (text:
           onBack={() => setOpen(undefined)}
           onOpen={(record) => setOpen({ datasource: ds.name, record, key: Date.now() })}
           onAdd={() => setOpen({ datasource: ds.name, record: null, key: Date.now() })}
-          onDuplicate={(id) => act(() => upstart.invoke("content:duplicate", ds.name, id))}
+          onDuplicate={(id) => act(() => spaka.invoke("content:duplicate", ds.name, id))}
           onDelete={(record) =>
             act(async () => {
-              await upstart.invoke("content:delete", ds.name, record.id);
+              await spaka.invoke("content:delete", ds.name, record.id);
               setDeleted({ name: record.title, at: Date.now() });
             })
           }
-          onReorder={(ids) => act(() => upstart.invoke("content:reorder", ds.name, ids))}
+          onReorder={(ids) => act(() => spaka.invoke("content:reorder", ds.name, ids))}
           onAsk={onAsk}
         />
       ) : (
@@ -159,7 +159,7 @@ export function ContentTab({ working, onAsk }: { working: boolean; onAsk: (text:
                   onOpen={(name) => setOpen({ datasource: name })}
                   onDelete={(d) =>
                     act(async () => {
-                      await upstart.invoke("content:delete-datasource", d.name);
+                      await spaka.invoke("content:delete-datasource", d.name);
                       setDeleted({ name: d.label, at: Date.now() });
                     })
                   }
@@ -182,7 +182,7 @@ export function ContentTab({ working, onAsk }: { working: boolean; onAsk: (text:
               className="ml-auto rounded px-1.5 py-0.5 font-medium hover:bg-background/20"
               onClick={() => {
                 setDeleted(undefined);
-                void upstart.invoke("history:undo").then(load);
+                void spaka.invoke("history:undo").then(load);
               }}
             >
               {t.content.undo}
@@ -401,7 +401,7 @@ function RecordForm({
 
   const read = useCallback(() => {
     if (!id.current) return;
-    void upstart
+    void spaka
       .invoke("content:record", ds.name, id.current)
       .then((r) => {
         setRecord(r);
@@ -412,7 +412,7 @@ function RecordForm({
   useEffect(() => {
     read();
     // Changed by someone else (the agent, a version brought back): read again, unless the maker is typing.
-    return upstart.on("content:changed", () => {
+    return spaka.on("content:changed", () => {
       if (!pending.current.size && Date.now() - lastWrite.current > 1500) read();
     });
   }, [read]);
@@ -427,12 +427,12 @@ function RecordForm({
       .then(async () => {
         lastWrite.current = Date.now();
         if (!id.current) {
-          const added = await upstart.invoke("content:add", ds.name, Object.fromEntries(changes));
+          const added = await spaka.invoke("content:add", ds.name, Object.fromEntries(changes));
           id.current = added.id;
           opened.current(added.id);
         } else
           for (const [field, value] of changes)
-            await upstart.invoke("content:set-value", ds.name, id.current, field, value);
+            await spaka.invoke("content:set-value", ds.name, id.current, field, value);
         lastWrite.current = Date.now();
         setStatus("saved");
         setError(undefined);
@@ -457,7 +457,7 @@ function RecordForm({
   // Leaving the record, by Back or by another tab: what is left is written, then its version (Q162).
   const flushing = useRef(flush);
   flushing.current = flush;
-  useEffect(() => () => void flushing.current().then(() => upstart.invoke("content:leave")), []);
+  useEffect(() => () => void flushing.current().then(() => spaka.invoke("content:leave")), []);
 
   const save = () => {
     for (const [k, v] of Object.entries(values)) pending.current.set(k, v);
@@ -499,9 +499,7 @@ function RecordForm({
             size="icon-sm"
             tip={t.content.openPage}
             onClick={() =>
-              void upstart
-                .invoke("preview:set-view", "page")
-                .then(() => upstart.invoke("preview:navigate", record.route!))
+              void spaka.invoke("preview:set-view", "page").then(() => spaka.invoke("preview:navigate", record.route!))
             }
           >
             <ExternalLink />
@@ -589,9 +587,9 @@ function RecordId({
     const to = editing?.trim();
     setEditing(undefined);
     if (!to || to === id) return;
-    void upstart
+    void spaka
       .invoke("content:leave")
-      .then(() => upstart.invoke("content:rename", ds.name, id, to))
+      .then(() => spaka.invoke("content:rename", ds.name, id, to))
       .then((r) => onRenamed(r.id))
       .catch((e) => onError(messageOf(e)));
   };

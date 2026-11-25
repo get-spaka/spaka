@@ -3,7 +3,7 @@
 // Markdown shows as it will end, not as raw signs. Sized for the chat.
 import type { ComponentProps } from "react";
 import { Streamdown } from "streamdown";
-import { upstart } from "../lib/bridge";
+import { spaka } from "../lib/bridge";
 import { cn } from "../lib/utils";
 
 /**
@@ -19,8 +19,8 @@ function Link({ href, children, className }: ComponentProps<"a"> & { node?: unkn
       onClick={(event) => {
         event.preventDefault();
         if (!href) return;
-        if (href.startsWith("/")) void upstart.invoke("preview:navigate", href);
-        else if (/^https?:\/\//i.test(href)) void upstart.invoke("app:open-link", href);
+        if (href.startsWith("/")) void spaka.invoke("preview:navigate", href);
+        else if (/^https?:\/\//i.test(href)) void spaka.invoke("app:open-link", href);
       }}
     >
       {children}

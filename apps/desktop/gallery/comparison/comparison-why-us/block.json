@@ -1,7 +1,7 @@
 {
   "name": "Why choose us, beside a heading",
   "kind": "comparison",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A large heading with a short paragraph and a button beside a list of differences, each with a check in a round badge, a title, and a line for how it goes elsewhere and a line for how it goes with the business.",
   "tags": ["why choose us", "two columns", "list", "differences", "checks"],
   "mood": ["warm", "professional"],

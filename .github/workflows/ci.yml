@@ -1,7 +1,7 @@
 # Every push to main, every pull request, and a run asked for (by ci-box.yml
 # or by hand in the Actions tab). On Linux, always: lint, types and the unit
 # tests, the quick answer. On macOS (Apple silicon) and Windows, the two
-# systems Upstart is published for, whose runners cost the most: only on main,
+# systems Spaka is published for, whose runners cost the most: only on main,
 # on a run asked for, or for a pull request whose description has its box
 # ticked (.github/pull_request_template.md; Q447-Q449). There, the unit tests
 # and the packaged app, built unsigned and checked; then the whole-app checks
@@ -70,7 +70,7 @@ jobs:
       - run: pnpm exec vitest run --bail 1
       - name: Package the app, unsigned
         if: runner.os != 'Linux'
-        run: pnpm --filter @upstart/desktop ${{ runner.os == 'Windows' && 'package:win' || 'package' }}
+        run: pnpm --filter @spaka/desktop ${{ runner.os == 'Windows' && 'package:win' || 'package' }}
         env:
           GH_TOKEN: ${{ github.token }}
       - name: Check the packaged app
@@ -107,7 +107,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Build the app
-        run: pnpm --filter @upstart/desktop build && pnpm background-electron
+        run: pnpm --filter @spaka/desktop build && pnpm background-electron
       # A Windows runner's screen is 1024×768, smaller than the app's window: Windows shrinks the window to it.
       - name: Give the Windows screen a computer's size
         if: runner.os == 'Windows'

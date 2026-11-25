@@ -186,7 +186,7 @@ test("a call in pieces reaches the conversation as it grows, the path first, the
   expect(JSON.parse(json)).toEqual(calls[0]!.arguments);
 });
 
-test("a call Vertex sends whole is read as before, with Upstart's names", async () => {
+test("a call Vertex sends whole is read as before, with Spaka's names", async () => {
   const { message, events } = await reply([
     { functionCall: { name: "Write", id: "x", args: { file_path: "a.txt", text: "hi" } } },
   ]);
@@ -200,8 +200,8 @@ test("a call Vertex sends whole is read as before, with Upstart's names", async 
 });
 
 // With the maker's Google Cloud sign-in made with gcloud, when asked:
-// UPSTART_REAL_VERTEX_PROJECT=<project> (gcloud auth application-default login first).
-const project = process.env.UPSTART_REAL_VERTEX_PROJECT;
+// SPAKA_REAL_VERTEX_PROJECT=<project> (gcloud auth application-default login first).
+const project = process.env.SPAKA_REAL_VERTEX_PROJECT;
 test.skipIf(!project)(
   "a real page streams from Vertex on gcloud's sign-in, its path known before its text",
   async () => {

@@ -1,7 +1,7 @@
-// Signing the agent in (ADR 0002). Upstart never handles a Claude credential:
+// Signing the agent in (ADR 0002). Spaka never handles a Claude credential:
 // it runs the official binary's own sign-in, which opens the maker's browser
 // and keeps what it gets in the agent's configuration folder. The one secret
-// Upstart keeps is an API key the maker types in, encrypted by the system.
+// Spaka keeps is an API key the maker types in, encrypted by the system.
 import { type ChildProcess, execFile, spawn } from "node:child_process";
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import type { SignInMethod } from "../../shared/ipc";

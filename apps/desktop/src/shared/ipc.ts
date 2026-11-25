@@ -23,7 +23,7 @@ export type AppInfo = {
   /** The folder new websites go into. */
   projectsDir: string;
   versions: { electron: string; chromium: string; node: string };
-  /** Whether this copy of Upstart sends the anonymous statistics: a packaged app with its key. */
+  /** Whether this copy of Spaka sends the anonymous statistics: a packaged app with its key. */
   sendsStatistics: boolean;
 };
 
@@ -37,7 +37,7 @@ export type ProjectSummary = { id: string; name: string; path: string };
 
 /**
  * A project as the sidebar lists it (Q393-Q395): when it was created in
- * Upstart, and when its website last changed (its history's latest snapshot),
+ * Spaka, and when its website last changed (its history's latest snapshot),
  * which opening it does not change.
  */
 export type ListedProject = ProjectSummary & { createdAt: number; updatedAt: number };
@@ -73,8 +73,8 @@ export type AdaptationStep = { route: string; name: string; status: AdaptationSt
  */
 export type AdaptationState = { chosen: boolean; steps: AdaptationStep[]; next?: string };
 
-/** Where a skill comes from (ADR 0010): shipped with Upstart, the maker's for all projects, or the project's. */
-export type SkillOrigin = "upstart" | "app" | "project";
+/** Where a skill comes from (ADR 0010): shipped with Spaka, the maker's for all projects, or the project's. */
+export type SkillOrigin = "spaka" | "app" | "project";
 export type SkillInfo = { origin: SkillOrigin; name: string; description: string; path: string };
 
 /** The kinds of the gallery's blocks (Q92, Q196), in the order a page usually has them. */
@@ -106,7 +106,7 @@ export const BLOCK_KINDS = [
 ] as const;
 export type BlockKind = (typeof BLOCK_KINDS)[number];
 /** The type of the data a block dragged from the Blocks tab carries: its id. */
-export const BLOCK_DRAG_TYPE = "application/x-upstart-block";
+export const BLOCK_DRAG_TYPE = "application/x-spaka-block";
 /** A block of the gallery, as described in its block.json. */
 export type GalleryBlock = {
   id: string;
@@ -127,7 +127,7 @@ export type GalleryBlock = {
 
 /** Values of the theme's core variables, by name ("--theme-color-primary" → "#9a3412"). */
 export type ThemeValues = Record<string, string>;
-/** A font the Theme tab offers (Q93): the system's own, or one shipped with Upstart and copied into the project. */
+/** A font the Theme tab offers (Q93): the system's own, or one shipped with Spaka and copied into the project. */
 export type FontChoice = { id: string; name: string; category: string; stack: string; shipped: boolean };
 
 /** Where a connector is kept (ADR 0010): the app's data, or the project's folder. */
@@ -282,12 +282,12 @@ export type GridCell = {
 
 /**
  * The accounts an agent runs on (Q269, Q275, Q280): Claude through the official
- * binary, and in Upstart's own harness ChatGPT Plus or Pro, an OpenAI key, a
+ * binary, and in Spaka's own harness ChatGPT Plus or Pro, an OpenAI key, a
  * Gemini key, and Vertex AI on a key of its express mode or gcloud's sign-in.
  */
 export const AGENT_ACCOUNTS = ["claude", "chatgpt", "openai", "gemini", "vertex"] as const;
 export type AgentAccount = (typeof AGENT_ACCOUNTS)[number];
-/** The accounts of Upstart's own harness that the maker gives a key for. */
+/** The accounts of Spaka's own harness that the maker gives a key for. */
 export type KeyAccount = "openai" | "gemini" | "vertex";
 
 /** The account of a project's model: "gemini/gemini-4-hydrogen" is the Gemini key's; an id without one, Claude's. */
@@ -319,7 +319,7 @@ export type AgentStatus = {
   /** While signing in: the page to open if the browser did not open by itself. */
   signInUrl?: string;
   signInFailed?: boolean;
-  /** The accounts of Upstart's own harness that are connected. */
+  /** The accounts of Spaka's own harness that are connected. */
   accounts: { chatgpt: boolean; openai: boolean; gemini: boolean; vertex: boolean };
   /** Vertex AI on gcloud's sign-in: its project, and whether gcloud's sign-in is on this computer. */
   vertexGcloud?: { project: string; signedIn: boolean };
@@ -450,7 +450,7 @@ export type AppSettings = {
   textSize: TextSize;
   replyStyle: ReplyStyle;
   outputStyle: OutputStyle;
-  /** A system notification when the agent finishes while Upstart is not in front. */
+  /** A system notification when the agent finishes while Spaka is not in front. */
   notifyDone: boolean;
   /** The tour has been seen, to its end or skipped (Q328, Q340): it no longer opens by itself. */
   tourSeen: boolean;
@@ -532,7 +532,7 @@ export type SiteCheck =
   | { ok: true }
   | {
       ok: false;
-      reason: "no-address" | "no-token" | "unreachable" | "wrong-token" | "not-upstart" | "failed";
+      reason: "no-address" | "no-token" | "unreachable" | "wrong-token" | "not-spaka" | "failed";
       message: string;
     };
 
@@ -619,7 +619,7 @@ export type TemplateSummary = {
   description: string;
   category: TemplateCategory;
   tags: string[];
-  /** Imported by the maker, rather than one of Upstart's. */
+  /** Imported by the maker, rather than one of Spaka's. */
   imported: boolean;
 };
 
@@ -735,7 +735,7 @@ export type Invokes = {
   "agent:set-api-key": (key: string | null) => AgentStatus;
   "agent:set-model": (model: string) => ProjectInfo;
   "agent:set-effort": (effort: Effort) => ProjectInfo;
-  /** Keeps an OpenAI, Gemini or Vertex AI key for Upstart's own harness, encrypted by the system; null removes it. */
+  /** Keeps an OpenAI, Gemini or Vertex AI key for Spaka's own harness, encrypted by the system; null removes it. */
   "agent:set-key": (account: KeyAccount, key: string | null) => AgentStatus;
   /** Vertex AI on the Google Cloud sign-in made with gcloud, for a project; null stops using it (Q280). */
   "agent:set-vertex-gcloud": (project: string | null) => AgentStatus;
@@ -878,7 +878,7 @@ export type Events = {
   "project:opened": (project: ProjectInfo | null) => void;
   "preview:state": (state: PreviewState) => void;
   "templates:view-state": (state: TemplateViewState) => void;
-  /** The latest catalogue of Upstart's templates was read, and it changed the list (Q250). */
+  /** The latest catalogue of Spaka's templates was read, and it changed the list (Q250). */
   "templates:changed": () => void;
   /** The pointer is over a page's thumbnail, or left it (Q132). */
   "preview:hover": (route: string | null) => void;
@@ -1091,7 +1091,7 @@ export const channels = {
   events: readonly EventChannel[];
 };
 
-/** What the preload puts on `window.upstart`. */
+/** What the preload puts on `window.spaka`. */
 export type Bridge = {
   invoke<C extends InvokeChannel>(
     channel: C,
@@ -1105,7 +1105,7 @@ export type Bridge = {
 };
 
 // ---- The preview's own channel ---------------------------------------------
-// Between the main process and the script Upstart runs inside the preview,
+// Between the main process and the script Spaka runs inside the preview,
 // in an isolated world the project's page cannot reach.
 
 /** From the main process to the preview's script. */
@@ -1118,7 +1118,7 @@ export type ToPreview =
   | { type: "editor"; mode: PreviewMode; paused: boolean }
   /** The maker's comments, all pages included, so the page can show its own. */
   | { type: "comments"; comments: PageComment[] }
-  /** Hides Upstart's own drawings in the page while a capture is taken; answered by "chrome-hidden". */
+  /** Hides Spaka's own drawings in the page while a capture is taken; answered by "chrome-hidden". */
   | { type: "chrome"; hidden: boolean }
   /** A thumbnail partly scrolled out at the top: its page moves up by this many of its own pixels. */
   | { type: "clip"; top: number }

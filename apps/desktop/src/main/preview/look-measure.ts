@@ -1,4 +1,4 @@
-// The problems Upstart measures when the agent looks (Q318), in text beside
+// The problems Spaka measures when the agent looks (Q318), in text beside
 // the picture, each with its element's file and line: the page wider than
 // the screen, text cut off, elements on the screen still hidden once the
 // page has settled, images that did not load, links to an address with no
@@ -7,7 +7,7 @@
 // a text for screen readers) is left out.
 import { NAME_OF } from "./look-steps";
 
-/** What the page measured: its problems, and the website's addresses its links lead to, for Upstart to check. */
+/** What the page measured: its problems, and the website's addresses its links lead to, for Spaka to check. */
 export type Measured = { problems: string[]; links: { path: string; name: string }[] };
 
 /** At most this many problems of each kind. */
@@ -100,7 +100,7 @@ export const measure = (width: number) => `(() => {
   if (broken.length)
     problems.push("Images that did not load: " + broken.slice(0, ${EACH}).map((img) => nameOf(img) + " from " + img.getAttribute("src")).join("; ") + ".");
 
-  // The website's addresses the page's links lead to, for Upstart to check.
+  // The website's addresses the page's links lead to, for Spaka to check.
   const links = [];
   const paths = new Set();
   for (const a of document.querySelectorAll("a[href]")) {
@@ -108,7 +108,7 @@ export const measure = (width: number) => `(() => {
     if (!href || href.startsWith("#") || /^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("//")) continue;
     let url;
     try { url = new URL(href, location.href); } catch { continue; }
-    if (url.origin !== location.origin || /\\.[a-z0-9]{2,5}$/i.test(url.pathname) || /^\\/(_data|__up|media)\\//.test(url.pathname)) continue;
+    if (url.origin !== location.origin || /\\.[a-z0-9]{2,5}$/i.test(url.pathname) || /^\\/(_data|__spaka|media)\\//.test(url.pathname)) continue;
     if (paths.has(url.pathname)) continue;
     paths.add(url.pathname);
     links.push({ path: url.pathname, name: nameOf(a) });

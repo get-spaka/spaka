@@ -1,6 +1,6 @@
 import { createRequire } from "node:module";
 import { join, resolve } from "node:path";
-import { VENDOR } from "@upstart/runtime";
+import { VENDOR } from "@spaka/runtime";
 import { expect, test } from "vitest";
 import { safeJoin } from "./server";
 
@@ -14,13 +14,13 @@ test("a project file is served only from inside the project, never from a hidden
   const p = resolve("/p");
   expect(safeJoin("/p", "/img/a.png")).toBe(join(p, "img", "a.png"));
   expect(safeJoin("/p", "/../etc/passwd")).toBe(join(p, "etc", "passwd"));
-  expect(safeJoin("/p", "/.upstart/project.json")).toBeUndefined();
+  expect(safeJoin("/p", "/.spaka/project.json")).toBeUndefined();
   expect(safeJoin("/p", "/a/../../b")).toBe(join(p, "b"));
 });
 
 test("a page whose body has not started does not replace the page shown", async () => {
   const { hasVisibleBody } = await import("./preview");
-  expect(hasVisibleBody('<html><head><title>x</title></head><body data-up-src="a">\n</body></html>')).toBe(false);
+  expect(hasVisibleBody('<html><head><title>x</title></head><body data-spaka-src="a">\n</body></html>')).toBe(false);
   expect(hasVisibleBody("<html><head><title>x</title></head>")).toBe(false);
   expect(hasVisibleBody('<html><body><script>var a = 1</script><div class="hero"></div></body>')).toBe(false);
   expect(hasVisibleBody("<html><body><header><a>Fleur</a></header>")).toBe(true);

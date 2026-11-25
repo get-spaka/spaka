@@ -6,7 +6,7 @@
 // frame when it does not exist yet. Pure: it reads the project through
 // `ProjectView` and returns the files to write.
 
-import { TEST_RECORDS_DIR } from "@upstart/runtime";
+import { TEST_RECORDS_DIR } from "@spaka/runtime";
 import { type DroppedBlock, dropData, inFrame, isCollected, NAVIGATION, type ProjectView } from "./data-drop";
 import { copyName, insertBefore, placeFor } from "./edits";
 
@@ -170,7 +170,7 @@ export function placedAnswer(input: Placing, placed: Placed): string {
     let line = `- ${p.part} (${p.kind}, from ${p.block})`;
     if (p.datasource === NAVIGATION) line += `, reading the site's navigation, data/${NAVIGATION}/`;
     else if (p.collected)
-      line += `, a form: what visitors send goes to data/${p.datasource}/ (a collected datasource${p.reused ? " the site already has" : ""})${p.collected.answer ? `, answered with fragments/${p.collected.answer}.liquid` : ""}${p.reused ? "" : ", with the gallery's test records in .upstart/test-records/"}`;
+      line += `, a form: what visitors send goes to data/${p.datasource}/ (a collected datasource${p.reused ? " the site already has" : ""})${p.collected.answer ? `, answered with fragments/${p.collected.answer}.liquid` : ""}${p.reused ? "" : ", with the gallery's test records in .spaka/test-records/"}`;
     else if (p.datasource && p.reused)
       line += `, reading data/${p.datasource}/, which the site already has: its records kept, the fields it lacked added`;
     else if (p.datasource)
@@ -186,7 +186,7 @@ export function placedAnswer(input: Placing, placed: Placed): string {
   );
   if (placed.samples.length)
     lines.push(
-      `Then write this site's records in place of the samples (${placed.samples.join(", ")}): rewrite them, add records, delete those you do not need. None may stay as the gallery wrote it. At the end of your turn, Upstart names each record you rewrote after its title, its file name being its page's address.`,
+      `Then write this site's records in place of the samples (${placed.samples.join(", ")}): rewrite them, add records, delete those you do not need. None may stay as the gallery wrote it. At the end of your turn, Spaka names each record you rewrote after its title, its file name being its page's address.`,
     );
   if (placed.parts.some((p) => p.collected && !p.reused))
     lines.push(

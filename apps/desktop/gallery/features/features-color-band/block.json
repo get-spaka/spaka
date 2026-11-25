@@ -1,7 +1,7 @@
 {
   "name": "Feature cards on a coloured band",
   "kind": "features",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A full-width band in the primary colour with a centred heading and intro, over four light cards in a row, each with an icon in a coloured square, a title and a sentence.",
   "tags": ["coloured band", "cards", "four columns", "icons", "centered heading"],
   "mood": ["bold", "colorful", "friendly"],

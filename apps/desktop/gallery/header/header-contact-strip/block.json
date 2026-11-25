@@ -1,7 +1,7 @@
 {
   "name": "Header with contact strip",
   "kind": "header",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A navigation bar under a coloured strip giving the phone number, opening hours, address and email, with the logo, links and an appointment button; links fold into a dropdown menu on mobile.",
   "tags": ["contact details", "phone", "opening hours", "address", "logo", "mobile menu"],
   "mood": ["professional", "friendly"],

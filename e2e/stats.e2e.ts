@@ -12,7 +12,7 @@ describe("anonymous statistics", () => {
   let launched: LaunchedApp;
   const { invoke, until } = previewDriver(() => launched);
   const w = () => launched.window;
-  const log = join(mkdtempSync(join(tmpdir(), "upstart-stats-")), "events.log");
+  const log = join(mkdtempSync(join(tmpdir(), "spaka-stats-")), "events.log");
   const events = () =>
     existsSync(log)
       ? readFileSync(log, "utf8")
@@ -23,7 +23,7 @@ describe("anonymous statistics", () => {
   const names = () => events().map((e) => e.eventName);
 
   beforeAll(async () => {
-    launched = await launchApp({ tour: true, env: { UPSTART_STATS_LOG: log } });
+    launched = await launchApp({ tour: true, env: { SPAKA_STATS_LOG: log } });
     await w().getByTestId("message-input").waitFor();
   }, 60_000 * SLOW);
   afterAll(async () => {
@@ -47,7 +47,7 @@ describe("anonymous statistics", () => {
   test("a block added and a publication, with how", async () => {
     const [block] = (await invoke("gallery:list")) as { id: string }[];
     await invoke("gallery:add", block!.id);
-    const out = mkdtempSync(join(tmpdir(), "upstart-stats-export-"));
+    const out = mkdtempSync(join(tmpdir(), "spaka-stats-export-"));
     await invoke("export:run", out, "static");
     expect(names().slice(-2)).toEqual(["block_dropped", "published"]);
     expect(events().at(-1)!.props).toEqual({ way: "static" });
@@ -63,7 +63,7 @@ describe("anonymous statistics", () => {
     await invoke("settings:open", "privacy");
     // The page is drawn after settings:open answers: wait for its list.
     await until(async () => (await w().getByTestId("statistics-events").locator("li").count()) === 10);
-    await expect(w().getByText("This copy of Upstart sends nothing.").count()).resolves.toBe(1);
+    await expect(w().getByText("This copy of Spaka sends nothing.").count()).resolves.toBe(1);
     await launched.capture("settings-privacy");
     await w().getByTestId("statistics-switch").click();
     await until(async () => (await w().getByTestId("statistics-switch").getAttribute("aria-checked")) === "false");

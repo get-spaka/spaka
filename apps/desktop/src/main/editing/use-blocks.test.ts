@@ -115,8 +115,8 @@ test("a refusal is answered, nothing written", () => {
 });
 
 test("a site from the real gallery: two pages placed, a collection shared, each list its page's, all rendering clean", async () => {
-  const { Runtime } = await import("@upstart/runtime");
-  const { diskSource } = await import("@upstart/runtime/node");
+  const { Runtime } = await import("@spaka/runtime");
+  const { diskSource } = await import("@spaka/runtime/node");
   const { Gallery } = await import("../gallery/catalogue");
   const gallery = new Gallery(join(__dirname, "../../../gallery"));
   const get = (id: string) => gallery.get(id);

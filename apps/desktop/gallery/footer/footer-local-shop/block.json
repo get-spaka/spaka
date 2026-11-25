@@ -1,7 +1,7 @@
 {
   "name": "Footer with map and opening hours",
   "kind": "footer",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A footer for a local shop with a map placeholder, the address and phone number, a table of opening hours, a directions button, then a bar with the page links, copyright and social icons.",
   "tags": ["map", "address", "opening hours", "local business", "social links", "directions"],
   "mood": ["warm", "friendly"],

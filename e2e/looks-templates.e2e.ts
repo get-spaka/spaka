@@ -10,11 +10,11 @@ import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 // measured; a problem left is a fault of the template or a false alarm of
 // the measure. A long check, run on demand:
 //
-//   UPSTART_LOOKS_TEMPLATES=all npx vitest run --config e2e/vitest.config.ts e2e/looks-templates.e2e.ts
-//   UPSTART_LOOKS_TEMPLATES=pocket,reel …
+//   SPAKA_LOOKS_TEMPLATES=all npx vitest run --config e2e/vitest.config.ts e2e/looks-templates.e2e.ts
+//   SPAKA_LOOKS_TEMPLATES=pocket,reel …
 //
 // Writes e2e/.runs/looks-templates-<names>.json.
-const asked = process.env.UPSTART_LOOKS_TEMPLATES ?? "";
+const asked = process.env.SPAKA_LOOKS_TEMPLATES ?? "";
 const templatesDir = join(import.meta.dirname, "../apps/desktop/templates");
 const names =
   asked === "all"
@@ -52,18 +52,18 @@ describe.skipIf(!names.length)("the looks' measures over the templates", () => {
         }
         const project = await launched.app.evaluate(
           // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-          (_electron, path) => (globalThis as any).upstart.projects.openFolder(path),
+          (_electron, path) => (globalThis as any).spaka.projects.openFolder(path),
           copy,
         );
         await launched.window.evaluate(
           // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-          (id) => (window as any).upstart.invoke("projects:open", id),
+          (id) => (window as any).spaka.invoke("projects:open", id),
           project.id,
         );
         // Every page, and the first record page of each kind.
         const routes = (await launched.app.evaluate(() => {
           // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-          const runtime = (globalThis as any).upstart.preview.runtime;
+          const runtime = (globalThis as any).spaka.preview.runtime;
           const all = runtime.routes() as { route: string; file: string; generated?: boolean }[];
           const files = new Set<string>();
           return all
@@ -83,7 +83,7 @@ describe.skipIf(!names.length)("the looks' measures over the templates", () => {
               const at = (await launched.app.evaluate(
                 async (_electron, { route, screen, first }) => {
                   // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-                  const preview = (globalThis as any).upstart.preview;
+                  const preview = (globalThis as any).spaka.preview;
                   const s = first
                     ? await preview.look(route, { screen, fresh: true })
                     : await preview.look(undefined, { screen, steps: [{ action: "scroll", target: "down" }] });

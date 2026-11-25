@@ -47,7 +47,7 @@ describe("the Node export's server", () => {
     expect(home).toContain('<link rel="stylesheet" href="/theme.css">');
     expect(home).toContain('srcset="/media/cafe-480w.webp 480w, /media/cafe-960w.webp 960w"');
     expect(home).toContain('name="_website"');
-    expect(home).not.toMatch(/data-up-/);
+    expect(home).not.toMatch(/data-spaka-/);
   });
 
   test("keeps what a visitor sends in data/data.sqlite, shown and read with the token", async () => {
@@ -59,9 +59,9 @@ describe("the Node export's server", () => {
     expect(await sent.text()).toBe("<p>Thanks Margot</p>");
     expect(existsSync(join(dir, "data/data.sqlite"))).toBe(true);
     expect(await (await fetch(`${base}/`)).text()).toContain('<p class="entry">Margot</p>');
-    expect((await fetch(`${base}/_upstart/records/guestbook`)).status).toBe(401);
+    expect((await fetch(`${base}/_spaka/records/guestbook`)).status).toBe(401);
     const { records } = await (
-      await fetch(`${base}/_upstart/records/guestbook`, { headers: { authorization: `Bearer ${TOKEN}` } })
+      await fetch(`${base}/_spaka/records/guestbook`, { headers: { authorization: `Bearer ${TOKEN}` } })
     ).json();
     expect(records.map((r: { fields: { name: string } }) => r.fields.name)).toEqual(["Margot"]);
   });
@@ -77,7 +77,7 @@ describe("the Cloudflare export's Worker", () => {
     });
     const env = {
       DB: { prepare: (sql: string) => ({ bind: (...values: unknown[]) => bound(sql, values) }) },
-      UPSTART_TOKEN: TOKEN,
+      SPAKA_TOKEN: TOKEN,
     };
     const worker = siteWorker(SITE);
     const sent = await worker.fetch(

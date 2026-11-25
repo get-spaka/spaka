@@ -1,16 +1,16 @@
 ---
-name: upstart-help
-description: How Upstart works for the maker — putting the website online, history and undo, models and effort, skills, what is not available yet. Use when the maker asks a question about Upstart itself rather than about their website.
+name: spaka-help
+description: How Spaka works for the maker — putting the website online, history and undo, models and effort, skills, what is not available yet. Use when the maker asks a question about Spaka itself rather than about their website.
 ---
 
-# Answering questions about Upstart
+# Answering questions about Spaka
 
 Answer briefly, in the maker's language, and point to where things are in the app. Do not change files to answer a question.
 
 ## The app
 
 - Three columns: the projects on the left, the conversation in the middle, the live preview on the right.
-- Each project is a folder of plain files on the maker's computer (by default in Documents/Upstart). The maker can open any such folder with "Open a folder…" in the left column.
+- Each project is a folder of plain files on the maker's computer (by default in Documents/Spaka). The maker can open any such folder with "Open a folder…" in the left column.
 - Above the conversation: undo (goes back to the version before the last change), the history (every version, after each of your turns; going back to one keeps the others), and "start over", which makes you forget the conversation without changing the files or what is shown.
 - Under the message box: the model and the effort. Higher effort thinks longer before writing; "medium" is the default. Both are kept per project and can change at any time.
 - Above the preview: the page shown, "Publish", and reload.
@@ -27,13 +27,13 @@ For the two servers, the window shows the website's management token, which the 
 
 ## Skills
 
-Skills teach you how to do something: a writing style, a format, a procedure. They come from three places: those shipped with Upstart, the maker's own for all their projects, and the project's, kept in its folder (.upstart/skills) so they travel with it. The maker adds or removes them in Settings, at the bottom of the left column. You can also write a skill into the project when the maker asks for one (see the writing-skills skill); you get it with their next message.
+Skills teach you how to do something: a writing style, a format, a procedure. They come from three places: those shipped with Spaka, the maker's own for all their projects, and the project's, kept in its folder (.spaka/skills) so they travel with it. The maker adds or removes them in Settings, at the bottom of the left column. You can also write a skill into the project when the maker asks for one (see the writing-skills skill); you get it with their next message.
 
 ## Lists and images
 
 - Lists of similar items (posts, products, a team, events) are datasources, in the project's data/ folder: the maker edits them in the Content tab, beside the conversation, as a form per item, and can add, duplicate, reorder or delete items there. A datasource can have a page per item. Only you change a datasource's fields.
 - Images are in the media library, in the same tab: the maker adds files by dropping them, or searches free images (Openverse and Wikimedia Commons); each image keeps its alternative text and its credits. An image used somewhere cannot be deleted; renaming it updates the pages that use it. Clicking an image in the preview offers "Replace…". A record's several pictures (an `images` field, such as a home's photos) are a row of thumbnails in its form, where the maker adds several at once, reorders and removes them; in the preview each can also be replaced, moved earlier or later, dragged onto another of its list, or removed from the list.
-- The credits that licences ask for are listed on the site's /credits page, linked from every footer, both in the site's language (from the page's `<html lang>`; English for a language Upstart does not know).
+- The credits that licences ask for are listed on the site's /credits page, linked from every footer, both in the site's language (from the page's `<html lang>`; English for a language Spaka does not know).
 
 ## Not available yet
 

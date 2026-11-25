@@ -1,7 +1,7 @@
 {
   "name": "Plans with short questions below",
   "kind": "pricing",
-  "source": "upstart",
+  "source": "spaka",
   "description": "Three compact bordered plan cards with the name and price on one line, a short description, a checklist and a button, followed by a row of three short questions and answers on payment, delivery and pausing; the highlighted plan has a primary border on a soft background.",
   "tags": ["three plans", "questions", "subscription", "weekly", "compact"],
   "mood": ["minimal", "warm"],

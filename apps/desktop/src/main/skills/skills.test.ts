@@ -25,7 +25,7 @@ beforeEach(() => {
   app = join(root, "app");
   project = join(root, "project");
   mkdirSync(project, { recursive: true });
-  skill(bundled, "upstart-help");
+  skill(bundled, "spaka-help");
 });
 
 test("a skill's name and description come from its front matter", () => {
@@ -49,7 +49,7 @@ test("the three origins are listed; a skill whose folder and name differ is left
   writeFileSync(join(wrong, "SKILL.md"), "---\nname: renamed\ndescription: d\n---\n");
   const skills = new Skills(bundled, app);
   expect(skills.list(project).map((s) => `${s.origin}:${s.name}`)).toEqual([
-    "upstart:upstart-help",
+    "spaka:spaka-help",
     "app:brand-voice",
     "project:menu-format",
   ]);
@@ -78,8 +78,8 @@ test("the assembled plugins hold skill folders only: no links, no hidden files",
   mkdirSync(join(project, PROJECT_SKILLS, "received", "hooks"));
   const out = join(root, "assembled");
   const result = new Skills(bundled, app).assemble(project, out);
-  expect(result.enabled).toEqual(["upstart:upstart-help", "project:received"]);
-  expect(result.plugins.map((p) => p.path)).toEqual([join(out, "upstart"), join(out, "project")]);
+  expect(result.enabled).toEqual(["spaka:spaka-help", "project:received"]);
+  expect(result.plugins.map((p) => p.path)).toEqual([join(out, "spaka"), join(out, "project")]);
   const copied = join(out, "project", "skills", "received");
   expect(readFileSync(join(copied, "scripts/run.sh"), "utf8")).toBe("echo");
   expect(existsSync(join(copied, "link.txt"))).toBe(false);

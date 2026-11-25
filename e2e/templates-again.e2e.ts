@@ -6,17 +6,17 @@ import { projectFiles, readTemplateFolder } from "../apps/desktop/src/main/templ
 import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 import { previewDriver } from "./preview-driver.ts";
 
-// Each of Upstart's templates in the preview, moving as visitors see it, then
+// Each of Spaka's templates in the preview, moving as visitors see it, then
 // rendered again twice as after an edit: its scripts are stopped before each
 // new rendering and started again after it (ADR 0011). Nothing should be left
 // hidden that was shown, and no error raised, at desktop and phone width.
-// Pocket, whose scripts do the most, unless UPSTART_TEMPLATE names another, or
+// Pocket, whose scripts do the most, unless SPAKA_TEMPLATE names another, or
 // is "all" (about fifteen minutes); `pnpm template:shoot <folder>` checks the
-// template it photographs (UPSTART_TEMPLATE_SHOOT).
+// template it photographs (SPAKA_TEMPLATE_SHOOT).
 const TEMPLATES = join(import.meta.dirname, "../apps/desktop/templates");
-const only = process.env.UPSTART_TEMPLATE || "pocket";
-const folders = process.env.UPSTART_TEMPLATE_SHOOT
-  ? [resolve(process.env.UPSTART_TEMPLATE_SHOOT)]
+const only = process.env.SPAKA_TEMPLATE || "pocket";
+const folders = process.env.SPAKA_TEMPLATE_SHOOT
+  ? [resolve(process.env.SPAKA_TEMPLATE_SHOOT)]
   : readdirSync(TEMPLATES, { withFileTypes: true })
       .filter((e) => e.isDirectory() && readdirSync(join(TEMPLATES, e.name)).includes("template.json"))
       .map((e) => join(TEMPLATES, e.name))
@@ -53,19 +53,19 @@ const HIDDEN = `(async () => {
   return hidden;
 })()`;
 
-describe("Upstart's templates, rendered again in the preview", () => {
+describe("Spaka's templates, rendered again in the preview", () => {
   let launched: LaunchedApp;
   const { invoke, until, page } = previewDriver(() => launched);
   const main = <T>(code: string, arg?: unknown): Promise<T> =>
     launched.app.evaluate(
       (_electron, { code, arg }) =>
         // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-        new Function("upstart", "arg", `return (${code})`)((globalThis as any).upstart, arg),
+        new Function("spaka", "arg", `return (${code})`)((globalThis as any).spaka, arg),
       { code, arg },
     ) as Promise<T>;
   const errorsSince = (at: number) =>
     main<string[]>(
-      "upstart.preview.errors.filter((e) => e.at >= arg).map((e) => e.message + (e.source ? ' (' + e.source + ')' : ''))",
+      "spaka.preview.errors.filter((e) => e.at >= arg).map((e) => e.message + (e.source ? ' (' + e.source + ')' : ''))",
       at,
     );
 
@@ -87,20 +87,20 @@ describe("Upstart's templates, rendered again in the preview", () => {
         mkdirSync(join(copy, path, ".."), { recursive: true });
         writeFileSync(join(copy, path), bytes);
       }
-      const project = await main<{ id: string }>("upstart.projects.openFolder(arg)", copy);
+      const project = await main<{ id: string }>("spaka.projects.openFolder(arg)", copy);
       await invoke("projects:open", project.id);
-      await until(() => main<string>("upstart.preview.origin"));
+      await until(() => main<string>("spaka.preview.origin"));
       const problems: string[] = [];
       for (const device of DEVICES) {
         await main(
-          `(upstart.preview.view.webContents.debugger.isAttached() || upstart.preview.view.webContents.debugger.attach("1.3"), upstart.preview.view.webContents.debugger).sendCommand("Emulation.setDeviceMetricsOverride", { width: arg.width, height: arg.height, deviceScaleFactor: 1, mobile: arg.mobile, screenWidth: arg.width, screenHeight: arg.height })`,
+          `(spaka.preview.view.webContents.debugger.isAttached() || spaka.preview.view.webContents.debugger.attach("1.3"), spaka.preview.view.webContents.debugger).sendCommand("Emulation.setDeviceMetricsOverride", { width: arg.width, height: arg.height, deviceScaleFactor: 1, mobile: arg.mobile, screenWidth: arg.width, screenHeight: arg.height })`,
           device,
         );
         for (const { route } of shotPages(files)) {
           const at = Date.now();
           await invoke("preview:navigate", route);
           await until(() =>
-            page(`location.pathname === ${JSON.stringify(route)} && window.__upStart?.started !== false`),
+            page(`location.pathname === ${JSON.stringify(route)} && window.__spakaStart?.started !== false`),
           );
           await new Promise((r) => setTimeout(r, 2000));
           const shown: string[] = await page(HIDDEN);
@@ -108,7 +108,7 @@ describe("Upstart's templates, rendered again in the preview", () => {
           // Rendered again, twice, as after an edit.
           const again = Date.now();
           for (let i = 0; i < 2; i++) {
-            await main("upstart.preview.refresh(true)");
+            await main("spaka.preview.refresh(true)");
             await new Promise((r) => setTimeout(r, 900));
           }
           const hidden: string[] = await page(HIDDEN);
@@ -119,7 +119,7 @@ describe("Upstart's templates, rendered again in the preview", () => {
             problems.push(`${where}, hidden once rendered again: ${h}`);
         }
       }
-      await main(`upstart.preview.view.webContents.debugger.sendCommand("Emulation.clearDeviceMetricsOverride")`);
+      await main(`spaka.preview.view.webContents.debugger.sendCommand("Emulation.clearDeviceMetricsOverride")`);
       mkdirSync(runsDir, { recursive: true });
       writeFileSync(join(runsDir, `templates-again-${id}.json`), JSON.stringify(problems, null, 2));
       expect(problems).toEqual([]);

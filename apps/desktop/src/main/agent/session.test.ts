@@ -9,7 +9,7 @@ import { activityDetail, activityLabel, lookedLabel } from "./activity";
 import { modelChoices, projectNameFrom } from "./agent";
 import { findSignInUrl, parseAuthStatus } from "./auth";
 import { ruleDir } from "./confinement";
-import { instructionsFor, UPSTART_INSTRUCTIONS } from "./instructions";
+import { instructionsFor, SPAKA_INSTRUCTIONS } from "./instructions";
 import { ASK_TOOL, NOT_ANSWERED, PLAN_INSTRUCTIONS, PLAN_REFUSED, PLAN_TOOL } from "./questions";
 import { AgentSession, DENY_MESSAGE, isolationProblem, type SessionDeps, TOOLS } from "./session";
 
@@ -102,8 +102,8 @@ const BUILD_MODE = process.platform === "darwin" ? "acceptEdits" : "auto";
 let dir: string;
 let data: string;
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), "upstart-project-"));
-  data = mkdtempSync(join(tmpdir(), "upstart-data-"));
+  dir = mkdtempSync(join(tmpdir(), "spaka-project-"));
+  data = mkdtempSync(join(tmpdir(), "spaka-data-"));
 });
 afterEach(() => {
   rmSync(dir, { recursive: true, force: true });
@@ -290,19 +290,19 @@ test("activity lines", () => {
   expect(activityLabel("WebSearch", { query: "horaires" }, "/p")).toBe("Searching the web");
   expect(activityLabel("WebFetch", { url: "https://www.nantes.fr/jardin" }, "/p")).toBe("Reading a page of nantes.fr");
   expect(activityDetail("WebSearch", { query: "horaires du jardin" })).toBe("horaires du jardin");
-  expect(activityLabel("mcp__upstart__find_blocks", { sections: [] }, "/p")).toBe("Looking for blocks in the gallery");
-  expect(activityLabel("mcp__upstart__use_block", { page: "pages/index.liquid" }, "/p")).toBe(
+  expect(activityLabel("mcp__spaka__find_blocks", { sections: [] }, "/p")).toBe("Looking for blocks in the gallery");
+  expect(activityLabel("mcp__spaka__use_block", { page: "pages/index.liquid" }, "/p")).toBe(
     "Placing blocks on pages/index.liquid",
   );
-  expect(activityLabel("mcp__upstart__use_image", { name: "bouquet" }, "/p")).toBe("Adding the image bouquet");
-  expect(activityLabel("mcp__upstart__use_image", { images: [{ name: "a" }, { name: "b" }] }, "/p")).toBe(
+  expect(activityLabel("mcp__spaka__use_image", { name: "bouquet" }, "/p")).toBe("Adding the image bouquet");
+  expect(activityLabel("mcp__spaka__use_image", { images: [{ name: "a" }, { name: "b" }] }, "/p")).toBe(
     "Adding 2 images",
   );
-  expect(activityLabel("mcp__upstart__use_image", { images: [{ name: "a" }] }, "/p")).toBe("Adding the image a");
+  expect(activityLabel("mcp__spaka__use_image", { images: [{ name: "a" }] }, "/p")).toBe("Adding the image a");
 });
 
 test("a look's line names the page, the screen and the last action (Q320)", () => {
-  const LOOK = "mcp__upstart__look_at_preview";
+  const LOOK = "mcp__spaka__look_at_preview";
   expect(activityLabel(LOOK, {}, "/p")).toBe("Looking at the page");
   expect(activityLabel(LOOK, { route: "/menu", screen: "phone" }, "/p")).toBe("Looking at Menu on a phone");
   expect(activityLabel(LOOK, { route: "/" }, "/p")).toBe("Looking at the home page on desktop");
@@ -359,7 +359,7 @@ test("the detailed output style's details: what was run or searched", () => {
   expect(activityDetail("Write", { file_path: "/p/a.liquid", content: "x" })).toBeUndefined();
   expect(activityDetail("mcp__notes__search", { query: "menu" })).toBe('{"query":"menu"}');
   expect(
-    activityDetail("mcp__upstart__find_blocks", {
+    activityDetail("mcp__spaka__find_blocks", {
       sections: [{ query: "a hero" }, { kind: "faq", query: "questions" }],
     }),
   ).toBe("a hero; questions");
@@ -367,7 +367,7 @@ test("the detailed output style's details: what was run or searched", () => {
 });
 
 test("the reply style is added to the instructions, and says the website does not change", async () => {
-  expect(instructionsFor("short").startsWith(UPSTART_INSTRUCTIONS)).toBe(true);
+  expect(instructionsFor("short").startsWith(SPAKA_INSTRUCTIONS)).toBe(true);
   // When the agent asks, for Claude and the harness's families alike (Q288, Q289, Q291, Q295).
   for (const family of ["claude", "openai", "gemini"] as const)
     expect(instructionsFor("short", family)).toMatch(/# Questions to the maker[\s\S]*one card per turn at most/i);
@@ -451,16 +451,16 @@ test("the agent can be told more than the maker typed", async () => {
     { binary: "b", env: () => ({}), readable: [], query: query as never },
     { onConversation: (e) => (items = applyEvent(items, e)) },
   );
-  s.send("Make it blue", "[Upstart: went back]\n\nMake it blue");
+  s.send("Make it blue", "[Spaka: went back]\n\nMake it blue");
   await new Promise((r) => setTimeout(r, 10));
-  expect(pushed).toEqual(["[Upstart: went back]\n\nMake it blue"]);
+  expect(pushed).toEqual(["[Spaka: went back]\n\nMake it blue"]);
   expect(items[0]).toMatchObject({ kind: "maker", text: "Make it blue" });
 });
 
-test("the agent gets Upstart's skills only, read-only, and starts again when they change", async () => {
-  const bundled = join(data, "bundled", "upstart-help");
+test("the agent gets Spaka's skills only, read-only, and starts again when they change", async () => {
+  const bundled = join(data, "bundled", "spaka-help");
   mkdirSync(bundled, { recursive: true });
-  writeFileSync(join(bundled, "SKILL.md"), "---\nname: upstart-help\ndescription: Help.\n---\n");
+  writeFileSync(join(bundled, "SKILL.md"), "---\nname: spaka-help\ndescription: Help.\n---\n");
   const skills = new Skills(join(data, "bundled"), join(data, "app"));
   const { s, fake, turnEnd } = session(
     [[init("s1", [...TOOLS, "Skill"]), ...writeTurn(dir).slice(1)], writeTurn(dir)],
@@ -473,8 +473,8 @@ test("the agent gets Upstart's skills only, read-only, and starts again when the
   // biome-ignore lint/suspicious/noExplicitAny: options as the kit receives them
   const options = fake.runs[0]!.options as Record<string, any>;
   expect(options.tools).toEqual([...TOOLS, "Skill"]);
-  expect(options.skills).toEqual(["upstart:upstart-help"]);
-  expect(options.plugins).toEqual([{ type: "local", path: join(assembled, "upstart"), skipMcpDiscovery: true }]);
+  expect(options.skills).toEqual(["spaka:spaka-help"]);
+  expect(options.plugins).toEqual([{ type: "local", path: join(assembled, "spaka"), skipMcpDiscovery: true }]);
   expect(options.additionalDirectories).toContain(assembled);
   expect(options.settings.permissions.deny).toEqual([`Edit(${ruleDir(assembled)}/**)`]);
   if (process.platform === "darwin") expect(options.settings.sandbox.filesystem.denyWrite).toEqual([assembled]);
@@ -484,7 +484,7 @@ test("the agent gets Upstart's skills only, read-only, and starts again when the
   expect(s.problems).toEqual([]);
 
   // The agent wrote a skill into the project: the next message starts it again, resuming.
-  const own = join(dir, ".upstart/skills/menu-format");
+  const own = join(dir, ".spaka/skills/menu-format");
   mkdirSync(own, { recursive: true });
   writeFileSync(join(own, "SKILL.md"), "---\nname: menu-format\ndescription: Menus.\n---\n");
   ended = turnEnd();
@@ -492,10 +492,10 @@ test("the agent gets Upstart's skills only, read-only, and starts again when the
   await ended;
   expect(fake.runs).toHaveLength(2);
   expect(fake.runs[1]!.options.resume).toBe("s1");
-  expect(fake.runs[1]!.options.skills).toEqual(["upstart:upstart-help", "project:menu-format"]);
+  expect(fake.runs[1]!.options.skills).toEqual(["spaka:spaka-help", "project:menu-format"]);
 });
 
-test("a plugin Upstart did not assemble is an isolation problem", () => {
+test("a plugin Spaka did not assemble is an isolation problem", () => {
   const base = { kind: "init", sessionId: "", model: "", version: "", apiKeySource: "", skills: [], mcpServers: [] };
   expect(
     isolationProblem({ ...base, tools: TOOLS, plugins: [{ name: "cc-plugin-privacy", path: "builtin" }] } as never),
@@ -516,22 +516,22 @@ test("the maker's connectors that are on reach the agent, and a change starts it
   };
   const { s, fake, turnEnd } = session([[docsInit, ...writeTurn(dir).slice(1)], writeTurn(dir)], {
     connectorServers,
-    extraOptions: () => ({ mcpServers: { upstart: { type: "sdk" } } }),
-    connectors: ["upstart"],
+    extraOptions: () => ({ mcpServers: { spaka: { type: "sdk" } } }),
+    connectors: ["spaka"],
   });
   s.start();
-  expect(Object.keys(fake.runs[0]!.options.mcpServers as object).sort()).toEqual(["docs", "upstart"]);
+  expect(Object.keys(fake.runs[0]!.options.mcpServers as object).sort()).toEqual(["docs", "spaka"]);
   let ended = turnEnd();
   s.send("First");
   await ended;
-  // The connector's tools are not an isolation problem: Upstart gave them.
+  // The connector's tools are not an isolation problem: Spaka gave them.
   expect(s.problems).toEqual([]);
   servers = {};
   ended = turnEnd();
   s.send("Second");
   await ended;
   expect(fake.runs).toHaveLength(2);
-  expect(Object.keys(fake.runs[1]!.options.mcpServers as object)).toEqual(["upstart"]);
+  expect(Object.keys(fake.runs[1]!.options.mcpServers as object)).toEqual(["spaka"]);
 });
 
 const asked = {
@@ -660,12 +660,12 @@ const planCard = (items: ConversationItem[], index = -1) => {
 /** A turn in plan mode: the agent reads, tries to write, then hands in a plan twice. */
 const planTurn = () => [
   init(),
-  { type: "ask", name: "mcp__upstart__find_blocks", input: { sections: [] } },
-  { type: "ask", name: "mcp__upstart__use_block", input: {} },
+  { type: "ask", name: "mcp__spaka__find_blocks", input: { sections: [] } },
+  { type: "ask", name: "mcp__spaka__use_block", input: {} },
   { type: "ask", name: "Write", input: { file_path: `${dir}/pages/index.liquid`, content: "x" } },
   { type: "ask", name: PLAN_TOOL, input: { plan: "## Pages\n- Home" } },
   { type: "ask", name: PLAN_TOOL, input: { plan: "## Pages\n- Home\n- Weddings" } },
-  { type: "ask", name: "mcp__upstart__use_block", input: { page: "pages/index.liquid" } },
+  { type: "ask", name: "mcp__spaka__use_block", input: { page: "pages/index.liquid" } },
   { type: "result", subtype: "success", is_error: false, result: "Built.", duration_ms: 10 },
 ];
 
@@ -687,13 +687,13 @@ test("plan mode: the agent reads, writes nothing, hands in a plan; changes, then
   // Editing by hand comes back while the plan waits (Q294).
   expect(s.busy).toBe(true);
 
-  s.settlePlan(planCard(items())!.id, { changes: "Add a page for weddings" }, "[Upstart: edited]");
+  s.settlePlan(planCard(items())!.id, { changes: "Add a page for weddings" }, "[Spaka: edited]");
   await vi.waitFor(() => expect(planCard(items(), 1)?.state).toBe("proposed"));
   expect(planCard(items(), 0)).toMatchObject({ state: "replaced", changes: "Add a page for weddings" });
   expect(calls[3]).toEqual({
     permission: { behavior: "deny", message: expect.stringContaining("Add a page for weddings") },
   });
-  expect((calls[3] as { permission: { message: string } }).permission.message).toContain("[Upstart: edited]");
+  expect((calls[3] as { permission: { message: string } }).permission.message).toContain("[Spaka: edited]");
 
   s.settlePlan(planCard(items())!.id, { approved: true });
   await ended;

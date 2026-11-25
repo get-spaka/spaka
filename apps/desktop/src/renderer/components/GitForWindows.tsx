@@ -3,7 +3,7 @@
 // again"; the agent does not start without it.
 import { useEffect, useState } from "react";
 import type { GitBashState } from "../../shared/ipc";
-import { upstart } from "../lib/bridge";
+import { spaka } from "../lib/bridge";
 import { APP_ICON } from "../lib/icon";
 import { t } from "../lib/strings";
 import { Button } from "./ui/button";
@@ -11,7 +11,7 @@ import { Button } from "./ui/button";
 export function useGitBash() {
   const [state, setState] = useState<GitBashState | null>(null);
   useEffect(() => {
-    void upstart.invoke("app:git-bash").then(setState);
+    void spaka.invoke("app:git-bash").then(setState);
   }, []);
   return [state, setState] as const;
 }
@@ -21,7 +21,7 @@ export function GitForWindows({ state, onChange }: { state: GitBashState; onChan
   const [missing, setMissing] = useState(false);
   const check = async () => {
     setChecking(true);
-    const next = await upstart.invoke("app:git-bash-check");
+    const next = await spaka.invoke("app:git-bash-check");
     setChecking(false);
     setMissing(next.needed);
     onChange(next);
@@ -40,7 +40,7 @@ export function GitForWindows({ state, onChange }: { state: GitBashState; onChan
       </ol>
       <div className="no-drag flex gap-2">
         <Button
-          onClick={() => void upstart.invoke("app:open-link", state.url)}
+          onClick={() => void spaka.invoke("app:open-link", state.url)}
           tip={t.gitForWindows.downloadTip}
           data-testid="git-download"
         >

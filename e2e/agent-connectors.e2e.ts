@@ -1,5 +1,5 @@
 // Connectors with the real agent (ADR 0010). Opt-in like agent.e2e.ts:
-// UPSTART_REAL_AGENT=1, with .cache/agent-config signed in. One short turn.
+// SPAKA_REAL_AGENT=1, with .cache/agent-config signed in. One short turn.
 // The remote connector is a public documentation server, only connected to:
 // no request is sent to it.
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { agentConfigDir, type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 
-const real = process.env.UPSTART_REAL_AGENT === "1";
+const real = process.env.SPAKA_REAL_AGENT === "1";
 const configDir = agentConfigDir();
 const dataDir = join(import.meta.dirname, "../.cache/connectors-check-data");
 const server = join(import.meta.dirname, "fixtures/hours-connector.mjs");
@@ -18,7 +18,7 @@ describe.skipIf(!real)("connectors with the real agent", () => {
   const invoke = (channel: string, ...args: unknown[]) =>
     launched.window.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      ([channel, args]) => (window as any).upstart.invoke(channel, ...args),
+      ([channel, args]) => (window as any).spaka.invoke(channel, ...args),
       [channel, args] as const,
     );
   const until = async (read: () => Promise<unknown>, timeout: number) => {
@@ -57,10 +57,10 @@ describe.skipIf(!real)("connectors with the real agent", () => {
     rmSync(dataDir, { recursive: true, force: true });
     launched = await launchApp({
       env: {
-        UPSTART_AGENT_REPLAY: "",
-        UPSTART_AGENT_CONFIG_DIR: configDir,
-        UPSTART_AGENT_RECORD: record,
-        UPSTART_DATA_DIR: dataDir,
+        SPAKA_AGENT_REPLAY: "",
+        SPAKA_AGENT_CONFIG_DIR: configDir,
+        SPAKA_AGENT_RECORD: record,
+        SPAKA_DATA_DIR: dataDir,
       },
     });
     await launched.window.getByTestId("message-input").waitFor();
@@ -85,10 +85,10 @@ describe.skipIf(!real)("connectors with the real agent", () => {
 
       // The project arrives with a local connector: off until turned on, then its secret is set here.
       const project = await invoke("projects:current");
-      mkdirSync(join(project.path, ".upstart"), { recursive: true });
+      mkdirSync(join(project.path, ".spaka"), { recursive: true });
       const node = join(dataDir, "bin/node");
       writeFileSync(
-        join(project.path, ".upstart/connectors.json"),
+        join(project.path, ".spaka/connectors.json"),
         JSON.stringify({
           connectors: [{ name: "till", kind: "local", command: node, args: [server], env: ["TILL_TOKEN"] }],
         }),

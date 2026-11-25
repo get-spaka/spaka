@@ -16,7 +16,7 @@ describe("the accounts", () => {
   const invoke = (channel: string, ...args: unknown[]) =>
     launched.window.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      ([channel, args]) => (window as any).upstart.invoke(channel, ...args),
+      ([channel, args]) => (window as any).spaka.invoke(channel, ...args),
       [channel, args] as const,
     );
   const until = async (read: () => Promise<unknown>, timeout = 10_000) => {
@@ -42,7 +42,7 @@ describe("the accounts", () => {
 
   beforeAll(async () => {
     // The binary is asked whether it is signed in, which a replayed agent skips.
-    launched = await launchApp({ env: { UPSTART_AGENT_REPLAY: "" } });
+    launched = await launchApp({ env: { SPAKA_AGENT_REPLAY: "" } });
     w = launched.window;
     await w.getByTestId("message-input").waitFor();
     // A fresh installation: Claude's binary is not signed in.

@@ -11,13 +11,13 @@ import { type LaunchedApp, launchApp, SLOW } from "./app.ts";
 const version = (id: string): string =>
   JSON.parse(readFileSync(join(import.meta.dirname, "../apps/desktop/templates", id, "template.json"), "utf8")).version;
 
-// Upstart's templates as a packaged app has them (Q247, Q250, Q265): from the
+// Spaka's templates as a packaged app has them (Q247, Q250, Q265): from the
 // releases of the public repository, here a release built from the
 // repository's templates as its CI builds one and served on this machine. The
 // app starts with no catalogue shipped, reads the latest one, shows the
 // pictures, and downloads a template only when it is viewed large or chosen,
 // checked and kept; offline, it says so and starting from scratch stays possible.
-describe("Upstart's templates, downloaded", () => {
+describe("Spaka's templates, downloaded", () => {
   let launched: LaunchedApp;
   let server: Server;
   const asked: string[] = [];
@@ -41,7 +41,7 @@ describe("Upstart's templates, downloaded", () => {
   const zips = () => asked.filter((u) => u.endsWith(".zip"));
 
   beforeAll(async () => {
-    const out = mkdtempSync(join(tmpdir(), "upstart-release-"));
+    const out = mkdtempSync(join(tmpdir(), "spaka-release-"));
     const built = spawnSync("node", ["apps/desktop/scripts/template.mjs", "release", out, "v1"], {
       cwd: join(import.meta.dirname, ".."),
       stdio: ["ignore", "pipe", "inherit"],
@@ -60,8 +60,8 @@ describe("Upstart's templates, downloaded", () => {
     const { port } = server.address() as AddressInfo;
     launched = await launchApp({
       env: {
-        UPSTART_TEMPLATES_URL: `http://127.0.0.1:${port}/releases`,
-        UPSTART_TEMPLATES_SNAPSHOT: mkdtempSync(join(tmpdir(), "upstart-snapshot-")),
+        SPAKA_TEMPLATES_URL: `http://127.0.0.1:${port}/releases`,
+        SPAKA_TEMPLATES_SNAPSHOT: mkdtempSync(join(tmpdir(), "spaka-snapshot-")),
       },
     });
     await launched.window.getByTestId("start").waitFor();
@@ -98,7 +98,7 @@ describe("Upstart's templates, downloaded", () => {
     offline = false;
     await w.getByTestId("template-problem").getByRole("button").click();
     await until(() => w.locator('[data-testid="template-frame"][data-route="/"]').count());
-    await until(() => main<boolean>("globalThis.upstart.templateViewer.view.getVisible()"));
+    await until(() => main<boolean>("globalThis.spaka.templateViewer.view.getVisible()"));
     expect(zips().filter((u) => u.endsWith(`reel-${version("reel")}.zip`))).toHaveLength(2);
     // Kept: viewed again, it is not downloaded again.
     await w.getByTestId("template-back").click();
@@ -117,16 +117,16 @@ describe("Upstart's templates, downloaded", () => {
     await w.getByTestId("message-input").press("Enter");
     await w.getByTestId("start-problem").waitFor();
     await expect(w.getByTestId("start-problem").textContent()).resolves.toMatch(/Ember could not be downloaded/);
-    await expect(main<number>("globalThis.upstart.projects.list().length")).resolves.toBe(0);
+    await expect(main<number>("globalThis.spaka.projects.list().length")).resolves.toBe(0);
     offline = false;
     await w.getByTestId("message-input").press("Enter");
     await w.getByTestId("conversation").waitFor();
     const project = await w.evaluate(() =>
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      (window as any).upstart.invoke("projects:current"),
+      (window as any).spaka.invoke("projects:current"),
     );
     expect(project.template).toEqual({ id: "ember", version: version("ember") });
     expect(existsSync(join(project.path, "pages/index.liquid"))).toBe(true);
-    expect(existsSync(join(project.path, ".upstart/skills/ember-design/SKILL.md"))).toBe(true);
+    expect(existsSync(join(project.path, ".spaka/skills/ember-design/SKILL.md"))).toBe(true);
   });
 });

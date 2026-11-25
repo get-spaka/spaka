@@ -1,5 +1,5 @@
 // Projects: folders of plain files (ADR 0001). What belongs to a project
-// travels in its hidden .upstart/ folder; what belongs to this machine (where
+// travels in its hidden .spaka/ folder; what belongs to this machine (where
 // the folder is, when it was last opened) is kept in the app's own data.
 import { randomBytes, randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
@@ -10,7 +10,7 @@ import { replaceFile } from "./replace-file";
 export const DEFAULT_MODEL = "claude-opus-5-5";
 export const DEFAULT_EFFORT: Effort = "high";
 
-/** .upstart/project.json */
+/** .spaka/project.json */
 export type ProjectFile = {
   id: string;
   name: string;
@@ -91,7 +91,7 @@ export class Projects {
   }
 
   /**
-   * Opens any folder as a project. A folder without .upstart/ becomes one. A
+   * Opens any folder as a project. A folder without .spaka/ becomes one. A
    * folder that is a copy of a project known here (same identifier, other
    * place, original still there) gets an identifier of its own, so that it
    * starts without the original's history and conversation.
@@ -112,7 +112,7 @@ export class Projects {
     return this.remember(folder, file);
   }
 
-  /** Changes what .upstart/project.json says (the name, the model, the effort). */
+  /** Changes what .spaka/project.json says (the name, the model, the effort). */
   update(id: string, change: Partial<Omit<ProjectFile, "id">>): ProjectInfo {
     const entry = this.entries().find((e) => e.id === id);
     if (!entry) throw new Error("Unknown project");
@@ -176,7 +176,7 @@ function bornAt(path: string): number {
 
 export function readProjectFile(folder: string): ProjectFile | undefined {
   try {
-    const raw = JSON.parse(readFileSync(join(folder, ".upstart", "project.json"), "utf8"));
+    const raw = JSON.parse(readFileSync(join(folder, ".spaka", "project.json"), "utf8"));
     if (typeof raw?.id !== "string") return undefined;
     return {
       id: raw.id,
@@ -201,8 +201,8 @@ function formServices(value: unknown): Record<string, string> | undefined {
 }
 
 function writeProjectFile(folder: string, file: ProjectFile) {
-  mkdirSync(join(folder, ".upstart"), { recursive: true });
-  writeFileSync(join(folder, ".upstart", "project.json"), `${JSON.stringify(file, null, 2)}\n`);
+  mkdirSync(join(folder, ".spaka"), { recursive: true });
+  writeFileSync(join(folder, ".spaka", "project.json"), `${JSON.stringify(file, null, 2)}\n`);
 }
 
 export function isEffort(value: unknown): value is Effort {

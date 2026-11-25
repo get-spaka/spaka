@@ -32,7 +32,7 @@ describe.skipIf(!online)("the skill's libraries", () => {
   const errors = () =>
     launched.app.evaluate(() =>
       // biome-ignore lint/suspicious/noExplicitAny: the app's own objects
-      ((globalThis as any).upstart.preview.errors as { message: string }[]).map((e) => e.message),
+      ((globalThis as any).spaka.preview.errors as { message: string }[]).map((e) => e.message),
     );
 
   beforeAll(async () => {

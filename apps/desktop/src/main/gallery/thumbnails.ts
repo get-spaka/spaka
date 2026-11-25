@@ -18,7 +18,7 @@ export class Thumbnails {
 
   constructor(
     private readonly dir: string,
-    /** Where the preview's server shows a block alone: `${origin}/__up/block/<id>`. */
+    /** Where the preview's server shows a block alone: `${origin}/__spaka/block/<id>`. */
     private readonly origin: () => string,
   ) {}
 
@@ -74,7 +74,7 @@ export class Thumbnails {
   private async draw(id: string): Promise<Buffer> {
     const win = this.window();
     win.setContentSize(WIDTH, 800);
-    await win.webContents.loadURL(`${this.origin()}/__up/block/${id}`);
+    await win.webContents.loadURL(`${this.origin()}/__spaka/block/${id}`);
     const height = (await win.webContents.executeJavaScript(BLOCK_HEIGHT)) as number;
     const h = Math.max(40, Math.min(MAX_HEIGHT, Math.ceil(height)));
     win.setContentSize(WIDTH, h);
@@ -133,7 +133,7 @@ export class Thumbnails {
 /** In a block's page: its height once Tailwind, which compiles in the page, has styled it. */
 export const BLOCK_HEIGHT = `new Promise((done) => {
   const started = Date.now();
-  const ready = () => [...document.querySelectorAll("style")].some((s) => !s.hasAttribute("data-up-runtime") && s.textContent.length > 0);
+  const ready = () => [...document.querySelectorAll("style")].some((s) => !s.hasAttribute("data-spaka-runtime") && s.textContent.length > 0);
   const measure = () => done((document.body.firstElementChild ?? document.body).getBoundingClientRect().height);
   // Two frames, or a moment: a hidden view (the peek, before it is shown) draws no frame at all.
   const settled = () => {

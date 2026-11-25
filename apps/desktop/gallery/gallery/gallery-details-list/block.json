@@ -1,7 +1,7 @@
 {
   "name": "Pictures that open larger",
   "kind": "gallery",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A list of small thumbnails with their title and category, each opening without JavaScript to show the picture larger with its caption below.",
   "tags": ["accordion", "thumbnails", "expand", "captions", "stories"],
   "mood": ["elegant", "minimal"],

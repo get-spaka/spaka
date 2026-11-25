@@ -75,7 +75,7 @@ describe("Kindly's reply card", () => {
     await picture("kindly-reply-sealing");
     await new Promise((r) => setTimeout(r, 3500));
     await picture("kindly-reply-sealed");
-    const dir = join(path, ".upstart/test-records/rsvps");
+    const dir = join(path, ".spaka/test-records/rsvps");
     await until(async () => existsSync(dir) && readdirSync(dir).some((f) => f.endsWith(".md")));
     const record = readFileSync(join(dir, readdirSync(dir).find((f) => f.endsWith(".md"))!), "utf8");
     writeFileSync(join(runsDir, "kindly-reply-record.md"), record);
@@ -106,7 +106,7 @@ describe("Kindly's reply card", () => {
     const base = `http://127.0.0.1:${port}`;
     server = spawn(process.execPath, ["server.mjs"], {
       cwd: out,
-      env: { ...process.env, PORT: String(port), HOST: "127.0.0.1", UPSTART_TOKEN: token },
+      env: { ...process.env, PORT: String(port), HOST: "127.0.0.1", SPAKA_TOKEN: token },
       stdio: "ignore",
     });
     await until(async () => (await fetch(`${base}/rsvp`)).ok, 15_000);

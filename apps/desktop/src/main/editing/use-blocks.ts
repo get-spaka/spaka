@@ -1,6 +1,6 @@
 // The agent's use_block tool on disk (Q213-Q217): the placing written into
 // the project during the agent's turn, as use_image writes its image, and the
-// sample records it wrote noted in .upstart/, so that those the agent leaves
+// sample records it wrote noted in .spaka/, so that those the agent leaves
 // as the gallery wrote them are named to it before its turn ends.
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
@@ -14,13 +14,13 @@ import {
   recordOf,
   renameInOrder,
   titleField,
-} from "@upstart/runtime";
-import { diskSource } from "@upstart/runtime/node";
+} from "@spaka/runtime";
+import { diskSource } from "@spaka/runtime/node";
 import { type DroppedBlock, NAVIGATION, type ProjectView } from "./data-drop";
 import { type Placing, placeBlocks, placedAnswer } from "./place-blocks";
 
 /** path → hash of the text the gallery wrote. */
-export const GALLERY_SAMPLES = ".upstart/gallery-samples.json";
+export const GALLERY_SAMPLES = ".spaka/gallery-samples.json";
 
 const hash = (text: string) => createHash("sha256").update(text).digest("hex");
 
@@ -67,7 +67,7 @@ function readSamples(root: string): Record<string, string> {
 }
 
 function writeSamples(root: string, samples: Record<string, string>): void {
-  mkdirSync(join(root, ".upstart"), { recursive: true });
+  mkdirSync(join(root, ".spaka"), { recursive: true });
   writeFileSync(join(root, GALLERY_SAMPLES), `${JSON.stringify(samples, null, 2)}\n`);
 }
 

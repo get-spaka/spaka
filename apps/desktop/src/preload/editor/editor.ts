@@ -75,12 +75,12 @@ const SHIELDED = [
 
 /** The record the trace names for an element: its own, or the one around it. */
 function recordOf(el: Element): string | undefined {
-  return el.closest("[data-up-rec]")?.getAttribute("data-up-rec") || undefined;
+  return el.closest("[data-spaka-rec]")?.getAttribute("data-spaka-rec") || undefined;
 }
 
 /** An image of a record's list of images: the record ("homes/wren") and its place in the list, from its trace. */
 function listItemOf(el: Element): { record: string; index: number } | undefined {
-  const m = /^(.+)#(\d+)$/.exec(el.getAttribute("data-up-rec") ?? "");
+  const m = /^(.+)#(\d+)$/.exec(el.getAttribute("data-spaka-rec") ?? "");
   return m ? { record: m[1]!, index: Number(m[2]) } : undefined;
 }
 
@@ -89,7 +89,7 @@ function listImageAt(x: number, y: number, of: HTMLElement): HTMLElement | undef
   const mine = listItemOf(of);
   if (!mine) return undefined;
   for (const el of document.elementsFromPoint(x, y)) {
-    if (el.localName !== "img" || el.getAttribute("data-up-src") !== of.getAttribute("data-up-src")) continue;
+    if (el.localName !== "img" || el.getAttribute("data-spaka-src") !== of.getAttribute("data-spaka-src")) continue;
     if (listItemOf(el)?.record === mine.record) return el as HTMLElement;
   }
   return undefined;
@@ -116,32 +116,32 @@ const ICONS = {
 // nativeTheme gives the preview too; the selection keeps its indigo.
 const STYLE = `
 :host { all: initial; }
-:host { --up-surface: #fff; --up-border: #e4e4e7; --up-input: #d4d4d8; --up-muted: #71717a; --up-hover: #f4f4f5;
-  --up-text: #18181b; --up-text-2: #3f3f46; --up-note: #fef3c7; --up-note-text: #92400e; --up-danger: #b91c1c; }
+:host { --spaka-surface: #fff; --spaka-border: #e4e4e7; --spaka-input: #d4d4d8; --spaka-muted: #71717a; --spaka-hover: #f4f4f5;
+  --spaka-text: #18181b; --spaka-text-2: #3f3f46; --spaka-note: #fef3c7; --spaka-note-text: #92400e; --spaka-danger: #b91c1c; }
 @media (prefers-color-scheme: dark) {
-  :host { --up-surface: #27272a; --up-border: #3f3f46; --up-input: #52525b; --up-muted: #a1a1aa; --up-hover: #3f3f46;
-    --up-text: #fafafa; --up-text-2: #e4e4e7; --up-note: #451a03; --up-note-text: #fde68a; --up-danger: #f87171; }
+  :host { --spaka-surface: #27272a; --spaka-border: #3f3f46; --spaka-input: #52525b; --spaka-muted: #a1a1aa; --spaka-hover: #3f3f46;
+    --spaka-text: #fafafa; --spaka-text-2: #e4e4e7; --spaka-note: #451a03; --spaka-note-text: #fde68a; --spaka-danger: #f87171; }
 }
 .layer { position: fixed; inset: 0; pointer-events: none; z-index: 2147483647;
-  font: 12px/1.3 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--up-text); }
+  font: 12px/1.3 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--spaka-text); }
 .box { position: fixed; box-sizing: border-box; border-radius: 3px; display: none; }
 .hover { border: 1px solid #6366f1; }
 .selected { border: 2px solid #4f46e5; }
 .tag { position: absolute; left: -2px; top: -18px; background: #6366f1; color: #fff; padding: 1px 5px;
   border-radius: 3px 3px 0 0; font-size: 10px; white-space: nowrap; }
-.bar { position: fixed; display: none; align-items: center; gap: 2px; padding: 3px; background: var(--up-surface);
-  border: 1px solid var(--up-border); border-radius: 8px; box-shadow: 0 4px 16px rgb(0 0 0 / .12); pointer-events: auto; }
-.bar button { all: unset; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 5px; cursor: default; color: var(--up-text-2); }
-.bar button:hover { background: var(--up-hover); }
+.bar { position: fixed; display: none; align-items: center; gap: 2px; padding: 3px; background: var(--spaka-surface);
+  border: 1px solid var(--spaka-border); border-radius: 8px; box-shadow: 0 4px 16px rgb(0 0 0 / .12); pointer-events: auto; }
+.bar button { all: unset; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 5px; cursor: default; color: var(--spaka-text-2); }
+.bar button:hover { background: var(--spaka-hover); }
 .bar button[disabled] { opacity: .35; }
 .bar button svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.bar .sep { width: 1px; height: 18px; background: var(--up-border); margin: 0 2px; }
-.chip { padding: 0 6px; color: var(--up-note-text); background: var(--up-note); border-radius: 5px; height: 22px; display: flex; align-items: center; white-space: nowrap; }
-.pop { position: fixed; display: none; gap: 4px; padding: 6px; background: var(--up-surface); border: 1px solid var(--up-border);
+.bar .sep { width: 1px; height: 18px; background: var(--spaka-border); margin: 0 2px; }
+.chip { padding: 0 6px; color: var(--spaka-note-text); background: var(--spaka-note); border-radius: 5px; height: 22px; display: flex; align-items: center; white-space: nowrap; }
+.pop { position: fixed; display: none; gap: 4px; padding: 6px; background: var(--spaka-surface); border: 1px solid var(--spaka-border);
   border-radius: 8px; box-shadow: 0 4px 16px rgb(0 0 0 / .12); pointer-events: auto; }
-.pop input { all: unset; width: 240px; padding: 4px 6px; border: 1px solid var(--up-input); border-radius: 5px; font-size: 12px; }
+.pop input { all: unset; width: 240px; padding: 4px 6px; border: 1px solid var(--spaka-input); border-radius: 5px; font-size: 12px; }
 .pop button { all: unset; padding: 4px 8px; border-radius: 5px; background: #4f46e5; color: #fff; }
-.pop button.secondary { background: var(--up-hover); color: var(--up-text-2); }
+.pop button.secondary { background: var(--spaka-hover); color: var(--spaka-text-2); }
 .toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); max-width: 80%; padding: 8px 12px;
   background: #18181b; color: #fafafa; border-radius: 8px; display: none; pointer-events: none; }
 .line { position: fixed; left: 0; right: 0; height: 3px; margin-top: -1px; background: #4f46e5; border-radius: 2px; display: none;
@@ -151,12 +151,12 @@ const STYLE = `
 .shield.shown { display: block; }
 .working { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); display: none; align-items: center; gap: 10px;
   height: 40px; padding: 0 6px 0 16px; border-radius: 999px; background: #1c1b2e; color: #f4f4f5; font-size: 13px;
-  white-space: nowrap; box-shadow: 0 8px 24px rgb(28 27 46 / .28); pointer-events: auto; animation: up-rise .25s ease-out both; }
+  white-space: nowrap; box-shadow: 0 8px 24px rgb(28 27 46 / .28); pointer-events: auto; animation: spaka-rise .25s ease-out both; }
 .working.shown { display: flex; }
 .working b { font-weight: 600; }
 .working .sub { color: #a1a1c9; }
 .working .bars { display: flex; gap: 2px; align-items: center; height: 12px; }
-.working .bars i { display: block; width: 3px; height: 12px; border-radius: 2px; background: #b9b8ec; animation: up-bar .9s ease-in-out infinite; }
+.working .bars i { display: block; width: 3px; height: 12px; border-radius: 2px; background: #b9b8ec; animation: spaka-bar .9s ease-in-out infinite; }
 .working .bars i:nth-child(2) { animation-delay: .15s; } .working .bars i:nth-child(3) { animation-delay: .3s; }
 .working .bars i:nth-child(4) { animation-delay: .45s; }
 .working button { all: unset; display: flex; align-items: center; gap: 5px; height: 28px; padding: 0 12px; border-radius: 999px;
@@ -164,10 +164,10 @@ const STYLE = `
 .working button:hover { background: rgb(255 255 255 / .2); }
 .working button svg { width: 9px; height: 9px; }
 .layer.busy .toast { bottom: 68px; }
-@keyframes up-bar { 0%, 100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
-@keyframes up-rise { from { transform: translate(-50%, 16px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+@keyframes spaka-bar { 0%, 100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
+@keyframes spaka-rise { from { transform: translate(-50%, 16px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .working, .working .bars i { animation: none; } }
-.editing-note { position: fixed; display: none; padding: 3px 7px; background: var(--up-note); color: var(--up-note-text); border-radius: 5px; white-space: nowrap; }
+.editing-note { position: fixed; display: none; padding: 3px 7px; background: var(--spaka-note); color: var(--spaka-note-text); border-radius: 5px; white-space: nowrap; }
 `;
 
 type Selected = { el: HTMLElement; origin: Origin; section?: Origin; info?: EditInfo; sectionInfo?: EditInfo };
@@ -176,7 +176,7 @@ export class Editor {
   private mode: PreviewMode = "visitor";
   private paused = false;
   private hidden = false;
-  private readonly host = document.createElement("upstart-editor");
+  private readonly host = document.createElement("spaka-editor");
   private readonly root: ShadowRoot;
   private readonly hover: HTMLElement;
   private readonly selectedBox: HTMLElement;
@@ -205,7 +205,7 @@ export class Editor {
     private readonly bridge: EditorBridge,
     private readonly open = false,
   ) {
-    this.host.setAttribute("data-up-runtime", "");
+    this.host.setAttribute("data-spaka-runtime", "");
     // Whatever the page's stylesheets say about unknown elements, the host takes no room.
     this.host.style.cssText =
       "all: initial; position: fixed; top: 0; left: 0; width: 0; height: 0; z-index: 2147483647;";
@@ -310,7 +310,7 @@ export class Editor {
     const s = this.selected;
     if (s && !s.el.isConnected) {
       const again = document.querySelector<HTMLElement>(
-        `[data-up-src$=":${s.origin.at}"][data-up-src^="${s.origin.file}:"]`,
+        `[data-spaka-src$=":${s.origin.at}"][data-spaka-src^="${s.origin.file}:"]`,
       );
       if (again) void this.select(again);
       else this.select(undefined);
@@ -712,7 +712,7 @@ export class Editor {
     const imageAt = (e: DragEvent) =>
       document
         .elementsFromPoint(e.clientX, e.clientY)
-        .find((el): el is HTMLElement => el.localName === "img" && el.hasAttribute("data-up-src"));
+        .find((el): el is HTMLElement => el.localName === "img" && el.hasAttribute("data-spaka-src"));
     window.addEventListener(
       "dragover",
       (e) => {

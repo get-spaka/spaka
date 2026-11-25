@@ -31,7 +31,7 @@ import {
 } from "../../shared/ipc";
 import { useCommands } from "../hooks/useCommand";
 import { useAppSettings } from "../hooks/useMain";
-import { upstart } from "../lib/bridge";
+import { spaka } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { ModelOptions } from "../settings/model";
@@ -104,7 +104,7 @@ export function Conversation({
   const [prefilled, setPrefilled] = useState(0);
   useEffect(
     () =>
-      upstart.on("conversation:prefill", (text) => {
+      spaka.on("conversation:prefill", (text) => {
         setTab("conversation");
         setDraft((d) => (d.trim() ? `${d.trimEnd()}\n${text}` : text));
         setPrefilled((n) => n + 1);
@@ -122,7 +122,7 @@ export function Conversation({
     const text = draft.trim();
     if (!text || editingPaused) return;
     setDraft("");
-    void upstart.invoke("conversation:send", text, project ? undefined : newSettings).catch(() => setDraft(text));
+    void spaka.invoke("conversation:send", text, project ? undefined : newSettings).catch(() => setDraft(text));
   };
   return (
     <section
@@ -161,7 +161,7 @@ export function Conversation({
             size="icon-sm"
             className="no-drag text-muted-foreground"
             disabled={working}
-            onClick={() => void upstart.invoke("conversation:start-over")}
+            onClick={() => void spaka.invoke("conversation:start-over")}
             tip={t.conversation.startOverTip}
             data-testid="start-over"
           >
@@ -217,7 +217,7 @@ export function Conversation({
           working={editingPaused}
           onAskDark={() => {
             setTab("conversation");
-            void upstart.invoke("conversation:send", t.theme.askDarkMessage);
+            void spaka.invoke("conversation:send", t.theme.askDarkMessage);
           }}
         />
       ) : (
@@ -365,7 +365,7 @@ export function MessageBox({
                 size="icon-sm"
                 variant="secondary"
                 data-testid="stop"
-                onClick={() => void upstart.invoke("conversation:stop")}
+                onClick={() => void spaka.invoke("conversation:stop")}
                 tip={t.conversation.stopTip}
               >
                 <Square className="size-3 fill-current" />
@@ -657,9 +657,9 @@ function ModelControls({
     if (!project) return onNewSettings({ model, effort, mode, ...next });
     setSent({ projectId: project.id, ...next });
     const done = () => setSent({});
-    if (next.model) void upstart.invoke("agent:set-model", next.model).finally(done);
-    if (next.effort) void upstart.invoke("agent:set-effort", next.effort).finally(done);
-    if (next.mode) void upstart.invoke("agent:set-mode", next.mode).finally(done);
+    if (next.model) void spaka.invoke("agent:set-model", next.model).finally(done);
+    if (next.effort) void spaka.invoke("agent:set-effort", next.effort).finally(done);
+    if (next.mode) void spaka.invoke("agent:set-mode", next.mode).finally(done);
   };
 
   return (
@@ -675,7 +675,7 @@ function ModelControls({
         disabled={!models.length}
         value={model}
         onChange={(event) => {
-          if (event.target.value === CONNECT) return void upstart.invoke("settings:open", "agent");
+          if (event.target.value === CONNECT) return void spaka.invoke("settings:open", "agent");
           change({ model: event.target.value });
         }}
       >

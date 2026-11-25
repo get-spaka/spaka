@@ -1,4 +1,4 @@
-// Every button of the interface has its tooltip of Upstart's own (Q329): a
+// Every button of the interface has its tooltip of Spaka's own (Q329): a
 // `Button` its `tip`, a `<button>` the `<Tip>` around it. No native `title` is
 // left. A button that needs none says why, in a `{/* no tip: … */}` just before it.
 import { readdirSync, readFileSync, statSync } from "node:fs";

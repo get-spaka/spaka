@@ -2,7 +2,7 @@
 // Windows (Q381, Q382), after Pi's own permission-gate example: a plain file
 // command on the project's files runs at once, any other waits for the
 // maker's approval. It is no confinement: it only tells apart the commands
-// Upstart asks the agent for (rm data/hours/monday.md) from all the others.
+// Spaka asks the agent for (rm data/hours/monday.md) from all the others.
 import { posix, win32 } from "node:path";
 
 /** The commands that run at once when every path they name is in the project. */
@@ -13,8 +13,8 @@ const PRINTS = new Set(["echo", "pwd"]);
 const REMOVES = new Set(["rm", "rmdir", "mv"]);
 /** What a plain command has none of, outside quotes: pipes, redirections, substitutions, groups, the home folder. */
 const SPECIAL = new Set([...("|&<>()`$" + "{}\\~")]);
-/** The folders of the project that are Upstart's own, or git's. */
-const KEPT = new Set([".upstart", ".git"]);
+/** The folders of the project that are Spaka's own, or git's. */
+const KEPT = new Set([".spaka", ".git"]);
 
 /**
  * Splits a command into simple commands (joined by &&, ; or new lines) of
@@ -54,7 +54,7 @@ export function simpleCommands(command: string): string[][] | undefined {
 /**
  * Whether a command runs without asking the maker: only plain file commands
  * (rm, mv, cp, mkdir, ls, cat and the like), every path inside the project's
- * folder and outside its .upstart and .git; nothing that removes the project
+ * folder and outside its .spaka and .git; nothing that removes the project
  * itself or all of its top folder.
  */
 export function safeCommand(command: string, root: string, platform: NodeJS.Platform = process.platform): boolean {

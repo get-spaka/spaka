@@ -1,7 +1,7 @@
 {
   "name": "Timeline by month",
   "kind": "events",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A vertical timeline of the year's events grouped by month, the month named on the left, the day in a colored dot on the line and each event in a bordered box with its date, time, title, summary, place, price and booking link.",
   "tags": ["timeline", "months", "year", "vertical", "dates"],
   "mood": ["friendly", "minimal"],

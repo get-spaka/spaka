@@ -1,7 +1,7 @@
 {
   "name": "Hero with picture mosaic",
   "kind": "hero",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A headline, subtitle and two buttons beside a staggered mosaic of four picture tiles, two tall and two short; the mosaic sits under the text on mobile.",
   "tags": ["picture mosaic", "headline", "images", "mosaic", "two columns", "buttons"],
   "mood": ["friendly", "colorful"],

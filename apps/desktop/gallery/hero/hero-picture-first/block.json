@@ -1,7 +1,7 @@
 {
   "name": "Picture-first hero",
   "kind": "hero",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A wide panoramic picture opens the page under the header, then a row below it: a large headline on the left and a short introduction with one action on the right.",
   "tags": ["picture first", "panorama", "wide image", "headline below", "landscape", "two columns"],
   "mood": ["elegant", "warm"],

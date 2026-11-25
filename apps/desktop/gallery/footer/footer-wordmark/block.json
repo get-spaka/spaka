@@ -1,7 +1,7 @@
 {
   "name": "Footer with a big wordmark",
   "kind": "footer",
-  "source": "upstart",
+  "source": "spaka",
   "description": "An editorial footer with a short invitation and email link, columns of links and a list of social networks, closed by the business name set huge across the full width above a thin legal bar.",
   "tags": ["wordmark", "large type", "columns", "social links", "legal links"],
   "mood": ["bold", "editorial", "minimal"],

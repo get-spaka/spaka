@@ -1,7 +1,7 @@
 {
   "name": "Before and after statements",
   "kind": "comparison",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A serif heading above rows that each pair a muted before statement with an after statement, an arrow between them, stacked on a phone and side by side on a wider screen, with a button at the end.",
   "tags": ["before and after", "rows", "arrow", "transformation", "editorial"],
   "mood": ["editorial", "minimal"],

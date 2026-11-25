@@ -21,7 +21,7 @@ import type { Adaptation } from "./adaptation";
 import { guideSections } from "./pages";
 
 const CORNER = join(import.meta.dirname, "../../../templates/corner");
-const project = () => mkdtempSync(join(tmpdir(), "upstart-adapt-"));
+const project = () => mkdtempSync(join(tmpdir(), "spaka-adapt-"));
 
 describe("a template copied into a new project", () => {
   test("its site, its blocks and design notes; not its manifest or pictures", () => {
@@ -31,10 +31,10 @@ describe("a template copied into a new project", () => {
     // Its guide is for the agent, kept with the adaptation, never among the website's files (Q299, Q307).
     expect(guide).toMatch(/^# Corner/);
     expect(existsSync(join(root, "TEMPLATE.md"))).toBe(false);
-    expect(existsSync(join(root, ".upstart/adaptation/TEMPLATE.md"))).toBe(true);
+    expect(existsSync(join(root, ".spaka/adaptation/TEMPLATE.md"))).toBe(true);
     expect(existsSync(join(root, "pages/index.liquid"))).toBe(true);
     expect(existsSync(join(root, "theme.css"))).toBe(true);
-    expect(existsSync(join(root, ".upstart/skills/corner-design/SKILL.md"))).toBe(true);
+    expect(existsSync(join(root, ".spaka/skills/corner-design/SKILL.md"))).toBe(true);
     expect(existsSync(join(root, "template.json"))).toBe(false);
     expect(existsSync(join(root, "pictures"))).toBe(false);
     const stored = JSON.parse(readFileSync(join(root, TEMPLATE_TEXTS), "utf8"));

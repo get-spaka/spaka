@@ -1,7 +1,7 @@
 {
   "name": "Compact one-line footer",
   "kind": "footer",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A slim footer on a single line with a small logo and copyright, the page links in the middle and small social icons on the right, stacking on a phone.",
   "tags": ["compact", "one line", "slim", "links", "social links", "copyright"],
   "mood": ["minimal", "professional"],

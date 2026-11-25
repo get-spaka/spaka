@@ -1,5 +1,5 @@
 // The gallery with the real agent (Q97, Q98, Q102, Q88). Opt-in like
-// agent.e2e.ts: UPSTART_REAL_AGENT=1, with .cache/agent-config signed in.
+// agent.e2e.ts: SPAKA_REAL_AGENT=1, with .cache/agent-config signed in.
 // One build: a home page asked for in English. The agent searches the
 // gallery, puts its blocks in with use_block, writes the site in
 // English; the first section's time is measured against the 10 s target.
@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { agentConfigDir, type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 
-const real = process.env.UPSTART_REAL_AGENT === "1";
+const real = process.env.SPAKA_REAL_AGENT === "1";
 const configDir = agentConfigDir();
 const gallery = join(import.meta.dirname, "../apps/desktop/gallery");
 
@@ -24,13 +24,13 @@ describe.skipIf(!real)("the gallery with the real agent", () => {
   const invoke = (channel: string, ...args: unknown[]) =>
     launched.window.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      ([channel, args]) => (window as any).upstart.invoke(channel, ...args),
+      ([channel, args]) => (window as any).spaka.invoke(channel, ...args),
       [channel, args] as const,
     );
   const page = (code: string) =>
     launched.app.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      (_electron, code) => (globalThis as any).upstart.preview.view.webContents.executeJavaScript(code),
+      (_electron, code) => (globalThis as any).spaka.preview.view.webContents.executeJavaScript(code),
       code,
     );
   const messages = () =>
@@ -44,7 +44,7 @@ describe.skipIf(!real)("the gallery with the real agent", () => {
     mkdirSync(runsDir, { recursive: true });
     rmSync(record, { force: true });
     launched = await launchApp({
-      env: { UPSTART_AGENT_REPLAY: "", UPSTART_AGENT_CONFIG_DIR: configDir, UPSTART_AGENT_RECORD: record },
+      env: { SPAKA_AGENT_REPLAY: "", SPAKA_AGENT_CONFIG_DIR: configDir, SPAKA_AGENT_RECORD: record },
     });
     await launched.window.getByTestId("message-input").waitFor();
   }, 60_000 * SLOW);
@@ -87,15 +87,15 @@ describe.skipIf(!real)("the gallery with the real agent", () => {
           .flatMap((m) => m.message.content)
           .filter((c: { type: string; name?: string }) => c.type === "tool_use" && c.name === name)
           .map((c: { input: unknown }) => c.input);
-      const searches = calls("mcp__upstart__find_blocks");
+      const searches = calls("mcp__spaka__find_blocks");
       report.searches = searches;
       expect(searches.length).toBeGreaterThanOrEqual(1);
       // It put the blocks in with use_block (Q213), and replaced every sample record (Q217).
-      report.placed = calls("mcp__upstart__use_block");
+      report.placed = calls("mcp__spaka__use_block");
       expect((report.placed as unknown[]).length).toBeGreaterThanOrEqual(1);
       const samples = (() => {
         try {
-          return JSON.parse(readFileSync(join(path, ".upstart/gallery-samples.json"), "utf8"));
+          return JSON.parse(readFileSync(join(path, ".spaka/gallery-samples.json"), "utf8"));
         } catch {
           return {};
         }

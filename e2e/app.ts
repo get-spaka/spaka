@@ -71,7 +71,7 @@ export async function launchApp({
   followAppearance = false,
   tour = false,
 }: LaunchOptions = {}): Promise<LaunchedApp> {
-  const scratch = mkdtempSync(join(tmpdir(), "upstart-e2e-"));
+  const scratch = mkdtempSync(join(tmpdir(), "spaka-e2e-"));
   const dataDir = join(scratch, "data");
   const projectsDir = join(scratch, "projects");
   mkdirSync(projectsDir, { recursive: true });
@@ -85,14 +85,14 @@ export async function launchApp({
     ...(followAppearance ? { colorScheme: null } : {}),
     env: {
       ...cleanEnv(),
-      UPSTART_BACKGROUND: "1",
-      ...(SHOWN ? { UPSTART_SHOW_INACTIVE: "1" } : {}),
-      UPSTART_DATA_DIR: dataDir,
-      UPSTART_PROJECTS_DIR: projectsDir,
+      SPAKA_BACKGROUND: "1",
+      ...(SHOWN ? { SPAKA_SHOW_INACTIVE: "1" } : {}),
+      SPAKA_DATA_DIR: dataDir,
+      SPAKA_PROJECTS_DIR: projectsDir,
       // The agent is played back from a recording unless a check asks for the real one ("").
-      UPSTART_AGENT_REPLAY: join(import.meta.dirname, "fixtures/bakery.jsonl"),
+      SPAKA_AGENT_REPLAY: join(import.meta.dirname, "fixtures/bakery.jsonl"),
       // A packaged app sends its statistics to Aptabase: a check's go to a log instead.
-      UPSTART_STATS_LOG: join(scratch, "stats.jsonl"),
+      SPAKA_STATS_LOG: join(scratch, "stats.jsonl"),
       ...env,
     },
   });

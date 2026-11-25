@@ -1,19 +1,19 @@
 // Starting a website from a template (Q229, Q246): the template's site is
 // copied into the new project, the agent is told to adapt it to the maker's
-// business, and at the end of its turns Upstart checks that none of the
+// business, and at the end of its turns Spaka checks that none of the
 // template's texts are left, as it does for the gallery's lorem ipsum (Q223).
-// The template's texts are kept in the project, .upstart/template-texts.json,
+// The template's texts are kept in the project, .spaka/template-texts.json,
 // as sentences; a sentence the agent was told of once and kept is forgotten,
 // the maker may have asked for it.
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
-import { splitRecord } from "@upstart/runtime";
+import { splitRecord } from "@spaka/runtime";
 import { type Adaptation, removalsLeft, startAdaptation } from "./adaptation";
 import { MANIFEST, Manifest } from "./manifest";
 import { type GuidePage, type GuideSections, guideSections, HOME, pageTypes } from "./pages";
 import { DESIGN_SKILL, GUIDE, projectFiles, readTemplateFolder, type TemplateFiles } from "./reader";
 
-export const TEMPLATE_TEXTS = ".upstart/template-texts.json";
+export const TEMPLATE_TEXTS = ".spaka/template-texts.json";
 
 type Stored = { template: string; texts: string[] };
 
@@ -54,7 +54,7 @@ export function templateTexts(files: TemplateFiles): string[] {
 
 /** How the agent ends each page type's turn (Q308). */
 const END_OF_PAGE =
-  "Then stop, ending with one or two sentences in the maker's language on what you invented on this page that matters (prices, hours, a phone number, an address), and nothing else: no card, no summary of the pages to come. Upstart then shows the maker the list of pages and the button to go on.";
+  "Then stop, ending with one or two sentences in the maker's language on what you invented on this page that matters (prices, hours, a phone number, an address), and nothing else: no card, no summary of the pages to come. Spaka then shows the maker the list of pages and the button to go on.";
 
 /** How the agent asks a page type's choices of the guide, before it changes its files (Q298, Q304). */
 const CHOICES =
@@ -85,7 +85,7 @@ export function adaptMessage(
     ? `\n\nThe template's guide, written by its author for the agent that adapts it (it is not in the website):\n\n<template-guide>\n${guide}\n</template-guide>`
     : "";
   const listed = steps.map((s) => `  - ${s.route} (${s.name})${s.line ? `: ${s.line}` : ""}`).join("\n");
-  return `This website starts from Upstart's template "${manifest.name}" (${manifest.description}), already copied into the project: its pages, parts, data, media, fonts, scripts, styles and blocks. The project is not empty, so read before you write: ${guide ? "the template's guide below, " : ""}its design notes (the ${DESIGN_SKILL(manifest.id).split("/").pop()} skill), then the pages and parts you change.${guided}
+  return `This website starts from Spaka's template "${manifest.name}" (${manifest.description}), already copied into the project: its pages, parts, data, media, fonts, scripts, styles and blocks. The project is not empty, so read before you write: ${guide ? "the template's guide below, " : ""}its design notes (the ${DESIGN_SKILL(manifest.id).split("/").pop()} skill), then the pages and parts you change.${guided}
 
 It is adapted to the maker's business one page type at a time, the home page first: the maker looks at each before the next comes, a turn of its own. In this first turn:
 1. First, before you change any file: show the maker the card of pages with choose_pages. List every page type of the template below, each named and described in one line for this business, in the language of the maker's message, which is the site's (a message in English about a bar in Seville gives a card in English); checked when the maker's message calls for it or does not rule it out, unchecked when the business has no use for it; the home page always kept. Add, as new pages, those the message asks for that the template lacks.
@@ -95,7 +95,7 @@ ${listed}
 ${REWRITE}
 - Look at the home page with look_at_preview, down to its footer: one look shows one screen, so look again with \`at\` on the parts further down. New texts are longer or shorter than the template's, in another language above all: fix what they broke in the markup and the problems the looks measured, keeping the design.
 4. ${END_OF_PAGE}
-At the end of each turn Upstart checks that no text of the template is left in what was adapted.
+At the end of each turn Spaka checks that no text of the template is left in what was adapted.
 
 The maker's message:
 
@@ -149,8 +149,8 @@ export function reviewNote(state: Adaptation, removals: { name: string; files: s
   const looked = state.steps.find((s) => s.status === "ready" || s.status === "doing");
   const after = state.steps.filter((s) => s.status === "todo").map((s) => `${s.name} (${s.route})`);
   if (!state.chosen)
-    return "[Upstart: this website is being adapted from its template, one page at a time, and the maker has not chosen its pages yet. Do what the message asks; then show them the card of pages with choose_pages, as the first message said, before adapting the home page.]";
-  return `[Upstart: this website is being adapted from its template, one page at a time.${looked ? ` The maker is looking at ${looked.name} (${looked.route}).` : ""} Do what they ask now, as for any website${after.length ? `, and leave the pages still to do as they are (${after.join(", ")}): they come one at a time when the maker goes on` : ""}.${removals.length ? ` Also remove the pages the maker took off the website: ${removals.map((r) => `${r.name} (${r.files.join(", ")})`).join("; ")}, as the template's guide says.` : ""} End with what you changed, no card.]`;
+    return "[Spaka: this website is being adapted from its template, one page at a time, and the maker has not chosen its pages yet. Do what the message asks; then show them the card of pages with choose_pages, as the first message said, before adapting the home page.]";
+  return `[Spaka: this website is being adapted from its template, one page at a time.${looked ? ` The maker is looking at ${looked.name} (${looked.route}).` : ""} Do what they ask now, as for any website${after.length ? `, and leave the pages still to do as they are (${after.join(", ")}): they come one at a time when the maker goes on` : ""}.${removals.length ? ` Also remove the pages the maker took off the website: ${removals.map((r) => `${r.name} (${r.files.join(", ")})`).join("; ")}, as the template's guide says.` : ""} End with what you changed, no card.]`;
 }
 
 /** The page types taken off the website whose pages are still there, for the messages. */

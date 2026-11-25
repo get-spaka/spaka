@@ -1,7 +1,7 @@
 {
   "name": "Two locations side by side",
   "kind": "contact",
-  "source": "upstart",
+  "source": "spaka",
   "description": "Two locations in two columns, each a card with a map placeholder on top, the shop's name, address, phone number, email, a practical note and a Get directions button.",
   "tags": ["locations", "several shops", "branches", "map", "address", "two columns"],
   "mood": ["professional", "elegant"],

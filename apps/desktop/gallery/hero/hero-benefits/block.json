@@ -1,7 +1,7 @@
 {
   "name": "Playful hero with benefits",
   "kind": "hero",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A cheerful hero with a badge, a headline with a wavy underlined phrase, three benefits each with a round tick, two rounded buttons and a large rounded picture beside them.",
   "tags": ["friendly checklist", "headline", "badge", "benefits", "checklist", "image"],
   "mood": ["playful", "friendly", "colorful"],

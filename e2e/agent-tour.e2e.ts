@@ -1,8 +1,8 @@
 // The tour with the real agent, in the packaged app (tour and polish slice 7,
 // Q328-Q340), each case on a new maker's profile, the statistics written to a
-// log (UPSTART_STATS_LOG) rather than sent. Opt-in, since it spends the maker's
-// subscription: UPSTART_REAL_AGENT=1, with .cache/agent-config signed in to
-// Claude; UPSTART_TOUR_CASE runs one case.
+// log (SPAKA_STATS_LOG) rather than sent. Opt-in, since it spends the maker's
+// subscription: SPAKA_REAL_AGENT=1, with .cache/agent-config signed in to
+// Claude; SPAKA_TOUR_CASE runs one case.
 // - scratch: a website built from a message; the tour opens at the end of that
 //   turn, and Next goes through its five steps to Done;
 // - ember: Ember from the published templates, kept to its home and visit
@@ -15,8 +15,8 @@ import { afterEach, describe, expect, test } from "vitest";
 import { agentConfigDir, type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 import { maker, say } from "./real-maker.ts";
 
-const real = process.env.UPSTART_REAL_AGENT === "1";
-const only = process.env.UPSTART_TOUR_CASE;
+const real = process.env.SPAKA_REAL_AGENT === "1";
+const only = process.env.SPAKA_TOUR_CASE;
 const configDir = agentConfigDir();
 /** A real turn takes minutes; an adaptation of two pages, up to half an hour. */
 const LONG = 40 * 60_000;
@@ -37,10 +37,10 @@ describe.skipIf(!real)("the tour with the real agent, packaged", { timeout: LONG
       packaged: true,
       tour: true,
       env: {
-        UPSTART_AGENT_REPLAY: "",
-        UPSTART_AGENT_CONFIG_DIR: configDir,
-        UPSTART_AGENT_RECORD: join(runsDir, `real-tour-${name}.jsonl`),
-        UPSTART_STATS_LOG: log,
+        SPAKA_AGENT_REPLAY: "",
+        SPAKA_AGENT_CONFIG_DIR: configDir,
+        SPAKA_AGENT_RECORD: join(runsDir, `real-tour-${name}.jsonl`),
+        SPAKA_STATS_LOG: log,
       },
     });
     await launched.window.getByTestId("start").waitFor({ timeout: 60_000 });
@@ -58,8 +58,8 @@ describe.skipIf(!real)("the tour with the real agent, packaged", { timeout: LONG
   const pageNext = () =>
     launched!.app.evaluate(() =>
       // biome-ignore lint/suspicious/noExplicitAny: the main process's objects, set for checks
-      (globalThis as any).upstart.preview.view.webContents.executeJavaScript(
-        `(() => { const b = document.querySelector("upstart-editor")?.shadowRoot?.querySelector('[data-testid="page-tour-next"]'); if (!b || getComputedStyle(b).display === "none") return false; b.click(); return true; })()`,
+      (globalThis as any).spaka.preview.view.webContents.executeJavaScript(
+        `(() => { const b = document.querySelector("spaka-editor")?.shadowRoot?.querySelector('[data-testid="page-tour-next"]'); if (!b || getComputedStyle(b).display === "none") return false; b.click(); return true; })()`,
       ),
     );
   const until = async (read: () => Promise<unknown>, timeout = 15_000) => {
@@ -170,7 +170,7 @@ describe.skipIf(!real)("the tour with the real agent, packaged", { timeout: LONG
       expect(kept).toEqual(["/", "/visit"]);
       expect(duringAdaptation).toBe(0);
       expect(opened).toBe("conversation");
-      expect(existsSync(join(project.path, ".upstart/adaptation"))).toBe(false);
+      expect(existsSync(join(project.path, ".spaka/adaptation"))).toBe(false);
       const names = logged.map((e) => e.eventName);
       expect(names[0]).toBe("launch");
       expect(logged.find((e) => e.eventName === "site_created")?.props).toEqual({ template: "ember" });

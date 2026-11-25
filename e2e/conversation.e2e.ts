@@ -11,7 +11,7 @@ describe("a conversation with the agent", () => {
   const inPreview = (code: string) =>
     launched.app.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      (_electron, code) => (globalThis as any).upstart.preview.view.webContents.executeJavaScript(code),
+      (_electron, code) => (globalThis as any).spaka.preview.view.webContents.executeJavaScript(code),
       code,
     );
   const until = async (read: () => Promise<unknown>, timeout = 10_000) => {
@@ -27,12 +27,12 @@ describe("a conversation with the agent", () => {
   const project = () =>
     launched.window.evaluate(() =>
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      (window as any).upstart.invoke("projects:current"),
+      (window as any).spaka.invoke("projects:current"),
     );
 
   beforeAll(async () => {
     // The name a small model would give the website (Q407), its quotes and stop taken off.
-    launched = await launchApp({ env: { UPSTART_NAME_REPLY: '"Fournil de Lyon."' } });
+    launched = await launchApp({ env: { SPAKA_NAME_REPLY: '"Fournil de Lyon."' } });
     await launched.window.getByTestId("message-input").waitFor();
   });
   afterAll(async () => {
@@ -50,7 +50,7 @@ describe("a conversation with the agent", () => {
     expect(info.name).toBe("Fournil de Lyon");
     expect(info.path).toMatch(/[\\/]project-[0-9a-z]{10}$/);
     expect(info).toMatchObject({ effort: "medium", model: "claude-opus-5-5" });
-    expect(JSON.parse(readFileSync(join(info.path, ".upstart/project.json"), "utf8")).effort).toBe("medium");
+    expect(JSON.parse(readFileSync(join(info.path, ".spaka/project.json"), "utf8")).effort).toBe("medium");
     await expect(w.getByTestId("maker-message").textContent()).resolves.toContain("A bakery in Lyon");
   });
 
@@ -66,7 +66,7 @@ describe("a conversation with the agent", () => {
     // Normal: one line per step, without unfolding.
     await w.evaluate(() =>
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      (window as any).upstart.invoke("settings:set", { outputStyle: "normal" }),
+      (window as any).spaka.invoke("settings:set", { outputStyle: "normal" }),
     );
     await until(async () => (await w.getByTestId("steps").count()) === 0);
     expect(await w.getByTestId("activity").allTextContents()).toEqual(lines);
@@ -109,7 +109,7 @@ describe("a conversation with the agent", () => {
     );
     const entries = await launched.window.evaluate(() =>
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      (window as any).upstart.invoke("history:list"),
+      (window as any).spaka.invoke("history:list"),
     );
     expect(entries.map((e: { kind: string; current: boolean }) => `${e.kind}${e.current ? "*" : ""}`)).toEqual([
       "turn",
@@ -124,7 +124,7 @@ describe("a conversation with the agent", () => {
     await w.getByTestId("start-over").hover();
     await expect
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      .poll(() => launched.app.evaluate(() => (globalThis as any).upstart.tips.shown))
+      .poll(() => launched.app.evaluate(() => (globalThis as any).spaka.tips.shown))
       .toContain("Start over");
     expect(await w.getByTestId("tip").getAttribute("data-over-page")).toBe("true");
     await w.getByTestId("start-over").click();
@@ -133,7 +133,7 @@ describe("a conversation with the agent", () => {
     const { path, id } = await project();
     const data = await launched.app.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      (_electron, id) => (globalThis as any).upstart.projects.dataFor(id),
+      (_electron, id) => (globalThis as any).spaka.projects.dataFor(id),
       id,
     );
     const log = JSON.parse(readFileSync(join(data, "conversation.json"), "utf8"));

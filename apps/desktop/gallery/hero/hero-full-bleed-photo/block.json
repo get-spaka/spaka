@@ -1,7 +1,7 @@
 {
   "name": "Full-bleed photo hero",
   "kind": "hero",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A photograph filling the whole first screen, darkened toward its foot, with a small label, a very large headline and two actions set over its lower left. The picture takes the placeholder's place, covering the section (object-cover).",
   "tags": ["full-bleed photo", "photograph", "image background", "text over image", "immersive", "first screen"],
   "mood": ["bold", "warm"],

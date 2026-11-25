@@ -2,9 +2,9 @@
 // the same recorded build of ten pages, shown as one page, then as thumbnails
 // (one live view, pictures for the others, Q141). Measures how long each
 // rendering takes in the main process (the live thumbnail included), the memory
-// of all of Upstart's processes, how soon every page has its picture, and
+// of all of Spaka's processes, how soon every page has its picture, and
 // whether the agent can still look at the page while the thumbnails are shown. Runs only when
-// asked (UPSTART_MEASURE_GRID=1); writes e2e/.runs/pages-measure.json.
+// asked (SPAKA_MEASURE_GRID=1); writes e2e/.runs/pages-measure.json.
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -14,24 +14,24 @@ import { writePagesRecording } from "./fixtures/pages-recording.ts";
 
 const results: Record<string, unknown> = {};
 
-describe.skipIf(process.env.UPSTART_MEASURE_GRID !== "1")("the cost of the All pages view", () => {
+describe.skipIf(process.env.SPAKA_MEASURE_GRID !== "1")("the cost of the All pages view", () => {
   const recording = join(mkdtempSync(join(tmpdir(), "pages-rec-")), "many.jsonl");
   writePagesRecording(recording);
 
   async function build(view: "page" | "pages") {
     const launched: LaunchedApp = await launchApp({
-      env: { UPSTART_AGENT_REPLAY: recording, UPSTART_AGENT_REPLAY_SPEED: "1" },
+      env: { SPAKA_AGENT_REPLAY: recording, SPAKA_AGENT_REPLAY_SPEED: "1" },
     });
     // biome-ignore lint/suspicious/noExplicitAny: the main process's objects, for checks
     const main = <T>(fn: (u: any) => T) =>
       launched.app.evaluate(
-        (_e, source) => new Function("u", `return (${source})(u)`)((globalThis as { upstart?: unknown }).upstart),
+        (_e, source) => new Function("u", `return (${source})(u)`)((globalThis as { spaka?: unknown }).spaka),
         fn.toString(),
       ) as Promise<Awaited<T>>;
     const invoke = (channel: string, ...args: unknown[]) =>
       launched.window.evaluate(
         // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-        ([c, a]) => (window as any).upstart.invoke(c, ...a),
+        ([c, a]) => (window as any).spaka.invoke(c, ...a),
         [channel, args] as const,
       );
     try {

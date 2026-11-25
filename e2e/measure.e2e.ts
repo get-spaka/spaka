@@ -1,7 +1,7 @@
 // Measures, with the real agent, how fast a new website takes shape in the
 // preview, against the targets (decisions, Live generation): a first visible
 // change within 3 s, a first real section within 10 s, a full home page
-// within 60 s. Runs only when asked (UPSTART_MEASURE=1), like agent.e2e.ts.
+// within 60 s. Runs only when asked (SPAKA_MEASURE=1), like agent.e2e.ts.
 //
 // - first change: the preview shows text for the first time;
 // - first section: a first section of the page is complete (the next one has started);
@@ -30,7 +30,7 @@ type Sample = {
   themed: boolean;
 };
 
-describe.skipIf(process.env.UPSTART_MEASURE !== "1")("how fast a website takes shape", () => {
+describe.skipIf(process.env.SPAKA_MEASURE !== "1")("how fast a website takes shape", () => {
   let launched: LaunchedApp;
   const results: Record<string, number | null | string>[] = [];
 
@@ -38,9 +38,9 @@ describe.skipIf(process.env.UPSTART_MEASURE !== "1")("how fast a website takes s
     rmSync(join(runsDir, "measure-agent.jsonl"), { force: true });
     launched = await launchApp({
       env: {
-        UPSTART_AGENT_REPLAY: "",
-        UPSTART_AGENT_CONFIG_DIR: configDir,
-        UPSTART_AGENT_RECORD: join(runsDir, "measure-agent.jsonl"),
+        SPAKA_AGENT_REPLAY: "",
+        SPAKA_AGENT_CONFIG_DIR: configDir,
+        SPAKA_AGENT_RECORD: join(runsDir, "measure-agent.jsonl"),
       },
     });
     await launched.window.getByTestId("message-input").waitFor();
@@ -62,13 +62,13 @@ describe.skipIf(process.env.UPSTART_MEASURE !== "1")("how fast a website takes s
         }
         await launched.window.evaluate(() =>
           // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-          (window as any).upstart.invoke("projects:close"),
+          (window as any).spaka.invoke("projects:close"),
         );
         // In the main process: sample the disk and the preview every 25 ms, and film it.
         await launched.app.evaluate(async (_electron, film) => {
           const { existsSync, writeFileSync } = process.getBuiltinModule("node:fs");
           // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-          const u = (globalThis as any).upstart;
+          const u = (globalThis as any).spaka;
           const contents = u.preview.view.webContents;
           const started = Date.now();
           u.measure = { started, samples: [] as Sample[], frames: [] as { file: string; t: number }[] };
@@ -78,7 +78,7 @@ describe.skipIf(process.env.UPSTART_MEASURE !== "1")("how fast a website takes s
             const onDisk = existsSync(`${project.path}/pages/index.liquid`);
             const page = await contents
               .executeJavaScript(
-                "({ text: (document.body?.innerText ?? '').trim().length, blocks: document.querySelectorAll('body section, body header, body footer, body main > div').length, themed: (document.getElementById('up-theme')?.textContent ?? '').includes('--theme-') })",
+                "({ text: (document.body?.innerText ?? '').trim().length, blocks: document.querySelectorAll('body section, body header, body footer, body main > div').length, themed: (document.getElementById('spaka-theme')?.textContent ?? '').includes('--theme-') })",
               )
               .catch(() => ({ text: 0, blocks: 0, themed: false }));
             u.measure.samples.push({
@@ -116,7 +116,7 @@ describe.skipIf(process.env.UPSTART_MEASURE !== "1")("how fast a website takes s
 
         const { samples, frames } = await launched.app.evaluate(async () => {
           // biome-ignore lint/suspicious/noExplicitAny: idem
-          const u = (globalThis as any).upstart;
+          const u = (globalThis as any).spaka;
           clearInterval(u.measure.timer);
           clearInterval(u.measure.filmer);
           return {
@@ -141,7 +141,7 @@ describe.skipIf(process.env.UPSTART_MEASURE !== "1")("how fast a website takes s
         results.push(result);
         console.log(`[measure] ${JSON.stringify(result)}`);
         if (film && frames.length) {
-          // Until the preview shows something, the maker sees Upstart's empty state: a blank frame.
+          // Until the preview shows something, the maker sees Spaka's empty state: a blank frame.
           const blank = join(film, "blank.jpg");
           execFileSync("ffmpeg", [
             "-y",

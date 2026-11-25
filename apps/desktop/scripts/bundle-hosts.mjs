@@ -9,7 +9,7 @@ import { build } from "rolldown";
 const here = dirname(fileURLToPath(import.meta.url));
 const hosts = join(here, "../../../packages/runtime/src/hosts");
 const out = join(here, "../out/hosts");
-const banner = "// Upstart's published-site server. Generated: do not edit.";
+const banner = "// Spaka's published-site server. Generated: do not edit.";
 
 await build({
   input: join(hosts, "node-main.ts"),

@@ -15,21 +15,21 @@ const STAGE = (width: number) => `new Promise((done) => {
   // block keeps its colors (a style outside Tailwind's layers would win over the block's classes).
   const block = document.body.firstElementChild;
   const card = document.createElement("div");
-  card.id = "up-peek-card";
+  card.id = "spaka-peek-card";
   if (block) { block.replaceWith(card); card.append(block); }
   const style = document.createElement("style");
-  style.setAttribute("data-up-runtime", "");
+  style.setAttribute("data-spaka-runtime", "");
   style.textContent = \`
     html { background: rgb(9 9 11 / 0.55) !important; height: 100%; overflow: hidden !important; }
     body { background: transparent !important; margin: 0 !important; height: 100%; overflow: hidden !important;
       display: flex !important; align-items: center; justify-content: center; }
-    #up-peek-card { flex: none; width: ${width}px; border-radius: 12px; overflow: hidden;
+    #spaka-peek-card { flex: none; width: ${width}px; border-radius: 12px; overflow: hidden;
       background-color: var(--color-base-100); color: var(--color-base-content);
       box-shadow: 0 24px 64px rgb(0 0 0 / 0.45), 0 0 0 1px rgb(0 0 0 / 0.12); }\`;
   document.head.append(style);
   const started = Date.now();
   // Tailwind compiles in the page: its styles first, then the block's height.
-  const styled = () => [...document.querySelectorAll("style")].some((s) => !s.hasAttribute("data-up-runtime") && s.textContent.length > 0);
+  const styled = () => [...document.querySelectorAll("style")].some((s) => !s.hasAttribute("data-spaka-runtime") && s.textContent.length > 0);
   const wait = () => styled() || Date.now() - started > 3000
     ? done(card.getBoundingClientRect().height)
     : setTimeout(wait, 10);
@@ -63,7 +63,7 @@ export class BlockPeek {
     const contents = view.webContents;
     view.setBounds(area);
     contents.setZoomFactor(1);
-    await contents.loadURL(`${this.origin()}/__up/block/${encodeURIComponent(id)}`).catch(() => {});
+    await contents.loadURL(`${this.origin()}/__spaka/block/${encodeURIComponent(id)}`).catch(() => {});
     if (n !== this.seq) return;
     const width = Math.max(240, area.width - 2 * MARGIN);
     const height = (await contents.executeJavaScript(STAGE(width)).catch(() => 0)) as number;

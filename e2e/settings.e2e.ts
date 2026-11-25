@@ -14,13 +14,13 @@ describe("the settings panel", () => {
   const invoke = (channel: string, ...args: unknown[]) =>
     launched.window.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      ([channel, args]) => (window as any).upstart.invoke(channel, ...args),
+      ([channel, args]) => (window as any).spaka.invoke(channel, ...args),
       [channel, args] as const,
     );
   // biome-ignore lint/suspicious/noExplicitAny: the main process's objects, for checks
-  const main = <T>(fn: (upstart: any) => T) =>
+  const main = <T>(fn: (spaka: any) => T) =>
     launched.app.evaluate(
-      (_electron, source) => new Function("u", `return (${source})(u)`)((globalThis as { upstart?: unknown }).upstart),
+      (_electron, source) => new Function("u", `return (${source})(u)`)((globalThis as { spaka?: unknown }).spaka),
       fn.toString(),
     ) as Promise<Awaited<T>>;
   const zoom = () => main((u) => u.win.webContents.getZoomFactor());
@@ -62,7 +62,7 @@ describe("the settings panel", () => {
     // No window of its own (Q123).
     expect(launched.app.windows().filter((p) => p.url().includes("#settings"))).toHaveLength(0);
     expect(await main((u) => u.preview.view.getVisible())).toBe(false);
-    expect(await sidebar()).toEqual(["General", "Accounts", "Skills", "Connectors", "Privacy", "About Upstart"]);
+    expect(await sidebar()).toEqual(["General", "Accounts", "Skills", "Connectors", "Privacy", "About Spaka"]);
     expect(await w.getByTestId("settings-title").textContent()).toBe("General");
     expect(await w.getByTestId("projects-dir").textContent()).toBe(launched.projectsDir);
     const box = await w.getByTestId("settings").boundingBox();
@@ -74,11 +74,11 @@ describe("the settings panel", () => {
     await menuSettings();
     await until(closed);
     await invoke("settings:open", "about");
-    await until(async () => (await w.getByTestId("settings-title").textContent()) === "About Upstart");
+    await until(async () => (await w.getByTestId("settings-title").textContent()) === "About Spaka");
     expect(await w.getByTestId("about-version").textContent()).toMatch(/^Version \d/);
     // Its icon, its site and what it is made with, each with its licence (Q339).
     await until(() => w.getByTestId("about-icon").evaluate((img: HTMLImageElement) => img.naturalWidth > 0));
-    expect(await w.getByTestId("about-site").textContent()).toBe("upstart.gg");
+    expect(await w.getByTestId("about-site").textContent()).toBe("spaka.app");
     const made = w.getByTestId("about-components").locator("li");
     expect(await made.count()).toBe(16);
     expect(await made.first().textContent()).toBe("ElectronMIT");

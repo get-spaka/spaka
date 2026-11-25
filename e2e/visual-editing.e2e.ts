@@ -25,7 +25,7 @@ describe("editing in the preview", () => {
     await invoke("preview:set-view", "page");
     path = (await invoke("projects:current")).path;
     await invoke("preview:navigate", "/");
-    await until(() => page("!!document.querySelector('upstart-editor') && location.pathname === '/'"));
+    await until(() => page("!!document.querySelector('spaka-editor') && location.pathname === '/'"));
     // Edit mode: the preview opens in visitor mode (Q253).
     await invoke("preview:set-mode", "edit");
   }, 60_000 * SLOW);
@@ -41,12 +41,12 @@ describe("editing in the preview", () => {
     await until(() => drawn(".bar"));
     expect(await page("location.pathname + location.hash")).toBe("/");
     expect(
-      await page(`!!document.querySelector('upstart-editor').shadowRoot.querySelector('[data-testid="editor-link"]')`),
+      await page(`!!document.querySelector('spaka-editor').shadowRoot.querySelector('[data-testid="editor-link"]')`),
     ).toBe(true);
   });
 
-  test("a button of the bar shows its tooltip of Upstart's own, not the native title (Q329)", async () => {
-    const shadow = "document.querySelector('upstart-editor').shadowRoot";
+  test("a button of the bar shows its tooltip of Spaka's own, not the native title (Q329)", async () => {
+    const shadow = "document.querySelector('spaka-editor').shadowRoot";
     const { x, y } = await page(`(() => {
       const r = ${shadow}.querySelector('[data-testid="editor-link"]').getBoundingClientRect();
       return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
@@ -70,7 +70,7 @@ describe("editing in the preview", () => {
     await until(() => drawn(".selected"));
     const gap = () =>
       page(`(() => {
-        const box = document.querySelector('upstart-editor').shadowRoot.querySelector('.selected').getBoundingClientRect();
+        const box = document.querySelector('spaka-editor').shadowRoot.querySelector('.selected').getBoundingClientRect();
         const el = document.querySelector('section:nth-of-type(2) p').getBoundingClientRect();
         return Math.abs(box.top - el.top) + Math.abs(box.left - el.left);
       })()`);
@@ -112,7 +112,7 @@ describe("editing in the preview", () => {
     // Up to the section itself.
     for (let i = 0; i < 4; i++) {
       const isSection = await page(
-        `!!document.querySelector('upstart-editor').shadowRoot.querySelector('[data-testid="editor-down"]')`,
+        `!!document.querySelector('spaka-editor').shadowRoot.querySelector('[data-testid="editor-down"]')`,
       );
       if (isSection) break;
       await click('[data-testid="editor-parent"]', true);
@@ -133,7 +133,7 @@ describe("editing in the preview", () => {
     await until(() => drawn(".bar"));
     for (let i = 0; i < 4; i++) {
       if (
-        await page(`!!document.querySelector('upstart-editor').shadowRoot.querySelector('[data-testid="editor-drag"]')`)
+        await page(`!!document.querySelector('spaka-editor').shadowRoot.querySelector('[data-testid="editor-drag"]')`)
       )
         break;
       await click('[data-testid="editor-parent"]', true);
@@ -177,7 +177,7 @@ describe("editing in the preview", () => {
     await picture("editor-shared-part");
     expect(
       await page(
-        `document.querySelector('upstart-editor').shadowRoot.querySelector('[data-testid="editor-shared"]').textContent`,
+        `document.querySelector('spaka-editor').shadowRoot.querySelector('[data-testid="editor-shared"]').textContent`,
       ),
     ).toBe("Shared part: changes every page that uses it (2 pages)");
   });
@@ -200,7 +200,7 @@ describe("editing in the preview", () => {
     "a phone and a tablet at their own size, whole in the column, upright or sideways (Q110)",
     async () => {
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      const bounds = () => launched.app.evaluate(() => (globalThis as any).upstart.preview.view.getBounds());
+      const bounds = () => launched.app.evaluate(() => (globalThis as any).spaka.preview.view.getBounds());
       const wide = await bounds();
       const sized = async (w: number, h: number) => {
         await until(async () => (await page("innerWidth")) === w && (await page("innerHeight")) === h, 5_000);
@@ -233,7 +233,7 @@ describe("editing in the preview", () => {
 
   test.runIf(ON_A_SCREEN)("a computer zoomed out: laid out 1440 wide, drawn in the whole column", async () => {
     // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-    const bounds = () => launched.app.evaluate(() => (globalThis as any).upstart.preview.view.getBounds());
+    const bounds = () => launched.app.evaluate(() => (globalThis as any).spaka.preview.view.getBounds());
     const column = await bounds();
     await launched.window.getByTestId("width-desktop").click();
     await until(async () => (await page("innerWidth")) === Math.max(1440, column.width), 5_000);
@@ -269,7 +269,7 @@ describe("editing in the preview", () => {
       const fills = () =>
         launched.app.evaluate(() => {
           // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-          const { view, device } = (globalThis as any).upstart.preview;
+          const { view, device } = (globalThis as any).spaka.preview;
           return !!device && Math.abs(device.width * device.scale - view.getBounds().width) <= 1;
         });
       await byMenu("CommandOrControl+Plus");
@@ -292,7 +292,7 @@ describe("editing in the preview", () => {
     await expect(window.getByTestId("sidebar").count()).resolves.toBe(0);
     if (ON_A_SCREEN) {
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      const bounds = () => launched.app.evaluate(() => (globalThis as any).upstart.preview.view.getBounds());
+      const bounds = () => launched.app.evaluate(() => (globalThis as any).spaka.preview.view.getBounds());
       const full = await window.evaluate(() => innerWidth);
       await until(async () => (await bounds()).width === full);
     }
@@ -303,16 +303,16 @@ describe("editing in the preview", () => {
 
   test("while the agent works, a pill says so at the bottom of the page, and its Stop stops the agent (Q391)", async () => {
     // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-    await launched.app.evaluate(() => (globalThis as any).upstart.preview.setPaused(true));
+    await launched.app.evaluate(() => (globalThis as any).spaka.preview.setPaused(true));
     await until(() => drawn(".working"));
-    expect(
-      await page("document.querySelector('upstart-editor').shadowRoot.querySelector('.working').textContent"),
-    ).toBe("Agent working· editing pausedStop");
+    expect(await page("document.querySelector('spaka-editor').shadowRoot.querySelector('.working').textContent")).toBe(
+      "Agent working· editing pausedStop",
+    );
     await new Promise((r) => setTimeout(r, 400)); // its rise
     await picture("agent-working-pill");
     const stopped = await launched.app.evaluate(async () => {
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      const { agent } = (globalThis as any).upstart;
+      const { agent } = (globalThis as any).spaka;
       const stop = agent.stop;
       let id: string | undefined;
       agent.stop = async (projectId: string) => {
@@ -331,13 +331,13 @@ describe("editing in the preview", () => {
       true,
     );
     // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-    await launched.app.evaluate(() => (globalThis as any).upstart.preview.setPaused(false));
+    await launched.app.evaluate(() => (globalThis as any).spaka.preview.setPaused(false));
     await until(async () => !(await drawn(".working")));
   });
 
   test("while the agent works the page takes no click or key in visitor mode, and still scrolls (Q410)", async () => {
     await invoke("preview:set-mode", "visitor");
-    await until(() => page("document.querySelector('upstart-editor').dataset.mode === 'visitor'"));
+    await until(() => page("document.querySelector('spaka-editor').dataset.mode === 'visitor'"));
     await page(
       `(() => {
         document.body.insertAdjacentHTML('beforeend', '<div id="room" style="height: 3000px"><input id="field"></div>');
@@ -347,7 +347,7 @@ describe("editing in the preview", () => {
       })()`,
     );
     // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-    await launched.app.evaluate(() => (globalThis as any).upstart.preview.setPaused(true));
+    await launched.app.evaluate(() => (globalThis as any).spaka.preview.setPaused(true));
     await until(() => drawn('[data-testid="page-shield"]'));
     await click("a[href]");
     await key("x");
@@ -357,14 +357,14 @@ describe("editing in the preview", () => {
     expect(await page("location.pathname")).toBe("/");
     expect(await page("seen")).toEqual([]);
     // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-    await launched.app.evaluate(() => (globalThis as any).upstart.preview.setPaused(false));
+    await launched.app.evaluate(() => (globalThis as any).spaka.preview.setPaused(false));
     await until(async () => !(await drawn('[data-testid="page-shield"]')));
     await click("#field");
     await key("x");
     await until(async () => (await page("seen.join()")) === "click,keydown");
     await page("window.scrollTo(0, 0), document.getElementById('room').remove(), true");
     await invoke("preview:set-mode", "edit");
-    await until(() => page("document.querySelector('upstart-editor').dataset.mode === 'edit'"));
+    await until(() => page("document.querySelector('spaka-editor').dataset.mode === 'edit'"));
   });
 
   test.runIf(ON_A_SCREEN)(
@@ -373,18 +373,18 @@ describe("editing in the preview", () => {
       await invoke("preview:navigate", "/");
       await until(() => page("location.pathname === '/'"));
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      await launched.app.evaluate(() => (globalThis as any).upstart.preview.setPaused(true));
+      await launched.app.evaluate(() => (globalThis as any).spaka.preview.setPaused(true));
       await click("h1");
       await new Promise((r) => setTimeout(r, 200));
       expect(await drawn(".bar")).toBe(false);
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      await launched.app.evaluate(() => (globalThis as any).upstart.preview.setPaused(false));
+      await launched.app.evaluate(() => (globalThis as any).spaka.preview.setPaused(false));
       await click("h1");
       await until(() => drawn(".bar"));
       const started = Date.now();
       const shown = await launched.app.evaluate(async () => {
         // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-        const preview = (globalThis as any).upstart.preview;
+        const preview = (globalThis as any).spaka.preview;
         let during = "";
         const send = preview.send.bind(preview);
         preview.send = (m: { type: string }) => {

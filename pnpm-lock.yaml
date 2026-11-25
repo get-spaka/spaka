@@ -59,10 +59,10 @@ importers:
       '@tailwindcss/browser':
         specifier: 4.3.5
         version: 4.3.5
-      '@upstart/builder':
+      '@spaka/builder':
         specifier: workspace:*
         version: link:../../packages/builder
-      '@upstart/runtime':
+      '@spaka/runtime':
         specifier: workspace:*
         version: link:../../packages/runtime
       daisyui:
@@ -150,7 +150,7 @@ importers:
 
   packages/builder:
     dependencies:
-      '@upstart/runtime':
+      '@spaka/runtime':
         specifier: workspace:*
         version: link:../runtime
       daisyui:

@@ -10,8 +10,8 @@ import { writePlanRecording, writeQuestionsRecording } from "./fixtures/question
 // interface pictured light and dark side by side, the page's native views laid
 // at their places over the interface's picture, one picture per screen in
 // e2e/.runs/screens/ and an index.html of them all. Run only when asked:
-//   UPSTART_SCREENS_SHEET=1
-const asked = process.env.UPSTART_SCREENS_SHEET === "1";
+//   SPAKA_SCREENS_SHEET=1
+const asked = process.env.SPAKA_SCREENS_SHEET === "1";
 const outDir = join(runsDir, "screens");
 const APPEARANCES = ["light", "dark"] as const;
 
@@ -107,7 +107,7 @@ body{margin:0;background:#808080;display:flex;gap:16px;padding:16px;width:max-co
   const invoke = <T = unknown>(launched: LaunchedApp, channel: string, ...args: unknown[]): Promise<T> =>
     launched.window.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      ([channel, args]) => (window as any).upstart.invoke(channel, ...(args as unknown[])),
+      ([channel, args]) => (window as any).spaka.invoke(channel, ...(args as unknown[])),
       [channel, args] as const,
     ) as Promise<T>;
 
@@ -125,7 +125,7 @@ body{margin:0;background:#808080;display:flex;gap:16px;padding:16px;width:max-co
       async () => (await launched.window.locator('[data-testid="agent-message"][data-status="done"]').count()) >= n,
     );
   const recording = (write: (file: string) => void) => {
-    const file = join(mkdtempSync(join(tmpdir(), "upstart-screens-")), "agent.jsonl");
+    const file = join(mkdtempSync(join(tmpdir(), "spaka-screens-")), "agent.jsonl");
     write(file);
     return file;
   };
@@ -138,7 +138,7 @@ body{margin:0;background:#808080;display:flex;gap:16px;padding:16px;width:max-co
       const launched = await launchApp({
         followAppearance: true,
         tour: true,
-        env: { UPSTART_AGENT_REPLAY: recording(writeAdaptationRecording) },
+        env: { SPAKA_AGENT_REPLAY: recording(writeAdaptationRecording) },
       });
       const w = launched.window;
       try {
@@ -191,8 +191,8 @@ body{margin:0;background:#808080;display:flex;gap:16px;padding:16px;width:max-co
             else
               await launched.app.evaluate(() =>
                 // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-                (globalThis as any).upstart.preview.view.webContents.executeJavaScript(
-                  `document.querySelector("upstart-editor").shadowRoot.querySelector('[data-testid="page-tour-next"]').click()`,
+                (globalThis as any).spaka.preview.view.webContents.executeJavaScript(
+                  `document.querySelector("spaka-editor").shadowRoot.querySelector('[data-testid="page-tour-next"]').click()`,
                 ),
               );
             await until(async () => (await w.getByTestId("tour").getAttribute("data-step")) !== name);
@@ -257,7 +257,7 @@ body{margin:0;background:#808080;display:flex;gap:16px;padding:16px;width:max-co
         await w.keyboard.press("Escape");
         await w.getByTestId("export-dialog").waitFor({ state: "detached" });
         // A first export into a folder, as the folder's dialog would give it; then Publish exports again there.
-        await invoke(launched, "export:run", mkdtempSync(join(tmpdir(), "upstart-screens-export-")), "static");
+        await invoke(launched, "export:run", mkdtempSync(join(tmpdir(), "spaka-screens-export-")), "static");
         await step(launched, "publish-done", async () => {
           await w.getByTestId("export-open").click();
           await w.locator('[data-testid="publish-choice"][data-id="static"]').click();
@@ -310,7 +310,7 @@ body{margin:0;background:#808080;display:flex;gap:16px;padding:16px;width:max-co
         ["question-card", writeQuestionsRecording, false],
         ["plan-card", writePlanRecording, true],
       ] as const) {
-        const launched = await launchApp({ followAppearance: true, env: { UPSTART_AGENT_REPLAY: recording(write) } });
+        const launched = await launchApp({ followAppearance: true, env: { SPAKA_AGENT_REPLAY: recording(write) } });
         const w = launched.window;
         try {
           await w.getByTestId("message-input").waitFor();

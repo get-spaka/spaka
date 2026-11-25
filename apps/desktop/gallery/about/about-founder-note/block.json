@@ -1,7 +1,7 @@
 {
   "name": "Founder's note",
   "kind": "about",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A dark section with a portrait picture of the founder on the left and, on the right, a large serif quote, two short paragraphs in their own words and their name and role.",
   "tags": ["founder", "portrait", "quote", "personal", "two columns"],
   "mood": ["dark", "warm", "elegant"],

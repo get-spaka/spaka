@@ -1,8 +1,8 @@
-// The accounts of Upstart's own harness (Q269, Q275, Q280): ChatGPT Plus or
-// Pro through Sign in with ChatGPT, under Upstart's own name, the maker's
+// The accounts of Spaka's own harness (Q269, Q275, Q280): ChatGPT Plus or
+// Pro through Sign in with ChatGPT, under Spaka's own name, the maker's
 // OpenAI and Gemini keys, and Vertex AI on a key of its express mode or on the
 // Google Cloud sign-in the maker made with gcloud, with a project. What they
-// give Upstart is encrypted by the system's keychain (the Vault) and kept in
+// give Spaka is encrypted by the system's keychain (the Vault) and kept in
 // the app's data; the environment is never read for keys, so a key of the
 // maker's shell never reaches the harness unasked. Claude's sign-in stays the
 // official binary's alone (auth.ts).
@@ -122,7 +122,7 @@ export class PiAccounts {
     this.credentials = new VaultCredentials(join(o.dir, "sign-ins.bin"), o.vault);
     this.models = createModels({
       credentials: this.credentials,
-      // Keys come from the maker through Upstart, never from the environment.
+      // Keys come from the maker through Spaka, never from the environment.
       authContext: { env: async () => undefined, fileExists: async () => false },
       identity: o.identity,
     });
@@ -226,7 +226,7 @@ export class PiAccounts {
     return { signingIn: !!this.signIn, url: this.signIn?.url, failed: this.failed };
   }
 
-  /** Sign in with ChatGPT, under Upstart's name: opens the maker's browser and waits for its answer. */
+  /** Sign in with ChatGPT, under Spaka's name: opens the maker's browser and waits for its answer. */
   async signInChatGPT() {
     if (this.signIn) return;
     const abort = new AbortController();
@@ -245,14 +245,14 @@ export class PiAccounts {
             this.o.openBrowser(event.url);
             this.o.onChange();
           },
-          // The browser comes back to Upstart by itself: no code to paste.
+          // The browser comes back to Spaka by itself: no code to paste.
           prompt: (p) =>
             new Promise<string>((_, reject) => {
               const signal = p.signal ?? abort.signal;
               signal.addEventListener("abort", () => reject(new Error("cancelled")), { once: true });
             }),
         },
-        { agentName: "Upstart", getDeviceId: () => this.deviceId() },
+        { agentName: "Spaka", getDeviceId: () => this.deviceId() },
       );
       this.chatgpt = true;
     } catch (e) {
@@ -273,7 +273,7 @@ export class PiAccounts {
     this.o.onChange();
   }
 
-  /** This installation's stable id, which OpenAI knows Upstart's sign-ins by. */
+  /** This installation's stable id, which OpenAI knows Spaka's sign-ins by. */
   private deviceId(): string {
     const file = join(this.o.dir, "device-id");
     try {

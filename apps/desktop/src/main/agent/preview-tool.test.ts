@@ -24,7 +24,7 @@ test("one section: up to five blocks, described by their metadata, never their t
   });
   expect(limits).toEqual([5]);
   expect(text).toMatch(
-    /^Blocks of Upstart's gallery\. Choose one per section, then put them into the page with use_block/,
+    /^Blocks of Spaka's gallery\. Choose one per section, then put them into the page with use_block/,
   );
   expect(text).toContain(
     '# pricing: "plans"\n- pricing-three-tiers: Three tiers (pricing)\n  Three tiers, side by side. Mood: minimal, friendly. Tags: plans, monthly.',

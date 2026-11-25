@@ -1,12 +1,12 @@
 // A website's adaptation from its template (Q302-Q313): the page types it goes
 // through one at a time, the home page first, which the maker chose to keep;
 // where it stands; and the template's guide, kept for the agent until the
-// last page type is done (Q307). Both live in the project's .upstart/ folder,
+// last page type is done (Q307). Both live in the project's .spaka/ folder,
 // never published nor among the website's files, and go when it ends.
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { Runtime } from "@upstart/runtime";
-import { diskSource } from "@upstart/runtime/node";
+import { Runtime } from "@spaka/runtime";
+import { diskSource } from "@spaka/runtime/node";
 import type { AdaptationState, AdaptationStep, AdaptationStepStatus } from "../../shared/ipc";
 import {
   type GuideSections,
@@ -20,7 +20,7 @@ import {
   sectionLine,
 } from "./pages";
 
-export const ADAPTATION = ".upstart/adaptation";
+export const ADAPTATION = ".spaka/adaptation";
 const STATE = `${ADAPTATION}/state.json`;
 const GUIDE_COPY = `${ADAPTATION}/TEMPLATE.md`;
 
@@ -122,7 +122,7 @@ export function choosePages(
 
 /**
  * Continue (Q303): the page type looked at is done, the next one is being
- * adapted. A page type left being adapted (a stopped turn, Upstart closed) is
+ * adapted. A page type left being adapted (a stopped turn, Spaka closed) is
  * taken up again. Undefined when nothing is left.
  */
 export function continueAdaptation(root: string): StoredStep | undefined {
@@ -203,7 +203,7 @@ export function removalsLeft(root: string, state = readAdaptation(root)): { step
 }
 
 /**
- * Which of the website's files Upstart's check for the template's texts looks
+ * Which of the website's files Spaka's check for the template's texts looks
  * at during the adaptation (Q305): those of the page types adapted or being
  * adapted, and what they share with the rest; what only the page types still
  * to do use keeps the template's texts. Undefined outside an adaptation:

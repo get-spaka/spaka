@@ -42,12 +42,12 @@ test("a remote connector for all websites: its token is kept encrypted, out of t
     docs: { type: "http", url: "https://mcp.example.com/mcp", headers: { Authorization: "Bearer s3cret" } },
   });
   expect(() => connectors.add("app", { name: "x", kind: "remote", target: "http://example.com" })).toThrow(/https/);
-  expect(() => connectors.add("app", { name: "upstart", kind: "remote", target: "https://a.b" })).toThrow(/taken/);
+  expect(() => connectors.add("app", { name: "spaka", kind: "remote", target: "https://a.b" })).toThrow(/taken/);
 });
 
 test("a received project's local connector stays off until approved, and an edited command turns it off again", () => {
   const file = join(project.path, PROJECT_CONNECTORS);
-  mkdirSync(join(project.path, ".upstart"), { recursive: true });
+  mkdirSync(join(project.path, ".spaka"), { recursive: true });
   const write = (args: string[]) =>
     writeFileSync(
       file,
@@ -99,14 +99,14 @@ test("a local connector the maker adds to the project is on; its definition hold
 
 test("a project's connector replaces the app's of the same name; malformed entries are ignored", () => {
   connectors.add("app", { name: "docs", kind: "remote", target: "https://a.example/mcp" });
-  mkdirSync(join(project.path, ".upstart"), { recursive: true });
+  mkdirSync(join(project.path, ".spaka"), { recursive: true });
   writeFileSync(
     join(project.path, PROJECT_CONNECTORS),
     JSON.stringify({
       connectors: [
         { name: "docs", kind: "remote", url: "https://b.example/mcp" },
         { name: "Bad Name", kind: "remote", url: "https://c.example" },
-        { name: "upstart", kind: "local", command: "sh" },
+        { name: "spaka", kind: "local", command: "sh" },
       ],
     }),
   );
@@ -153,7 +153,7 @@ test("a remote connector may sign in as an app declared with its service (Q108);
   expect(bad({ authServerMetadataUrl: "http://a.example" })).toThrow(/https/);
 
   // From a received project: settings that do not hold make the entry ignored.
-  mkdirSync(join(project.path, ".upstart"), { recursive: true });
+  mkdirSync(join(project.path, ".spaka"), { recursive: true });
   writeFileSync(
     join(project.path, PROJECT_CONNECTORS),
     JSON.stringify({

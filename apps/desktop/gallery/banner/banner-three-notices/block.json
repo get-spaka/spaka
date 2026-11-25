@@ -1,7 +1,7 @@
 {
   "name": "Three notices in a row",
   "kind": "banner",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A strip in the accent colour lining up three short notices with small icons, separated by dots (free delivery, returns and dispatch time), showing one on a phone, two on a tablet and all three on a wide screen.",
   "tags": ["three notices", "icons", "dots", "coloured background", "shop", "thin strip"],
   "mood": ["colorful", "professional"],

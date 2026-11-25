@@ -6,13 +6,13 @@
 import type { Builder } from "../builder.ts";
 import { Output, slug, writeEnv, writePublishedSite } from "../shared.ts";
 
-const dockerfile = `# Upstart's Node export. The records visitors send are kept in /data/data.sqlite:
+const dockerfile = `# Spaka's Node export. The records visitors send are kept in /data/data.sqlite:
 # keep that volume when you update the site.
 FROM node:24-slim
 WORKDIR /app
 COPY . .
 RUN mkdir -p /data && chown node:node /data
-ENV NODE_ENV=production PORT=3000 UPSTART_DATA=/data
+ENV NODE_ENV=production PORT=3000 SPAKA_DATA=/data
 VOLUME /data
 EXPOSE 3000
 USER node
@@ -22,18 +22,18 @@ CMD ["node", "server.mjs"]
 const guide = (name: string) => `# Putting ${name} online
 
 This folder is a Node.js server: \`server.mjs\` answers the pages, the forms
-and Upstart's management API; \`public/\` holds the files served as they are;
+and Spaka's management API; \`public/\` holds the files served as they are;
 \`site.json\` holds the pages and data. What visitors send is kept in
 \`data/data.sqlite\` (or \`/data/data.sqlite\` in Docker): back it up, and keep
 it when you replace the site with a new export.
 
 The server needs Node.js 24 or later and reads:
 
-- \`UPSTART_TOKEN\`: the website's management token, with which Upstart reads
-  what visitors send. Upstart wrote it into \`.env\`, which the server reads:
+- \`SPAKA_TOKEN\`: the website's management token, with which Spaka reads
+  what visitors send. Spaka wrote it into \`.env\`, which the server reads:
   keep that file private (git and the Docker image leave it out).
 - \`PORT\` (3000) and \`HOST\` (0.0.0.0).
-- \`UPSTART_DATA\`: where data.sqlite is kept (\`data\`).
+- \`SPAKA_DATA\`: where data.sqlite is kept (\`data\`).
 
 ## Try it on this machine
 
@@ -47,7 +47,7 @@ Then open http://localhost:3000.
     docker run -d -p 3000:3000 -v ${name}-data:/data --env-file .env ${name}
 
 Any platform that runs a Dockerfile can run it the same way: give it the
-\`UPSTART_TOKEN\` variable from \`.env\` and a volume mounted at \`/data\`.
+\`SPAKA_TOKEN\` variable from \`.env\` and a volume mounted at \`/data\`.
 
 ## On your own server
 
@@ -60,7 +60,7 @@ put a reverse proxy in front of it for HTTPS, such as Caddy:
 
 ## Then
 
-Give the site's address in the website's settings in Upstart, to see what
+Give the site's address in the website's settings in Spaka, to see what
 visitors sent.
 `;
 

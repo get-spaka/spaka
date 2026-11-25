@@ -5,7 +5,7 @@ description: How to write a skill into the project when the maker asks for one â
 
 # Writing a skill into the project
 
-A project's skills live in `.upstart/skills/<name>/SKILL.md`, in the Agent Skills format. They travel with the project folder, and you get them with the maker's next message. This is the only place in `.upstart` you may write.
+A project's skills live in `.spaka/skills/<name>/SKILL.md`, in the Agent Skills format. They travel with the project folder, and you get them with the maker's next message. This is the only place in `.spaka` you may write.
 
 ## When
 

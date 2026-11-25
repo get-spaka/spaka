@@ -24,7 +24,7 @@ export interface CollectedStore {
 /** The route prefix of form submissions (Q188). */
 export const DATA_ROUTE = "/_data/";
 /** The route prefix of the management API (token-protected). */
-export const MANAGEMENT_ROUTE = "/_upstart/";
+export const MANAGEMENT_ROUTE = "/_spaka/";
 /** How many records of each collected datasource a page can show. */
 export const SHOWN_RECORDS = 500;
 /** At most this many records per visitor and datasource in the window below (Q157's rate limit). */
@@ -143,12 +143,12 @@ export async function fingerprint(address: string, secret: string): Promise<stri
 /** The built-in alert listing what is wrong (Q173), in the site's theme. */
 export function problemsAlert(problems: string[]): string {
   const items = problems.map((p) => `<li>${escapeHtml(p)}</li>`).join("");
-  return `<div role="alert" class="alert alert-error alert-soft" data-up-problems><ul class="list-disc ps-4">${items}</ul></div>`;
+  return `<div role="alert" class="alert alert-error alert-soft" data-spaka-problems><ul class="list-disc ps-4">${items}</ul></div>`;
 }
 
 /** What a valid submission is answered with when the definition names no fragment. */
 export function sentAlert(text: string): string {
-  return `<div role="status" class="alert alert-success alert-soft" data-up-sent>${escapeHtml(text)}</div>`;
+  return `<div role="status" class="alert alert-success alert-soft" data-spaka-sent>${escapeHtml(text)}</div>`;
 }
 
 /**

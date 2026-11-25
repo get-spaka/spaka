@@ -2,7 +2,7 @@
 // each fragment rendered once into an HTML file, served by any static file
 // host. It cannot keep what visitors send: a form sends to a form service's
 // address instead (Q178), and a page showing what visitors sent refuses it.
-import { exportHead, injectHead, type ProjectSource, siteAssets, TRAP_FIELD, withSrcset } from "@upstart/runtime";
+import { exportHead, injectHead, type ProjectSource, siteAssets, TRAP_FIELD, withSrcset } from "@spaka/runtime";
 import type { Builder, BuildOptions, BuildProject, BuildResult, ImageCopies } from "../builder.ts";
 import { Output, renderSite, shownCollected, writeAssets, writeImageCopies } from "../shared.ts";
 

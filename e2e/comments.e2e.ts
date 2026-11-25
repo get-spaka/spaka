@@ -9,7 +9,7 @@ describe("comments on the page", () => {
   let launched: LaunchedApp;
   const { invoke, until, page, click, typeText, drawn, picture } = previewDriver(() => launched);
   const inShadow = (code: string) =>
-    page(`(() => { const root = document.querySelector('upstart-editor').shadowRoot; return ${code}; })()`);
+    page(`(() => { const root = document.querySelector('spaka-editor').shadowRoot; return ${code}; })()`);
   const comment = async (selector: string, text: string) => {
     await click(selector);
     await until(() => drawn('[data-testid="comment-card"]'));
@@ -26,7 +26,7 @@ describe("comments on the page", () => {
     // The bakery has two pages: the preview went to all of them (Q131); these checks are on one.
     await invoke("preview:set-view", "page");
     await invoke("preview:navigate", "/");
-    await until(() => page("!!document.querySelector('upstart-editor') && location.pathname === '/'"));
+    await until(() => page("!!document.querySelector('spaka-editor') && location.pathname === '/'"));
   }, 60_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
@@ -41,7 +41,7 @@ describe("comments on the page", () => {
     expect(await inShadow("root.querySelector('[data-testid=comment-bar] .count').textContent")).toBe("2 comments");
     await picture("comments-pinned");
     await invoke("preview:navigate", "/menu");
-    await until(() => page("location.pathname === '/menu' && !!document.querySelector('upstart-editor')"));
+    await until(() => page("location.pathname === '/menu' && !!document.querySelector('spaka-editor')"));
     // The bar counts every page's comments; this page has no pin yet.
     await until(
       async () =>
@@ -66,7 +66,7 @@ describe("comments on the page", () => {
   test("sending makes one message, a list for the maker, places for the agent", async () => {
     await launched.app.evaluate(() => {
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      const u = (globalThis as any).upstart;
+      const u = (globalThis as any).spaka;
       const send = u.agent.send.bind(u.agent);
       u.sent = [];
       u.agent.send = (project: unknown, text: string, forAgent?: string) => {
@@ -77,7 +77,7 @@ describe("comments on the page", () => {
     await click('[data-act="send"]', true);
     await until(async () => (await invoke("comments:list")).length === 0);
     // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-    const [sent] = (await launched.app.evaluate(() => (globalThis as any).upstart.sent)) as {
+    const [sent] = (await launched.app.evaluate(() => (globalThis as any).spaka.sent)) as {
       text: string;
       forAgent: string;
     }[];

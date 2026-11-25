@@ -77,7 +77,7 @@ jobs:
         run: |
           version="${GITHUB_REF_NAME#v}"
           notes="docs/releases/${version%%-*}.md"
-          args=(--draft=false --title "Upstart $version")
+          args=(--draft=false --title "Spaka $version")
           [ -f "$notes" ] && args+=(--notes-file "$notes")
           if [[ "$version" == *-* ]]; then args+=(--prerelease); else args+=(--latest); fi
           gh release edit "$GITHUB_REF_NAME" "${args[@]}"

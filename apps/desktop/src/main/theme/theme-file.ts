@@ -1,7 +1,7 @@
 // The Theme tab's reading and writing of theme.css (Q93): only the core
 // values (THEME_VARIABLES), changed where they are written, the rest of the
 // file left as the agent or the maker wrote it.
-import { THEME_VARIABLES } from "@upstart/runtime";
+import { THEME_VARIABLES } from "@spaka/runtime";
 
 export type ThemeVariable = (typeof THEME_VARIABLES)[number];
 export type ThemeValues = Partial<Record<ThemeVariable, string>>;

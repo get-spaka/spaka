@@ -5,7 +5,7 @@
 import { Check, ChevronRight, Hammer, ListChecks } from "lucide-react";
 import { useState } from "react";
 import type { PlanCard as Card } from "../../shared/conversation";
-import { upstart } from "../lib/bridge";
+import { spaka } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { AgentText } from "./AgentText";
@@ -35,7 +35,7 @@ export function PlanCard({ card }: { card: Card }) {
             tip={t.plan.buildTip}
             onClick={() => {
               setSent(true);
-              void upstart.invoke("conversation:approve-plan", card.id).catch(() => setSent(false));
+              void spaka.invoke("conversation:approve-plan", card.id).catch(() => setSent(false));
             }}
           >
             <Hammer />

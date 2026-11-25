@@ -117,7 +117,7 @@ describe("the Node and Cloudflare exports, run", () => {
         HOST: "127.0.0.1",
       });
       // The token is not given: the server reads the .env the export wrote (Q191).
-      expect(readFileSync(join(out, ".env"), "utf8")).toContain(`UPSTART_TOKEN=${token}`);
+      expect(readFileSync(join(out, ".env"), "utf8")).toContain(`SPAKA_TOKEN=${token}`);
       await until(() => answers(`${base}/guestbook`), 15_000).catch(() => {
         throw new Error(server.output());
       });
@@ -201,9 +201,9 @@ describe("the Node and Cloudflare exports, run", () => {
       expect(await (await sign(base, "name=Anne&message=Hello")).text()).toContain("Thanks, Anne!");
       expect(await (await fetch(`${base}/guestbook`)).text()).toContain('<li class="entry">Anne: <p>Hello</p>');
 
-      const local = /^UPSTART_TOKEN=(\w+)$/m.exec(readFileSync(join(out, ".dev.vars"), "utf8"))?.[1];
+      const local = /^SPAKA_TOKEN=(\w+)$/m.exec(readFileSync(join(out, ".dev.vars"), "utf8"))?.[1];
       const records = (auth: string) =>
-        fetch(`${base}/_upstart/records/guestbook`, { headers: { authorization: `Bearer ${auth}` } });
+        fetch(`${base}/_spaka/records/guestbook`, { headers: { authorization: `Bearer ${auth}` } });
       expect((await records("wrong")).status).toBe(401);
       const { records: kept } = await (await records(local!)).json();
       expect(kept.map((r: { fields: { name: string } }) => r.fields.name)).toEqual(["Anne"]);
@@ -235,7 +235,7 @@ describe("the Node and Cloudflare exports, run", () => {
     await service.locator("input").fill("https://formspree.io/f/abc");
     await service.getByTestId("form-service-save").click();
     await until(async () => (await invoke("projects:current")).formServices?.contact === "https://formspree.io/f/abc");
-    expect(JSON.parse(readFileSync(join(path, ".upstart/project.json"), "utf8")).formServices).toEqual({
+    expect(JSON.parse(readFileSync(join(path, ".spaka/project.json"), "utf8")).formServices).toEqual({
       contact: "https://formspree.io/f/abc",
     });
     await launched.capture("publish-static-forms");

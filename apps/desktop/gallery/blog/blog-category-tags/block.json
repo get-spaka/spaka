@@ -1,7 +1,7 @@
 {
   "name": "Posts with category tags",
   "kind": "blog",
-  "source": "upstart",
+  "source": "spaka",
   "description": "Up to six blog posts in outlined cards on two columns, each led by its category as a colored tag and its date, then the title, a summary and the author with an initial, without pictures; each post's page shows its category tag, the author and the cover, and ends with more posts tagged the same way.",
   "tags": ["categories", "tags", "cards", "two columns", "topics"],
   "mood": ["friendly", "colorful"],

@@ -19,7 +19,7 @@ describe("all pages as thumbnails", () => {
   const invoke = (channel: string, ...args: unknown[]) =>
     launched.window.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      ([channel, args]) => (window as any).upstart.invoke(channel, ...args),
+      ([channel, args]) => (window as any).spaka.invoke(channel, ...args),
       [channel, args] as const,
     );
   // biome-ignore lint/suspicious/noExplicitAny: the main process's objects, set for checks
@@ -27,7 +27,7 @@ describe("all pages as thumbnails", () => {
   const main = <T, A = undefined>(fn: (u: Main, arg: A) => T, arg?: A) =>
     launched.app.evaluate(
       (_e, [source, arg]) =>
-        new Function("u", "arg", `return (${source})(u, arg)`)((globalThis as { upstart?: unknown }).upstart, arg),
+        new Function("u", "arg", `return (${source})(u, arg)`)((globalThis as { spaka?: unknown }).spaka, arg),
       [fn.toString(), arg] as const,
     ) as Promise<Awaited<T>>;
   const until = async (read: () => Promise<unknown>, timeout = 10_000) => {
@@ -63,7 +63,7 @@ describe("all pages as thumbnails", () => {
     const recording = join(mkdtempSync(join(tmpdir(), "pages-grid-")), "three.jsonl");
     // Written slowly enough for this check's watch to see the live thumbnail change, on a slow runner too.
     writePagesRecording(recording, 3, { chunk: 40, step: 25 * SLOW });
-    launched = await launchApp({ env: { UPSTART_AGENT_REPLAY: recording, UPSTART_AGENT_REPLAY_SPEED: "1" } });
+    launched = await launchApp({ env: { SPAKA_AGENT_REPLAY: recording, SPAKA_AGENT_REPLAY_SPEED: "1" } });
     const w = launched.window;
     await w.getByTestId("message-input").waitFor();
     // What the turn shows is noted where it happens, not read across the processes in turns, which a

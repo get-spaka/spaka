@@ -11,16 +11,16 @@ import { type LaunchedApp, launchApp, openSettings, SLOW } from "./app.ts";
 describe("connectors", () => {
   let launched: LaunchedApp;
   // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-  const main = <T>(fn: (upstart: any, arg: any) => T, arg?: unknown) =>
+  const main = <T>(fn: (spaka: any, arg: any) => T, arg?: unknown) =>
     launched.app.evaluate(
       (_electron, [source, arg]) =>
-        new Function("u", "a", `return (${source})(u, a)`)((globalThis as { upstart?: unknown }).upstart, arg),
+        new Function("u", "a", `return (${source})(u, a)`)((globalThis as { spaka?: unknown }).spaka, arg),
       [fn.toString(), arg] as const,
     ) as Promise<Awaited<T>>;
   const invoke = (channel: string, ...args: unknown[]) =>
     launched.window.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      ([channel, args]) => (window as any).upstart.invoke(channel, ...args),
+      ([channel, args]) => (window as any).spaka.invoke(channel, ...args),
       [channel, args] as const,
     );
   const until = async (read: () => Promise<unknown>, timeout = 10_000) => {
@@ -71,9 +71,9 @@ describe("connectors", () => {
 
   test("a received project's program stays off until turned on, showing its command", async () => {
     const { path } = await invoke("projects:current");
-    mkdirSync(join(path, ".upstart"), { recursive: true });
+    mkdirSync(join(path, ".spaka"), { recursive: true });
     writeFileSync(
-      join(path, ".upstart/connectors.json"),
+      join(path, ".spaka/connectors.json"),
       JSON.stringify({ connectors: [{ name: "notes", kind: "local", command: "node", args: ["notes-server.js"] }] }),
     );
     // The panel closes with Escape before the website's own settings open.
@@ -93,7 +93,7 @@ describe("connectors", () => {
 
     // The agent (or anyone) changes the command: it is off again.
     writeFileSync(
-      join(path, ".upstart/connectors.json"),
+      join(path, ".spaka/connectors.json"),
       JSON.stringify({ connectors: [{ name: "notes", kind: "local", command: "node", args: ["other.js"] }] }),
     );
     await until(async () => (await sheetRow("notes").getAttribute("data-state")) === "needs-approval");
@@ -108,10 +108,10 @@ describe("connectors", () => {
   test("a form error is said; removing a connector takes it from the agent", async () => {
     const w = settings;
     await w.getByTestId("connectors-app-add").click();
-    await w.getByTestId("connector-name").fill("upstart");
+    await w.getByTestId("connector-name").fill("spaka");
     await w.getByTestId("connector-target").fill("https://example.com/mcp");
     await w.getByTestId("connector-add").click();
-    await expect(w.getByTestId("connector-error").textContent()).resolves.toContain("taken by Upstart");
+    await expect(w.getByTestId("connector-error").textContent()).resolves.toContain("taken by Spaka");
     await launched.capture("settings-connectors");
     // Chosen, then removed with −.
     await row("docs").locator("button").first().click();

@@ -1,7 +1,7 @@
 {
   "name": "Mission statement with signature",
   "kind": "about",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A centred mission statement in a large serif type on a soft background, a short sentence below it and a signature line with the founder's name and role.",
   "tags": ["mission", "statement", "centered", "serif", "signature"],
   "mood": ["elegant", "minimal"],

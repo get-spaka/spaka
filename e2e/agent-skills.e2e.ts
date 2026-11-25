@@ -1,32 +1,32 @@
 // Skills with the real agent (ADR 0010). Opt-in like agent.e2e.ts:
-// UPSTART_REAL_AGENT=1, with .cache/agent-config signed in. Three short turns.
+// SPAKA_REAL_AGENT=1, with .cache/agent-config signed in. Three short turns.
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { agentConfigDir, type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 
-const real = process.env.UPSTART_REAL_AGENT === "1";
+const real = process.env.SPAKA_REAL_AGENT === "1";
 const configDir = agentConfigDir();
 const outside = join(import.meta.dirname, "../.cache/outside-check");
 // The app's data under the home folder, as in real use: the sandbox denies
-// reading there, except for the folders Upstart opens to the agent.
+// reading there, except for the folders Spaka opens to the agent.
 const dataDir = join(import.meta.dirname, "../.cache/skills-check-data");
 
 describe.skipIf(!real)("skills with the real agent", () => {
   let launched: LaunchedApp;
   const record = join(runsDir, "real-agent-skills.jsonl");
   // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-  const main = <T>(fn: (upstart: any, arg: any) => T, arg?: unknown) =>
+  const main = <T>(fn: (spaka: any, arg: any) => T, arg?: unknown) =>
     launched.app.evaluate(
       (_electron, [source, arg]) =>
-        new Function("u", "a", `return (${source})(u, a)`)((globalThis as { upstart?: unknown }).upstart, arg),
+        new Function("u", "a", `return (${source})(u, a)`)((globalThis as { spaka?: unknown }).spaka, arg),
       [fn.toString(), arg] as const,
     ) as Promise<Awaited<T>>;
   const invoke = (channel: string, ...args: unknown[]) =>
     launched.window.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      ([channel, args]) => (window as any).upstart.invoke(channel, ...args),
+      ([channel, args]) => (window as any).spaka.invoke(channel, ...args),
       [channel, args] as const,
     );
   const until = async (read: () => Promise<unknown>, timeout: number) => {
@@ -73,10 +73,10 @@ describe.skipIf(!real)("skills with the real agent", () => {
     rmSync(dataDir, { recursive: true, force: true });
     launched = await launchApp({
       env: {
-        UPSTART_AGENT_REPLAY: "",
-        UPSTART_AGENT_CONFIG_DIR: configDir,
-        UPSTART_AGENT_RECORD: record,
-        UPSTART_DATA_DIR: dataDir,
+        SPAKA_AGENT_REPLAY: "",
+        SPAKA_AGENT_CONFIG_DIR: configDir,
+        SPAKA_AGENT_RECORD: record,
+        SPAKA_DATA_DIR: dataDir,
       },
     });
     await launched.window.getByTestId("message-input").waitFor();
@@ -118,7 +118,7 @@ describe.skipIf(!real)("skills with the real agent", () => {
     async () => {
       const project = await invoke("projects:current");
       const target = join(outside, "escape.txt");
-      const dir = join(project.path, ".upstart/skills/site-check");
+      const dir = join(project.path, ".spaka/skills/site-check");
       mkdirSync(join(dir, "scripts"), { recursive: true });
       writeFileSync(
         join(dir, "SKILL.md"),

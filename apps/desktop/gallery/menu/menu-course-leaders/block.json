@@ -1,7 +1,7 @@
 {
   "name": "Menu by course with dotted leaders",
   "kind": "menu",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A narrow, centered restaurant menu grouped by course under serif headings framed by thin rules, each dish with a dotted leader running to its price, a short description and small diet badges below.",
   "tags": ["restaurant menu", "dotted leaders", "courses", "centered", "prices"],
   "mood": ["elegant", "minimal"],

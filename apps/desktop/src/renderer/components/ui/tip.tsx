@@ -1,4 +1,4 @@
-// Upstart's own tooltip (Q329), on every button, icon or text alike: what the
+// Spaka's own tooltip (Q329), on every button, icon or text alike: what the
 // button does and its keyboard shortcut, if it has one (shared/shortcuts.ts).
 // It replaces the native `title`: quick to appear (300 ms, at once from one
 // button to the next) and drawn in the app's colors, light or dark.
@@ -6,7 +6,7 @@ import { Tooltip } from "radix-ui";
 import type * as React from "react";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { type Command, shortcutOf } from "../../../shared/shortcuts";
-import { upstart } from "../../lib/bridge";
+import { spaka } from "../../lib/bridge";
 
 export function TipProvider({ children }: { children: React.ReactNode }) {
   return (
@@ -67,7 +67,7 @@ export function Tip({
         if (!overPage && !overNativeView(r)) return;
         setOver(true);
         const style = getComputedStyle(el);
-        upstart.send("tip:show", {
+        spaka.send("tip:show", {
           text,
           ...(keys ? { keys } : {}),
           rect: { x: r.x, y: r.y, width: r.width, height: r.height },
@@ -84,7 +84,7 @@ export function Tip({
     return () => {
       cancelAnimationFrame(frame);
       setOver(false);
-      upstart.send("tip:hide");
+      spaka.send("tip:hide");
     };
   }, [overPage, open, text, keys]);
 

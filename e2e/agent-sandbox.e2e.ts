@@ -1,5 +1,5 @@
 // What the agent's sandbox holds on its own (Q221), with the real agent in the
-// packaged app. Opt-in like agent.e2e.ts: UPSTART_REAL_AGENT=1, with
+// packaged app. Opt-in like agent.e2e.ts: SPAKA_REAL_AGENT=1, with
 // .cache/agent-config signed in, and the app packaged first.
 // The agent runs harmless probes, each in its own shell command, and the check
 // reads their results from the record: whether the keychain's service answers
@@ -12,19 +12,19 @@ import { join } from "node:path";
 import { afterAll, beforeAll, describe, test } from "vitest";
 import { agentConfigDir, type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 
-const real = process.env.UPSTART_REAL_AGENT === "1";
+const real = process.env.SPAKA_REAL_AGENT === "1";
 const configDir = agentConfigDir();
 const dataDir = join(import.meta.dirname, "../.cache/sandbox-check-data");
-const outside = join(homedir(), "upstart-sandbox-probe.txt");
+const outside = join(homedir(), "spaka-sandbox-probe.txt");
 
 const PROBES: Record<string, string> = {
   keychains: "security list-keychains",
-  keychainSearch: "security find-generic-password -s upstart-sandbox-probe-that-does-not-exist; echo exit=$?",
+  keychainSearch: "security find-generic-password -s spaka-sandbox-probe-that-does-not-exist; echo exit=$?",
   keychainLogin:
-    "security find-generic-password -s upstart-sandbox-probe-that-does-not-exist ~/Library/Keychains/login.keychain-db; echo exit=$?",
+    "security find-generic-password -s spaka-sandbox-probe-that-does-not-exist ~/Library/Keychains/login.keychain-db; echo exit=$?",
   keychainLoginInfo: "security show-keychain-info ~/Library/Keychains/login.keychain-db; echo exit=$?",
   keychainMissing:
-    "security find-generic-password -s upstart-sandbox-probe-that-does-not-exist ~/Library/Keychains/upstart-no-such.keychain-db; echo exit=$?",
+    "security find-generic-password -s spaka-sandbox-probe-that-does-not-exist ~/Library/Keychains/spaka-no-such.keychain-db; echo exit=$?",
   readHome: "test -r ~/.zshrc && echo readable || echo blocked",
   listHome: "ls ~ >/dev/null 2>&1 && echo listed || echo blocked",
   writeHome: `touch ${outside} && echo written || echo blocked`,
@@ -37,7 +37,7 @@ describe.skipIf(!real)("the agent's sandbox, packaged", () => {
   const invoke = (channel: string, ...args: unknown[]) =>
     launched.window.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      ([channel, args]) => (window as any).upstart.invoke(channel, ...args),
+      ([channel, args]) => (window as any).spaka.invoke(channel, ...args),
       [channel, args] as const,
     );
 
@@ -49,10 +49,10 @@ describe.skipIf(!real)("the agent's sandbox, packaged", () => {
     launched = await launchApp({
       packaged: true,
       env: {
-        UPSTART_AGENT_REPLAY: "",
-        UPSTART_AGENT_CONFIG_DIR: configDir,
-        UPSTART_AGENT_RECORD: record,
-        UPSTART_DATA_DIR: dataDir,
+        SPAKA_AGENT_REPLAY: "",
+        SPAKA_AGENT_CONFIG_DIR: configDir,
+        SPAKA_AGENT_RECORD: record,
+        SPAKA_DATA_DIR: dataDir,
       },
     });
     await launched.window.getByTestId("message-input").waitFor();

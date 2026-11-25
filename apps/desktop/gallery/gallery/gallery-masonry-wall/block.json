@@ -1,7 +1,7 @@
 {
   "name": "Masonry wall of pictures",
   "kind": "gallery",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A serif heading beside an intro above a masonry-like wall of pictures in columns, tall, square and wide in turn, each with a title and caption below.",
   "tags": ["masonry", "columns", "wall", "captions", "photos"],
   "mood": ["editorial", "elegant"],

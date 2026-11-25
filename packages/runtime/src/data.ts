@@ -115,13 +115,13 @@ export type DataOptions = {
   standIns?: boolean;
   /**
    * The preview's test records of collected datasources (Q172): a source whose
-   * paths are `<name>/<id>.md`, read from .upstart/test-records/.
+   * paths are `<name>/<id>.md`, read from .spaka/test-records/.
    */
   testRecords?: ProjectSource;
 };
 
 /** Where test records are kept in a project (Q172). */
-export const TEST_RECORDS_DIR = ".upstart/test-records";
+export const TEST_RECORDS_DIR = ".spaka/test-records";
 
 /** The project's datasources, read from its files; parsed files are kept by content. */
 export class Datasources {

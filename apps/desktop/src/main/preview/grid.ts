@@ -173,7 +173,7 @@ export class PageGrid {
         sandbox: true,
         partition: "preview",
         backgroundThrottling: !this.o.background,
-        additionalArguments: ["--upstart-thumbnail"],
+        additionalArguments: ["--spaka-thumbnail"],
       },
     });
     view.setBackgroundColor("#ffffff");
@@ -385,7 +385,7 @@ class Camera {
 /** In a page: resolves once Tailwind, which compiles in the page, has styled it, and it has painted. */
 const PAGE_READY = `new Promise((done) => {
   const started = Date.now();
-  const ready = () => [...document.querySelectorAll("style")].some((s) => !s.hasAttribute("data-up-runtime") && s.textContent.length > 0);
+  const ready = () => [...document.querySelectorAll("style")].some((s) => !s.hasAttribute("data-spaka-runtime") && s.textContent.length > 0);
   const wait = () => ready() || Date.now() - started > 3000
     ? requestAnimationFrame(() => requestAnimationFrame(() => done(true)))
     : setTimeout(wait, 30);

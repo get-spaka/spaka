@@ -2,7 +2,7 @@
 // WebP files made of the photographs — each page whole at desktop and phone
 // width, the cover, and the animated sequence shown on hover.
 import { writeFileSync } from "node:fs";
-import { Runtime } from "@upstart/runtime";
+import { Runtime } from "@spaka/runtime";
 import { pageName, type TemplateFiles, textSource } from "./reader";
 
 /**
@@ -87,7 +87,7 @@ export function eagerImagesScript(): string {
  * - An IntersectionObserver on the screen (Motion's inView) sees each element
  *   it watches come wholly into view at once, and nothing after: every reveal
  *   plays as the page opens, and stays.
- * - `__upStill.pin()`, called before the window is made a slice tall, sets what
+ * - `__spakaStill.pin()`, called before the window is made a slice tall, sets what
  *   floats over the page (position: fixed: a floating button, a corner badge)
  *   where it stands on the page's first screen, so that it is in the picture
  *   once. A backdrop as large as the screen stays fixed, behind every slice.
@@ -140,7 +140,7 @@ export function stillPageScript(): string {
       }
     };
 
-  globalThis.__upStill = {
+  globalThis.__spakaStill = {
     pin() {
       for (const el of document.querySelectorAll("*")) {
         if (!(el instanceof HTMLElement) || getComputedStyle(el).position !== "fixed" || !el.getClientRects().length) continue;

@@ -1,19 +1,19 @@
 ---
 name: making-templates
-description: How to make one of Upstart's templates in this repository — study current trends, write a design brief the author approves, build the template in apps/desktop/templates/<id>/, add its images with their credits, then check and photograph it. Use when asked to make, redo or correct a template.
+description: How to make one of Spaka's templates in this repository — study current trends, write a design brief the author approves, build the template in apps/desktop/templates/<id>/, add its images with their credits, then check and photograph it. Use when asked to make, redo or correct a template.
 ---
 
 # Making a template
 
-A template is a whole website that a maker starts from: Upstart's agent rewrites its texts and replaces its images for their business, and keeps its design. So the design is the product: it must look made by a studio this year, and stay editable in Upstart by someone who cannot code.
+A template is a whole website that a maker starts from: Spaka's agent rewrites its texts and replaces its images for their business, and keeps its design. So the design is the product: it must look made by a studio this year, and stay editable in Spaka by someone who cannot code.
 
-`apps/desktop/templates` is a git submodule, the public repository upstart-gg/upstart-templates (never upstart-gg/templates, the old Upstart's): the templates' only source. In a fresh checkout or a new worktree, fill it first with `git submodule update --init`. A template's files are committed there, on a branch of that repository; this repository records only which commit of it it uses.
+`apps/desktop/templates` is a git submodule, the public repository get-spaka/templates: the templates' only source. In a fresh checkout or a new worktree, fill it first with `git submodule update --init`. A template's files are committed there, on a branch of that repository; this repository records only which commit of it it uses.
 
 Read first, and keep open while building:
 
 - `apps/desktop/templates/FORMAT.md`: the format and the rules `pnpm template:check` applies. It is the source of truth; this skill does not repeat it.
-- `apps/desktop/src/main/agent/instructions.ts` (`UPSTART_INSTRUCTIONS`): what a project is made of, the theme's variables, the classes to use.
-- `apps/desktop/skills/web-design/SKILL.md`: the design rules every Upstart site keeps, a template's first. This skill adds only what is a template's own.
+- `apps/desktop/src/main/agent/instructions.ts` (`SPAKA_INSTRUCTIONS`): what a project is made of, the theme's variables, the classes to use.
+- `apps/desktop/skills/web-design/SKILL.md`: the design rules every Spaka site keeps, a template's first. This skill adds only what is a template's own.
 - `apps/desktop/skills/site-scripts/SKILL.md`, before any script or stylesheet.
 - `apps/desktop/skills/datasources/SKILL.md` and `apps/desktop/gallery/README.md`, for lists and blocks.
 - `e2e/fixtures/templates/atelier/`: a small finished template, for the shape of each file.
@@ -50,7 +50,7 @@ Show it to the author and ask for their approval; build nothing before it.
 
 ## 3. Build it
 
-In `apps/desktop/templates/<id>/`, a project folder as `FORMAT.md` describes: `template.json`, `TEMPLATE.md`, `theme.css`, `pages/`, `parts/`, `data/`, `scripts/` and `styles/` if it moves, `blocks/`, and its design notes in `.upstart/skills/<id>-design/SKILL.md`.
+In `apps/desktop/templates/<id>/`, a project folder as `FORMAT.md` describes: `template.json`, `TEMPLATE.md`, `theme.css`, `pages/`, `parts/`, `data/`, `scripts/` and `styles/` if it moves, `blocks/`, and its design notes in `.spaka/skills/<id>-design/SKILL.md`.
 
 - **Sections from the gallery**: copy the block's `block.liquid` into `parts/<id>.liquid` and render it, and its `data/` into the project's, as the gallery's README says a drop does; then restyle it to the brief.
 - **Texts**: the fictional business's, as a copywriter would write them, in English with American spelling. Makers write in other languages: the header's links and the buttons hold labels a third longer, as in French or German, on one line (`whitespace-nowrap`), the menu button taking over below the width where they all fit. Every list a datasource with three to six believable records; `navigation` holds the header's and footer's links.
@@ -99,7 +99,7 @@ The shoot runs the app in the background and writes `pictures/` and a review she
 Then measure what the agent's looks measure (Q318), on every page at the three screens, screen after screen: the page wider than the screen, text cut off, elements still hidden once the page has settled, images that did not load, links to an address no page has. The app must be built (the shoot builds it):
 
 ```bash
-UPSTART_LOOKS_TEMPLATES=<id> npx vitest run --config e2e/vitest.config.ts e2e/looks-templates.e2e.ts
+SPAKA_LOOKS_TEMPLATES=<id> npx vitest run --config e2e/vitest.config.ts e2e/looks-templates.e2e.ts
 ```
 
 Each problem left is a fault of the template, to fix, or a false alarm of the measure, to tell the author about (`e2e/.runs/looks-templates-<id>.json` lists them).
@@ -110,7 +110,7 @@ Then `pnpm template:check apps/desktop/templates/<id> --finished` and `npx vites
 
 ## 6. Release it, once the author says so
 
-The template is committed in the submodule, on a branch of upstart-gg/upstart-templates, and reviewed there. With the author's go-ahead, it goes into that repository's main, which is pushed, then the next `v<n>` is tagged and pushed: its CI checks every template as finished and attaches the release the app reads. Here, commit the submodule's new commit (`git add apps/desktop/templates`) so that the tests and development use it too, with the template's row added to `docs/template-briefs/inventory.md`.
+The template is committed in the submodule, on a branch of get-spaka/templates, and reviewed there. With the author's go-ahead, it goes into that repository's main, which is pushed, then the next `v<n>` is tagged and pushed: its CI checks every template as finished and attaches the release the app reads. Here, commit the submodule's new commit (`git add apps/desktop/templates`) so that the tests and development use it too, with the template's row added to `docs/template-briefs/inventory.md`.
 
 `pnpm template:release <out folder> <tag> [previous catalogue.json]` builds the same release here first, to see it fail before the CI does; given the latest release's catalogue, as the CI gives it, it keeps the earlier versions older apps still need. The `version` in `template.json` goes up whenever a published template changes, so that the app downloads it again. A template that uses something an older app reads otherwise (the `images` field kind, a generated image) says the oldest app version it needs, `"app": "0.2.0"`; the checks ask for it (Q368). After a change to the checks in `apps/desktop/src/main/templates/`, `pnpm template:release-script` rebuilds the script the CI runs, committed in the submodule.
 

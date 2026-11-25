@@ -1,6 +1,6 @@
 // shadcn's NativeSelect (ui.shadcn.com/docs/components/native-select): the
 // system's own list, its arrow replaced by a chevron of the app's, kept off the
-// right edge. Upstart adds an extra-small size for its toolbars and a ghost
+// right edge. Spaka adds an extra-small size for its toolbars and a ghost
 // look for the selects that sit in the message box, and lets the wrapper take
 // the select's place in a flex row.
 import { ChevronDownIcon } from "lucide-react";

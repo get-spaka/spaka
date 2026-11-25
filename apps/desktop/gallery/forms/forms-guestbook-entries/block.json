@@ -1,7 +1,7 @@
 {
   "name": "Guestbook with its entries",
   "kind": "forms",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A guestbook: the signed entries as bordered cards with an initial, the visitor's name, where they are from, the date and their message, beside a form in a soft panel to sign it with a name, a place, an email and a message.",
   "tags": ["guestbook", "messages", "visitors", "form", "two columns"],
   "mood": ["warm", "friendly"],

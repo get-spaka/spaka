@@ -137,7 +137,7 @@ test("a tool result's blocks are read line by line, as a look's answer comes wit
     event: {
       type: "content_block_start",
       index: 0,
-      content_block: { type: "tool_use", id: "l1", name: "mcp__upstart__look_at_preview" },
+      content_block: { type: "tool_use", id: "l1", name: "mcp__spaka__look_at_preview" },
     },
   });
   reader.read({

@@ -1,7 +1,7 @@
 {
   "name": "Team rows with longer bios",
   "kind": "team",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A narrow column of horizontal rows separated by rules, each person with a square photo beside their name, role in small capitals, a longer bio in large type and links to write to them or see their LinkedIn page.",
   "tags": ["rows", "bios", "list", "biography", "single column"],
   "mood": ["editorial", "elegant"],

@@ -1,7 +1,7 @@
 {
   "name": "Products by category",
   "kind": "products",
-  "source": "upstart",
+  "source": "spaka",
   "description": "Products grouped under a heading per category, with buttons that jump to each one and, in each group, small cards holding a thumbnail, the name, a badge, the price and an Order button; each product's page shows a breadcrumb, the picture beside the details and the description, then more products of the same category.",
   "tags": ["categories", "grouped", "shop", "cards", "anchors"],
   "mood": ["friendly", "professional"],

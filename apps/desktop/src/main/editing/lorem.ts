@@ -5,7 +5,7 @@
 // word becomes a lorem word of about its length, so the layout holds; numbers,
 // dates and times, addresses for the web, a form's texts and the site's
 // navigation stay as they are. Pure: the block in, the block out.
-import { readRecordFile, setRecordValue } from "@upstart/runtime";
+import { readRecordFile, setRecordValue } from "@spaka/runtime";
 import type { DroppedBlock } from "./data-drop";
 
 const WORDS =

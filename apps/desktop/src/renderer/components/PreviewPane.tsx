@@ -30,7 +30,7 @@ import type {
 } from "../../shared/ipc";
 import { useCommands } from "../hooks/useCommand";
 import { useComments } from "../hooks/useMain";
-import { upstart } from "../lib/bridge";
+import { spaka } from "../lib/bridge";
 import { BEZEL as BEZEL_COLORS, PAGE_WHITE } from "../lib/colors";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
@@ -144,7 +144,7 @@ export function PreviewPane({
   const placed = useRef<{ x: number; y: number; width: number; height: number; radius: number }>(undefined);
   const [picture, setPicture] = useState<{ url: string; at: NonNullable<typeof placed.current> } | null>(null);
   const openPublish = async () => {
-    const url = await upstart.invoke("preview:snapshot").catch(() => null);
+    const url = await spaka.invoke("preview:snapshot").catch(() => null);
     setPicture(url && placed.current ? { url, at: placed.current } : null);
     setExporting(true);
   };
@@ -161,7 +161,7 @@ export function PreviewPane({
   // "Menu deleted · Undo" (Q137), for a few seconds after a page is deleted from its thumbnail.
   const [deleted, setDeleted] = useState<{ route: string; name?: string; at: number }>();
   useEffect(
-    () => upstart.on("preview:page-deleted", ({ route, name }) => setDeleted({ route, name, at: Date.now() })),
+    () => spaka.on("preview:page-deleted", ({ route, name }) => setDeleted({ route, name, at: Date.now() })),
     [],
   );
   useEffect(() => {
@@ -181,16 +181,16 @@ export function PreviewPane({
   const pendingReady = useRef<PreviewZoomReady>(undefined);
   useEffect(() => {
     const offs = [
-      upstart.on("preview:zoom", (z) => {
+      spaka.on("preview:zoom", (z) => {
         pendingZoom.current = z;
         pendingReady.current = undefined;
       }),
-      upstart.on("preview:zoom-ready", (r) => {
+      spaka.on("preview:zoom-ready", (r) => {
         pendingReady.current = r;
         setZoom((z) => (z && !z.toGrid && z.route === r.route ? { ...z, ready: true } : z));
       }),
       // The page view is in place, over the zoom's picture: two frames later the picture goes.
-      upstart.on("preview:placed", () =>
+      spaka.on("preview:placed", () =>
         requestAnimationFrame(() => requestAnimationFrame(() => setZoom((z) => (z?.landed ? undefined : z)))),
       ),
     ];
@@ -246,11 +246,11 @@ export function PreviewPane({
     "screen-tablet": () => shown && setWidth("tablet"),
     "screen-phone": () => shown && setWidth("phone"),
     "all-pages": () =>
-      project && pageCount >= 2 && void upstart.invoke("preview:set-view", state.view === "pages" ? "page" : "pages"),
-    "mode-edit": () => shown && void upstart.invoke("preview:set-mode", "edit"),
-    "mode-comment": () => shown && void upstart.invoke("preview:set-mode", "comment"),
-    "mode-visitor": () => shown && void upstart.invoke("preview:set-mode", "visitor"),
-    "reload-preview": () => project && void upstart.invoke("preview:reload"),
+      project && pageCount >= 2 && void spaka.invoke("preview:set-view", state.view === "pages" ? "page" : "pages"),
+    "mode-edit": () => shown && void spaka.invoke("preview:set-mode", "edit"),
+    "mode-comment": () => shown && void spaka.invoke("preview:set-mode", "comment"),
+    "mode-visitor": () => shown && void spaka.invoke("preview:set-mode", "visitor"),
+    "reload-preview": () => project && void spaka.invoke("preview:reload"),
   });
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new project closes the dialog
   useLayoutEffect(() => setExporting(false), [project?.id]);
@@ -262,7 +262,7 @@ export function PreviewPane({
     // The native page view would cover the dialog: it is hidden while the dialog is open.
     if (dialogOpen || covered) {
       setFrame(undefined);
-      upstart.send("preview:bounds", null);
+      spaka.send("preview:bounds", null);
       return;
     }
     // Under the thumbnails and during a zoom, the page is kept drawn at its size, out of sight (Q142).
@@ -274,7 +274,7 @@ export function PreviewPane({
       if (!device) {
         setFrame(undefined);
         placed.current = { x: 0, y: 0, width: r.width, height: r.height, radius: 0 };
-        upstart.send(
+        spaka.send(
           "preview:bounds",
           {
             x: Math.round(r.x),
@@ -308,7 +308,7 @@ export function PreviewPane({
               radius: view.radius + BEZEL,
             },
       );
-      upstart.send(
+      spaka.send(
         "preview:bounds",
         rect,
         view,
@@ -406,7 +406,7 @@ export function PreviewPane({
       const need = Math.ceil(panel + compactWidth);
       if (need === sentWidth.current) return;
       sentWidth.current = need;
-      upstart.send("window:min-width", need);
+      spaka.send("window:min-width", need);
       needRef.current?.(need);
     };
     measure();
@@ -418,14 +418,14 @@ export function PreviewPane({
   // No website shown: the window's narrowest is its own again.
   useEffect(
     () => () => {
-      upstart.send("window:min-width", 0);
+      spaka.send("window:min-width", 0);
       needRef.current?.(0);
     },
     [],
   );
   const openBarMenu = async (button: HTMLElement) => {
     const r = button.getBoundingClientRect();
-    const choice = await upstart.invoke(
+    const choice = await spaka.invoke(
       "preview:bar-menu",
       {
         view: pageCount >= 2 ? state.view : null,
@@ -436,9 +436,9 @@ export function PreviewPane({
       { x: r.left, y: r.bottom + 4 },
     );
     if (choice === "view-page" || choice === "view-pages")
-      void upstart.invoke("preview:set-view", choice === "view-page" ? "page" : "pages");
+      void spaka.invoke("preview:set-view", choice === "view-page" ? "page" : "pages");
     else if (choice === "mode-edit" || choice === "mode-comment" || choice === "mode-visitor")
-      void upstart.invoke("preview:set-mode", choice.slice(5) as PreviewMode);
+      void spaka.invoke("preview:set-mode", choice.slice(5) as PreviewMode);
     else if (
       choice === "screen-fit" ||
       choice === "screen-desktop" ||
@@ -471,7 +471,7 @@ export function PreviewPane({
                 value={state.route ?? ""}
                 onChange={(event) => {
                   const route = event.target.value;
-                  void upstart.invoke("preview:set-view", "page").then(() => upstart.invoke("preview:navigate", route));
+                  void spaka.invoke("preview:set-view", "page").then(() => spaka.invoke("preview:navigate", route));
                 }}
                 className="field-sizing-content bg-background pl-7 font-medium hover:bg-accent"
               >
@@ -526,7 +526,7 @@ export function PreviewPane({
                   data-testid="page-deleted-undo"
                   onClick={() => {
                     setDeleted(undefined);
-                    void upstart.invoke("history:undo");
+                    void spaka.invoke("history:undo");
                   }}
                   className="rounded px-1.5 py-0.5 font-medium hover:bg-background/20"
                 >
@@ -556,7 +556,7 @@ export function PreviewPane({
                   command={command}
                   aria-pressed={state.view === view}
                   data-testid={`view-${view}`}
-                  onClick={() => void upstart.invoke("preview:set-view", view)}
+                  onClick={() => void spaka.invoke("preview:set-view", view)}
                 >
                   <Icon />
                 </Button>
@@ -586,7 +586,7 @@ export function PreviewPane({
                     command={`mode-${mode}`}
                     aria-pressed={state.mode === mode}
                     data-testid={`mode-${mode}`}
-                    onClick={() => void upstart.invoke("preview:set-mode", mode)}
+                    onClick={() => void spaka.invoke("preview:set-mode", mode)}
                   >
                     <Icon />
                   </Button>
@@ -668,7 +668,7 @@ export function PreviewPane({
               className="no-drag h-7"
               disabled={working}
               tip={working ? t.comments.waitForAgent : t.comments.sendTitle}
-              onClick={() => void upstart.invoke("comments:send")}
+              onClick={() => void spaka.invoke("comments:send")}
               data-testid="comments-send"
             >
               <Send />
@@ -706,7 +706,7 @@ export function PreviewPane({
               className="no-drag"
               tip={t.preview.reload}
               command="reload-preview"
-              onClick={() => void upstart.invoke("preview:reload")}
+              onClick={() => void spaka.invoke("preview:reload")}
             >
               <RotateCw className={state.loading ? "animate-spin" : undefined} />
             </Button>

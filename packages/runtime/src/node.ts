@@ -4,7 +4,7 @@ import { join, relative, sep } from "node:path";
 import type { ProjectSource } from "./source.ts";
 
 /** Folders of a project that are never part of its site. */
-const SKIPPED = new Set(["node_modules", ".git", ".upstart"]);
+const SKIPPED = new Set(["node_modules", ".git", ".spaka"]);
 
 export function diskSource(root: string): ProjectSource {
   const toProject = (abs: string) => relative(root, abs).split(sep).join("/");

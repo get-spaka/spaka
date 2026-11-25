@@ -12,16 +12,16 @@ export const COMMENT_STYLE = `
 .pin { position: fixed; width: 20px; height: 20px; border-radius: 10px 10px 10px 2px; background: #4f46e5; color: #fff;
   display: grid; place-items: center; font-size: 11px; font-weight: 600; pointer-events: auto; cursor: default;
   box-shadow: 0 1px 4px rgb(0 0 0 / .25); }
-.card { position: fixed; width: 260px; display: none; flex-direction: column; gap: 6px; padding: 8px; background: var(--up-surface);
-  border: 1px solid var(--up-border); border-radius: 10px; box-shadow: 0 6px 20px rgb(0 0 0 / .15); pointer-events: auto; }
-.card .about { color: var(--up-muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.card textarea { all: unset; box-sizing: border-box; width: 100%; min-height: 56px; padding: 6px; border: 1px solid var(--up-input);
+.card { position: fixed; width: 260px; display: none; flex-direction: column; gap: 6px; padding: 8px; background: var(--spaka-surface);
+  border: 1px solid var(--spaka-border); border-radius: 10px; box-shadow: 0 6px 20px rgb(0 0 0 / .15); pointer-events: auto; }
+.card .about { color: var(--spaka-muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card textarea { all: unset; box-sizing: border-box; width: 100%; min-height: 56px; padding: 6px; border: 1px solid var(--spaka-input);
   border-radius: 6px; font-size: 12px; white-space: pre-wrap; }
 .card .row, .sendbar { display: flex; gap: 6px; align-items: center; }
 .card .row { justify-content: flex-end; }
-.card button, .sendbar button { all: unset; padding: 4px 9px; border-radius: 6px; background: var(--up-hover); color: var(--up-text-2); }
+.card button, .sendbar button { all: unset; padding: 4px 9px; border-radius: 6px; background: var(--spaka-hover); color: var(--spaka-text-2); }
 .card button.primary, .sendbar button.primary { background: #4f46e5; color: #fff; }
-.card button.danger { margin-right: auto; color: var(--up-danger); }
+.card button.danger { margin-right: auto; color: var(--spaka-danger); }
 .sendbar button[disabled] { opacity: .5; }
 .sendbar { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); display: none; padding: 6px 6px 6px 12px;
   background: #18181b; color: #fafafa; border-radius: 12px; box-shadow: 0 6px 20px rgb(0 0 0 / .25); pointer-events: auto; white-space: nowrap; }
@@ -204,7 +204,8 @@ export class CommentLayer {
 
 function find(file: string, at: number): HTMLElement | undefined {
   return (
-    document.querySelector<HTMLElement>(`[data-up-src^="${CSS.escape(file)}:"][data-up-src$=":${at}"]`) ?? undefined
+    document.querySelector<HTMLElement>(`[data-spaka-src^="${CSS.escape(file)}:"][data-spaka-src$=":${at}"]`) ??
+    undefined
   );
 }
 
@@ -238,8 +239,10 @@ export function describe(el: Element): string {
   return words ? `${kind} “${words.length > 40 ? `${words.slice(0, 40)}…` : words}”` : kind;
 }
 
-/** The start of the element's HTML, without Upstart's own attributes. */
+/** The start of the element's HTML, without Spaka's own attributes. */
 export function snippet(el: Element): string {
-  const html = el.outerHTML.replace(/\s(data-up-[\w-]+|contenteditable|spellcheck)="[^"]*"/g, "").replace(/\s+/g, " ");
+  const html = el.outerHTML
+    .replace(/\s(data-spaka-[\w-]+|contenteditable|spellcheck)="[^"]*"/g, "")
+    .replace(/\s+/g, " ");
   return html.length > 300 ? `${html.slice(0, 300)}…` : html;
 }

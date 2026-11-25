@@ -1,7 +1,7 @@
 import { KeyRound, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { type AgentStatus, anyAccount } from "../../shared/ipc";
-import { upstart } from "../lib/bridge";
+import { spaka } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { Button } from "./ui/button";
 import { NativeSelect } from "./ui/native-select";
@@ -20,7 +20,7 @@ export function keyAccount(key: string): KeyFor | undefined {
 /**
  * Shown while the model in use has no connected account (ADR 0002, Q275): at
  * first launch it offers Claude, ChatGPT or an API key. Claude's sign-in is
- * the official binary's own, ChatGPT's opens the browser; Upstart never shows
+ * the official binary's own, ChatGPT's opens the browser; Spaka never shows
  * a login form of its own.
  */
 export function SignInPanel({ status, modelName }: { status: AgentStatus; modelName?: string }) {
@@ -38,8 +38,8 @@ export function SignInPanel({ status, modelName }: { status: AgentStatus; modelN
       setChosen(undefined);
       setKeyOpen(false);
     };
-    if (keyFor === "claude") void upstart.invoke("agent:set-api-key", key).then(done);
-    else void upstart.invoke("agent:set-key", keyFor, key).then(done);
+    if (keyFor === "claude") void spaka.invoke("agent:set-api-key", key).then(done);
+    else void spaka.invoke("agent:set-key", keyFor, key).then(done);
   };
 
   return (
@@ -62,7 +62,7 @@ export function SignInPanel({ status, modelName }: { status: AgentStatus; modelN
                 size="sm"
                 variant="outline"
                 tip={t.signIn.openLinkTip}
-                onClick={() => void upstart.invoke("agent:open-sign-in-page")}
+                onClick={() => void spaka.invoke("agent:open-sign-in-page")}
               >
                 {t.signIn.openLink}
               </Button>
@@ -72,7 +72,7 @@ export function SignInPanel({ status, modelName }: { status: AgentStatus; modelN
               variant="ghost"
               tip={t.signIn.cancelTip}
               onClick={() =>
-                void upstart.invoke(status.chatgpt.signingIn ? "agent:chatgpt-cancel" : "agent:cancel-sign-in")
+                void spaka.invoke(status.chatgpt.signingIn ? "agent:chatgpt-cancel" : "agent:cancel-sign-in")
               }
             >
               {t.signIn.cancel}
@@ -86,7 +86,7 @@ export function SignInPanel({ status, modelName }: { status: AgentStatus; modelN
             <Button
               size="sm"
               tip={t.signIn.subscriptionTip}
-              onClick={() => void upstart.invoke("agent:sign-in", "claudeai")}
+              onClick={() => void spaka.invoke("agent:sign-in", "claudeai")}
             >
               {t.signIn.subscription}
             </Button>
@@ -95,7 +95,7 @@ export function SignInPanel({ status, modelName }: { status: AgentStatus; modelN
               variant="outline"
               data-testid="sign-in-chatgpt"
               tip={t.signIn.chatgptTip}
-              onClick={() => void upstart.invoke("agent:chatgpt-sign-in")}
+              onClick={() => void spaka.invoke("agent:chatgpt-sign-in")}
             >
               {t.signIn.chatgpt}
             </Button>
@@ -103,7 +103,7 @@ export function SignInPanel({ status, modelName }: { status: AgentStatus; modelN
               size="sm"
               variant="outline"
               tip={t.signIn.consoleTip}
-              onClick={() => void upstart.invoke("agent:sign-in", "console")}
+              onClick={() => void spaka.invoke("agent:sign-in", "console")}
             >
               {t.signIn.console}
             </Button>

@@ -1,7 +1,7 @@
 {
   "name": "Three quotes on a dark band",
   "kind": "testimonials",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A dark band with a heading and a button above three customer quotes in columns split by fine lines, each with a quote mark, a headline, the quote, name and role.",
   "tags": ["dark", "band", "three columns", "quotes", "dividers"],
   "mood": ["dark", "bold", "professional"],

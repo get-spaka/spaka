@@ -12,7 +12,7 @@ describe("edits by hand", () => {
   const invoke = (channel: string, ...args: unknown[]) =>
     launched.window.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      ([channel, args]) => (window as any).upstart.invoke(channel, ...args),
+      ([channel, args]) => (window as any).spaka.invoke(channel, ...args),
       [channel, args] as const,
     );
   const until = async (read: () => Promise<unknown>, timeout = 10_000) => {
@@ -29,7 +29,7 @@ describe("edits by hand", () => {
   const inPreview = (code: string) =>
     launched.app.evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      (_electron, code) => (globalThis as any).upstart.preview.view.webContents.executeJavaScript(code),
+      (_electron, code) => (globalThis as any).spaka.preview.view.webContents.executeJavaScript(code),
       code,
     );
 
@@ -101,7 +101,7 @@ describe("edits by hand", () => {
   test("the agent is told, with the next message, what the maker changed", async () => {
     await launched.app.evaluate(() => {
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      const u = (globalThis as any).upstart;
+      const u = (globalThis as any).spaka;
       const send = u.agent.send.bind(u.agent);
       u.sent = [];
       u.agent.send = (project: unknown, text: string, forAgent?: string) => {
@@ -111,9 +111,9 @@ describe("edits by hand", () => {
     });
     await invoke("conversation:send", "Make the footer darker.");
     // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-    const sent = (await launched.app.evaluate(() => (globalThis as any).upstart.sent)) as string[];
+    const sent = (await launched.app.evaluate(() => (globalThis as any).spaka.sent)) as string[];
     expect(sent[0]).toMatch(
-      /^\[Upstart: .*the maker changed by hand: .*duplicated \(pages\/index.liquid\); section moved/,
+      /^\[Spaka: .*the maker changed by hand: .*duplicated \(pages\/index.liquid\); section moved/,
     );
     expect(sent[0]).toContain("Make the footer darker.");
   });
@@ -122,7 +122,7 @@ describe("edits by hand", () => {
     // The agent's turn is held as working, whatever the replay does.
     await launched.app.evaluate(() => {
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-      const agent = (globalThis as any).upstart.agent;
+      const agent = (globalThis as any).spaka.agent;
       agent.isWorkingWas = agent.isWorking;
       agent.isWorking = () => true;
     });
@@ -133,7 +133,7 @@ describe("edits by hand", () => {
     } finally {
       await launched.app.evaluate(() => {
         // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-        const agent = (globalThis as any).upstart.agent;
+        const agent = (globalThis as any).spaka.agent;
         agent.isWorking = agent.isWorkingWas;
       });
     }

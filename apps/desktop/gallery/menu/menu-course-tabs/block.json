@@ -1,7 +1,7 @@
 {
   "name": "Menu in tabs by course",
   "kind": "menu",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A centered heading above tabs, one per course, that switch without JavaScript; each tab lists its dishes in rows with a small square photo (a theme gradient when there is none), the name and price, a description and diet badges.",
   "tags": ["menu", "tabs", "courses", "photos", "takeaway"],
   "mood": ["friendly", "minimal"],

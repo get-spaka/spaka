@@ -5,7 +5,7 @@
 // records read — and renders with no note from the runtime once dropped.
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { Datasources, memorySource, Runtime, sections, TEST_RECORDS_DIR } from "@upstart/runtime";
+import { Datasources, memorySource, Runtime, sections, TEST_RECORDS_DIR } from "@spaka/runtime";
 import { describe, expect, test } from "vitest";
 import { BLOCK_KINDS } from "../../shared/ipc";
 import { dropData, isCollected } from "../editing/data-drop";

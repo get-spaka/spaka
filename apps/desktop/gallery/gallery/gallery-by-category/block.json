@@ -1,7 +1,7 @@
 {
   "name": "Gallery sorted by category",
   "kind": "gallery",
-  "source": "upstart",
+  "source": "spaka",
   "description": "Pictures grouped under a heading per category, with a count of pictures, each group a grid of pictures with a title and caption below.",
   "tags": ["categories", "grouped", "captions", "grid", "photos"],
   "mood": ["professional", "friendly"],

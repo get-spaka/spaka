@@ -22,8 +22,8 @@ import {
   TEST_RECORDS_DIR,
   titleField,
   titleOf,
-} from "@upstart/runtime";
-import { diskSource } from "@upstart/runtime/node";
+} from "@spaka/runtime";
+import { diskSource } from "@spaka/runtime/node";
 import {
   app,
   BrowserWindow,
@@ -71,7 +71,7 @@ import { VaultSignIns } from "./agent/pi/connectors";
 import { PiRecorder, piReplay } from "./agent/pi/replay";
 import { GCLOUD_SIGN_IN } from "./agent/pi/vertex";
 import { isGoogleSearch } from "./agent/pi/web-search";
-import { claudeExtras, UPSTART_SERVER } from "./agent/preview-tool";
+import { claudeExtras, SPAKA_SERVER } from "./agent/preview-tool";
 import { NOT_ANSWERED } from "./agent/questions";
 import { Recorder, replayed, replayQuery } from "./agent/replay";
 import type { AgentKit } from "./agent/runner";
@@ -162,16 +162,16 @@ if (env.background) {
 // An exception at start-up would otherwise open a modal dialog that waits for
 // a click, which a background run never gets.
 process.on("uncaughtException", (error) => {
-  console.error("[upstart] uncaught exception", error);
+  console.error("[spaka] uncaught exception", error);
   if (env.background || !app.isReady()) app.exit(1);
 });
 
-app.setName("Upstart");
+app.setName("Spaka");
 
 async function main() {
   if (!env.background && !app.requestSingleInstanceLock()) return app.quit();
   // Windows names the app's notifications by this id (the installer's shortcut carries it too).
-  if (process.platform === "win32") app.setAppUserModelId("gg.upstart.desktop");
+  if (process.platform === "win32") app.setAppUserModelId("app.spaka.desktop");
   await app.whenReady();
   // A packaged app has its icon in its bundle; a development run shows it in the Dock all the same.
   if (!app.isPackaged && !env.background) app.dock?.setIcon(join(here, "../../build/icon.png"));
@@ -222,7 +222,7 @@ async function main() {
     minWidth: 960,
     minHeight: 600,
     show: false,
-    title: "Upstart",
+    title: "Spaka",
     // macOS: the traffic lights over the interface. Windows: its buttons drawn
     // at the top right, over the interface too, in the window's colors.
     ...(process.platform === "darwin"
@@ -246,7 +246,7 @@ async function main() {
     if (isGoogleSearch(url)) void shell.openExternal(url);
     return { action: "deny" };
   });
-  // Opening Upstart again (its shortcut, its icon) brings the window back rather than a second app.
+  // Opening Spaka again (its shortcut, its icon) brings the window back rather than a second app.
   app.on("second-instance", () => {
     if (win.isDestroyed()) return;
     if (win.isMinimized()) win.restore();
@@ -254,7 +254,7 @@ async function main() {
     win.focus();
   });
   win.webContents.on("render-process-gone", (_event, details) => {
-    console.error("[upstart] interface process gone:", details.reason);
+    console.error("[spaka] interface process gone:", details.reason);
   });
   // A background run shows its window only if asked to, without the focus: on
   // Windows a window never shown draws nothing, which checks there need.
@@ -267,7 +267,7 @@ async function main() {
   const gitBash = { path: process.platform === "win32" ? findGitBash() : undefined };
   // A check may show the screen that asks for it, on any system.
   const gitBashNeeded = () =>
-    process.env.UPSTART_GIT_BASH_MISSING === "1" || (process.platform === "win32" && !gitBash.path);
+    process.env.SPAKA_GIT_BASH_MISSING === "1" || (process.platform === "win32" && !gitBash.path);
   ipc.handle("app:git-bash", () => ({ needed: gitBashNeeded(), url: GIT_FOR_WINDOWS_URL }));
   ipc.handle("app:git-bash-check", () => {
     if (process.platform === "win32") gitBash.path = findGitBash();
@@ -278,7 +278,7 @@ async function main() {
   const openSettings = (page?: SettingsPage) =>
     ipc.emit("settings:show", page && SETTINGS_PAGES.includes(page) ? { page } : {});
   const dialogParent = () => win;
-  // A system notification when the agent finishes while Upstart is not in front (Q125).
+  // A system notification when the agent finishes while Spaka is not in front (Q125).
   const notifyDone = (projectId: string, status: string, error?: string) => {
     if (env.background || win.isFocused() || !settings.get().notifyDone || !Notification.isSupported()) return;
     const name = projects.list().find((p) => p.id === projectId)?.name ?? t.app.name;
@@ -369,7 +369,7 @@ async function main() {
     // or a template, which decides which page shows a list (Q210, Q211).
     onFileChanged: (path) => {
       blocks.changed(path);
-      if (!/^(data|media|pages|parts|\.upstart\/test-records)\//.test(path)) return;
+      if (!/^(data|media|pages|parts|\.spaka\/test-records)\//.test(path)) return;
       clearTimeout(contentTimer);
       contentTimer = setTimeout(() => ipc.emit("content:changed"), 80);
     },
@@ -410,7 +410,7 @@ async function main() {
   const peek = new BlockPeek(win, () => preview.origin);
   const tips = new TipOverlay(win);
   await preview.start();
-  // The templates a new website may start from (Q245, Q249): Upstart's, from
+  // The templates a new website may start from (Q245, Q249): Spaka's, from
   // the public repository's releases once packaged (their catalogue and
   // pictures shipped with the app, a template downloaded when it is needed,
   // Q247, Q250) or from the repository's folder in development, and the maker's
@@ -516,7 +516,7 @@ async function main() {
         return generateImage(credentials, id, request, signal);
       });
     };
-  // What Upstart gives a project's agent, whichever layer runs it (ADR 0012): its tools and its checks.
+  // What Spaka gives a project's agent, whichever layer runs it (ADR 0012): its tools and its checks.
   const kitFor = (project: { id: string; path: string; model?: string }): AgentKit => {
     const checks = new TurnChecks(project.path);
     return {
@@ -554,13 +554,13 @@ async function main() {
   };
   let agent: Agent;
   let connectorStateTimer: NodeJS.Timeout | undefined;
-  // Upstart's own harness (ADR 0012): ChatGPT through Sign in with ChatGPT, the maker's OpenAI and Gemini keys.
+  // Spaka's own harness (ADR 0012): ChatGPT through Sign in with ChatGPT, the maker's OpenAI and Gemini keys.
   const piAccounts = new PiAccounts({
     dir: join(userData, "accounts"),
     vault,
     identity: {
-      userAgent: { custom: `Upstart/${app.getVersion()}` },
-      attribution: { name: "Upstart", url: "https://upstart.gg" },
+      userAgent: { custom: `Spaka/${app.getVersion()}` },
+      attribution: { name: "Spaka", url: "https://spaka.app" },
     },
     onChange: () => {
       if (!agent) return;
@@ -587,7 +587,7 @@ async function main() {
       readable: launcher.readable,
       instructions: () => instructionsFor(settings.get().replyStyle),
       extraOptions: (project) => claudeExtras(kitFor(project)),
-      connectors: [UPSTART_SERVER],
+      connectors: [SPAKA_SERVER],
       toolsKey: (project) => (imageModelOf(project) ? "images" : ""),
       skills,
       connectorServers: connectors,
@@ -606,7 +606,7 @@ async function main() {
         // On Windows, the shell is Git Bash, behind a gate (Q381, Q382).
         gitBash: () => gitBash.path,
         skills,
-        // The maker's connectors, which Upstart connects itself for these models (Q277).
+        // The maker's connectors, which Spaka connects itself for these models (Q277).
         connectorServers: connectors,
         signIns: new VaultSignIns(join(userData, "connector-sign-ins.bin"), vault),
         recorder: env.piRecord ? new PiRecorder(env.piRecord) : undefined,
@@ -615,8 +615,8 @@ async function main() {
           connectorStateTimer = setTimeout(async () => ipc.emit("connectors:changed", await connectorList()), 100);
         },
         identity: {
-          userAgent: { custom: `Upstart/${app.getVersion()}` },
-          attribution: { name: "Upstart", url: "https://upstart.gg" },
+          userAgent: { custom: `Spaka/${app.getVersion()}` },
+          attribution: { name: "Spaka", url: "https://spaka.app" },
         },
       },
     },
@@ -833,7 +833,7 @@ async function main() {
     const watched: [string, (name: string) => boolean][] = [[appSkills, () => true]];
     if (project)
       watched.push([
-        join(project.path, ".upstart"),
+        join(project.path, ".spaka"),
         (name) => {
           if (name.startsWith("connectors")) connectorsChanged();
           return name.startsWith("skills");
@@ -852,7 +852,7 @@ async function main() {
   const opened = async (opening: ProjectInfo) => {
     // A record being written in the Content tab gets its version first (Q162).
     editor.leaveRecord();
-    // A model taken off Upstart's list gives way to the latest of its family (Q399).
+    // A model taken off Spaka's list gives way to the latest of its family (Q399).
     const replacement = claudeReplacement(opening.model);
     const project = replacement ? projects.update(opening.id, { model: replacement }) : opening;
     current = project;
@@ -908,7 +908,7 @@ async function main() {
   // The app's own updates (Q367, Q378), from the editor's GitHub releases.
   const updates = new Updates({
     updater: electronUpdater.autoUpdater,
-    enabled: app.isPackaged && !env.background && process.env.UPSTART_UPDATES !== "0",
+    enabled: app.isPackaged && !env.background && process.env.SPAKA_UPDATES !== "0",
     emit: (state) => ipc.emit("app:update", state),
     log: (message) => console.warn(message),
   });
@@ -931,7 +931,7 @@ async function main() {
       node: process.versions.node,
     },
   }));
-  ipc.on("app:ready", () => console.log("[upstart] interface ready"));
+  ipc.on("app:ready", () => console.log("[spaka] interface ready"));
   ipc.handle("projects:reveal", () => {
     if (!env.background && current && existsSync(current.path)) shell.showItemInFolder(current.path);
   });
@@ -1444,7 +1444,7 @@ async function main() {
     fonts: fonts.list(),
     own: ownPalette() as Record<string, string> | undefined,
   }));
-  ipc.handle("theme:show", (values) => preview.showTheme(themed(values, "/__up/fonts").css));
+  ipc.handle("theme:show", (values) => preview.showTheme(themed(values, "/__spaka/fonts").css));
   ipc.handle("theme:apply", (values, own) => {
     const { css, ids } = themed(values);
     const change = editor.writeTheme(css, fonts.files(ids));
@@ -1913,7 +1913,7 @@ async function main() {
   // For automated checks: the main process's objects, reachable from Playwright's evaluate().
   if (env.background)
     Object.assign(globalThis, {
-      upstart: {
+      spaka: {
         win,
         projects,
         preview,
@@ -1943,7 +1943,7 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error("[upstart] failed to start", error);
+  console.error("[spaka] failed to start", error);
   app.exit(1);
 });
 

@@ -4,7 +4,7 @@
 // chosen, in the order they were chosen (Q354).
 import { Upload, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { upstart } from "../lib/bridge";
+import { spaka } from "../lib/bridge";
 import { messageOf } from "../lib/errors";
 import type { PickRequest } from "../lib/picker";
 import { t } from "../lib/strings";
@@ -38,7 +38,7 @@ export function MediaPicker({ request }: { request: PickRequest }) {
       })
       .catch((e) => setError(messageOf(e)));
   };
-  const drop = useFileDrop((paths) => added(() => upstart.invoke("media:add-files", paths)));
+  const drop = useFileDrop((paths) => added(() => spaka.invoke("media:add-files", paths)));
   useEffect(() => {
     if (list && !images.length) setTab("search");
   }, [list, images.length]);
@@ -86,7 +86,7 @@ export function MediaPicker({ request }: { request: PickRequest }) {
             variant="outline"
             className="ml-auto"
             tip={t.media.fromComputerTip}
-            onClick={() => added(() => upstart.invoke("media:choose-files"))}
+            onClick={() => added(() => spaka.invoke("media:choose-files"))}
           >
             <Upload />
             {t.media.fromComputer}

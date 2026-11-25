@@ -17,14 +17,14 @@ let root: string;
 let projects: Projects;
 
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), "upstart-projects-"));
-  projects = new Projects(join(root, "data"), join(root, "Upstart"));
+  root = mkdtempSync(join(tmpdir(), "spaka-projects-"));
+  projects = new Projects(join(root, "data"), join(root, "Spaka"));
 });
 
 describe("creating a project", () => {
-  test("makes a folder project-<random id>, with its .upstart/project.json holding its name (Q410)", () => {
+  test("makes a folder project-<random id>, with its .spaka/project.json holding its name (Q410)", () => {
     const project = projects.create("Chez Margot, boulangerie");
-    expect(dirname(project.path)).toBe(join(root, "Upstart"));
+    expect(dirname(project.path)).toBe(join(root, "Spaka"));
     expect(basename(project.path)).toMatch(/^project-[0-9a-z]{10}$/);
     expect(project.model).toBe("claude-opus-5-5");
     expect(project.effort).toBe("high");
@@ -69,7 +69,7 @@ describe("opening a folder", () => {
     mkdirSync(join(folder, "pages"), { recursive: true });
     const project = projects.openFolder(folder);
     expect(project.name).toBe("my-site");
-    expect(existsSync(join(folder, ".upstart", "project.json"))).toBe(true);
+    expect(existsSync(join(folder, ".spaka", "project.json"))).toBe(true);
   });
 
   test("a moved project keeps its identifier, a copied one gets its own", () => {
@@ -95,13 +95,13 @@ describe("opening a folder", () => {
 test("changing the effort is written into the project", () => {
   const project = projects.create("Effort");
   projects.update(project.id, { effort: "high" });
-  expect(JSON.parse(readFileSync(join(project.path, ".upstart/project.json"), "utf8")).effort).toBe("high");
+  expect(JSON.parse(readFileSync(join(project.path, ".spaka/project.json"), "utf8")).effort).toBe("high");
 });
 
 test("a broken project.json is replaced", () => {
   const folder = join(root, "broken");
-  mkdirSync(join(folder, ".upstart"), { recursive: true });
-  writeFileSync(join(folder, ".upstart/project.json"), "{ nope");
+  mkdirSync(join(folder, ".spaka"), { recursive: true });
+  writeFileSync(join(folder, ".spaka/project.json"), "{ nope");
   expect(projects.openFolder(folder).id).toMatch(/^[0-9a-f-]{36}$/);
 });
 

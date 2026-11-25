@@ -1,7 +1,7 @@
 {
   "name": "As seen in the press",
   "kind": "logos",
-  "source": "upstart",
+  "source": "spaka",
   "description": "An \"As seen in\" heading over columns of press names, each set as a wordmark under a dark rule with a short quote in italics and an optional link to the article.",
   "tags": ["press", "as seen in", "quotes", "media", "columns"],
   "mood": ["editorial", "elegant"],

@@ -19,7 +19,7 @@ describe("the start screen", () => {
       code,
     ) as Promise<T>;
   const viewer = <T>(js: string): Promise<T> =>
-    main<T>(`globalThis.upstart.templateViewer.view.webContents.executeJavaScript(${JSON.stringify(js)})`);
+    main<T>(`globalThis.spaka.templateViewer.view.webContents.executeJavaScript(${JSON.stringify(js)})`);
   const until = async <T>(read: () => Promise<T>, timeout = 15_000): Promise<T> => {
     timeout *= SLOW;
     const started = Date.now();
@@ -89,13 +89,13 @@ describe("the start screen", () => {
     await card.getByTestId("template-view").click();
     await w.getByTestId("template-large").waitFor();
     // The native view lies over the frame, its page the template's home, in visitor mode.
-    await until(() => main<boolean>("globalThis.upstart.templateViewer.view.getVisible()"));
+    await until(() => main<boolean>("globalThis.spaka.templateViewer.view.getVisible()"));
     await until(() => w.locator('[data-testid="template-frame"][data-route="/"]').count());
     const frame = await w.getByTestId("template-frame").boundingBox();
-    const bounds = await main<{ width: number; height: number }>("globalThis.upstart.templateViewer.view.getBounds()");
+    const bounds = await main<{ width: number; height: number }>("globalThis.spaka.templateViewer.view.getBounds()");
     expect(Math.abs(bounds.width - frame!.width)).toBeLessThan(2);
     expect(Math.abs(bounds.height - frame!.height)).toBeLessThan(2);
-    await until(() => viewer<boolean>("document.documentElement.hasAttribute('data-up-moving')"));
+    await until(() => viewer<boolean>("document.documentElement.hasAttribute('data-spaka-moving')"));
     await expect(viewer<string>("document.title")).resolves.toMatch(/Halfvolt/);
     // Its pages, from the select and from its own links.
     const pages = await w
@@ -111,7 +111,7 @@ describe("the start screen", () => {
     // The template itself, as the native view draws it over the frame.
     await new Promise((r) => setTimeout(r, 1500));
     const png = await main<string>(
-      "globalThis.upstart.templateViewer.view.webContents.capturePage().then((i) => i.toPNG().toString('base64'))",
+      "globalThis.spaka.templateViewer.view.webContents.capturePage().then((i) => i.toPNG().toString('base64'))",
     );
     writeFileSync(join(runsDir, "start-view-page.png"), Buffer.from(png, "base64"));
     // Chosen from here, then back to the grid: the view is hidden.
@@ -119,21 +119,21 @@ describe("the start screen", () => {
     await expect(w.getByTestId("chosen-template").textContent()).resolves.toBe("Starting from Reel");
     await w.getByTestId("template-back").click();
     await w.getByTestId("template-card").first().waitFor();
-    await until(async () => !(await main<boolean>("globalThis.upstart.templateViewer.view.getVisible()")));
+    await until(async () => !(await main<boolean>("globalThis.spaka.templateViewer.view.getVisible()")));
   });
 
   test("an imported template is shown before it is added, then listed and chosen", async () => {
     const w = launched.window;
-    const dir = join(mkdtempSync(join(tmpdir(), "upstart-import-")), "lighthouse");
+    const dir = join(mkdtempSync(join(tmpdir(), "spaka-import-")), "lighthouse");
     const beacon = join(import.meta.dirname, "../apps/desktop/templates/beacon");
     cpSync(beacon, dir, { recursive: true });
     const manifest = JSON.parse(readFileSync(join(dir, "template.json"), "utf8"));
     writeFileSync(join(dir, "template.json"), JSON.stringify({ ...manifest, id: "lighthouse", name: "Lighthouse" }));
-    const skills = join(dir, ".upstart/skills");
+    const skills = join(dir, ".spaka/skills");
     renameSync(join(skills, "beacon-design"), join(skills, "lighthouse-design"));
     const skill = join(skills, "lighthouse-design/SKILL.md");
     writeFileSync(skill, readFileSync(skill, "utf8").replace("name: beacon-design", "name: lighthouse-design"));
-    await main(`globalThis.upstart.checks.importPath = ${JSON.stringify(dir)}`);
+    await main(`globalThis.spaka.checks.importPath = ${JSON.stringify(dir)}`);
 
     await w.getByTestId("template-import").click();
     await w.getByTestId("template-import-dialog").waitFor();
@@ -160,37 +160,37 @@ describe("the start screen", () => {
     await expect(w.getByTestId("project-name").textContent()).resolves.toBe("A ceramics studio in Lisbon");
     const project = await w.evaluate(() =>
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      (window as any).upstart.invoke("projects:current"),
+      (window as any).spaka.invoke("projects:current"),
     );
     const reel = join(import.meta.dirname, "../apps/desktop/templates/reel/template.json");
     expect(project.template).toEqual({ id: "reel", version: JSON.parse(readFileSync(reel, "utf8")).version });
-    expect(JSON.parse(readFileSync(join(project.path, ".upstart/project.json"), "utf8")).template.id).toBe("reel");
+    expect(JSON.parse(readFileSync(join(project.path, ".spaka/project.json"), "utf8")).template.id).toBe("reel");
     // The template is copied into the website, without its manifest and pictures (Q229, Q246)…
     for (const path of [
       "pages/work.liquid",
       "parts/header.liquid",
       "scripts/libraries.json",
-      ".upstart/skills/reel-design/SKILL.md",
-      ".upstart/template-texts.json",
+      ".spaka/skills/reel-design/SKILL.md",
+      ".spaka/template-texts.json",
     ])
       expect(existsSync(join(project.path, path)), path).toBe(true);
     expect(existsSync(join(project.path, "template.json"))).toBe(false);
     expect(existsSync(join(project.path, "TEMPLATE.md"))).toBe(false);
     // The preview shows the template's site at once, its pages among them.
-    const routes = await main<string[]>("globalThis.upstart.preview.state().routes.map((r) => r.route)");
+    const routes = await main<string[]>("globalThis.spaka.preview.state().routes.map((r) => r.route)");
     expect(routes).toEqual(expect.arrayContaining(["/", "/work", "/studio", "/contact"]));
-    await until(() => main<boolean>("globalThis.upstart.preview.view.getVisible()"));
+    await until(() => main<boolean>("globalThis.spaka.preview.view.getVisible()"));
     expect(existsSync(join(project.path, "pictures"))).toBe(false);
     // …the conversation shows the maker's words, and the agent gets them with what adapting the template means.
     await expect(w.getByTestId("maker-message").textContent()).resolves.toBe("A ceramics studio in Lisbon.");
-    const received = await main<string[]>("globalThis.upstart.replayed");
+    const received = await main<string[]>("globalThis.spaka.replayed");
     expect(received.at(-1)).toContain('template "Reel"');
     expect(received.at(-1)).toContain("reel-design skill");
     expect(received.at(-1)?.endsWith("A ceramics studio in Lisbon.")).toBe(true);
     // Its guide with the first message, kept beside the website while it is adapted (Q299, Q302)…
     const guide = readFileSync(join(import.meta.dirname, "../apps/desktop/templates/reel/TEMPLATE.md"), "utf8").trim();
     expect(received.at(-1)).toContain(`<template-guide>\n${guide}\n</template-guide>`);
-    expect(existsSync(join(project.path, ".upstart/adaptation/TEMPLATE.md"))).toBe(true);
+    expect(existsSync(join(project.path, ".spaka/adaptation/TEMPLATE.md"))).toBe(true);
     // …and the card of pages first, listing the template's page types, home first (Q302, Q306).
     expect(received.at(-1)).toMatch(
       /1\. First, before you change any file: show the maker the card of pages with choose_pages/,
@@ -198,7 +198,7 @@ describe("the start screen", () => {
     const listed = [...(received.at(-1) ?? "").matchAll(/^ {2}- (\/[a-z-]*) \(/gm)].map((m) => m[1]);
     expect(listed[0]).toBe("/");
     expect(listed).toEqual(expect.arrayContaining(["/work", "/studio", "/contact"]));
-    await expect(main<boolean>("globalThis.upstart.templateViewer.view.getVisible()")).resolves.toBe(false);
+    await expect(main<boolean>("globalThis.spaka.templateViewer.view.getVisible()")).resolves.toBe(false);
     await launched.capture("start-sent");
   });
 
@@ -207,7 +207,7 @@ describe("the start screen", () => {
     await until(() => w.locator('[data-testid="agent-message"][data-status="done"]').count(), 30_000);
     const project = await w.evaluate(() =>
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      (window as any).upstart.invoke("projects:current"),
+      (window as any).spaka.invoke("projects:current"),
     );
     await w.getByTestId("tab-blocks").click();
     const design = w.getByTestId("blocks-design");
@@ -224,19 +224,19 @@ describe("the start screen", () => {
 
     // Dragged into the home page, below its first section.
     const page = (js: string) =>
-      main<unknown>(`globalThis.upstart.preview.view.webContents.executeJavaScript(${JSON.stringify(js)})`);
+      main<unknown>(`globalThis.spaka.preview.view.webContents.executeJavaScript(${JSON.stringify(js)})`);
     await w.evaluate(() =>
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      (window as any).upstart.invoke("preview:navigate", "/"),
+      (window as any).spaka.invoke("preview:navigate", "/"),
     );
-    await until(() => page("!!document.querySelector('upstart-editor') && location.pathname === '/'"));
+    await until(() => page("!!document.querySelector('spaka-editor') && location.pathname === '/'"));
     const home = () => readFileSync(join(project.path, "pages/index.liquid"), "utf8");
     const before = home();
     const drag = (type: string) => `(() => {
       const first = document.querySelector('main > *, body > section');
       const r = first.getBoundingClientRect();
       const data = new DataTransfer();
-      data.setData('application/x-upstart-block', 'team-reel-pile');
+      data.setData('application/x-spaka-block', 'team-reel-pile');
       const event = new DragEvent(${JSON.stringify(type)}, { bubbles: true, cancelable: true, dataTransfer: data,
         clientX: 200, clientY: Math.round(Math.min(r.bottom - 2, r.top + r.height * 0.75)) });
       return !document.elementFromPoint(200, 10).dispatchEvent(event);
@@ -278,7 +278,7 @@ describe("the start screen", () => {
     await w.getByTestId("adaptation-continue").click();
     await until(async () => (await status("/studio")) === "doing" || (await status("/studio")) === "ready", 30_000);
     await expect(status("/")).resolves.toBe("done");
-    const received = await main<string[]>("globalThis.upstart.replayed");
+    const received = await main<string[]>("globalThis.spaka.replayed");
     expect(received.at(-1)).toMatch(/Next page of the adaptation: Studio \(\/studio\)\. Adapted already: /);
     await expect(w.getByTestId("maker-message").last().textContent()).resolves.toBe("Continue: Studio");
     await until(
@@ -305,7 +305,7 @@ describe("the start screen", () => {
         );
       const steps = await w.evaluate(() =>
         // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-        (window as any).upstart.invoke("adaptation:get"),
+        (window as any).spaka.invoke("adaptation:get"),
       );
       throw new Error(`${error.message}; thumbnails ${JSON.stringify(thumbs)}; adaptation ${JSON.stringify(steps)}`);
     });

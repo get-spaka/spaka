@@ -2,7 +2,7 @@
 // slice 7: Q283-Q296). Opt-in: they spend the maker's subscription or keys.
 //
 // Claude, in the packaged app, with .cache/agent-config signed in
-// (UPSTART_REAL_AGENT=1; UPSTART_QUESTIONS_CASE runs one case):
+// (SPAKA_REAL_AGENT=1; SPAKA_QUESTIONS_CASE runs one case):
 // - card: a website from a short message, then the card on what the agent
 //   guessed that matters (Q288), answered in the maker's own words with a
 //   fact the site must then show;
@@ -16,10 +16,10 @@
 //   of the templates' repository and served on 127.0.0.1, since the published
 //   one has no guides by page type yet.
 //
-// Upstart's own harness, with Gemini 4 Hydrogen and the AI Studio key
+// Spaka's own harness, with Gemini 4 Hydrogen and the AI Studio key
 // set as GEMINI_API_KEY in the terminal or the repository's .env, in the development build
-// (UPSTART_REAL_PI=1): a website, its card answered, then a plan built, then
-// the same Ember case (UPSTART_QUESTIONS_CASE=ember runs it alone).
+// (SPAKA_REAL_PI=1): a website, its card answered, then a plan built, then
+// the same Ember case (SPAKA_QUESTIONS_CASE=ember runs it alone).
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
@@ -31,9 +31,9 @@ import { devKey as key } from "../apps/desktop/src/main/dev-keys.ts";
 import { agentConfigDir, type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
 import { maker, say, siteText, walk } from "./real-maker.ts";
 
-const realClaude = process.env.UPSTART_REAL_AGENT === "1";
-const realPi = process.env.UPSTART_REAL_PI === "1";
-const only = process.env.UPSTART_QUESTIONS_CASE;
+const realClaude = process.env.SPAKA_REAL_AGENT === "1";
+const realPi = process.env.SPAKA_REAL_PI === "1";
+const only = process.env.SPAKA_QUESTIONS_CASE;
 const configDir = agentConfigDir();
 
 /** A real turn takes minutes; an adaptation, up to half an hour. */
@@ -96,7 +96,7 @@ async function emberCase(m: ReturnType<typeof maker>, timeout: number) {
     timeout,
   );
   const state = () =>
-    JSON.parse(read(".upstart/adaptation/state.json") || "{}") as { steps?: { route: string; status: string }[] };
+    JSON.parse(read(".spaka/adaptation/state.json") || "{}") as { steps?: { route: string; status: string }[] };
   const statusOf = (route: string) => state().steps?.find((s) => s.route === route)?.status;
   const afterHome = {
     "from Ember 1.1.0": project.template?.version === "1.1.0",
@@ -152,7 +152,7 @@ describe.skipIf(!realClaude || !CLAUDE_CASES.length)(
       rmSync(record, { force: true });
       rmSync(dataDir, { recursive: true, force: true });
       // A release of the templates' repository as it is here, served as GitHub serves the published ones.
-      const out = mkdtempSync(join(tmpdir(), "upstart-release-"));
+      const out = mkdtempSync(join(tmpdir(), "spaka-release-"));
       const built = spawnSync("node", ["apps/desktop/scripts/template.mjs", "release", out, "v5-local"], {
         cwd: join(import.meta.dirname, ".."),
         stdio: ["ignore", "pipe", "inherit"],
@@ -168,12 +168,12 @@ describe.skipIf(!realClaude || !CLAUDE_CASES.length)(
       launched = await launchApp({
         packaged: true,
         env: {
-          UPSTART_AGENT_REPLAY: "",
-          UPSTART_AGENT_CONFIG_DIR: configDir,
-          UPSTART_AGENT_RECORD: record,
-          UPSTART_DATA_DIR: dataDir,
-          UPSTART_TEMPLATES_URL: `http://127.0.0.1:${port}/releases`,
-          UPSTART_TEMPLATES_SNAPSHOT: mkdtempSync(join(tmpdir(), "upstart-snapshot-")),
+          SPAKA_AGENT_REPLAY: "",
+          SPAKA_AGENT_CONFIG_DIR: configDir,
+          SPAKA_AGENT_RECORD: record,
+          SPAKA_DATA_DIR: dataDir,
+          SPAKA_TEMPLATES_URL: `http://127.0.0.1:${port}/releases`,
+          SPAKA_TEMPLATES_SNAPSHOT: mkdtempSync(join(tmpdir(), "spaka-snapshot-")),
         },
       });
       await launched.window.getByTestId("start").waitFor();
@@ -271,7 +271,7 @@ describe.skipIf(!realClaude || !CLAUDE_CASES.length)(
 );
 
 describe.skipIf(!realPi || !PI_CASES.length)(
-  "questions and plans with Upstart's own harness, Gemini 4 Hydrogen",
+  "questions and plans with Spaka's own harness, Gemini 4 Hydrogen",
   { timeout: LONG },
   () => {
     let launched: LaunchedApp;
@@ -280,7 +280,7 @@ describe.skipIf(!realPi || !PI_CASES.length)(
     const report: Record<string, unknown> = {};
 
     beforeAll(async () => {
-      launched = await launchApp({ env: { UPSTART_AGENT_REPLAY: "" } });
+      launched = await launchApp({ env: { SPAKA_AGENT_REPLAY: "" } });
       await launched.window.getByTestId("message-input").waitFor();
       const gemini = key("GEMINI_API_KEY");
       if (!gemini)
@@ -290,7 +290,7 @@ describe.skipIf(!realPi || !PI_CASES.length)(
       // The key goes from the file to the main process, never printed.
       await launched.app.evaluate(
         // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
-        (_electron, k) => (globalThis as any).upstart.piAccounts.setKey("gemini", k),
+        (_electron, k) => (globalThis as any).spaka.piAccounts.setKey("gemini", k),
         gemini,
       );
     }, 60_000 * SLOW);

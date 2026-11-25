@@ -54,7 +54,7 @@ test("each value is checked; a wrong or missing one is its default", () => {
 });
 
 test("the settings are kept in their file, and an unreadable file gives the defaults", () => {
-  dir = mkdtempSync(join(tmpdir(), "upstart-settings-"));
+  dir = mkdtempSync(join(tmpdir(), "spaka-settings-"));
   const file = join(dir, "settings.json");
   writeFileSync(file, "{ not json");
   const store = new AppSettingsStore(file);
@@ -65,7 +65,7 @@ test("the settings are kept in their file, and an unreadable file gives the defa
 });
 
 test("the file holds only the settings chosen: the others follow the defaults of the version running", () => {
-  dir = mkdtempSync(join(tmpdir(), "upstart-settings-"));
+  dir = mkdtempSync(join(tmpdir(), "spaka-settings-"));
   const file = join(dir, "settings.json");
   const store = new AppSettingsStore(file);
   store.set({ textSize: "large" });
@@ -80,7 +80,7 @@ test("the file holds only the settings chosen: the others follow the defaults of
 });
 
 test("the first start with the tour: seen if a website already exists, and kept once settled (Q340)", () => {
-  dir = mkdtempSync(join(tmpdir(), "upstart-settings-"));
+  dir = mkdtempSync(join(tmpdir(), "spaka-settings-"));
   const file = join(dir, "settings.json");
   // A new maker: no settings yet, no website.
   new AppSettingsStore(file).settleTour(false);

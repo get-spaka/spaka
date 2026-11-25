@@ -1,7 +1,7 @@
 // A gallery block as its thumbnail and its peek show it (Q109): a data block
 // rendered with its own sample records (Q205), whatever the open project
 // holds; any other block as it is written.
-import { memorySource, Runtime } from "@upstart/runtime";
+import { memorySource, Runtime } from "@spaka/runtime";
 import { isCollected } from "../editing/data-drop";
 import type { Block } from "./catalogue";
 

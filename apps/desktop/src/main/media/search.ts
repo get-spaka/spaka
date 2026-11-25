@@ -9,9 +9,9 @@
 // it is given 6 seconds, and Commons answers alone past them.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { Credit } from "@upstart/runtime";
+import type { Credit } from "@spaka/runtime";
 
-export const USER_AGENT = "Upstart/2.0 (https://upstart.gg)";
+export const USER_AGENT = "Spaka/2.0 (https://spaka.app)";
 
 export type FoundImage = {
   /** "commons:<page id>" or "openverse:<id>". */
@@ -311,7 +311,7 @@ export class ImageSearch implements ImageFinder {
 }
 
 /**
- * The search the checks use (UPSTART_IMAGES_FIXTURE): images.json in a
+ * The search the checks use (SPAKA_IMAGES_FIXTURE): images.json in a
  * folder lists the images, each "url" a file of that folder; every search
  * answers them all, those whose words match first.
  */

@@ -17,7 +17,7 @@ const MANIFEST = {
   description: "A calm studio site whose sections rise into view, with a large type hero and a grid of work.",
   category: "portfolio",
   tags: ["studio", "ceramics"],
-  author: { name: "Upstart", url: "https://upstart.gg" },
+  author: { name: "Spaka", url: "https://spaka.app" },
   licence: "MIT",
 };
 
@@ -69,7 +69,7 @@ export function stop() { for (const s of stops) s(); stops = []; }
 }
 .glow { box-shadow: 0 0 2rem oklch(from var(--color-primary) l c h / 0.4); border-color: color-mix(in oklch, var(--color-primary), transparent); }
 `,
-    ".upstart/skills/atelier-design/SKILL.md": `---
+    ".spaka/skills/atelier-design/SKILL.md": `---
 name: atelier-design
 description: The Atelier template's design notes — read before adapting it.
 ---
@@ -163,7 +163,7 @@ describe("a good template", () => {
     const copied = [...projectFiles(files({ "notes.txt": "mine" })).keys()];
     expect(copied).toContain("pages/index.liquid");
     expect(copied).toContain("blocks/hero/hero-atelier/block.liquid");
-    expect(copied).toContain(".upstart/skills/atelier-design/SKILL.md");
+    expect(copied).toContain(".spaka/skills/atelier-design/SKILL.md");
     expect(copied).toContain("media/studio.json");
     for (const left of ["template.json", "TEMPLATE.md", "pictures/cover.webp", "README.md", "notes.txt"])
       expect(copied).not.toContain(left);
@@ -196,11 +196,11 @@ describe("read from a .zip or a folder alike", () => {
     expect(() => readZip(Buffer.from("not a zip at all, not even close to one"))).toThrow(/not a \.zip/);
   });
 
-  test("a folder leaves out a project's own .upstart files and what is no template's", () => {
+  test("a folder leaves out a project's own .spaka files and what is no template's", () => {
     const dir = mkdtempSync(join(tmpdir(), "template-"));
     const extra = {
-      ".upstart/project.json": '{"id":"x"}',
-      ".upstart/history/1.json": "{}",
+      ".spaka/project.json": '{"id":"x"}',
+      ".spaka/history/1.json": "{}",
       ".git/HEAD": "ref",
       "node_modules/x/index.js": "",
       "pages/.DS_Store": "",
@@ -322,7 +322,7 @@ describe("its checks", () => {
       },
     };
     expect(errorsOf({ "media/studio.json": JSON.stringify(generated) })).toMatch(
-      /media\/studio\.jpg is generated: it needs Upstart 0\.2\.0 or later: add "app": "0\.2\.0" to template\.json/,
+      /media\/studio\.jpg is generated: it needs Spaka 0\.2\.0 or later: add "app": "0\.2\.0" to template\.json/,
     );
     const manifest = JSON.stringify({ ...MANIFEST, app: "0.2.0" });
     expect(errorsOf({ "template.json": manifest, "media/studio.json": JSON.stringify(generated) })).toBe("");
@@ -397,9 +397,9 @@ describe("its checks", () => {
   });
 
   test("its design notes, named after it (Q239)", () => {
-    expect(errorsOf({ ".upstart/skills/atelier-design/SKILL.md": null })).toMatch(/design notes/);
+    expect(errorsOf({ ".spaka/skills/atelier-design/SKILL.md": null })).toMatch(/design notes/);
     expect(
-      errorsOf({ ".upstart/skills/atelier-design/SKILL.md": "---\nname: other-design\ndescription: x\n---\n" }),
+      errorsOf({ ".spaka/skills/atelier-design/SKILL.md": "---\nname: other-design\ndescription: x\n---\n" }),
     ).toMatch(/its name is atelier-design/);
   });
 

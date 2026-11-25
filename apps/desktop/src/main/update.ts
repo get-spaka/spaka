@@ -6,7 +6,7 @@
 
 import type { UpdateState } from "../shared/ipc";
 
-/** What Upstart uses of electron-updater's autoUpdater. */
+/** What Spaka uses of electron-updater's autoUpdater. */
 export type Updater = {
   autoDownload: boolean;
   autoInstallOnAppQuit: boolean;
@@ -49,7 +49,7 @@ export class Updates {
     });
     updater.on("error", (error) => {
       // Offline, or GitHub unreachable: say nothing, the next check tries again.
-      this.deps.log?.(`[upstart] update check failed: ${error.message}`);
+      this.deps.log?.(`[spaka] update check failed: ${error.message}`);
       if (this.current.state !== "ready") this.set({ state: "idle" });
     });
     this.check();

@@ -1,7 +1,7 @@
 {
   "name": "From the journal on a dark band",
   "kind": "blog",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A dark full-width band headed \"From the journal\" with the three latest posts in outlined cards, each with a cover, its category and date, title, summary and a read link, and a light button to the whole journal; each post's page opens on the same dark band and ends with three more posts on it.",
   "tags": ["dark", "band", "cards", "journal", "covers"],
   "mood": ["dark", "bold"],

@@ -1,5 +1,5 @@
 // A template's checks (template:check, templates.test.ts): what makes it one
-// Upstart can start a site from and an agent can adapt. Errors keep it out;
+// Spaka can start a site from and an agent can adapt. Errors keep it out;
 // warnings are for its author to read. The rules are those of Q231-Q243 and
 // ADR 0011, and the gallery's for its blocks, less the rule that nothing
 // floats (Q256).
@@ -12,7 +12,7 @@ import {
   needsCredit,
   Runtime,
   TEST_RECORDS_DIR,
-} from "@upstart/runtime";
+} from "@spaka/runtime";
 import { droppedFiles, FIXED_COLOUR } from "../gallery/rules";
 import { parseSkill } from "../skills/skills";
 import { OPEN_LICENCES, olderVersion } from "./manifest";
@@ -81,7 +81,7 @@ export function checkTemplate(files: TemplateFiles, { finished = false } = {}): 
     if (!files.has(required)) errors.push(`${required} is missing.`);
   if (!OPEN_LICENCES.includes(manifest.licence as (typeof OPEN_LICENCES)[number]) && !/^CC/i.test(manifest.licence))
     warnings.push(
-      `template.json: licence "${manifest.licence}" is not an open licence Upstart knows (${OPEN_LICENCES.join(", ")}).`,
+      `template.json: licence "${manifest.licence}" is not an open licence Spaka knows (${OPEN_LICENCES.join(", ")}).`,
     );
 
   // ---- the app it needs (Q368) ------------------------------------------------
@@ -91,7 +91,7 @@ export function checkTemplate(files: TemplateFiles, { finished = false } = {}): 
       const needed = FIELD_KIND_APP[kind];
       if (needed && olderVersion(manifest.app ?? "0.0.0", needed))
         errors.push(
-          `${path}: the ${kind} field kind needs Upstart ${needed} or later: add "app": "${needed}" to template.json.`,
+          `${path}: the ${kind} field kind needs Spaka ${needed} or later: add "app": "${needed}" to template.json.`,
         );
     }
   }
@@ -124,7 +124,7 @@ export function checkTemplate(files: TemplateFiles, { finished = false } = {}): 
   for (const path of templates) {
     const src = text(path);
     if (/<script\b|<style\b|<link\b/i.test(src))
-      errors.push(`${path}: no <script>, <style> or <link> tags; Upstart adds the site's scripts and stylesheet.`);
+      errors.push(`${path}: no <script>, <style> or <link> tags; Spaka adds the site's scripts and stylesheet.`);
     if (/\sdata-theme\s*=/.test(src)) errors.push(`${path}: no data-theme attribute; the theme is theme.css.`);
     if (/lorem ipsum/i.test(src)) warnings.push(`${path}: lorem ipsum; a template's texts read as a real site's.`);
   }
@@ -163,7 +163,7 @@ export function checkTemplate(files: TemplateFiles, { finished = false } = {}): 
         errors.push(`${path} is generated: ${infoFile(path)} gives the model and the prompt it was generated with.`);
       if (olderVersion(manifest.app ?? "0.0.0", GENERATED_APP))
         errors.push(
-          `${path} is generated: it needs Upstart ${GENERATED_APP} or later: add "app": "${GENERATED_APP}" to template.json.`,
+          `${path} is generated: it needs Spaka ${GENERATED_APP} or later: add "app": "${GENERATED_APP}" to template.json.`,
         );
     } else if (!credit?.license) {
       errors.push(`${path} has no credit: ${infoFile(path)} gives its licence, its author and where it was found.`);
@@ -218,7 +218,7 @@ export function checkTemplate(files: TemplateFiles, { finished = false } = {}): 
         src,
       )
     )
-      errors.push(`${path}: a module exports start(root), which Upstart calls.`);
+      errors.push(`${path}: a module exports start(root), which Spaka calls.`);
     for (const m of src.matchAll(/(?:\bfrom\s*|\bimport\s*\(\s*)["'](https?:[^"']+)["']/g))
       if (!pinned(m[1]!))
         errors.push(`${path}: ${m[1]} is imported from cdn.jsdelivr.net or unpkg.com, with its version.`);
@@ -300,7 +300,7 @@ export function checkTemplate(files: TemplateFiles, { finished = false } = {}): 
       errors.push(`${BLOCKS}/${b.kind}/${b.id}: its id starts with ${b.kind}-.`);
     if (b.synonyms.length < 4)
       warnings.push(`${BLOCKS}/${b.kind}/${b.id}: give it four synonyms or more, English and French.`);
-    const page = "pages/upstart-block-check.liquid";
+    const page = "pages/spaka-block-check.liquid";
     const dropped = droppedFiles(b);
     const overlay: Record<string, string> = {};
     for (const [path, value] of Object.entries(dropped)) {
@@ -315,7 +315,7 @@ export function checkTemplate(files: TemplateFiles, { finished = false } = {}): 
       },
       { repair: false, trace: false, testRecords: tests },
     );
-    for (const note of checking.renderRoute("/upstart-block-check").notes)
+    for (const note of checking.renderRoute("/spaka-block-check").notes)
       errors.push(`${BLOCKS}/${b.kind}/${b.id}, dropped into a page: ${note.note}`);
   }
 

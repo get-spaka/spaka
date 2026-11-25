@@ -48,7 +48,7 @@ export function readSteps(input: unknown): { steps: LookStep[] } | { problem: st
       };
     if (action === "press" && !key) return { problem: `${at}: press needs a \`key\`, e.g. "Tab" or "Escape".` };
     if (action === "press" && !keyEvent(key!))
-      return { problem: `${at}: the key "${key}" is not one Upstart can press.` };
+      return { problem: `${at}: the key "${key}" is not one Spaka can press.` };
     if (action === "type" && text === undefined) return { problem: `${at}: type needs the \`text\` to type.` };
     steps.push({ action: action as StepAction, target, key, text });
   }
@@ -89,7 +89,7 @@ const KEYS: Record<string, Omit<KeyEvent, "modifiers">> = {
 };
 const MODIFIERS: Record<string, number> = { alt: 1, ctrl: 2, control: 2, meta: 4, cmd: 4, shift: 8 };
 
-/** "Shift+Tab", "Escape", "ArrowDown": the event to send, or undefined for a key Upstart does not press. */
+/** "Shift+Tab", "Escape", "ArrowDown": the event to send, or undefined for a key Spaka does not press. */
 export function keyEvent(name: string): KeyEvent | undefined {
   const parts = name.split("+").map((p) => p.trim().toLowerCase().replace(/\s+/g, ""));
   const last = parts.pop() ?? "";
@@ -244,7 +244,7 @@ async function move(view: StepView, to: Move, height: number) {
  */
 async function scrollTo(view: StepView, height: number, where: "top" | "middle") {
   const target =
-    (await view.run(`(() => { const el = document.querySelector("[data-up-look]"); const r = el.getBoundingClientRect();
+    (await view.run(`(() => { const el = document.querySelector("[data-spaka-look]"); const r = el.getBoundingClientRect();
     const at = r.top + scrollY - ${where === "top" ? "innerHeight * 0.08" : "(innerHeight - Math.min(r.height, innerHeight)) / 2"};
     return Math.max(0, Math.min(at, document.documentElement.scrollHeight - innerHeight)); })()`)) as number;
   await wheelTo(view, height, target);
@@ -286,15 +286,15 @@ async function wheelTo(view: StepView, height: number, target: number) {
 export function mark(target: Exclude<Target, { kind: "move" }>): string {
   const find =
     target.kind === "part"
-      ? `[...document.querySelectorAll("[data-up-src]")].find((e) => e.getAttribute("data-up-src").startsWith(${JSON.stringify(
+      ? `[...document.querySelectorAll("[data-spaka-src]")].find((e) => e.getAttribute("data-spaka-src").startsWith(${JSON.stringify(
           `${target.file}:${target.line !== undefined ? `${target.line}:` : ""}`,
         )}))`
       : `(() => { try { return document.querySelector(${JSON.stringify(target.selector)}); } catch { return null; } })()`;
   return `(() => {
-    for (const old of document.querySelectorAll("[data-up-look]")) old.removeAttribute("data-up-look");
+    for (const old of document.querySelectorAll("[data-spaka-look]")) old.removeAttribute("data-spaka-look");
     const el = ${find};
     if (!el) return null;
-    el.setAttribute("data-up-look", "");
+    el.setAttribute("data-spaka-look", "");
     ${NAME_OF}
     return nameOf(el);
   })()`;
@@ -303,20 +303,20 @@ export function mark(target: Exclude<Target, { kind: "move" }>): string {
 /** In the page, a function: an element as the answer names it, `button "Book a table" (parts/header.liquid:14)`. */
 export const NAME_OF = `const nameOf = (el) => {
   const text = (el.getAttribute("aria-label") || el.getAttribute("placeholder") || el.getAttribute("alt") || el.innerText || el.textContent || "").replace(/\\s+/g, " ").trim();
-  const src = (el.closest("[data-up-src]") || el).getAttribute("data-up-src");
+  const src = (el.closest("[data-spaka-src]") || el).getAttribute("data-spaka-src");
   const at = src ? " (" + src.replace(/:\\d+$/, "") + ")" : "";
   return el.tagName.toLowerCase() + (text ? " " + JSON.stringify(text.length > 40 ? text.slice(0, 39) + "…" : text) : "") + at;
 };`;
 
 /** In the page: whether the marked element's middle is on the screen. */
-const IN_VIEW = `(() => { const r = document.querySelector("[data-up-look]").getBoundingClientRect();
+const IN_VIEW = `(() => { const r = document.querySelector("[data-spaka-look]").getBoundingClientRect();
   const y = r.top + r.height / 2, x = r.left + r.width / 2;
   return y >= 0 && y < innerHeight && x >= 0 && x < innerWidth; })()`;
 
 /** In the page: whether the marked element can be acted on, and where its middle is; why not otherwise. */
 const ACTIONABLE = `(() => {
   ${NAME_OF}
-  const el = document.querySelector("[data-up-look]");
+  const el = document.querySelector("[data-spaka-look]");
   const r = el.getBoundingClientRect();
   const style = getComputedStyle(el);
   if (r.width === 0 || r.height === 0 || style.display === "none") return { problem: "it is not shown (no size)" };
@@ -351,10 +351,10 @@ export const POSITION = `(() => {
   // The screen whose middle the view's middle is in; the last one at the bottom.
   const screen = scrollY + h >= H - 2 ? of : Math.min(of, Math.floor((scrollY + h / 2) / h) + 1);
   const parts = [];
-  for (const el of document.body ? document.body.querySelectorAll("[data-up-src]") : []) {
+  for (const el of document.body ? document.body.querySelectorAll("[data-spaka-src]") : []) {
     const r = el.getBoundingClientRect();
     if (r.bottom <= 0 || r.top >= h || r.width === 0 || r.height === 0) continue;
-    const file = el.getAttribute("data-up-src").replace(/:\\d+:\\d+$/, "");
+    const file = el.getAttribute("data-spaka-src").replace(/:\\d+:\\d+$/, "");
     if (!parts.includes(file)) parts.push(file);
   }
   return { path: location.pathname, title: document.title, screen, of, parts };

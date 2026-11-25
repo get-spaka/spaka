@@ -4,7 +4,7 @@
 // format; an SVG, a GIF and a document are kept as they are.
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, extname, join } from "node:path";
-import { infoFile, type MediaInfo } from "@upstart/runtime";
+import { infoFile, type MediaInfo } from "@spaka/runtime";
 import type { ImageFinder } from "./search";
 
 export const MAX_WIDTH = 2400;
@@ -53,7 +53,7 @@ export async function addImage(root: string, name: string, bytes: Buffer, info: 
   const image = sharp(bytes, { failOn: "error" });
   const meta = await image.metadata();
   const ext = EXTENSIONS[meta.format ?? ""];
-  if (!ext) throw new Error("This file is not an image Upstart can use (JPEG, PNG, WebP, GIF, AVIF or SVG).");
+  if (!ext) throw new Error("This file is not an image Spaka can use (JPEG, PNG, WebP, GIF, AVIF or SVG).");
   const dir = join(root, "media");
   mkdirSync(dir, { recursive: true });
   const stem = freeName(dir, slug(name));
@@ -134,7 +134,7 @@ function answerOne(used: Used): string {
   if ("error" in used) return used.error;
   if (used.existing)
     return `This image is already in the project as /${used.path}: its alternative text is now the one you gave. Use that address; nothing was added.`;
-  return `Added as /${used.path}${used.size ? ` (${used.size})` : ""}. Write <img src="/${used.path}" …> in a page, part or record without an alt attribute: Upstart takes its alternative text from ${infoFile(used.path)}, where the maker can change it, and lists its credits on the site's /credits page when its licence asks for them.`;
+  return `Added as /${used.path}${used.size ? ` (${used.size})` : ""}. Write <img src="/${used.path}" …> in a page, part or record without an alt attribute: Spaka takes its alternative text from ${infoFile(used.path)}, where the maker can change it, and lists its credits on the site's /credits page when its licence asks for them.`;
 }
 
 /**
@@ -157,7 +157,7 @@ export async function addFoundImages(finder: ImageFinder, root: string, wanted: 
     );
   }
   const how = paths.length
-    ? `\n\nIn this order, as a list of images in a record: \`[${paths.join(", ")}]\`. Write <img> without an alt attribute: Upstart takes each one's alternative text from the file beside it, and lists the credits on the site's /credits page when a licence asks for them.`
+    ? `\n\nIn this order, as a list of images in a record: \`[${paths.join(", ")}]\`. Write <img> without an alt attribute: Spaka takes each one's alternative text from the file beside it, and lists the credits on the site's /credits page when a licence asks for them.`
     : "";
   return `${lines.join("\n")}${how}`;
 }
@@ -275,8 +275,7 @@ export function libraryFiles(root: string): string[] {
 export async function addFile(root: string, from: string): Promise<Added> {
   const name = basename(from);
   const kind = mediaKind(name);
-  if (!kind)
-    throw new Error(`${name}: Upstart does not keep video or audio files. Link to them where they are hosted.`);
+  if (!kind) throw new Error(`${name}: Spaka does not keep video or audio files. Link to them where they are hosted.`);
   const bytes = readFileSync(from);
   if (kind === "image") return addImage(root, name, bytes, {});
   const dir = join(root, "media");

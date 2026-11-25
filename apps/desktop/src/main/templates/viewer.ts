@@ -3,8 +3,8 @@
 // folder and served on a server of its own, so that its links go from page to
 // page. A native view laid over the panel, like the preview (ADR 0008); it
 // never writes anything, not even a form's answer.
-import { previewHead, Runtime } from "@upstart/runtime";
-import { diskSource } from "@upstart/runtime/node";
+import { previewHead, Runtime } from "@spaka/runtime";
+import { diskSource } from "@spaka/runtime/node";
 import { type BrowserWindow, shell, WebContentsView } from "electron";
 import type { Rect, TemplateViewState } from "../../shared/ipc";
 import { en as t } from "../../shared/strings/en";
@@ -12,7 +12,7 @@ import { PreviewServer, VENDOR_BASE } from "../preview/server";
 
 /** Visitor mode, as the preview's own script sets it: the site's scripts start, its animations play (Q242). */
 const MOVING =
-  "document.documentElement.setAttribute('data-up-moving', ''); window.__upStart && window.__upStart.go(); true";
+  "document.documentElement.setAttribute('data-spaka-moving', ''); window.__spakaStart && window.__spakaStart.go(); true";
 
 type Shown = { id: string; root: string; runtime: Runtime };
 

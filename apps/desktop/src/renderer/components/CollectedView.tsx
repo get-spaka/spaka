@@ -6,7 +6,7 @@
 import { AlertTriangle, Check, ChevronLeft, Download, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import type { ContentDatasource, ContentRecordSummary, PublishedRecord } from "../../shared/ipc";
-import { upstart } from "../lib/bridge";
+import { spaka } from "../lib/bridge";
 import { messageOf } from "../lib/errors";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
@@ -49,7 +49,7 @@ export function CollectedView({
 
   const read = useCallback(
     () =>
-      void upstart
+      void spaka
         .invoke("content:published", ds.name)
         .then(setPublished)
         .catch((e) => setPublished({ error: messageOf(e), reason: "failed" })),
@@ -90,7 +90,7 @@ export function CollectedView({
             data-testid="collected-csv"
             onClick={() =>
               act(async () => {
-                const path = await upstart.invoke("content:csv", ds.name);
+                const path = await spaka.invoke("content:csv", ds.name);
                 if (path) setNote(t.content.collected.csvSaved(path));
               })
             }
@@ -202,7 +202,7 @@ export function CollectedView({
                       size="icon-sm"
                       tip={t.content.collected.approveTip}
                       data-testid="record-approve"
-                      onClick={() => act(() => upstart.invoke("content:approve", ds.name, row.id))}
+                      onClick={() => act(() => spaka.invoke("content:approve", ds.name, row.id))}
                     >
                       <Check />
                     </Button>
@@ -229,7 +229,7 @@ export function CollectedView({
                       data-testid="record-delete-for-good"
                       onClick={() => {
                         setConfirming(undefined);
-                        act(() => upstart.invoke("content:delete-published", ds.name, row.id));
+                        act(() => spaka.invoke("content:delete-published", ds.name, row.id));
                       }}
                     >
                       {t.content.collected.delete}

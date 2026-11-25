@@ -1,7 +1,7 @@
 // What the gallery's judge (gallery.test.ts) and a template's checks share:
 // the moods a block is searched by, the colors that do not follow the theme,
 // and the files a block writes into a project when it is dropped.
-import { TEST_RECORDS_DIR } from "@upstart/runtime";
+import { TEST_RECORDS_DIR } from "@spaka/runtime";
 import { isCollected } from "../editing/data-drop";
 import type { Block } from "./catalogue";
 

@@ -1,7 +1,7 @@
 {
   "name": "Figures listed on a dark band",
   "kind": "stats",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A dark full-width band with a heading and intro on one side and the figures as ruled lines on the other, each a large number beside its label and note.",
   "tags": ["dark", "band", "list", "two columns", "numbers"],
   "mood": ["dark", "bold", "elegant"],

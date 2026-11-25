@@ -1,7 +1,7 @@
 {
   "name": "Header with social icons",
   "kind": "header",
-  "source": "upstart",
+  "source": "spaka",
   "description": "A light navigation bar with the logo on the left, links in the middle and the site's social media icons on the right; on mobile the links and the icons fold into a dropdown menu.",
   "tags": ["social media", "icons", "logo", "links", "mobile menu"],
   "mood": ["friendly", "minimal"],

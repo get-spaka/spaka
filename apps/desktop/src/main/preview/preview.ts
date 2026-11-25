@@ -5,8 +5,8 @@ import { createHash } from "node:crypto";
 import { type FSWatcher, watch } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { Overlay, previewHead, Runtime, tailwindStyle, themeStyle } from "@upstart/runtime";
-import { diskSource } from "@upstart/runtime/node";
+import { Overlay, previewHead, Runtime, tailwindStyle, themeStyle } from "@spaka/runtime";
+import { diskSource } from "@spaka/runtime/node";
 import { type BrowserWindow, shell, WebContentsView } from "electron";
 import type {
   DeviceView,
@@ -67,7 +67,7 @@ export type PreviewOptions = {
   }>;
   /** A gallery block's template, for its thumbnail (Q92). */
   block?: (id: string) => string | undefined;
-  /** A shipped font's file, from its path under /__up/fonts/, for a theme shown before it is written. */
+  /** A shipped font's file, from its path under /__spaka/fonts/, for a theme shown before it is written. */
   font?: (path: string) => string | undefined;
   /** A page's thumbnail in the "All pages" view was clicked, right-clicked or hovered (Q132). */
   onThumb?: (route: string, action: ThumbnailAction) => void;
@@ -153,7 +153,7 @@ export class Preview {
         partition: "preview",
         backgroundThrottling: !options.background,
         // The app's checks, run in the background, read the editor's drawings.
-        additionalArguments: options.background ? ["--upstart-checks"] : [],
+        additionalArguments: options.background ? ["--spaka-checks"] : [],
       },
     });
     this.view.setVisible(false);
@@ -483,7 +483,7 @@ export class Preview {
 
   /**
    * A picture of the page as the maker sees it, taken without the window
-   * being on screen, without Upstart's own drawings over the page.
+   * being on screen, without Spaka's own drawings over the page.
    */
   async capture(params: Record<string, unknown> = {}): Promise<Buffer> {
     const contents = this.view.webContents;
@@ -761,7 +761,7 @@ export class Preview {
     contents.on("render-process-gone", (_event, details) => {
       if (details.reason !== "clean-exit") setTimeout(() => this.route !== null && void this.navigate(this.route), 300);
     });
-    // The page's errors, its scripts' and Upstart's start script's: read from its console, the page's
+    // The page's errors, its scripts' and Spaka's start script's: read from its console, the page's
     // own world being out of the preload's reach.
     contents.on("console-message", (details) => {
       if (details.level !== "error") return;

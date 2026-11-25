@@ -10,7 +10,7 @@ import { Loader2 } from "lucide-react";
 import { type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { GridCell, PreviewState, Rect } from "../../shared/ipc";
 import { GRID_GAP, GRID_PADDING, gridColumns, thumbnailScreen } from "../../shared/page-grid";
-import { upstart } from "../lib/bridge";
+import { spaka } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
 import { pageTypeRoute } from "./AdaptationBar";
@@ -58,23 +58,23 @@ export function PagesGrid({
   const pages = state.routes.filter((r) => !r.generated);
   const routes = pages.map((r) => r.route);
 
-  useEffect(() => upstart.on("preview:hover", setHovered), []);
+  useEffect(() => spaka.on("preview:hover", setHovered), []);
   useEffect(
     () =>
-      upstart.on("preview:picture", ({ route, url }) => {
+      spaka.on("preview:picture", ({ route, url }) => {
         seen.current.pictures[route] = url;
         setPictures((p) => ({ ...p, [route]: url }));
       }),
     [seen],
   );
-  const open = (route: string) => void upstart.invoke("preview:open-page", route);
+  const open = (route: string) => void spaka.invoke("preview:open-page", route);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: the cells move when any of these change
   useLayoutEffect(() => {
     const element = scroller.current;
     if (!element) return;
     if (hidden) {
-      upstart.send("preview:grid", null);
+      spaka.send("preview:grid", null);
       return;
     }
     let frame = 0;
@@ -105,7 +105,7 @@ export function PagesGrid({
             clipTop: visible ? Math.round(top - r.top) : 0,
           });
         }
-        upstart.send("preview:grid", list, screen);
+        spaka.send("preview:grid", list, screen);
       });
     };
     send();
@@ -123,7 +123,7 @@ export function PagesGrid({
   }, [hidden, layoutKey, routes.join("\n"), screen.width, screen.height, columns, hovered]);
 
   // Hidden when the grid goes away.
-  useEffect(() => () => upstart.send("preview:grid", null), []);
+  useEffect(() => () => spaka.send("preview:grid", null), []);
 
   // The page being written comes into view, unless the maker scrolled (Q134).
   useEffect(() => {
@@ -183,7 +183,7 @@ export function PagesGrid({
                 onClick={() => open(route)}
                 onContextMenu={(event) => {
                   event.preventDefault();
-                  void upstart.invoke("preview:page-menu", route);
+                  void spaka.invoke("preview:page-menu", route);
                 }}
                 className={cn(
                   "block overflow-hidden rounded-md bg-background p-0 shadow-sm ring-1 ring-foreground/10 transition-shadow duration-150 group-hover:shadow-lg",

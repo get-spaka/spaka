@@ -9,10 +9,10 @@ import {
   GENERATE_IMAGE_TOOL,
   LOOK_TOOL,
   PAGES_TOOL,
-  UPSTART_SERVER,
+  SPAKA_SERVER,
   USE_BLOCK_TOOL,
   USE_IMAGE_TOOL,
-} from "./upstart-tools";
+} from "./spaka-tools";
 
 /** The tool the agent asks with, under Claude's name for every agent. */
 export const ASK_TOOL = "AskUserQuestion";
@@ -120,15 +120,15 @@ export function answerResult(questions: AgentQuestion[], answer: QuestionAnswer)
 /** Said to the agent when its question's wait ended without an answer. */
 export const NOT_ANSWERED = "The maker did not answer: the turn was stopped.";
 
-/** Said to the agent, at its next message, of a question left when Upstart closed. */
-export const CLOSED_UNANSWERED = "The maker did not answer: Upstart was closed while it waited.";
+/** Said to the agent, at its next message, of a question left when Spaka closed. */
+export const CLOSED_UNANSWERED = "The maker did not answer: Spaka was closed while it waited.";
 
 /** Said to the agent when its questions do not have the tool's form. */
 export const BAD_FORM =
   "These questions do not have AskUserQuestion's form: 1 to 4 questions, each with 2 to 4 choices.";
 
 /**
- * AskUserQuestion's description for the models of Upstart's own harness, in
+ * AskUserQuestion's description for the models of Spaka's own harness, in
  * the terms of Claude's own tool, so that every model asks alike (ADR 0012).
  */
 export const ASK_DESCRIPTION = [
@@ -176,7 +176,7 @@ export function readPlan(input: unknown): string | undefined {
   return typeof plan === "string" && plan.trim() ? plan.trim() : undefined;
 }
 
-/** The tools that only read, which plan mode lets through: Claude's names, Upstart's under the SDK's. */
+/** The tools that only read, which plan mode lets through: Claude's names, Spaka's under the SDK's. */
 const PLAN_READS = new Set([
   "Read",
   "Glob",
@@ -193,7 +193,7 @@ const PLAN_READS = new Set([
 
 /** Whether plan mode lets a tool through: those that only read, and the maker's connectors (ADR 0010). */
 export function readsOnly(name: string): boolean {
-  return PLAN_READS.has(name) || (name.startsWith("mcp__") && !name.startsWith(`mcp__${UPSTART_SERVER}__`));
+  return PLAN_READS.has(name) || (name.startsWith("mcp__") && !name.startsWith(`mcp__${SPAKA_SERVER}__`));
 }
 
 /**
@@ -214,5 +214,5 @@ export const PLAN_WRITERS = new Set([
 
 /** What the agent of the Pi harness reads with the maker's message in plan mode. */
 export function planMessage(text: string): string {
-  return `[Upstart: plan mode. ${PLAN_INSTRUCTIONS}]\n\n${text}`;
+  return `[Spaka: plan mode. ${PLAN_INSTRUCTIONS}]\n\n${text}`;
 }

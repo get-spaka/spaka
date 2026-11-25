@@ -22,7 +22,7 @@ export function maker(get: () => LaunchedApp) {
   const invoke = <T = unknown>(channel: string, ...args: unknown[]): Promise<T> =>
     w().evaluate(
       // biome-ignore lint/suspicious/noExplicitAny: the preload's bridge
-      ([channel, args]) => (window as any).upstart.invoke(channel, ...(args as unknown[])),
+      ([channel, args]) => (window as any).spaka.invoke(channel, ...(args as unknown[])),
       [channel, args] as const,
     ) as Promise<T>;
   const send = async (text: string) => {
@@ -66,7 +66,7 @@ export function maker(get: () => LaunchedApp) {
     let questions = 0;
     for (;;) {
       const { items } = await invoke<{ items: { kind: string; status?: string }[] }>("conversation:get");
-      // Upstart's own lines (a notice, as when an adaptation ends) come after the turn.
+      // Spaka's own lines (a notice, as when an adaptation ends) come after the turn.
       const last = items.filter((i) => i.kind !== "notice").at(-1);
       if (last?.kind === "agent" && last.status !== "working") return { ms: Date.now() - started, last };
       if (await waitingQuestion().count()) {
