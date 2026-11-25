@@ -108,6 +108,7 @@ export function buildMenu(actions: MenuActions, mac = process.platform === "darw
         {
           label: t.menus.preview,
           submenu: [
+            item("screen-fit"),
             item("screen-desktop"),
             item("screen-tablet"),
             item("screen-phone"),
@@ -122,6 +123,7 @@ export function buildMenu(actions: MenuActions, mac = process.platform === "darw
           ],
         },
         item("sidebar"),
+        item("preview-only"),
         { type: "separator" },
         item("text-larger", () => actions.textSize(1)),
         item("text-smaller", () => actions.textSize(-1)),

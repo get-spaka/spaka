@@ -3,9 +3,12 @@ import {
   Eye,
   Globe,
   LayoutGrid,
+  Maximize2,
   MessageSquarePlus,
+  Minimize2,
   Monitor,
   MousePointer2,
+  MoveHorizontal,
   RotateCw,
   RotateCwSquare,
   Send,
@@ -44,11 +47,29 @@ import { Tip, TipOverPage } from "./ui/tip";
  * iPhone 15, with the roundness of their screens' corners.
  */
 const DEVICES = {
-  desktop: undefined,
+  fit: undefined,
   tablet: { width: 820, height: 1180, radius: 18 },
   phone: { width: 393, height: 852, radius: 47 },
 } as const;
-type Width = keyof typeof DEVICES;
+/**
+ * The widths of the bar: the page fitted to the column, as wide as it is;
+ * a computer's screen, zoomed out to fit the column; and the devices.
+ */
+type Width = keyof typeof DEVICES | "desktop";
+/** A computer's screen's width, at which "desktop" lays the page out before drawing it smaller. */
+export const DESKTOP_WIDTH = 1440;
+const deviceOf = (width: Width) => (width === "desktop" ? undefined : DEVICES[width]);
+
+/**
+ * A computer's page in the whole area, drawn smaller: laid out
+ * DESKTOP_WIDTH pixels wide and as tall as the area allows at that scale. None when the
+ * area is that wide already: the page is then at its own size.
+ */
+export function desktopLayout(area: { width: number; height: number }): DeviceView | undefined {
+  if (area.width >= DESKTOP_WIDTH) return undefined;
+  const scale = Math.max(0.1, Math.round((area.width / DESKTOP_WIDTH) * 1000) / 1000);
+  return { width: DESKTOP_WIDTH, height: Math.round(area.height / scale), scale, radius: 0, mobile: false };
+}
 /** Room around a device, and its bezel. */
 const ROOM = 24;
 const BEZEL = 8;
@@ -88,6 +109,9 @@ export function PreviewPane({
   layoutKey,
   history,
   onNeed,
+  previewOnly = false,
+  onPreviewOnly,
+  waiting = false,
 }: {
   project: ProjectInfo | null;
   state: PreviewState;
@@ -98,13 +122,21 @@ export function PreviewPane({
   layoutKey: unknown;
   /** The width, in CSS pixels, the project's panel and this column need side by side, the bar made compact. */
   onNeed?: (width: number) => void;
+  /** The page alone, at the window's whole width, without the sidebar and the conversation. */
+  previewOnly?: boolean;
+  onPreviewOnly?: (on: boolean) => void;
+  /** The agent waits for the maker's answer. */
+  waiting?: boolean;
 }) {
   const area = useRef<HTMLDivElement>(null);
   const bar = useRef<HTMLDivElement>(null);
   const sentWidth = useRef(0);
-  // Too narrow for the bar's buttons: the view, the mode and the screen go into one menu.
-  const [compact, setCompact] = useState(false);
-  const fullWidth = useRef(0);
+  // Too narrow for the bar's buttons, in two steps: first "Publish" loses its label (1), then the view, the
+  // mode and the screen go into one menu too (2).
+  const [fold, setFold] = useState<0 | 1 | 2>(0);
+  const compact = fold === 2;
+  // The bar's natural width at each step before the current one, to unfold when there is room for it again.
+  const foldWidths = useRef([0, 0]);
   const needRef = useRef(onNeed);
   needRef.current = onNeed;
   const [exporting, setExporting] = useState(false);
@@ -123,7 +155,7 @@ export function PreviewPane({
   // During a template's adaptation, the pages still showing its contents (Q305).
   const adaptation = useAdaptation(project?.id);
   const toAdapt = useMemo(() => new Set(stillToAdapt(adaptation).map((s) => s.route)), [adaptation]);
-  const [width, setWidth] = useState<Width>("desktop");
+  const [width, setWidth] = useState<Width>("fit");
   const [landscape, setLandscape] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   // "Menu deleted · Undo" (Q137), for a few seconds after a page is deleted from its thumbnail.
@@ -209,6 +241,7 @@ export function PreviewPane({
   const shown = !!project && state.routes.length > 0;
   useCommands({
     publish: () => shown && void openPublish(),
+    "screen-fit": () => shown && setWidth("fit"),
     "screen-desktop": () => shown && setWidth("desktop"),
     "screen-tablet": () => shown && setWidth("tablet"),
     "screen-phone": () => shown && setWidth("phone"),
@@ -236,7 +269,8 @@ export function PreviewPane({
     const parked = pagesView || (!!zoom && !zoom.landed);
     const send = () => {
       const r = element.getBoundingClientRect();
-      const device = DEVICES[width];
+      const device = deviceOf(width);
+      const desktop = width === "desktop" ? desktopLayout(r) : undefined;
       if (!device) {
         setFrame(undefined);
         placed.current = { x: 0, y: 0, width: r.width, height: r.height, radius: 0 };
@@ -248,7 +282,7 @@ export function PreviewPane({
             width: Math.round(r.width),
             height: Math.round(r.height),
           },
-          undefined,
+          desktop,
           undefined,
           parked,
         );
@@ -302,7 +336,7 @@ export function PreviewPane({
   const pageRect = (): Rect | undefined => {
     const r = area.current?.getBoundingClientRect();
     if (!r) return undefined;
-    const device = DEVICES[width];
+    const device = deviceOf(width);
     return device ? deviceLayout(r, device, landscape).rect : { x: r.x, y: r.y, width: r.width, height: r.height };
   };
   // On going between the page and the thumbnails, the zoom the main process announced (Q133).
@@ -351,16 +385,23 @@ export function PreviewPane({
       const widthOf = (list: HTMLElement[]) => list.reduce((sum, c) => sum + c.getBoundingClientRect().width + gap, 0);
       const natural =
         Number.parseFloat(style.paddingLeft) + Number.parseFloat(style.paddingRight) + widthOf(items) - gap;
+      // The narrowest bar, everything folded: the menu's button, 32 pixels and its gap, in the place of the
+      // buttons it holds, and "Publish" an icon of 32 pixels.
       let compactWidth = natural;
-      if (!compact) {
-        fullWidth.current = natural;
+      if (fold < 2) {
+        foldWidths.current[fold] = natural;
         const folded = items.filter((c) => c.dataset.collapse !== undefined);
-        // The menu's button, in their place: 32 pixels and its gap.
-        if (folded.length) compactWidth = natural - widthOf(folded) + 32 + gap;
+        if (folded.length) compactWidth -= widthOf(folded) - 32 - gap;
+      }
+      if (fold === 0) {
+        const publish = items.find((c) => c.dataset.testid === "export-open");
+        if (publish) compactWidth -= publish.getBoundingClientRect().width - 32;
       }
       const available = el.clientWidth;
-      const next = compact ? available < fullWidth.current : available < natural;
-      if (next !== compact) setCompact(next);
+      let next = fold;
+      if (available < natural && fold < 2) next = (fold + 1) as 1 | 2;
+      else if (fold > 0 && available >= (foldWidths.current[fold - 1] ?? 0)) next = (fold - 1) as 0 | 1;
+      if (next !== fold) setFold(next);
       const panel = document.querySelector('[data-testid="conversation"]')?.getBoundingClientRect().width ?? 0;
       const need = Math.ceil(panel + compactWidth);
       if (need === sentWidth.current) return;
@@ -390,7 +431,7 @@ export function PreviewPane({
         view: pageCount >= 2 ? state.view : null,
         mode: state.mode,
         width,
-        landscape: width !== "desktop" ? landscape : null,
+        landscape: deviceOf(width) ? landscape : null,
       },
       { x: r.left, y: r.bottom + 4 },
     );
@@ -398,7 +439,12 @@ export function PreviewPane({
       void upstart.invoke("preview:set-view", choice === "view-page" ? "page" : "pages");
     else if (choice === "mode-edit" || choice === "mode-comment" || choice === "mode-visitor")
       void upstart.invoke("preview:set-mode", choice.slice(5) as PreviewMode);
-    else if (choice === "screen-desktop" || choice === "screen-tablet" || choice === "screen-phone")
+    else if (
+      choice === "screen-fit" ||
+      choice === "screen-desktop" ||
+      choice === "screen-tablet" ||
+      choice === "screen-phone"
+    )
       setWidth(choice.slice(7) as Width);
     else if (choice === "rotate") setLandscape((l) => !l);
   };
@@ -409,7 +455,11 @@ export function PreviewPane({
       <TipOverPage.Provider value={true}>
         <div
           ref={bar}
-          className="drag-region flex h-13 shrink-0 items-center gap-2 border-b bg-background px-3 win:pr-36"
+          className={cn(
+            "drag-region flex h-13 shrink-0 items-center gap-2 border-b bg-background px-3 win:pr-36",
+            // Room for the window's buttons, the columns before it being hidden.
+            previewOnly && "pl-20 win:pl-3",
+          )}
         >
           {project && state.routes.length > 0 && (
             <div className="no-drag relative flex items-center">
@@ -448,6 +498,20 @@ export function PreviewPane({
                 ))}
               </NativeSelect>
             </div>
+          )}
+          {/* The conversation hidden, what the agent does stays in sight, and brings it back. */}
+          {previewOnly && (working || waiting) && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="no-drag h-7"
+              tip={t.preview.backToConversation}
+              data-testid="preview-only-agent"
+              onClick={() => onPreviewOnly?.(false)}
+            >
+              <span className={cn("size-1.5 rounded-full bg-primary", !waiting && "animate-pulse")} />
+              {waiting ? t.preview.agentAsks : t.preview.agentWriting}
+            </Button>
           )}
           <div className="flex-1" data-spacer />
           {deleted && (
@@ -535,7 +599,8 @@ export function PreviewPane({
               >
                 {(
                   [
-                    ["desktop", Monitor, t.preview.desktop],
+                    ["fit", MoveHorizontal, t.preview.fit],
+                    ["desktop", Monitor, t.preview.desktop(DESKTOP_WIDTH)],
                     ["tablet", Tablet, t.preview.tablet],
                     ["phone", Smartphone, t.preview.phone],
                   ] as const
@@ -558,12 +623,10 @@ export function PreviewPane({
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  className={cn("h-6 w-8", width !== "desktop" && landscape && "bg-foreground/10 text-foreground")}
-                  tip={
-                    width === "desktop" ? t.preview.noLandscape : landscape ? t.preview.portrait : t.preview.landscape
-                  }
-                  disabled={width === "desktop"}
-                  aria-pressed={width !== "desktop" && landscape}
+                  className={cn("h-6 w-8", !!deviceOf(width) && landscape && "bg-foreground/10 text-foreground")}
+                  tip={!deviceOf(width) ? t.preview.noLandscape : landscape ? t.preview.portrait : t.preview.landscape}
+                  disabled={!deviceOf(width)}
+                  aria-pressed={!!deviceOf(width) && landscape}
                   data-testid="rotate"
                   onClick={() => setLandscape((l) => !l)}
                 >
@@ -584,6 +647,20 @@ export function PreviewPane({
               <Ellipsis />
             </Button>
           )}
+          {onPreviewOnly && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className={cn("no-drag h-7 w-8", previewOnly && "bg-foreground/10 text-foreground")}
+              tip={previewOnly ? t.preview.backToConversation : t.preview.previewOnly}
+              command="preview-only"
+              aria-pressed={previewOnly}
+              data-testid="preview-only"
+              onClick={() => onPreviewOnly(!previewOnly)}
+            >
+              {previewOnly ? <Minimize2 /> : <Maximize2 />}
+            </Button>
+          )}
           {/* At the phone's width the page's own send bar does not fit: it is here instead (Q95). */}
           {project && width === "phone" && comments.length > 0 && (
             <Button
@@ -601,16 +678,17 @@ export function PreviewPane({
           {project && state.routes.length > 0 && (
             <Button
               variant="outline"
-              size="sm"
-              className="no-drag h-7"
+              size={fold > 0 ? "icon-sm" : "sm"}
+              className={cn("no-drag h-7", fold > 0 && "w-8")}
               onClick={() => void openPublish()}
               tip={t.preview.publishTip}
+              aria-label={fold > 0 ? t.preview.publish : undefined}
               command="publish"
               data-testid="export-open"
               data-tour="publish"
             >
               <Upload />
-              {t.preview.publish}
+              {fold === 0 && t.preview.publish}
             </Button>
           )}
           {project && (
@@ -659,7 +737,7 @@ export function PreviewPane({
           {pagesView ? (
             <PagesGrid
               state={state}
-              device={DEVICES[width]}
+              device={deviceOf(width)}
               landscape={landscape}
               hidden={dialogOpen || covered || !!zoom}
               layoutKey={`${String(layoutKey)}-${historyOpen}`}

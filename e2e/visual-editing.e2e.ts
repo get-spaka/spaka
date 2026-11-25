@@ -225,11 +225,81 @@ describe("editing in the preview", () => {
       await new Promise((r) => setTimeout(r, 300));
       await sized(820, 1180);
       await launched.capture("preview-tablet");
-      await launched.window.getByTestId("width-desktop").click();
+      await launched.window.getByTestId("width-fit").click();
       await until(async () => (await bounds()).width === wide.width);
       await until(async () => (await page("innerWidth")) === wide.width);
     },
   );
+
+  test.runIf(ON_A_SCREEN)("a computer zoomed out: laid out 1440 wide, drawn in the whole column", async () => {
+    // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+    const bounds = () => launched.app.evaluate(() => (globalThis as any).upstart.preview.view.getBounds());
+    const column = await bounds();
+    await launched.window.getByTestId("width-desktop").click();
+    await until(async () => (await page("innerWidth")) === Math.max(1440, column.width), 5_000);
+    const b = await bounds();
+    expect(b.width).toBe(column.width);
+    expect(b.height).toBe(column.height);
+    // A computer does not turn.
+    expect(await launched.window.getByTestId("rotate").isDisabled()).toBe(true);
+    await launched.window.getByTestId("width-fit").click();
+    await until(async () => (await page("innerWidth")) === column.width);
+  });
+
+  test.runIf(ON_A_SCREEN)(
+    "at a larger text size, a device's page still fills its view, no band beside it",
+    async () => {
+      // By the menu's accelerators: at that text size the bar is compact, its screens in its menu.
+      const byMenu = (accelerator: string) =>
+        launched.app.evaluate(({ Menu }, accelerator) => {
+          const find = (items: Electron.MenuItem[]): Electron.MenuItem | undefined => {
+            for (const i of items) {
+              if (i.accelerator === accelerator) return i;
+              const inner = i.submenu && find(i.submenu.items);
+              if (inner) return inner;
+            }
+          };
+          find(Menu.getApplicationMenu()?.items ?? [])?.click();
+        }, accelerator);
+      const screens = {
+        tablet: "Alt+CommandOrControl+2",
+        phone: "Alt+CommandOrControl+3",
+        desktop: "Alt+CommandOrControl+1",
+      };
+      const fills = () =>
+        launched.app.evaluate(() => {
+          // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+          const { view, device } = (globalThis as any).upstart.preview;
+          return !!device && Math.abs(device.width * device.scale - view.getBounds().width) <= 1;
+        });
+      await byMenu("CommandOrControl+Plus");
+      try {
+        for (const accelerator of Object.values(screens)) {
+          await byMenu(accelerator);
+          await until(fills, 5_000);
+        }
+      } finally {
+        await byMenu("CommandOrControl+0");
+        await launched.window.getByTestId("width-fit").click();
+      }
+    },
+  );
+
+  test("the page at full width hides the sidebar and the conversation; Escape brings them back", async () => {
+    const { window } = launched;
+    await window.getByTestId("preview-only").click();
+    await window.getByTestId("conversation").waitFor({ state: "hidden" });
+    await expect(window.getByTestId("sidebar").count()).resolves.toBe(0);
+    if (ON_A_SCREEN) {
+      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+      const bounds = () => launched.app.evaluate(() => (globalThis as any).upstart.preview.view.getBounds());
+      const full = await window.evaluate(() => innerWidth);
+      await until(async () => (await bounds()).width === full);
+    }
+    await window.keyboard.press("Escape");
+    await window.getByTestId("conversation").waitFor();
+    await window.getByTestId("sidebar").waitFor();
+  });
 
   test("while the agent works, a pill says so at the bottom of the page, and its Stop stops the agent (Q391)", async () => {
     // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks

@@ -234,7 +234,7 @@ body{margin:0;background:#808080;display:flex;gap:16px;padding:16px;width:max-co
         await w.getByTestId("mode-edit").click();
         await step(launched, "preview-tablet", () => w.getByTestId("width-tablet").click());
         await step(launched, "preview-phone", () => w.getByTestId("width-phone").click());
-        await w.getByTestId("width-desktop").click();
+        await w.getByTestId("width-fit").click();
         await step(launched, "all-pages", async () => {
           await w.getByTestId("view-pages").click();
           await w.getByTestId("pages-grid").waitFor();

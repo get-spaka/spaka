@@ -208,7 +208,8 @@ export type OverTip = {
  * A tablet or a phone shown in the preview (Q110): the page is laid out at the
  * device's size, drawn at `scale` to fit the column, its corners rounded.
  */
-export type DeviceView = { width: number; height: number; scale: number; radius: number };
+/** A screen the page is laid out at and drawn smaller; `mobile` but for a large screen zoomed out. */
+export type DeviceView = { width: number; height: number; scale: number; radius: number; mobile?: boolean };
 
 export type PreviewState = {
   /** The page's address inside the project ("/", "/menu"), or null when nothing is shown. */
@@ -231,7 +232,7 @@ export type PreviewView = "page" | "pages";
 export type PreviewBarMenu = {
   view: PreviewView | null;
   mode: PreviewMode;
-  width: "desktop" | "tablet" | "phone";
+  width: "fit" | "desktop" | "tablet" | "phone";
   landscape: boolean | null;
 };
 export type PreviewBarChoice =
@@ -240,6 +241,7 @@ export type PreviewBarChoice =
   | "mode-edit"
   | "mode-comment"
   | "mode-visitor"
+  | "screen-fit"
   | "screen-desktop"
   | "screen-tablet"
   | "screen-phone"

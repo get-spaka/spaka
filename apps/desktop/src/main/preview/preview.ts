@@ -304,7 +304,7 @@ export class Preview {
         width: d.width,
         height: d.height,
         deviceScaleFactor: 0,
-        mobile: true,
+        mobile: d.mobile ?? true,
         scale: d.scale,
         screenWidth: d.width,
         screenHeight: d.height,

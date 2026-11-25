@@ -1001,7 +1001,11 @@ async function main() {
       win.setBounds({ ...bounds, width: min, x: Math.max(area.x, Math.min(bounds.x, area.x + area.width - min)) });
   });
   ipc.on("preview:bounds", (rect, device, area, parked) => {
-    preview.setBounds(scaled(rect), device, parked);
+    // The device's scale and corners are in the interface's pixels too: at a larger text size, the page
+    // would otherwise be drawn smaller than its view, a band left empty beside it.
+    const zoom = win.webContents.getZoomFactor();
+    const view = device && { ...device, scale: device.scale * zoom, radius: device.radius * zoom };
+    preview.setBounds(scaled(rect), view, parked);
     if (rect && !parked) ipc.emit("preview:placed");
     // Over the preview's column, the "All pages" view's included, where the page itself is parked.
     peek.setArea(scaled(rect && (area ?? rect)));
@@ -1825,6 +1829,7 @@ async function main() {
           radio("mode-comment", t.commands["mode-comment"], state.mode === "comment", "mode-comment"),
           radio("mode-visitor", t.commands["mode-visitor"], state.mode === "visitor", "mode-visitor"),
           { type: "separator" },
+          radio("screen-fit", t.commands["screen-fit"], state.width === "fit", "screen-fit"),
           radio("screen-desktop", t.commands["screen-desktop"], state.width === "desktop", "screen-desktop"),
           radio("screen-tablet", t.commands["screen-tablet"], state.width === "tablet", "screen-tablet"),
           radio("screen-phone", t.commands["screen-phone"], state.width === "phone", "screen-phone"),

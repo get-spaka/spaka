@@ -62,6 +62,7 @@ export function Conversation({
   othersWaiting,
   onSiteSettings,
   preview,
+  hidden = false,
 }: {
   project: ProjectInfo | null;
   items: ConversationItem[];
@@ -73,6 +74,8 @@ export function Conversation({
   /** Opens the website's own settings (Q118), reached here when the sidebar is hidden too (Q409). */
   onSiteSettings: () => void;
   preview: PreviewState;
+  /** The page is shown at full width: hidden, not unmounted, so its draft and tab stay. */
+  hidden?: boolean;
 }) {
   const [draft, setDraft] = useState("");
   // The middle column's tabs (Q100): the conversation, the gallery's blocks.
@@ -122,7 +125,10 @@ export function Conversation({
     void upstart.invoke("conversation:send", text, project ? undefined : newSettings).catch(() => setDraft(text));
   };
   return (
-    <section data-testid="conversation" className="relative flex w-[420px] shrink-0 flex-col border-r bg-background">
+    <section
+      data-testid="conversation"
+      className={cn("relative flex w-[420px] shrink-0 flex-col border-r bg-background", hidden && "hidden")}
+    >
       {/* Room for the window's buttons when the sidebar is hidden. */}
       <div
         className={cn(
