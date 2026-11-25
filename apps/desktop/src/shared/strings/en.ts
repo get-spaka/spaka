@@ -109,6 +109,7 @@ export const en = {
     restart: "Restart",
     restartTip: (version: string) => `Restart Upstart to open version ${version}; it also installs when you quit`,
     expandUpdate: "Show the sidebar: an update is ready",
+    expandWaiting: "Show the sidebar: a website waits for your answer",
   },
   conversation: {
     placeholder: "Describe the website you want…",
@@ -451,6 +452,12 @@ export const en = {
     portrait: "Turn upright",
     landscape: "Turn sideways",
     noLandscape: "Turn sideways: phone and tablet screens only",
+    /** The bar's menu, when the window is too narrow for its buttons. */
+    barMenu: {
+      tip: "View, mode and screen",
+      onePage: "One Page",
+      sideways: "Sideways",
+    },
   },
   editor: {
     parent: "Select what contains it",

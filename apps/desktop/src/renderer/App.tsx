@@ -25,10 +25,22 @@ import {
 } from "./hooks/useMain";
 import { upstart } from "./lib/bridge";
 import { usePickRequest } from "./lib/picker";
+import { t } from "./lib/strings";
 import { SettingsPanel } from "./settings/SettingsPanel";
 
 export function App() {
+  // The sidebar is a column beside the project when the window has room for both; otherwise it opens over
+  // the project's panel, until a website is chosen or a click elsewhere, and the window can be as narrow as
+  // the project's panel and the preview.
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [need, setNeed] = useState(0);
+  const windowWidth = useWindowWidth();
+  const docked = windowWidth >= SIDEBAR_WIDTH + need;
+  const sidebarDocked = docked && sidebarOpen;
+  const sidebarShown = docked ? sidebarOpen : drawerOpen;
+  const expandSidebar = () => (docked ? setSidebarOpen(true) : setDrawerOpen(true));
+  const collapseSidebar = () => (docked ? setSidebarOpen(false) : setDrawerOpen(false));
   // Windows: Git for Windows first (Q375).
   const [gitBash, setGitBash] = useGitBash();
   const { projects, current, loaded } = useProjects();
@@ -39,6 +51,8 @@ export function App() {
   const skills = useSkills(current?.id);
   const connectors = useConnectors(current?.id);
   const waiting = useWaiting();
+  // Another website waits for the maker's answer (Q292): said on the button too while the sidebar is hidden.
+  const othersWaiting = waiting.some((id) => id !== current?.id);
   // A website's own settings (Q118), over the window.
   const [siteOpen, setSiteOpen] = useState(false);
   const siteShown = siteOpen && !!current;
@@ -77,12 +91,27 @@ export function App() {
   }, []);
   useCommands({
     tour: startTour,
-    sidebar: () => setSidebarOpen((open) => !open),
+    sidebar: () => (docked ? setSidebarOpen((open) => !open) : setDrawerOpen((open) => !open)),
     "new-website": () => void upstart.invoke("projects:close"),
     "open-folder": () => void upstart.invoke("projects:choose-folder"),
     shortcuts: () => setShortcutsOpen((open) => !open),
   });
 
+  // The sidebar over the project closes when the window has room for it again, and when a website opens.
+  useEffect(() => {
+    if (docked) setDrawerOpen(false);
+  }, [docked]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: another website, or none
+  useEffect(() => setDrawerOpen(false), [current?.id]);
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const close = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !event.defaultPrevented && !(event.target as HTMLElement).closest("input"))
+        setDrawerOpen(false);
+    };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [drawerOpen]);
   if (!loaded || !gitBash) return <Startup />;
   if (gitBash.needed)
     return (
@@ -93,32 +122,74 @@ export function App() {
   return (
     <TipProvider>
       <div className="relative flex h-full">
-        {sidebarOpen && (
-          <Sidebar
-            projects={projects}
-            waiting={waiting}
-            current={current}
-            onCollapse={() => setSidebarOpen(false)}
-            onNew={() => void upstart.invoke("projects:close")}
-            onSettings={() => {
-              setSiteOpen(false);
-              setSettingsOpen(true);
-            }}
-            onSiteSettings={async (id) => {
-              if (current?.id !== id) await upstart.invoke("projects:open", id);
-              setSettingsOpen(false);
-              setSiteOpen(true);
-            }}
-          />
-        )}
+        {sidebarShown &&
+          (docked ? (
+            <Sidebar
+              projects={projects}
+              waiting={waiting}
+              current={current}
+              onCollapse={collapseSidebar}
+              onNew={() => {
+                setDrawerOpen(false);
+                void upstart.invoke("projects:close");
+              }}
+              onSettings={() => {
+                setDrawerOpen(false);
+                setSiteOpen(false);
+                setSettingsOpen(true);
+              }}
+              onSiteSettings={async (id) => {
+                if (current?.id !== id) await upstart.invoke("projects:open", id);
+                setDrawerOpen(false);
+                setSettingsOpen(false);
+                setSiteOpen(true);
+              }}
+            />
+          ) : (
+            <>
+              {/* no tip: the whole window beside the sidebar, a click there closes it */}
+              <button
+                type="button"
+                tabIndex={-1}
+                aria-label={t.sidebar.collapse}
+                data-testid="sidebar-backdrop"
+                className="absolute inset-0 z-30 cursor-default"
+                onClick={() => setDrawerOpen(false)}
+              />
+              <div className="absolute inset-y-0 left-0 z-30 flex shadow-xl">
+                <Sidebar
+                  projects={projects}
+                  waiting={waiting}
+                  current={current}
+                  onCollapse={collapseSidebar}
+                  onNew={() => {
+                    setDrawerOpen(false);
+                    void upstart.invoke("projects:close");
+                  }}
+                  onSettings={() => {
+                    setDrawerOpen(false);
+                    setSiteOpen(false);
+                    setSettingsOpen(true);
+                  }}
+                  onSiteSettings={async (id) => {
+                    if (current?.id !== id) await upstart.invoke("projects:open", id);
+                    setDrawerOpen(false);
+                    setSettingsOpen(false);
+                    setSiteOpen(true);
+                  }}
+                />
+              </div>
+            </>
+          ))}
         {current ? (
           <>
             <Conversation
               project={current}
               items={items}
               status={status}
-              sidebarOpen={sidebarOpen}
-              onExpandSidebar={() => setSidebarOpen(true)}
+              sidebarOpen={sidebarDocked}
+              onExpandSidebar={expandSidebar}
+              othersWaiting={othersWaiting}
               onSiteSettings={() => {
                 setSettingsOpen(false);
                 setSiteOpen(true);
@@ -130,7 +201,8 @@ export function App() {
               state={preview}
               working={isWorking(items)}
               covered={siteShown || settingsOpen || shortcutsOpen || !!picking}
-              layoutKey={sidebarOpen}
+              layoutKey={sidebarDocked}
+              onNeed={setNeed}
               history={history}
             />
           </>
@@ -138,8 +210,9 @@ export function App() {
           // No website open: the start screen, one large panel (Q245).
           <StartPanel
             status={status}
-            sidebarOpen={sidebarOpen}
-            onExpandSidebar={() => setSidebarOpen(true)}
+            sidebarOpen={sidebarDocked}
+            onExpandSidebar={expandSidebar}
+            othersWaiting={othersWaiting}
             covered={settingsOpen || shortcutsOpen}
           />
         )}
@@ -159,4 +232,17 @@ export function App() {
       </div>
     </TipProvider>
   );
+}
+
+/** The sidebar's width, w-60. */
+const SIDEBAR_WIDTH = 240;
+
+function useWindowWidth() {
+  const [width, setWidth] = useState(window.innerWidth);
+  useEffect(() => {
+    const update = () => setWidth(window.innerWidth);
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+  return width;
 }

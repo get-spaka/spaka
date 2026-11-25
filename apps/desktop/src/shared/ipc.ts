@@ -227,6 +227,23 @@ export type PreviewState = {
 };
 
 export type PreviewView = "page" | "pages";
+/** What the preview's bar shows, for its menu. */
+export type PreviewBarMenu = {
+  view: PreviewView | null;
+  mode: PreviewMode;
+  width: "desktop" | "tablet" | "phone";
+  landscape: boolean | null;
+};
+export type PreviewBarChoice =
+  | "view-page"
+  | "view-pages"
+  | "mode-edit"
+  | "mode-comment"
+  | "mode-visitor"
+  | "screen-desktop"
+  | "screen-tablet"
+  | "screen-phone"
+  | "rotate";
 
 /**
  * A page of the project: its address and file; for a record's page, its
@@ -664,6 +681,11 @@ export type Invokes = {
   "preview:open-page": (route: string) => void;
   /** A page's right-click menu in the "All pages" view (Q136). */
   "preview:page-menu": (route: string) => void;
+  /**
+   * The bar's buttons as a native menu, when the window is too narrow for them, opened at `at` (CSS pixels):
+   * the item chosen, or null. `view` is null below two pages, `landscape` on a desktop screen.
+   */
+  "preview:bar-menu": (state: PreviewBarMenu, at: { x: number; y: number }) => PreviewBarChoice | null;
   "comments:list": () => PageComment[];
   /** Sends the open project's comments to the agent as one message (Q95). */
   "comments:send": () => void;
@@ -830,6 +852,8 @@ export type Sends = {
   /** `area` is the whole of the preview's column, when a device is shown smaller inside it. */
   /** `parked`: the page is not shown (the thumbnails, a zoom) but kept drawn at its place's size, out of sight. */
   "preview:bounds": (rect: Rect | null, device?: DeviceView, area?: Rect, parked?: boolean) => void;
+  /** The width, in CSS pixels, the interface needs for the preview's bar to show whole: the window is never narrower. */
+  "window:min-width": (width: number) => void;
   /**
    * The thumbnails of the "All pages" view, in CSS pixels, and the screen their
    * pages are laid out on (Q129); null hides them.
@@ -929,6 +953,7 @@ export const channels = {
     "preview:set-view",
     "preview:open-page",
     "preview:page-menu",
+    "preview:bar-menu",
     "comments:list",
     "comments:send",
     "comments:discard",
@@ -1018,7 +1043,16 @@ export const channels = {
     "media:delete",
     "media:rename",
   ],
-  send: ["app:ready", "preview:bounds", "preview:grid", "gallery:peek", "templates:bounds", "tip:show", "tip:hide"],
+  send: [
+    "app:ready",
+    "preview:bounds",
+    "window:min-width",
+    "preview:grid",
+    "gallery:peek",
+    "templates:bounds",
+    "tip:show",
+    "tip:hide",
+  ],
   events: [
     "projects:changed",
     "project:opened",

@@ -59,6 +59,7 @@ export function Conversation({
   status,
   sidebarOpen,
   onExpandSidebar,
+  othersWaiting,
   onSiteSettings,
   preview,
 }: {
@@ -67,6 +68,8 @@ export function Conversation({
   status: AgentStatus;
   sidebarOpen: boolean;
   onExpandSidebar: () => void;
+  /** Another website waits for the maker's answer: a dot on the button that shows the sidebar. */
+  othersWaiting?: boolean;
   /** Opens the website's own settings (Q118), reached here when the sidebar is hidden too (Q409). */
   onSiteSettings: () => void;
   preview: PreviewState;
@@ -127,7 +130,7 @@ export function Conversation({
           sidebarOpen ? "px-4" : "pr-4 pl-20 win:pl-4",
         )}
       >
-        {!sidebarOpen && <ExpandSidebarButton onClick={onExpandSidebar} />}
+        {!sidebarOpen && <ExpandSidebarButton onClick={onExpandSidebar} waiting={othersWaiting} />}
         {project && (
           <Button
             variant="ghost"

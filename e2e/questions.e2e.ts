@@ -70,6 +70,16 @@ describe("the agent's questions", () => {
     // The website is marked in the sidebar while the agent waits (Q292).
     expect(await w.getByTestId("project-waiting").count()).toBe(1);
     await launched.capture("question-waiting");
+    // The sidebar hidden, a dot on its button says another website waits; not the one shown.
+    await w.getByLabel("Hide the sidebar").click();
+    expect(await w.getByTestId("waiting-dot").count()).toBe(0);
+    const { id } = await invoke<{ id: string }>("projects:current");
+    await invoke("projects:close");
+    await w.getByTestId("waiting-dot").waitFor();
+    await invoke("projects:open", id);
+    await w.getByLabel("Show the sidebar: a website waits for your answer").waitFor({ state: "detached" });
+    await w.getByLabel("Show the sidebar").click();
+    await w.getByTestId("sidebar").waitFor();
 
     // Editing by hand comes back meanwhile (Q294), and the agent hears of it with the answer.
     const { path } = await invoke<{ path: string }>("projects:current");

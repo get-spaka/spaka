@@ -27,8 +27,11 @@ export function UpdateNote() {
   );
 }
 
-/** The button that shows the hidden sidebar, with a dot when an update is ready. */
-export function ExpandSidebarButton({ onClick }: { onClick: () => void }) {
+/**
+ * The button that shows the hidden sidebar, with a dot when an update is ready, or when another website
+ * waits for the maker's answer (Q292): the sidebar's own dot is out of sight.
+ */
+export function ExpandSidebarButton({ onClick, waiting = false }: { onClick: () => void; waiting?: boolean }) {
   const ready = useUpdate().state === "ready";
   return (
     <Button
@@ -36,11 +39,17 @@ export function ExpandSidebarButton({ onClick }: { onClick: () => void }) {
       size="icon-sm"
       className="no-drag relative"
       onClick={onClick}
-      tip={ready ? t.sidebar.expandUpdate : t.sidebar.expand}
+      tip={ready ? t.sidebar.expandUpdate : waiting ? t.sidebar.expandWaiting : t.sidebar.expand}
       command="sidebar"
     >
       <PanelLeft />
-      {ready && <span data-testid="update-dot" className="absolute top-1 right-1 size-1.5 rounded-full bg-primary" />}
+      {ready ? (
+        <span data-testid="update-dot" className="absolute top-1 right-1 size-1.5 rounded-full bg-primary" />
+      ) : (
+        waiting && (
+          <span data-testid="waiting-dot" className="absolute top-1 right-1 size-1.5 rounded-full bg-primary" />
+        )
+      )}
     </Button>
   );
 }

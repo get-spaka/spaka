@@ -1,4 +1,5 @@
 import {
+  Ellipsis,
   Eye,
   Globe,
   LayoutGrid,
@@ -17,6 +18,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type {
   DeviceView,
   HistoryEntry,
+  PreviewMode,
   PreviewState,
   PreviewZoom,
   PreviewZoomReady,
@@ -85,6 +87,7 @@ export function PreviewPane({
   covered,
   layoutKey,
   history,
+  onNeed,
 }: {
   project: ProjectInfo | null;
   state: PreviewState;
@@ -93,8 +96,17 @@ export function PreviewPane({
   /** Something is shown over the whole window: the native page view, which would stay on top, is hidden. */
   covered: boolean;
   layoutKey: unknown;
+  /** The width, in CSS pixels, the project's panel and this column need side by side, the bar made compact. */
+  onNeed?: (width: number) => void;
 }) {
   const area = useRef<HTMLDivElement>(null);
+  const bar = useRef<HTMLDivElement>(null);
+  const sentWidth = useRef(0);
+  // Too narrow for the bar's buttons: the view, the mode and the screen go into one menu.
+  const [compact, setCompact] = useState(false);
+  const fullWidth = useRef(0);
+  const needRef = useRef(onNeed);
+  needRef.current = onNeed;
   const [exporting, setExporting] = useState(false);
   // Under the publish dialog, a picture of the page where it was (Q392): the native view, hidden meanwhile, would cover the dialog.
   const placed = useRef<{ x: number; y: number; width: number; height: number; radius: number }>(undefined);
@@ -327,11 +339,78 @@ export function PreviewPane({
     }
   }, [pagesView]);
 
+  // The bar's buttons side by side: compact when they do not fit in its width, and the window never narrower
+  // than the project's panel and the compact bar (main), nor narrower than both with the sidebar beside them (App).
+  useLayoutEffect(() => {
+    const el = bar.current;
+    if (!el) return;
+    const measure = () => {
+      const style = getComputedStyle(el);
+      const gap = Number.parseFloat(style.columnGap) || 0;
+      const items = [...el.children].filter((c) => !(c as HTMLElement).dataset.spacer) as HTMLElement[];
+      const widthOf = (list: HTMLElement[]) => list.reduce((sum, c) => sum + c.getBoundingClientRect().width + gap, 0);
+      const natural =
+        Number.parseFloat(style.paddingLeft) + Number.parseFloat(style.paddingRight) + widthOf(items) - gap;
+      let compactWidth = natural;
+      if (!compact) {
+        fullWidth.current = natural;
+        const folded = items.filter((c) => c.dataset.collapse !== undefined);
+        // The menu's button, in their place: 32 pixels and its gap.
+        if (folded.length) compactWidth = natural - widthOf(folded) + 32 + gap;
+      }
+      const available = el.clientWidth;
+      const next = compact ? available < fullWidth.current : available < natural;
+      if (next !== compact) setCompact(next);
+      const panel = document.querySelector('[data-testid="conversation"]')?.getBoundingClientRect().width ?? 0;
+      const need = Math.ceil(panel + compactWidth);
+      if (need === sentWidth.current) return;
+      sentWidth.current = need;
+      upstart.send("window:min-width", need);
+      needRef.current?.(need);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    for (const c of el.children) observer.observe(c);
+    return () => observer.disconnect();
+  });
+  // No website shown: the window's narrowest is its own again.
+  useEffect(
+    () => () => {
+      upstart.send("window:min-width", 0);
+      needRef.current?.(0);
+    },
+    [],
+  );
+  const openBarMenu = async (button: HTMLElement) => {
+    const r = button.getBoundingClientRect();
+    const choice = await upstart.invoke(
+      "preview:bar-menu",
+      {
+        view: pageCount >= 2 ? state.view : null,
+        mode: state.mode,
+        width,
+        landscape: width !== "desktop" ? landscape : null,
+      },
+      { x: r.left, y: r.bottom + 4 },
+    );
+    if (choice === "view-page" || choice === "view-pages")
+      void upstart.invoke("preview:set-view", choice === "view-page" ? "page" : "pages");
+    else if (choice === "mode-edit" || choice === "mode-comment" || choice === "mode-visitor")
+      void upstart.invoke("preview:set-mode", choice.slice(5) as PreviewMode);
+    else if (choice === "screen-desktop" || choice === "screen-tablet" || choice === "screen-phone")
+      setWidth(choice.slice(7) as Width);
+    else if (choice === "rotate") setLandscape((l) => !l);
+  };
+
   return (
     <main data-testid="preview" data-tour="page" className="flex min-w-0 flex-1 flex-col bg-muted/40">
       {/* Below the bar, the page's native view would cover its tips: the main process draws them above it. */}
       <TipOverPage.Provider value={true}>
-        <div className="drag-region flex h-13 shrink-0 items-center gap-2 border-b bg-background px-3 win:pr-36">
+        <div
+          ref={bar}
+          className="drag-region flex h-13 shrink-0 items-center gap-2 border-b bg-background px-3 win:pr-36"
+        >
           {project && state.routes.length > 0 && (
             <div className="no-drag relative flex items-center">
               <Globe className="pointer-events-none absolute left-2 z-10 size-3.5 text-muted-foreground" />
@@ -370,7 +449,7 @@ export function PreviewPane({
               </NativeSelect>
             </div>
           )}
-          <div className="flex-1" />
+          <div className="flex-1" data-spacer />
           {deleted && (
             <div
               data-testid="page-deleted"
@@ -392,8 +471,12 @@ export function PreviewPane({
               </Tip>
             </div>
           )}
-          {project && pageCount >= 2 && (
-            <div className="no-drag flex items-center gap-px rounded-md border p-0.5" data-testid="preview-view">
+          {!compact && project && pageCount >= 2 && (
+            <div
+              data-collapse
+              className="no-drag flex items-center gap-px rounded-md border p-0.5"
+              data-testid="preview-view"
+            >
               {(
                 [
                   ["page", Square, t.preview.pageViewTip, undefined],
@@ -416,9 +499,13 @@ export function PreviewPane({
               ))}
             </div>
           )}
-          {project && state.routes.length > 0 && (
+          {!compact && project && state.routes.length > 0 && (
             <>
-              <div className="no-drag flex items-center gap-px rounded-md border p-0.5" data-testid="preview-mode">
+              <div
+                data-collapse
+                className="no-drag flex items-center gap-px rounded-md border p-0.5"
+                data-testid="preview-mode"
+              >
                 {(
                   [
                     ["edit", MousePointer2, t.preview.editMode],
@@ -441,7 +528,11 @@ export function PreviewPane({
                   </Button>
                 ))}
               </div>
-              <div className="no-drag flex items-center gap-px rounded-md border p-0.5" data-testid="preview-width">
+              <div
+                data-collapse
+                className="no-drag flex items-center gap-px rounded-md border p-0.5"
+                data-testid="preview-width"
+              >
                 {(
                   [
                     ["desktop", Monitor, t.preview.desktop],
@@ -480,6 +571,18 @@ export function PreviewPane({
                 </Button>
               </div>
             </>
+          )}
+          {compact && project && state.routes.length > 0 && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="no-drag"
+              tip={t.preview.barMenu.tip}
+              data-testid="bar-menu"
+              onClick={(event) => void openBarMenu(event.currentTarget)}
+            >
+              <Ellipsis />
+            </Button>
           )}
           {/* At the phone's width the page's own send bar does not fit: it is here instead (Q95). */}
           {project && width === "phone" && comments.length > 0 && (

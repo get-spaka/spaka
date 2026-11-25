@@ -24,7 +24,18 @@ import {
   titleOf,
 } from "@upstart/runtime";
 import { diskSource } from "@upstart/runtime/node";
-import { app, BrowserWindow, dialog, Menu, Notification, nativeTheme, net, safeStorage, shell } from "electron";
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  screen as displays,
+  Menu,
+  Notification,
+  nativeTheme,
+  net,
+  safeStorage,
+  shell,
+} from "electron";
 import electronUpdater from "electron-updater";
 import { isPlan } from "../shared/conversation";
 import { type ImageAccount, imageModelFor } from "../shared/image-models";
@@ -38,6 +49,7 @@ import {
   type MediaFound,
   type MediaItem,
   type PageComment,
+  type PreviewBarChoice,
   type PreviewView,
   type ProjectInfo,
   type Rect,
@@ -45,6 +57,7 @@ import {
   type SettingsPage,
   TEXT_SIZES,
 } from "../shared/ipc";
+import { acceleratorOf, type Command } from "../shared/shortcuts";
 import { en as t } from "../shared/strings/en";
 import { Agent, projectNameFrom } from "./agent/agent";
 import { AgentAuth } from "./agent/auth";
@@ -976,6 +989,17 @@ async function main() {
       height: Math.round(r.height * zoom),
     }) as R;
   };
+  // The window is never narrower than the interface needs for the preview's bar to show whole
+  // (the projects' list open or not); wider when it already is, within its screen.
+  ipc.on("window:min-width", (width) => {
+    const area = displays.getDisplayMatching(win.getBounds()).workArea;
+    const min = Math.min(area.width, Math.max(960, Math.ceil(width * win.webContents.getZoomFactor())));
+    if (win.getMinimumSize()[0] === min) return;
+    win.setMinimumSize(min, 600);
+    const bounds = win.getBounds();
+    if (bounds.width < min && !win.isFullScreen() && !win.isMaximized())
+      win.setBounds({ ...bounds, width: min, x: Math.max(area.x, Math.min(bounds.x, area.x + area.width - min)) });
+  });
   ipc.on("preview:bounds", (rect, device, area, parked) => {
     preview.setBounds(scaled(rect), device, parked);
     if (rect && !parked) ipc.emit("preview:placed");
@@ -1775,6 +1799,54 @@ async function main() {
   ipc.handle("comments:send", () => sendComments());
   ipc.handle("comments:discard", () => void discardComments());
   ipc.handle("preview:page-menu", (route) => pageMenu(route));
+  // The bar's view, mode and screen, in one menu when the window is too narrow for their buttons.
+  ipc.handle(
+    "preview:bar-menu",
+    (state, at) =>
+      new Promise<PreviewBarChoice | null>((resolve) => {
+        const mac = process.platform === "darwin";
+        const radio = (choice: PreviewBarChoice, label: string, checked: boolean, command?: Command) => ({
+          type: "radio" as const,
+          label,
+          checked,
+          accelerator: command && acceleratorOf(command, mac),
+          registerAccelerator: false,
+          click: () => resolve(choice),
+        });
+        const items: Electron.MenuItemConstructorOptions[] = [
+          ...(state.view
+            ? [
+                radio("view-page", t.preview.barMenu.onePage, state.view === "page"),
+                radio("view-pages", t.commands["all-pages"], state.view === "pages", "all-pages"),
+                { type: "separator" as const },
+              ]
+            : []),
+          radio("mode-edit", t.commands["mode-edit"], state.mode === "edit", "mode-edit"),
+          radio("mode-comment", t.commands["mode-comment"], state.mode === "comment", "mode-comment"),
+          radio("mode-visitor", t.commands["mode-visitor"], state.mode === "visitor", "mode-visitor"),
+          { type: "separator" },
+          radio("screen-desktop", t.commands["screen-desktop"], state.width === "desktop", "screen-desktop"),
+          radio("screen-tablet", t.commands["screen-tablet"], state.width === "tablet", "screen-tablet"),
+          radio("screen-phone", t.commands["screen-phone"], state.width === "phone", "screen-phone"),
+          { type: "separator" },
+          {
+            type: "checkbox",
+            label: t.preview.barMenu.sideways,
+            checked: !!state.landscape,
+            enabled: state.landscape !== null,
+            click: () => resolve("rotate"),
+          },
+        ];
+        const zoom = win.webContents.getZoomFactor();
+        Menu.buildFromTemplate(items).popup({
+          window: win,
+          x: Math.round(at.x * zoom),
+          y: Math.round(at.y * zoom),
+          // Closed without a choice; on macOS the item's click comes after the menu closes.
+          callback: () => setTimeout(() => resolve(null), 100),
+        });
+      }),
+  );
   ipc.handle("preview:set-view", (view, route) => preview.setView(view === "pages" ? "pages" : "page", { route }));
   ipc.handle("preview:open-page", (route) => preview.openPage(route));
   ipc.handle("preview:set-mode", (mode) => preview.setMode(mode === "visitor" || mode === "comment" ? mode : "edit"));

@@ -32,11 +32,14 @@ export function StartPanel({
   status,
   sidebarOpen,
   onExpandSidebar,
+  othersWaiting,
   covered,
 }: {
   status: AgentStatus;
   sidebarOpen: boolean;
   onExpandSidebar: () => void;
+  /** Another website waits for the maker's answer: a dot on the button that shows the sidebar. */
+  othersWaiting?: boolean;
   /** Something is over the window (the settings): the template shown large is hidden. */
   covered: boolean;
 }) {
@@ -115,7 +118,7 @@ export function StartPanel({
           sidebarOpen ? "px-4" : "pr-4 pl-20 win:pl-4",
         )}
       >
-        {!sidebarOpen && <ExpandSidebarButton onClick={onExpandSidebar} />}
+        {!sidebarOpen && <ExpandSidebarButton onClick={onExpandSidebar} waiting={othersWaiting} />}
         <div className="ml-auto" />
         <Button
           variant="ghost"
