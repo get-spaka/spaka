@@ -33,6 +33,7 @@ import {
   type StoredRecord,
   titleOf,
 } from "./data.ts";
+import { registerDateFilters } from "./dates.ts";
 import { escapeHtml } from "./escape.ts";
 import {
   addCreditsLink,
@@ -152,6 +153,7 @@ export class Runtime {
         sep: "/",
       },
     });
+    registerDateFilters(this.liquid);
   }
 
   // ---- routes --------------------------------------------------------------
