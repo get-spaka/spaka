@@ -212,8 +212,12 @@ async function main() {
     symbolColor: nativeTheme.shouldUseDarkColors ? "#e5e5e5" : "#262626",
     height: 52,
   });
+  // On Windows, wider by the room the preview's bar keeps for the window's buttons (pr-36, 144 pixels), or the
+  // bar would open folded into its menu; never wider than the screen.
+  const width =
+    process.platform === "darwin" ? 1440 : Math.min(1440 + 144, displays.getPrimaryDisplay().workAreaSize.width);
   const win = new BrowserWindow({
-    width: 1440,
+    width,
     height: 900,
     minWidth: 960,
     minHeight: 600,

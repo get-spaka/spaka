@@ -9,7 +9,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { beforeEach, describe, expect, test } from "vitest";
 import { folderId, Projects, readProjectFile, slug } from "./projects";
 
@@ -24,7 +24,8 @@ beforeEach(() => {
 describe("creating a project", () => {
   test("makes a folder project-<random id>, with its .upstart/project.json holding its name (Q410)", () => {
     const project = projects.create("Chez Margot, boulangerie");
-    expect(project.path).toMatch(new RegExp(`^${join(root, "Upstart", "project-")}[0-9a-z]{10}$`));
+    expect(dirname(project.path)).toBe(join(root, "Upstart"));
+    expect(basename(project.path)).toMatch(/^project-[0-9a-z]{10}$/);
     expect(project.model).toBe("claude-opus-5-5");
     expect(project.effort).toBe("high");
     expect(readProjectFile(project.path)?.id).toBe(project.id);

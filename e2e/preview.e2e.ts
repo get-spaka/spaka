@@ -374,7 +374,7 @@ describe("a project folder in the preview", () => {
     );
     expect(current.name).toBe("Boulangerie Margot");
     expect(current.path).toBe(folder);
-    expect(current.path).toMatch(/\/project-[0-9a-z]{10}$/);
+    expect(current.path).toMatch(/[\\/]project-[0-9a-z]{10}$/);
     // A click elsewhere keeps it too.
     await row("Boulangerie").dblclick();
     await field.fill("Chez Margot");

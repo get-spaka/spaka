@@ -48,7 +48,7 @@ describe("a conversation with the agent", () => {
     await expect.poll(() => w.getByTestId("project-name").textContent()).toBe("Fournil de Lyon");
     const info = await project();
     expect(info.name).toBe("Fournil de Lyon");
-    expect(info.path).toMatch(/\/project-[0-9a-z]{10}$/);
+    expect(info.path).toMatch(/[\\/]project-[0-9a-z]{10}$/);
     expect(info).toMatchObject({ effort: "medium", model: "claude-opus-5-5" });
     expect(JSON.parse(readFileSync(join(info.path, ".upstart/project.json"), "utf8")).effort).toBe("medium");
     await expect(w.getByTestId("maker-message").textContent()).resolves.toContain("A bakery in Lyon");
