@@ -1,8 +1,8 @@
 # Message to Anthropic: subscription sign-in in Upstart
 
-## État (2026-11-22) : rédigé le 2026-11-19, pas encore envoyé
+## État (2026-11-25) : rédigé le 2026-11-19, envoyé (dit par Matt le 2026-11-25)
 
-Matt l'envoie avant la 0.2.0, qui est mise de côté (tranche 6 du plan [distribution](distribution.md)).
+La 0.2.0 attend le nouveau nom du projet (tranche 6 du plan [distribution](distribution.md)).
 
 To send before 0.2.0 is distributed (ADR 0002, Q371). Where to send it: Anthropic's sales / partnerships contact (https://www.anthropic.com/contact-sales) or the Claude Code team's contact if you have one. Fill in the bracketed parts.
 

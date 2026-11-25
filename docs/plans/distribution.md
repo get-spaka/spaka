@@ -1,18 +1,20 @@
 # Upstart v2 : plan de la diffusion (0.2.0, macOS et bêta Windows)
 
-## État (2026-11-22) : tranches 0 à 5 faites, la 6 est mise de côté
+## État (2026-11-25) : tranches 0 à 5 faites, la 6 attend le nouveau nom
 
 | Tranche | Fait | Commits |
 |---|---|---|
-| 0. Le dépôt prêt à être public | ✅ | d4547c8 (licence MIT « Upstart contributors », Q377 ; README ; `.gitattributes`). Un nouveau scan gitleaks, le 2026-11-21, n'a rien trouvé. Le message à Anthropic est rédigé ([anthropic-message](anthropic-message.md)), pas encore envoyé |
+| 0. Le dépôt prêt à être public | ✅ | d4547c8 (licence MIT « Upstart contributors », Q377 ; README ; `.gitattributes`). Un nouveau scan gitleaks, le 2026-11-21, n'a rien trouvé. Le message à Anthropic ([anthropic-message](anthropic-message.md)) est envoyé, dit Matt le 2026-11-25 |
 | 1. La version minimale d'app par template (Q368, Q380) | ✅ | 7fc79ee, fusionnée en 6945e4a ; app en 0.2.0 ; templates v10 |
 | 2. La mise à jour automatique (Q367, Q378) | ✅ | 8429342 |
 | 3. macOS signé et notarisé (Q369, Q379) | ✅ en configuration | 533853e. Aucune app n'a encore été signée ni notarisée avec les vrais secrets : cela se vérifie en tranche 6 |
 | 4. Windows (Q361, Q365, Q372, Q375) | ✅ | b76dc9e ; ensuite, Git Bash sous garde pour le harnais Pi (Q381-Q382, 9570e76) |
 | 5. La CI et la release | ✅ | 5f0b674, ae60798, 5106e96 ; CI verte sur macOS et Windows depuis 16741fb. `release.yml`, `docs/releasing.md` et `docs/releases/0.2.0.md` sont écrits |
-| 6. Les candidates et la 0.2.0 | ⏸ mise de côté le 2026-11-21 | Le nom du projet peut encore changer |
+| 6. Les candidates et la 0.2.0 | ⏸ mise de côté le 2026-11-21 | Le nom du projet va changer (Matt, 2026-11-25) : rien ne sort sous le nom Upstart |
 
-Reste, pour la tranche 6 : Matt rend le dépôt public (les commits portent son e-mail de commit) et crée les secrets de signature ; il envoie le message à Anthropic ; puis `v0.2.0-rc.1`, `v0.2.0-rc.2` (mise à jour depuis la rc.1) et `v0.2.0`, avec l'essai de Matt sous Windows.
+Le 2026-11-25, Matt demande la release, puis répond que le nom va changer et que le dépôt reste privé : rien n'est tagué. Ce jour-là, gitleaks ne trouve rien sur les 335 commits de main, et le dépôt n'a encore aucun secret de signature. Tant que le dépôt est privé, la mise à jour automatique et la page de téléchargement ne marchent pas : il faudra décider où les releases se publient.
+
+Reste, pour la tranche 6 : le nouveau nom, dans l'app, son identifiant (`gg.upstart.desktop`), les dépôts et les notes ; où les releases se publient, le dépôt restant privé ; `docs/releases/0.2.0.md`, qui dit encore 24 templates (il y en a 37) ; Matt crée les secrets de signature ; puis `v0.2.0-rc.1`, `v0.2.0-rc.2` (mise à jour depuis la rc.1) et `v0.2.0`, avec l'essai de Matt sous Windows.
 
 ## Contexte
 
