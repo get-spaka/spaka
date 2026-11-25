@@ -2,7 +2,7 @@
 
 Décidée avec Matt le 2026-11-23 (Q450-Q474, consignées dans `docs/v2.0-decisions.md`, « Templates (build step 5) »). Le vocabulaire (vague, lot, brief, move, effet signature, niveau de mouvement) est dans `GLOSSARY.md`.
 
-## État (2026-11-25) : les neuf templates fusionnés ; lots 1 et 2 publiés en v14, lot 3 (Ruled, Bolster, Overhead) à publier
+## État (2026-11-25) : terminé, les neuf templates publiés (lots 1 et 2 en v14, lot 3 en v15)
 
 | Tranche | Fait | Commits |
 |---|---|---|
@@ -11,8 +11,8 @@ Décidée avec Matt le 2026-11-23 (Q450-Q474, consignées dans `docs/v2.0-decisi
 | 2. Les neuf briefs, approuvés ensemble | ✅ | c644b24 |
 | 3. Lot 1 : Batten (théâtre), Covered (SaaS), Dogear (librairie) | ✅ | templates ec350d9 (Dogear), d8e01b5 (Covered), 11a72bf (Batten) ; inventaire et pointeur 8423c9e |
 | 4. Lot 2 : Heats (modèle open source), Strum (école de musique), Spindle (restaurant) | ✅ | templates 4456f36 (Heats), 93a3e5a (Strum), 0f95d76 (Spindle), 4632ec3 (lien des crédits de Dogear) ; inventaire et pointeur d658aa9 ; corrections de Strum : templates a7ab107, pointeur c10e415 |
-| 5. Lot 3 : Ruled (formation), Bolster (yoga), Overhead (coworking) | ✅ | templates 02fc4ef (Ruled), f003c5a (Overhead), d3f18b2 (Bolster) ; inventaire et pointeur (ce commit) |
-| 6. Release v14 et pointeur | ✅ | templates a7ab107, tag v14 (2026-11-25) : 34 templates, les lots 1 et 2, sans attendre le lot 3 (Matt) ; le lot 3 viendra dans une release suivante, sur un mot de Matt |
+| 5. Lot 3 : Ruled (formation), Bolster (yoga), Overhead (coworking) | ✅ | templates 02fc4ef (Ruled), f003c5a (Overhead), d3f18b2 (Bolster) ; inventaire et pointeur 1b82eca |
+| 6. Releases v14 et v15, et pointeur | ✅ | templates a7ab107, tag v14 (2026-11-25) : 34 templates, les lots 1 et 2, sans attendre le lot 3 (Matt) ; puis templates d3f18b2, tag v15 (2026-11-25) : 37 templates, avec le lot 3 |
 
 ## D'où l'on part
 
