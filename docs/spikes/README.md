@@ -104,7 +104,7 @@ Asked by Matt on 2026-11-26, after reading why Spaka does not use the ACP regist
 
 **What gets built** (Q485-Q488). An adapter inside the app, on the branch `spike/acp-adapter`, not merged: an `AcpSession` behind the same interface as Claude's and Pi's, with Claude, Pi, Codex and Antigravity installed from pinned registry entries or found on the maker's PATH, run under Spaka's sandbox, and measured on spike 1's first request as `measure.e2e.ts` measures Claude.
 
-**Outcome.** Run on 2026-11-26, see the [report](acp.md). ACP carries a file while it is written when the agent's adapter sends it: Pi over ACP, its adapter patched, matches Pi in Spaka's own harness; Codex and Antigravity send each file whole. ADR 0012 and spike 3's report are corrected. Whether to build an ACP adapter stays open.
+**Outcome.** Run on 2026-11-26, see the [report](acp.md). ACP carries a file while it is written when the agent's adapter sends it: Pi over ACP, its adapter patched, matches Pi in Spaka's own harness; Codex, Antigravity and Claude send each file whole, Claude's preview no longer following it as through Spaka's own adapter. ADR 0012 and spike 3's report are corrected. Whether to build an ACP adapter stays open.
 
 ## What the spikes need from Matt
 
