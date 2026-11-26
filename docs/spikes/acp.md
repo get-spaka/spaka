@@ -6,13 +6,19 @@ Ran on 2026-11-26, on Matt's question after reading why Spaka does not use the A
 
 - **ACP carries a file while it is written.** A call's `rawInput` sent again as it grows, while the call is `pending`, reaches Spaka's preview as Pi's own stream does. Spike 3 and ADR 0012 said otherwise; they are corrected. What streams depends on each agent and its adapter.
 - **Pi over ACP matches Pi in Spaka's own harness**, once two things are set: every file grows in the preview (227 to 948 pieces a file), the page starting at 15.8 s against 16.5 s. As published, though, `pi-acp` 0.0.35 shows each file only once written: it reads a snapshot that pi 1.6 no longer sends. A short patch to the adapter fixes it. With Pi's defaults, Pi also used its `codemode`, writing several files from one script, which streams none of them; with Spaka's tools declared to the model directly and `codemode` left out of its tools, every file streams.
-- **Codex and Antigravity never stream a file.** Codex writes through its shell (`python3 -c …`) and patches, as spike 3 found of its code mode; Antigravity sends each write whole, through Spaka's own file system (`fs/write_text_file`). Their pages appear section by section, each section at once.
-- **Claude over ACP loses its live preview.** `claude-agent-acp` sends a call's input again only as each field completes, so a file's path comes early and its content whole, once written: its code calls content built from a partial input "misleading". Measured, none of the 33 files it wrote grew in the preview: the hero's call showed at 27.0 s, its content at 49.6 s, at once. Through Spaka's Agent SDK adapter (ADR 0009), the same request grew all its 20 files (5 to 80 pieces), the hero from 10.7 s to 50.4 s.
+- **Codex and Antigravity, as they come, never stream a file.** Codex writes through its shell (`python3 -c …`) and patches, as spike 3 found of its code mode; Antigravity sends each write whole, through Spaka's own file system (`fs/write_text_file`). Their pages appear section by section, each section at once. Codex can be made to stream (the writing trials below); Antigravity could not.
+- **Claude over ACP, its adapter as published, loses its live preview** (a patch restores it, below). `claude-agent-acp` sends a call's input again only as each field completes, so a file's path comes early and its content whole, once written: its code calls content built from a partial input "misleading". Measured, none of the 33 files it wrote grew in the preview: the hero's call showed at 27.0 s, its content at 49.6 s, at once. Through Spaka's Agent SDK adapter (ADR 0009), the same request grew all its 20 files (5 to 80 pieces), the hero from 10.7 s to 50.4 s.
 - **Spaka's tools reach every agent over MCP**, served by Spaka over HTTP on 127.0.0.1: all four called the gallery, the images and the look at the page. Instructions, the model, the agent's home folder and Spaka's tools for Pi go through each agent's own settings or `_meta`, not the protocol: four agents, four ways.
 - **The registry installs, Spaka pins.** Each entry is a version, an archive with its sha256 or an npm package; installed in 2.6 to 5 s. Spaka would copy the entries into a release rather than read the hourly index. The npm entries need npm, which a packaged Spaka does not have. Two of the four are listed with a "proprietary" licence (Claude's adapter, Antigravity).
 - **The agents the maker already has can be found and used** (Matt's idea during the spike): Codex ran on Matt's own `codex` 0.169.0, under the adapter that expects ^0.171.0. It needs the sandbox to open that install's folder, and its version is no longer Spaka's.
 - **Spaka's sandbox holds each agent's whole process.** It refused `pi-acp`'s write into `~/.pi`, and Codex's own sandbox has to be off inside it, macOS refusing a sandbox within a sandbox. Electron run as Node needs to read folders' metadata outside the project, or it dies at start (SIGTRAP). And it hid Claude's sign-in, kept in the macOS keychain: Claude read as signed out until the sandbox let it read `~/Library/Keychains`.
 - **Permissions:** Claude, Pi and Codex ask for none; Antigravity asked 34 times in a build, once per write and once per new tool, and Spaka answered each itself. No agent asked for anything outside the project.
+
+The writing trials, asked by Matt after this first round (below), found the best way per provider:
+
+- **Anthropic:** Spaka's Agent SDK adapter, as today. Claude over ACP keeps the live preview only with a patch to its adapter.
+- **OpenAI:** Spaka's Pi harness, as today, or Pi over ACP with its adapter patched: each file grows token by token. Codex can stream too, by its own `apply_patch` called directly, three settings and a patch to `codex-acp`, but in steps of 500 ms and with slower turns.
+- **Google:** Gemini on Vertex AI, through Spaka's Pi harness: the only way a Gemini call streams. On an AI Studio key every API sends a call whole, the Interactions API's `arguments_delta` included; and in two runs Gemini never used the Append that Q273 gave it for long files. Antigravity never streamed, on Vertex AI or with Spaka's own write tools.
 
 Not decided: whether Spaka builds an ACP adapter. ADR 0012 keeps that door open ("an ACP adapter can be added later if a vendor's agent brings what Pi does not").
 
@@ -65,6 +71,64 @@ On Matt's Mac, the app built and launched in the background, 2026-11-26. One bui
 The change asked next ("Add a short line « Same-day delivery in Nantes » right under the main title") took 2.8 to 14 s with every agent. Pi in Spaka's harness streamed its Edit in 69 pieces; over ACP, Pi's edit puts its old and new text in an array (`edits: [{oldText, newText}]`), which the spike's adapter reads only once complete.
 
 Every run's figures, what the agent streamed, its permissions and file requests were kept in `e2e/.runs/acp-*/` (not committed), with a film of the preview.
+
+## The writing trials
+
+Asked by Matt the same day, after this report's first round: can an adapter of Spaka's own, or a patch to the agents' adapters, give each provider the live preview Spaka's harness gives; benchmark as much as needed to find the best way per provider, the Interactions API's `arguments_delta` included. Every trial is a `SPAKA_ACP_VARIANT` of the spike's adapter (`agents.ts`), measured by the same check, its runs named by trial, model and repeat.
+
+### What each agent writes best with
+
+Read in Codex's source (0.172.0) and `codex-acp` (2.12.1), and in Antigravity's documentation, before the runs:
+
+- **Codex:** `apply_patch`, a freeform tool whose input is a patch (`*** Begin Patch`, `*** Add File:`, its lines in `+`): OpenAI's Codex prompting guide says the model "has been trained to excel at this diff format". But Codex's model catalog marks the GPT-6 models `code_mode_only`, so they write from a script of its `exec` tool, which streams nothing. Listing the `functions` namespace in `[features.code_mode] direct_only_tool_namespaces` gives the model `apply_patch` directly. Codex's `apply_patch_streaming_events` (under development, off by default) then sends the patch while the model writes it, at most every 500 ms (`item/fileChange/patchUpdated`), and `codex-acp` drops it.
+- **Antigravity:** its own `write_to_file` (`TargetFile`, `CodeContent`), `replace_file_content` and `multi_replace_file_content`; over ACP, `client_create_file` and `client_edit_file`, undocumented. Its ACP server takes `_meta.agy.disabledTools` to withdraw its own tools, and declares an MCP server's tools as its own when eager. The tools Google gives Gemini 3 in Gemini CLI are `write_file(file_path, content)` and `replace(file_path, old_string, new_string)`, the shapes Spaka's Write and Edit already have.
+
+### Gemini's APIs
+
+One `write_file` call of 6,000 to 9,000 characters (a florist's home page), three runs per model, outside the app:
+
+| API, account | Model | First piece of the file | Pieces | Call complete |
+|---|---|---|---|---|
+| `streamGenerateContent`, AI Studio key | Gemini 3.8 Flash | 31.5 s | 1 (whole) | 31.5 s |
+| `streamGenerateContent`, AI Studio key | Gemini 4 Neon | 25.6 s | 1 (whole) | 25.6 s |
+| Interactions API, AI Studio key | Gemini 3.8 Flash | 30.3 s | 1 (whole) | 30.3 s |
+| Interactions API, AI Studio key | Gemini 4 Neon | 26.7 s | 1 (whole) | 27.2 s |
+| `streamGenerateContent` with `streamFunctionCallArguments`, Vertex AI | Gemini 3.8 Flash | 6.4 s | 104, about 70 characters each | 24.1 s |
+| `streamGenerateContent` with `streamFunctionCallArguments`, Vertex AI | Gemini 4 Neon | 4.3 s | 79, about 70 characters each | 21.5 s |
+
+The Interactions API sends a call as one `arguments_delta` holding the whole input, whatever the tool choice, thinking level or model (Gemini 4 Hydrogen too); its text streams. `streamFunctionCallArguments` is accepted on an AI Studio key and changes nothing.
+
+### The runs
+
+The same build and change as above. Medians, with the range when there were several runs. "Grow": the files whose content showed in the preview in several pieces before the call was complete, of those written; short files written in one piece of time count as not grown.
+
+| Provider | Way | Runs | First text | Turn | Files that grow |
+|---|---|---|---|---|---|
+| Anthropic | Spaka's Agent SDK adapter (today) | 3 | 12.4 s (9.8-12.7) | 94.7 s (64.9-132.2) | all but one: 20 of 20, 28 of 29, 22 of 22 (4 to 80 pieces) |
+| Anthropic | ACP, `claude-agent-acp` as published | 1 | 25.8 s | 166.6 s | none |
+| Anthropic | ACP, `claude-agent-acp` patched | 2 | 21.2 s (19.0-23.3) | 126.4 s (120.5-132.3) | all: 16 of 16, 27 of 27 (4 to 102 pieces) |
+| OpenAI | Spaka's Pi harness (today) | 3 | 21.5 s (16.5-22.0) | 192.9 s (170.6-301.1) | 13 of 17, 11 of 21, 17 of 23 (2 to 624 pieces) |
+| OpenAI | ACP, `pi-acp` patched, no codemode | 1 | 15.8 s | 121.3 s | 12 of 16 (22 to 948 pieces) |
+| OpenAI | ACP, Codex as published | 1 | 37.8 s | 116.7 s | none |
+| OpenAI | ACP, Codex's `apply_patch` direct and streamed | 3 | 30.1 s (27.2-32.0) | 232.9 s (170.2-288.1) | 17 of 27, 14 of 24, 12 of 23 (2 to 43 pieces) |
+| OpenAI | ACP, Codex with Spaka's Write, Append and Edit | 1 | 23.2 s | 180.2 s | 1 of 17 |
+| Google | Spaka's Pi harness on Vertex AI, Gemini 4 Neon | 2 | 125.6 s (38.7-212.5) | 496.4 s (411.0-581.7) | 40 of 46, 33 of 38 (3 to 86 pieces) |
+| Google | Spaka's Pi harness on Vertex AI, Gemini 3.8 Flash | 1 | 26.5 s | 414.7 s | 30 of 37 (3 to 93 pieces) |
+| Google | Spaka's Pi harness on an AI Studio key, Gemini 4 Neon | 1 | 37.5 s | 537.3 s | 1 of 51 |
+| Google | ACP, Antigravity on an AI Studio key | 1 | 16.0 s | 254.2 s | none |
+| Google | ACP, Antigravity with Spaka's Write, Append and Edit | 1 | 54.6 s | 232.6 s | none |
+| Google | ACP, Antigravity on Vertex AI | 1 | 26.1 s | 322.5 s | none |
+
+The change to the home page took 3 to 15 s everywhere. On an AI Studio key, Gemini 3.8 Flash's build in Spaka's harness did not end within the check's 480 s (not run again), nor did Gemini 4 Neon's, run again with 900 s.
+
+### Way by way
+
+- **Claude, its ACP adapter patched** (`stream`): the patch sends the call's input so far each time the Agent SDK streams a piece (at most every 30 ms), as `pi-acp`'s `partialArgs`, which Spaka already reads. Installed from npm rather than the registry's binary, to be patched. Every file grows, in fewer pieces than through Spaka's own adapter (the 30 ms), and the turns were slower in these runs: over ACP, Claude runs with Claude Code's own tools and finds Spaka's through `ToolSearch`.
+- **Codex, its `apply_patch` direct and streamed** (`patch-stream`): `direct_only_tool_namespaces = ["functions"]` and `apply_patch_streaming_events = true` in its configuration, Spaka's instructions telling it to write with `apply_patch` called directly, and `codex-acp` patched to forward `item/fileChange/patchUpdated` as a pending tool call. GPT-6.2 Sol then wrote every file with `apply_patch` (22 to 29 a build), and a new file grows in the preview every 500 ms; a file written within 500 ms arrives in one piece. While the model writes an update, Codex sends its own form of diff (each chunk's context, its lines in `-` and `+`), which Spaka applies to the file as it comes. `codex-acp` also opens in its Auto review mode, Guardian reviewing each action with a model of its own (24 reviews in the first run, its first text at 51.5 s): its full-access mode, Spaka's sandbox confining it, took them away.
+- **Spaka's own Write, Append and Edit over MCP** (`spaka-writes`): an MCP call reaches Spaka once complete, so a file can only grow call by call, Write then Append. Antigravity used them (30 Writes, its own file tools withdrawn: no `fs/write_text_file` at all) and Codex too (13 Writes, given them directly), but neither wrote a long file in parts: Antigravity appended once, Codex never. Each file came whole, Antigravity's first text at 54.6 s against 16.0 s with its own tools.
+- **Antigravity on Vertex AI** (`vertex`, its `agent-platform` sign-in through gcloud): it writes each file whole there too: whether or not it asks Vertex AI for a call's arguments as they come, it hands Spaka a write only once complete.
+- **Gemini on an AI Studio key, in Spaka's harness:** Gemini 4 Neon wrote 47 times with Write and never with Append, and Gemini 3.8 Flash likewise (32 Writes): the long files Q273 asked to be written in parts came whole. Spike 3 had found Gemini following that rule; whether these files were long enough to need it (over 25 lines) is not recorded by the check.
+- **Gemini's pace:** Gemini's builds took 230 to 580 s, those in Spaka's harness 410 to 580 s, with stretches of 84 to 191 s in which the preview showed nothing new; Gemini 4 Neon's first text on Vertex AI came at 38.7 s once and 212.5 s the other time.
 
 ## Agent by agent
 
@@ -137,8 +201,8 @@ Beyond this spike's code:
 
 ## Not tried, or not settled
 
-- **Antigravity on Vertex AI** (`agent-platform`), which streams a call's arguments to the API: whether Antigravity would then stream a write over ACP.
+- **Whether Gemini still follows Q273's parts** on an AI Studio key, with a check that records each file's length.
 - **opencode and Gemini CLI** over ACP in Spaka, both in the registry and both on Matt's Mac.
-- **Several runs per agent**, for times that compare.
+- **More runs per way**: three at most here, one for most, the turns of a same way varying by a factor of two.
 - **Windows and Linux**, where Spaka's sandbox is not this one.
 - **A packaged Spaka** installing an npm entry without npm.
