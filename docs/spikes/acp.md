@@ -8,8 +8,8 @@ Ran on 2026-11-26, on Matt's question after reading why Spaka does not use the A
 - **Pi over ACP matches Pi in Spaka's own harness**, once two things are set: every file grows in the preview (227 to 948 pieces a file), the page starting at 15.8 s against 16.5 s. As published, though, `pi-acp` 0.0.35 shows each file only once written: it reads a snapshot that pi 1.6 no longer sends. A short patch to the adapter fixes it. With Pi's defaults, Pi also used its `codemode`, writing several files from one script, which streams none of them; with Spaka's tools declared to the model directly and `codemode` left out of its tools, every file streams.
 - **Codex and Antigravity never stream a file.** Codex writes through its shell (`python3 -c …`) and patches, as spike 3 found of its code mode; Antigravity sends each write whole, through Spaka's own file system (`fs/write_text_file`). Their pages appear section by section, each section at once.
 - **Claude over ACP would lose its live preview.** `claude-agent-acp` sends a call's input again only as each field completes, so a file's path comes early and its content whole, once written: its code calls content built from a partial input "misleading". Spaka's Agent SDK adapter gives the preview every token (ADR 0009). Not measured yet: the checks' Claude sign-in was gone after the move to `~/dev/spaka`.
-- **Spaka's tools reach every agent over MCP**, served by Spaka over HTTP on 127.0.0.1: all four called the gallery, the images or the look at the page. Instructions, the model, the agent's home folder and Spaka's tools for Pi go through each agent's own settings or `_meta`, not the protocol: four agents, four ways.
-- **The registry installs, Spaka pins.** Each entry is a version, an archive with its sha256 or an npm package; installed in 3 to 5 s. Spaka would copy the entries into a release rather than read the hourly index. The npm entries need npm, which a packaged Spaka does not have. Two of the four are listed with a "proprietary" licence (Claude's adapter, Antigravity).
+- **Spaka's tools reach every agent over MCP**, served by Spaka over HTTP on 127.0.0.1: the three that ran called the gallery, the images and the look at the page. Instructions, the model, the agent's home folder and Spaka's tools for Pi go through each agent's own settings or `_meta`, not the protocol: four agents, four ways.
+- **The registry installs, Spaka pins.** Each entry is a version, an archive with its sha256 or an npm package; installed in 2.6 to 5 s. Spaka would copy the entries into a release rather than read the hourly index. The npm entries need npm, which a packaged Spaka does not have. Two of the four are listed with a "proprietary" licence (Claude's adapter, Antigravity).
 - **The agents the maker already has can be found and used** (Matt's idea during the spike): Codex ran on Matt's own `codex` 0.169.0, under the adapter that expects ^0.171.0. It needs the sandbox to open that install's folder, and its version is no longer Spaka's.
 - **Spaka's sandbox holds each agent's whole process.** It refused `pi-acp`'s write into `~/.pi`, and Codex's own sandbox has to be off inside it, macOS refusing a sandbox within a sandbox. Electron run as Node needs to read folders' metadata outside the project, or it dies at start (SIGTRAP).
 - **Permissions:** Pi and Codex ask for none; Antigravity asked 34 times in a build, once per write and once per new tool, and Spaka answered each itself. No agent asked for anything outside the project.
@@ -48,7 +48,7 @@ Left out, as the spike framed it: questions and plans, the model and effort chos
 
 ## The measurements
 
-On Matt's Mac (macOS 27.0.1), the app built and launched in the background, 2026-11-26. One build each: a model's own pace varies from run to run by tens of seconds, so the times show the preview's shape more than which is faster. "First text": the preview first shows text. "Settled": it last changes. "Longest still": the longest stretch between those during which it shows nothing new; most of it is the model working between two files, not the stream.
+On Matt's Mac, the app built and launched in the background, 2026-11-26. One build each: a model's own pace varies from run to run by tens of seconds, so the times show the preview's shape more than which is faster. "First text": the preview first shows text. "Settled": it last changes. "Longest still": the longest stretch between those during which it shows nothing new; most of it is the model working between two files, not the stream.
 
 | Run | Model | First text | Settled | Longest still | Turn | Files that grow in the preview |
 |---|---|---|---|---|---|---|
@@ -63,7 +63,7 @@ On Matt's Mac (macOS 27.0.1), the app built and launched in the background, 2026
 
 The change asked next ("Add a short line « Same-day delivery in Nantes » right under the main title") took 4 to 14 s with every agent. Pi in Spaka's harness streamed its Edit in 69 pieces; over ACP, Pi's edit puts its old and new text in an array (`edits: [{oldText, newText}]`), which the spike's adapter reads only once complete.
 
-Every run's figures, what the agent streamed, its permissions and file requests are in `e2e/.runs/acp-*/` on the branch's checkout, with a film of the preview.
+Every run's figures, what the agent streamed, its permissions and file requests were kept in `e2e/.runs/acp-*/` (not committed), with a film of the preview.
 
 ## Agent by agent
 
@@ -92,7 +92,7 @@ Every run's figures, what the agent streamed, its permissions and file requests 
 
 - **Installed** from the registry: the adapter's own binary for macOS arm64 (sha256 checked), which carries the Agent SDK 0.3.331 and its Claude binary. The registry lists it as "proprietary"; its repository says Apache-2.0, the Claude binary inside being Anthropic's.
 - **Its extension** `_meta.claudeCode.options` takes the Agent SDK's options when the session opens: Spaka's instructions as the system prompt, the model, the effort, no settings of the maker's. Almost all Spaka gives Claude today would pass, through this adapter's own `_meta` rather than the protocol.
-- **Signing in** is the Claude binary's own, in its configuration folder (`CLAUDE_CONFIG_DIR`), as today (ADR 0002). It declared no sign-in method to a client without a terminal.
+- **Signing in** is the Claude binary's own, in its configuration folder (`CLAUDE_CONFIG_DIR`), as today (ADR 0002). It declared no sign-in method to Spaka, which offers no terminal.
 - **The stream**, from its code (`sdk-to-acp.ts`): it reads the Agent SDK's `input_json_delta` and sends `rawInput` again each time a top-level field completes. A Write's `file_path` arrives early, its `content` whole once written; an Edit's `old_string` and then `new_string` likewise. Spaka's preview would get each Claude file at once, where today it follows every token. A patch like `pi-acp`'s would change that, on an adapter of Anthropic's, Zed's and JetBrains'.
 - **Not measured:** it started under Spaka's sandbox and opened its session, then answered "Authentication required". The checks' Claude sign-in (`.cache/agent-config`) did not come along when the repository moved to `~/dev/spaka` that morning.
 
@@ -127,9 +127,9 @@ Beyond this spike's code:
 
 - each agent's tool names and fields read into Spaka's (Write, Edit, Bash; `path`, `target_file`, `code_content`…), and nested inputs (Pi's `edits`) read while they stream;
 - per agent, the way in for instructions, model, effort and tools: none of these is in the protocol today (a `client-system-prompt` proposal exists);
-- the questions and plans (Q283, Q286), which ACP offers as elicitation, a v1 draft;
+- the questions and plans (Q283, Q286), which ACP could carry as elicitation (`elicitation/create`), as `codex-acp` does for Codex's own questions;
 - an adapter kept up with its agent: `pi-acp` and pi 1.6 had already parted;
-- the agents' own noise left out of the conversation (Codex's Guardian Review, Pi's startup lines).
+- the agents' own noise left out of the conversation (Codex's Guardian Review).
 
 ## Not tried, or not settled
 
