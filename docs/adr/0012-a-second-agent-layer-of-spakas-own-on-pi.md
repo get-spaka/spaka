@@ -1,5 +1,5 @@
 ---
-status: accepted (2026-11-14, Q268); designed from Q269 (files through tools only, Q271)
+status: accepted (2026-11-14, Q268); designed from Q269 (files through tools only, Q271); what it said of ACP corrected by spike 4 (2026-11-26)
 ---
 
 # Other models run in a harness of Spaka's own, built on Pi's libraries, beside Claude's
@@ -14,7 +14,9 @@ In that harness the model writes files through tools, as Claude does, never in i
 Spike 3 ([report](../spikes/harnesses.md)) tried Codex, opencode, Pi, Gemini CLI and Antigravity. The live preview needs a file's content while it is written:
 - Codex passes on nothing of what its code mode writes;
 - opencode publishes a tool's input only once complete;
-- the Gemini API and ACP carry a tool call only whole.
+- the Gemini API carries a tool call only whole, and so did Gemini CLI and Antigravity, the two agents tried over ACP.
+
+ACP itself does not stand in the way, contrary to what this record first said: a call's input may be sent again as it grows while the call is `pending`, and an adapter that does so gives the live preview over ACP ([spike 4](../spikes/acp.md)).
 
 Pi streams a tool call's arguments as OpenAI sends them: GPT-6.1 Sol's page grows from 6 s, as Claude's does. The spike also had the model write its files in its reply's text, which every provider streams; Matt turned that down (Q271).
 

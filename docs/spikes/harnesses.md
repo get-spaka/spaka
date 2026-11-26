@@ -308,7 +308,9 @@ It asks the client for permission (`session/request_permission`). If the client 
 - Spaka's MCP servers passed when a session opens (Spaka's tools);
 - the files written through Spaka when the agent agrees. Gemini CLI asked the client to write every file; Antigravity wrote them itself.
 
-**What it lacks for the live preview: a tool call's input while it is generated.** The protocol has no field for it, and both Google agents send a call only once it is complete. So over ACP the live preview needs files in the reply's text, which ACP does stream.
+**What it lacks for the live preview: a tool call's input while it is generated.** Both Google agents send a call only once it is complete, as the Gemini API gives it to them, so with them the live preview needs files in the reply's text, which ACP does stream.
+
+*Corrected on 2026-11-26 ([spike 4](acp.md)):* this paragraph first said that the protocol has no field for a call's input while it is generated. It has: a call's `pending` status means "the input is either streaming or awaiting approval", and `tool_call_update` may send `rawInput` again as it grows. Whether an agent does is its adapter's choice.
 
 ### Gemini CLI 0.68 over ACP
 
@@ -676,7 +678,7 @@ The spike drove the `pi` program over RPC; the libraries themselves were not run
 - **Pi's libraries driven directly** (`pi-ai` with `pi-agent-core`, or Pi Durable) rather than the `pi` program over RPC.
 - **Files in the reply's text over a whole session:** edits, several pages, other requests. Only spike 1's launch request was tried, and only with Gemini models.
 - **Pi with an Anthropic API key**, which would show Pi's own overhead against the Agent SDK with the same model.
-- **The other agents over ACP:** opencode (`opencode acp`), Codex (`codex-acp`), Claude (`claude-agent-acp`) and Pi (`pi-acp`). ACP carries no tool call's input while it is generated, so each would need files in the text too.
+- **The other agents over ACP:** opencode (`opencode acp`), Codex (`codex-acp`), Claude (`claude-agent-acp`) and Pi (`pi-acp`). Tried in [spike 4](acp.md), but for opencode: whether a file arrives while it is written depends on each adapter, not on ACP (this line first said ACP carries no call's input while it is generated).
 - **Hydrogen's thinking level in Gemini CLI**, which it takes from its settings, not a flag.
 - **What Antigravity offers an app beyond the run:** its addition to the system prompt, MCP servers passed at session start, its own sandbox and modes.
 - **Spaka's tools, skills and hooks inside Pi, Codex or Google's agents.**
