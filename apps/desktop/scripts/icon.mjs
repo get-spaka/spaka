@@ -1,5 +1,6 @@
-// Makes the app's icon from build/icon.svg, Spaka's own artwork (from the
-// brand's assets): placed on macOS's icon grid, an 824-point shape in a
+// Makes the app's icon from build/icon.svg, Spaka's own artwork (for now a
+// provisional S, Inter's at weight 710, under the SIL Open Font License, on the
+// brand's violet): placed on macOS's icon grid, an 824-point shape in a
 // 1024-point canvas, its corners those of macOS's icons, with the system's
 // shadow under it, so that it sits beside the other apps in the Dock. Writes
 // build/icon.png (1024, the Dock's icon in development) and build/icon.icns
