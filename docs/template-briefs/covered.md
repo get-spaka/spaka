@@ -132,7 +132,7 @@ Near neighbors: Kindly's bottle green, oklch(0.42 0.08 158), sits on almost the 
 
 ## Motion
 
-Orchestrated: one moment, on the home page, around which the page is built. It is the product's promise shown rather than told. Everywhere else the site is calm, since its visitors are reading between two rushes. Everything respects `prefers-reduced-motion`. In edit mode nothing moves: Upstart's stillness rule stops CSS animations and transitions and no script runs. So the week is clean and the paper hidden, the first tab is open, the hero card is in place, and no tab of the product page's rail is marked. Each effect is turned on by an attribute, so a new section can have it too.
+Orchestrated: one moment, on the home page, around which the page is built. It is the product's promise shown rather than told. Everywhere else the site is calm, since its visitors are reading between two rushes. Everything respects `prefers-reduced-motion`. In edit mode nothing moves: Spaka's stillness rule stops CSS animations and transitions and no script runs. So the week is clean and the paper hidden, the first tab is open, the hero card is in place, and no tab of the product page's rail is marked. Each effect is turned on by an attribute, so a new section can have it too.
 
 - **The tidy-up** (`data-tidy` on the section, `scripts/tidy-up.js`, with Motion's `inView` and `animate`):
   - **in the markup**, the stage holds two layers rendered from the same `shifts` records:
@@ -182,7 +182,7 @@ The product's parts read the template's own lists, so one edit changes the tidy-
 - **pricing, short** (adapted from `apps/desktop/gallery/pricing/pricing-three-tiers` over `plans`, on kraft-light): "One price per location. Your whole crew included.", the three plans with their monthly price, "Most asked for" on Full house in pale jade, the proof line under them, and "Compare the plans" to `/pricing`;
 - **questions** (adapted from `apps/desktop/gallery/faq/faq-two-columns` over `home-faq`): Does my crew pay anything? Can you bring in our schedule from a spreadsheet, or from the paper on the wall? What happens after the 30 days? Does it work with my POS? ("Not yet. You type the day's sales in, or leave them out; we'd rather say so than pretend.") Is it in Spanish? Can I talk to a person? ("Yes: 7 am to 10 pm Central, seven days. Everyone who answers has worked a Saturday double.");
 - **the closing band** (adapted from `apps/desktop/gallery/cta/cta-primary-band`, on jade): "Next week's schedule, done tonight.", "Start your free trial" and "Get a demo", and the proof line;
-- **the footer** (adapted from `apps/desktop/gallery/footer/footer-columns`, on espresso): the wordmark and "Schedules and timesheets for restaurants and cafés. Made in Kansas City since 2021."; the address, the phone with "A person, 7 am to 10 pm Central, every day", the email; the links from `navigation` in three columns (Product, Customers, Help), only to pages that exist; Instagram as a link; Upstart's credits link.
+- **the footer** (adapted from `apps/desktop/gallery/footer/footer-columns`, on espresso): the wordmark and "Schedules and timesheets for restaurants and cafés. Made in Kansas City since 2021."; the address, the phone with "A person, 7 am to 10 pm Central, every day", the email; the links from `navigation` in three columns (Product, Customers, Help), only to pages that exist; Instagram as a link; Spaka's credits link.
 
 **Product** (`/product`):
 - the title, "How Staff Meal runs your week", and "Four jobs a manager does every week, each done in one place, and the crew's side of each.", over a wide photo of a back of house at service;
@@ -246,7 +246,7 @@ The product's parts read the template's own lists, so one edit changes the tidy-
 
 ## Trials, demos and what stays outside
 
-Upstart has no accounts, no checkout, no calendar and no embeds, so:
+Spaka has no accounts, no checkout, no calendar and no embeds, so:
 - **a trial is a request** (as built). The form collects what a person needs to open the account, and the answer says a person will text the log-in within a working hour. That is the offer: a person sets up each first week. A product with its own sign-up page links every trial button there instead (see What varies), and never embeds its form;
 - **a demo is a request** for a 20-minute call at a part of the day, never a booking widget. A product that books demos with an outside tool links to it;
 - **"Log in" is a link.** As built it leads to the help article that says where managers and the crew log in. The agent points it at the product's real address once the maker gives it, and never invents one;

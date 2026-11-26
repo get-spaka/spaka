@@ -1,23 +1,23 @@
-# Upstart v2 : plan de construction des questions de l'agent et du mode plan (Q281-Q296)
+# Spaka v2 : plan de construction des questions de l'agent et du mode plan (Q281-Q296)
 
 ## État (2026-11-22) : terminé
 
 | Tranche | Fait | Commits |
 |---|---|---|
-| 0. La sonde et le modèle partagé | ✅ | 9291e93 |
-| 1. Les questions avec Claude | ✅ | d3999e0 |
-| 2. Les questions avec le harness Pi | ✅ | 0080354 |
-| 3. La carte dans la conversation | ✅ | f04b6f5 |
-| 4. Le mode plan | ✅ | f04b6f5 |
-| 5. Les règles de l'agent | ✅ | 0bf11b4 |
-| 6. Les questions des templates | ✅, puis remplacé | a227193 ; remplacé par le guide `TEMPLATE.md` (Q297-Q301, plan [template-guide](template-guide.md)) |
-| 7. Vérifications avec les vrais agents | ✅ | d541c07 |
+| 0. La sonde et le modèle partagé | ✅ | 96831ba |
+| 1. Les questions avec Claude | ✅ | bdfa3fc |
+| 2. Les questions avec le harness Pi | ✅ | d575f10 |
+| 3. La carte dans la conversation | ✅ | 4f3774a |
+| 4. Le mode plan | ✅ | 4f3774a |
+| 5. Les règles de l'agent | ✅ | 0fdd984 |
+| 6. Les questions des templates | ✅, puis remplacé | 47aaad9 ; remplacé par le guide `TEMPLATE.md` (Q297-Q301, plan [template-guide](template-guide.md)) |
+| 7. Vérifications avec les vrais agents | ✅ | 67b0bb9 |
 
-Ensuite : les cartes de plusieurs questions s'affichent une à une, comme dans Claude Desktop (Q387-Q390, 786eadc).
+Ensuite : les cartes de plusieurs questions s'affichent une à une, comme dans Claude Desktop (Q387-Q390, 9f3339f).
 
 ## Contexte
 
-Vous avez choisi de construire maintenant les questions de l'agent (Q281). La conception est faite : Q282 à Q296, dans `docs/v2.0-decisions.md`, section « The agent asks the maker ». Le glossaire a trois nouveaux termes : Question, Plan mode et Template question. Le commit est `a345dca`.
+Vous avez choisi de construire maintenant les questions de l'agent (Q281). La conception est faite : Q282 à Q296, dans `docs/v2.0-decisions.md`, section « The agent asks the maker ». Le glossaire a trois nouveaux termes : Question, Plan mode et Template question. Le commit est `e4cf933`.
 
 Le but :
 - l'agent pose des questions dans des cartes de la conversation, et attend la réponse ;
@@ -37,14 +37,14 @@ Le but :
 
 **Mode plan**
 - `permissionMode: "plan"`, changé en cours de session par `setPermissionMode()`.
-- `planModeInstructions` remplace le déroulé du binaire, pensé pour du code, par celui d'Upstart.
+- `planModeInstructions` remplace le déroulé du binaire, pensé pour du code, par celui de Spaka.
 - Le plan est rendu par ExitPlanMode.
 - Le réglage `useAutoModeDuringPlan: false` envoie à notre `canUseTool`, au lieu du classifieur, les commandes qui ne sont pas en lecture seule.
 
 **À vérifier par une sonde (tranche 0) :**
 - ce que reçoit `canUseTool` pour ExitPlanMode (le texte du plan) ;
 - où le binaire écrit son fichier de plan ;
-- les outils MCP d'Upstart en mode plan ;
+- les outils MCP de Spaka en mode plan ;
 - le retour à `acceptEdits` dans le même tour après « Build » ;
 - une attente de plus de 5 minutes ;
 - la reprise après une app quittée pendant une question.
@@ -75,13 +75,13 @@ Le but :
 
 **L'app quittée ou le site fermé pendant une question**
 - Le tour se termine, et la carte garde « Not answered ».
-- Pour Pi, un résultat « The maker did not answer: Upstart was closed » ferme l'appel en attente dans la mémoire.
+- Pour Pi, un résultat « The maker did not answer: Spaka was closed » ferme l'appel en attente dans la mémoire.
 - Pour Claude, ce qu'il faut faire dépend de la sonde.
 
 **Le mode plan côté Claude**
 - `setPermissionMode("plan")`, puis, sur « Build », le retour au mode de construction de `confinement()`.
 - ExitPlanMode est ajouté à `tools`, comme AskUserQuestion.
-- En mode plan, les outils d'Upstart arrivent dans `canUseTool` même quand ils sont autorisés (vu par la sonde). `canUseTool` laisse passer ceux qui ne font que lire et refuse use_block et use_image. Il n'y a donc pas de hook PreToolUse.
+- En mode plan, les outils de Spaka arrivent dans `canUseTool` même quand ils sont autorisés (vu par la sonde). `canUseTool` laisse passer ceux qui ne font que lire et refuse use_block et use_image. Il n'y a donc pas de hook PreToolUse.
 - Changer le plan avec ses mots devient un refus d'ExitPlanMode qui porte ces mots. L'agent rend alors un nouveau plan, et l'ancienne carte passe à « Replaced ».
 
 **Le mode plan côté Pi**
@@ -96,7 +96,7 @@ Le but :
 ## Tranches
 
 ### 0. La sonde et le modèle partagé (aucun changement de comportement)
-- La sonde, avec le vrai binaire et la connexion Claude d'Upstart, en arrière-plan : tous les points « à vérifier » ci-dessus. Je vous en rends compte, et je vous pose une question si elle révèle un écart avec la conception.
+- La sonde, avec le vrai binaire et la connexion Claude de Spaka, en arrière-plan : tous les points « à vérifier » ci-dessus. Je vous en rends compte, et je vous pose une question si elle révèle un écart avec la conception.
 - `conversation.ts` : les parties, les événements et `isWaiting`, avec leurs tests.
 - `runner.ts` : `answer`, `approvePlan` et `setMode`.
 
@@ -157,7 +157,7 @@ Le but :
 - Le format :
   - `questions` dans template.json (de 1 à 4, au format AskUserQuestion, le premier choix étant le recommandé) ;
   - vérifié par `template:check` ;
-  - documenté dans `FORMAT.md` du dépôt upstart-templates : les notes de design disent ce que change chaque réponse.
+  - documenté dans `FORMAT.md` du dépôt spaka-templates : les notes de design disent ce que change chaque réponse.
 - Le catalogue porte les questions, pour que l'écran de départ les montre avant tout téléchargement.
 - `StartPanel` : quand un template est choisi, ses questions s'affichent sous la zone de message, en choix préréglés sur la réponse recommandée.
 - `adaptMessage` reçoit les réponses, chacune marquée « choisie par le créateur » ou « laissée sur la recommandée ». Le message l'emporte sur une réponse laissée telle quelle.
@@ -176,28 +176,28 @@ Le but :
 - Puis je vous propose de l'essayer dans la fenêtre de dev.
 
 ## Avancement
-- Tranche 0, 2026-11-14 (9291e93) : la sonde (`spikes/questions/probe.ts`, [REPORT.md](../../dev/upstart/spikes/questions/REPORT.md)) confirme la conception.
+- Tranche 0, 2026-11-14 (96831ba) : la sonde ([son rapport](../spikes/questions.md)) confirme la conception.
   - Les questions passent par `canUseTool` en `acceptEdits`, et les choix, les mots du créateur et « Skip » arrivent à l'agent comme tels.
   - Les aperçus demandés (`block:` et chemin d'image) reviennent tels quels.
   - ExitPlanMode apporte `plan`, un refus avec les mots du créateur donne un nouveau plan, et `setPermissionMode` repasse en construction dans le même tour.
   - Une question laissée quand l'app se ferme devient « rejetée » à la reprise.
   - Le modèle partagé est fait : `conversation.ts` (cartes, `waitingFor`, `isWaiting`, `answerText`), le résumé de passation, et `answer` / `settlePlan` / `setMode` dans `AgentRunner`.
-- Tranche 2, 2026-11-14 (0080354) : l'outil AskUserQuestion du harness Pi, au texte de résultat de Claude ; fermer Upstart pendant un tour garde maintenant ce qu'il a fait, une question restée ouverte lue comme « non répondue, Upstart fermé ».
-- Tranche 1, 2026-11-14 (d3999e0) : Claude pose ses questions (`questions.ts`, `canUseTool` dans `session.ts`, la note des modifications à la main par un hook PostToolUse, le rejeu qui demande à l'app).
+- Tranche 2, 2026-11-14 (d575f10) : l'outil AskUserQuestion du harness Pi, au texte de résultat de Claude ; fermer Spaka pendant un tour garde maintenant ce qu'il a fait, une question restée ouverte lue comme « non répondue, Spaka fermé ».
+- Tranche 1, 2026-11-14 (bdfa3fc) : Claude pose ses questions (`questions.ts`, `canUseTool` dans `session.ts`, la note des modifications à la main par un hook PostToolUse, le rejeu qui demande à l'app).
   - Trouvé avec le vrai binaire sous le confinement de l'app (`session.real.test.ts`) : `denyInsteadOfPrompting` retire AskUserQuestion des outils. Il n'est plus mis ; `canUseTool` refuse tout sauf les questions, et une écriture hors du projet reste refusée d'emblée.
-- Tranches 3 et 4, 2026-11-14 (f04b6f5), dans un même commit car elles touchent les mêmes fichiers :
+- Tranches 3 et 4, 2026-11-14 (4f3774a), dans un même commit car elles touchent les mêmes fichiers :
   - les cartes de question (`QuestionCard.tsx`), la marque dans la barre latérale, la notification, l'édition à la main pendant l'attente ;
-  - le mode plan : le sélecteur Build / Plan gardé par site, `permissionMode: "plan"` avec les consignes d'Upstart pour Claude (les hooks de permission s'effacent en Plan), les outils d'écriture bloqués et un outil ExitPlanMode pour Pi, la carte du plan (`PlanCard.tsx`) avec Build ;
+  - le mode plan : le sélecteur Build / Plan gardé par site, `permissionMode: "plan"` avec les consignes de Spaka pour Claude (les hooks de permission s'effacent en Plan), les outils d'écriture bloqués et un outil ExitPlanMode pour Pi, la carte du plan (`PlanCard.tsx`) avec Build ;
   - e2e `questions.e2e.ts` et `plan.e2e.ts` sur des enregistrements fabriqués ; le vrai binaire construit après un plan changé puis approuvé.
-- Tranche 5, 2026-11-14 (0bf11b4) : la section « Questions to the maker » des consignes, pour Claude et les familles de Pi ; l'adaptation d'un template finit par la même carte.
-- Tranche 6, 2026-11-14 (a227193, templates 454a6dd) : `questions` dans template.json, vérifié par `template:check`, porté par le catalogue, montré sous la zone de message de l'écran de départ, et transmis à l'agent avec le premier message. Les huit templates de la vague 1 posent 2 questions chacun et passent en 1.1.0, poussés sans release : à montrer à Matt avant la v5.
-- Tranche 7, 2026-11-14 (d541c07) : `e2e/agent-questions.e2e.ts`, avec les vrais agents.
+- Tranche 5, 2026-11-14 (0fdd984) : la section « Questions to the maker » des consignes, pour Claude et les familles de Pi ; l'adaptation d'un template finit par la même carte.
+- Tranche 6, 2026-11-14 (47aaad9, templates 454a6dd) : `questions` dans template.json, vérifié par `template:check`, porté par le catalogue, montré sous la zone de message de l'écran de départ, et transmis à l'agent avec le premier message. Les huit templates de la vague 1 posent 2 questions chacun et passent en 1.1.0, poussés sans release : à montrer à Matt avant la v5.
+- Tranche 7, 2026-11-14 (67b0bb9) : `e2e/agent-questions.e2e.ts`, avec les vrais agents.
   - Claude, dans l'app empaquetée : la carte de fin (129 s), le mode plan avec changement puis Build (209 s), et Ember avec ses questions réglées à « By phone » et « Events only », servi depuis une release locale (490 s). Tous passent.
   - Gemini 4 Hydrogen : la carte de fin et le plan passent. Deux corrections : le plan est écrit pour le créateur, sans fichiers, identifiants de blocs ni adresses ; et des coordonnées, horaires ou prix inventés comptent toujours.
   - Le plan est terminé. Restent : montrer à Matt les questions de la vague 1 avant la release v5, et lui proposer d'essayer dans la fenêtre de dev.
 
 ## Règles de travail
-- Lancements en arrière-plan (`UPSTART_BACKGROUND=1`).
+- Lancements en arrière-plan (`SPAKA_BACKGROUND=1`).
 - Un commit par tranche qui fonctionne, avec des chemins explicites et un contrôle des clés avant, puis un push.
 - `pnpm lint` reste propre.
 - Les questions des templates de la vague 1 vous sont montrées avant toute release.

@@ -1,10 +1,12 @@
-# Releasing Upstart
+# Releasing Spaka
 
 A tag `vX.Y.Z` on `main` builds and publishes a release (`.github/workflows/release.yml`):
 
 - macOS, Apple silicon: a `.dmg` to download and a `.zip` the app updates itself from, signed with the Developer ID Application certificate and notarized by Apple;
 - Windows, x64, beta: an NSIS installer, unsigned (Q365);
 - `latest-mac.yml` and `latest.yml`, which the app reads to update itself.
+
+Releases are published on [get-spaka/spaka](https://github.com/get-spaka/spaka/releases), which is public: the app updates itself from there, and the README's download link points there.
 
 The two builds attach their files to a draft release; once both are there the release is published, with `docs/releases/X.Y.Z.md` as its notes. A tag with a dash (`v0.2.0-rc.1`) is a pre-release: the app does not offer it as an update to a stable version.
 
@@ -36,6 +38,6 @@ The certificate is created at developer.apple.com → Certificates → "+" → D
 
 ## Building on a Mac
 
-`pnpm --filter @upstart/desktop dist:mac` builds the signed `.dmg` and `.zip` locally with the Developer ID certificate in the keychain (`CSC_NAME` picks one when there are several), and notarizes them when `APPLE_API_KEY` (the `.p8` file's path), `APPLE_API_KEY_ID` and `APPLE_API_ISSUER` are set. `pnpm --filter @upstart/desktop package` stays the unsigned app the checks use.
+`pnpm --filter @spaka/desktop dist:mac` builds the signed `.dmg` and `.zip` locally with the Developer ID certificate in the keychain (`CSC_NAME` picks one when there are several), and notarizes them when `APPLE_API_KEY` (the `.p8` file's path), `APPLE_API_KEY_ID` and `APPLE_API_ISSUER` are set. `pnpm --filter @spaka/desktop package` stays the unsigned app the checks use.
 
 The official Claude binary inside the app keeps Anthropic's own signature (ADR 0002): the app's signing leaves it out (`signIgnore`).

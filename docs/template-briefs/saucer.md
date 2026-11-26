@@ -46,7 +46,7 @@ How guests come in varies: walk in ("Just turn up and we'll happily find you a t
 - **the typed menu:** dishes, prices, add-ons and hours set in a monospaced face, like the kitchen's order slips, under headings in a soft, round serif.
 
 **What it leaves out:**
-- online ordering, a waitlist and payments (Upstart has none; see below), a map embed, an Instagram feed, video, sound and 3D (Sunbeam's bagel drop, the cake cabinet);
+- online ordering, a waitlist and payments (Spaka has none; see below), a map embed, an Instagram feed, video, sound and 3D (Sunbeam's bagel drop, the cake cabinet);
 - **other templates' devices:** a ribbon or ticker, a turning stamp, arch frames and an "Open now" pill as a written sentence (Corner); a light following the pointer, an hour pinned while the page scrolls and a tilted menu card (Ember); spinning discs and anything sliding out of a sleeve (Encore: the plates never spin, they are set down); lines drawing themselves (Chalk, Seam); anything scrolling sideways (Reel); page transitions; a huge wordmark across the footer (Corner, Ember, Seam); handwriting (Commons's notes, Haven's lettering); an italic accent word in a heading (Corner, Folio, Linen); the sun, light, shadows or the time of day as an image (Gnomon); hours as a week chart with a now line (Taper); a status band (Aspect);
 - smooth scrolling: the browser's own scroll, for a visitor checking the hours on a phone at a bus stop.
 
@@ -91,7 +91,7 @@ It is not Corner's warm paper with cobalt, nor Commons's tomato and sky on newsp
 
 ## Motion
 
-Quiet and useful. Everything respects `prefers-reduced-motion`. In edit mode nothing moves: Upstart's stillness rule stops CSS animations and transitions and no script runs, so the door card shows its plain side, no day on the door is marked, the menu shows its first tab and every plate is in place. Each effect is turned on by an attribute, so a new section can have it too.
+Quiet and useful. Everything respects `prefers-reduced-motion`. In edit mode nothing moves: Spaka's stillness rule stops CSS animations and transitions and no script runs, so the door card shows its plain side, no day on the door is marked, the menu shows its first tab and every plate is in place. Each effect is turned on by an attribute, so a new section can have it too.
 
 - **What is served** (`scripts/served-now.js`, no library): the one script that reads the clock. Nothing it drives shows a time of day as a picture: it only chooses among the template's own lines, the card's side and the menu's tab.
   - it reads the hours from the page: the footer, on every page, renders each `hours` record as a row with `data-weekday`, `data-opens`, `data-lunch-from`, `data-kitchen-closes` and `data-closes` (24-hour times, as the records hold them), and the café's time zone from `data-tz` on the footer ("America/Chicago"; without it, the visitor's own clock);
@@ -129,7 +129,7 @@ The dishes are the gallery's `menu` collection, the people its `team` and the ho
 - **the coffee bar** (adapted from `apps/desktop/gallery/menu/menu-cafe-board` over `menu`, its drinks): on its sky panel, "Coffee from the first pour", a sentence on Ledgerock's espresso and the pour-over of the week, and the hours of the counter; beside it, the drinks as a typed list with prices;
 - **from the market** (adapted from `apps/desktop/gallery/features/features-split-list` over `suppliers`): "Who we cook with", five suppliers, each with what and where ("Eggs · Hilltop Hens, near Mount Horeb · 25 miles"), then "Our story";
 - **the catering band** (adapted from `apps/desktop/gallery/cta/cta-split-image`, on coffee): a photo of a pastry box, "Breakfast for the office, lunch for the team", "Order 48 hours ahead; pick up from 6:30 or we deliver nearby", and "Catering";
-- **the footer (its own):** "Oriel" with its cup, the address and "Get directions", the phone, the hours as rows from `hours` (the rows the script reads), the now line, "Gift cards at the counter", the links from `navigation`, Instagram as a link, and Upstart's credits link.
+- **the footer (its own):** "Oriel" with its cup, the address and "Get directions", the phone, the hours as rows from `hours` (the rows the script reads), the now line, "Gift cards at the counter", the links from `navigation`, Instagram as a link, and Spaka's credits link.
 
 **Menu** (`/menu`):
 - the title, "The menu", and "Breakfast until 11:30 on weekdays and all day at weekends; lunch from 11:30; coffee and the bakery case until we close. Tell us about allergies when you order.";
@@ -172,7 +172,7 @@ The dishes are the gallery's `menu` collection, the people its `team` and the ho
 
 ## Ordering, bookings and what stays outside
 
-Upstart has no ordering, no payments, no calendar and no embeds, so:
+Spaka has no ordering, no payments, no calendar and no embeds, so:
 - **guests walk in** (as built). A café that takes bookings for weekend brunch gets a booking request form; one that sells online sends every "Order ahead" button to its own ordering page (Toast, Square…), a link that leaves the site, never its widget (see What varies);
 - **catering is a request,** confirmed by the café by email, paid at pickup or on delivery; the page says so before and after sending;
 - **no map:** "Get directions" links to the address on a map site, beside written directions;

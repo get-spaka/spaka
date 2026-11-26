@@ -1,20 +1,20 @@
-# Upstart v2 : l'adaptation d'un template page par page (Q302 à Q313)
+# Spaka v2 : l'adaptation d'un template page par page (Q302 à Q313)
 
 ## État (2026-11-22) : terminé
 
 | Tranche | Fait | Commits |
 |---|---|---|
-| 0. Les décisions | ✅ | 27c060c |
-| 1. L'état de l'adaptation et le format | ✅ | 6ffc7cb |
-| 2. La carte des pages | ✅ | 6ffc7cb |
-| 3. Les tours d'adaptation | ✅ | 6ffc7cb |
-| 4. Ailleurs dans l'app | ✅ | d62d9ab |
-| 5. Les huit templates | ✅ | b7962ed (templates 12ccfef) |
-| 6. Vérification | ✅ | 31c3776, 76ff8b3 (la langue du message du créateur) |
+| 0. Les décisions | ✅ | a5225c9 |
+| 1. L'état de l'adaptation et le format | ✅ | f6de3e2 |
+| 2. La carte des pages | ✅ | f6de3e2 |
+| 3. Les tours d'adaptation | ✅ | f6de3e2 |
+| 4. Ailleurs dans l'app | ✅ | 81256ad |
+| 5. Les huit templates | ✅ | dff1691 (templates 12ccfef) |
+| 6. Vérification | ✅ | 794738c, d448d82 (la langue du message du créateur) |
 
 ## Contexte
 
-Avec le guide, l'adaptation d'un template se fait en un seul tour : Claude a mis 550 s sur Ember avant que le créateur voie quoi que ce soit, et tout le site est traité d'un coup. La conception est refaite en Q302 à Q313 (`docs/v2.0-decisions.md`, section « Adapting a template, page by page », commit 27c060c). Le glossaire gagne Adaptation et Page type.
+Avec le guide, l'adaptation d'un template se fait en un seul tour : Claude a mis 550 s sur Ember avant que le créateur voie quoi que ce soit, et tout le site est traité d'un coup. La conception est refaite en Q302 à Q313 (`docs/v2.0-decisions.md`, section « Adapting a template, page by page », commit a5225c9). Le glossaire gagne Adaptation et Page type.
 
 Ce qui change :
 - **Le site parti d'un template est adapté type de page par type de page**, l'accueil d'abord. Un type de page regroupe les pages d'un même premier dossier de `pages/`, avec leurs enregistrements.
@@ -22,15 +22,15 @@ Ce qui change :
   - la carte des pages : chaque type de page avec sa vignette, coché ou non selon le message, l'accueil toujours gardé, les pages nouvelles marquées ;
   - puis, s'il en reste, les choix ouverts pour l'accueil et pour tout le site.
 - **L'accueil se fait d'abord, avec tout ce que les pages partagent** : header, footer, navigation et nom du site. Les types de page non gardés sont supprimés au même moment.
-- **Après chaque type de page, l'agent s'arrête** sur une ou deux phrases qui disent ce qu'il a inventé. Upstart montre alors la liste et le bouton « Continuer : <page> ». Un clic sur une page à faire en fait la suivante.
+- **Après chaque type de page, l'agent s'arrête** sur une ou deux phrases qui disent ce qu'il a inventé. Spaka montre alors la liste et le bouton « Continuer : <page> ». Un clic sur une page à faire en fait la suivante.
 - **Les pages à faire gardent le contenu du template**, marquées « à adapter ». Le contrôle des textes du template ne regarde que les pages faites et les parties communes.
 - **L'adaptation reprend quand le site est rouvert**, et finit avec la dernière page. Publier pendant l'adaptation déclenche un avertissement.
 - **Pas de mode Plan avec un template.**
-- **Le guide est rangé par type de page.** Pendant l'adaptation, il est gardé dans `.upstart/`. À chaque type de page, l'agent reçoit la partie générale du guide et la section de ce type.
+- **Le guide est rangé par type de page.** Pendant l'adaptation, il est gardé dans `.spaka/`. À chaque type de page, l'agent reçoit la partie générale du guide et la section de ce type.
 
 ## Règles de travail (inchangées)
 
-- Les lancements de l'app se font en arrière-plan (`UPSTART_BACKGROUND=1`). La fenêtre de dev de l'onglet « dev window » est arrêtée pendant les builds, puis relancée pour vous.
+- Les lancements de l'app se font en arrière-plan (`SPAKA_BACKGROUND=1`). La fenêtre de dev de l'onglet « dev window » est arrêtée pendant les builds, puis relancée pour vous.
 - Un commit par tranche sur `main`, sans attribution, poussé ensuite. Le sous-module des templates est poussé sur son `main`, sans tag ni release.
 - Avant de stager, je fais un scan des clés, puis j'ajoute les fichiers par chemins explicites. `keys.env` et les fichiers `auth.json` ne sont jamais ajoutés.
 - `pnpm lint` reste propre.
@@ -66,7 +66,7 @@ When removed: ce qu'il faut changer ailleurs (les liens qui y menaient, ses sour
 
 ## Tranches
 
-### 0. Les décisions (fait : 27c060c, poussé)
+### 0. Les décisions (fait : a5225c9, poussé)
 
 ### 1. L'état de l'adaptation et le format
 
@@ -75,7 +75,7 @@ When removed: ce qu'il faut changer ailleurs (les liens qui y menaient, ses sour
 - `guideSections(guide)` : la partie générale, puis une section par type, chacune avec sa route.
 
 **L'état** (nouveau `main/templates/adaptation.ts`)
-- Il est rangé dans `.upstart/adaptation/` : `state.json` et `TEMPLATE.md`.
+- Il est rangé dans `.spaka/adaptation/` : `state.json` et `TEMPLATE.md`.
 - `state.json` contient le template et les étapes `{ type, name, line, status: "todo" | "doing" | "ready" | "done" | "removed", new? }`, où `ready` veut dire « faite, en relecture ».
 - Ses fonctions :
   - `startAdaptation(root, manifest, guide, types)` est appelée par `copyTemplate` ;
@@ -101,9 +101,9 @@ When removed: ce qu'il faut changer ailleurs (les liens qui y menaient, ses sour
 
 ### 2. La carte des pages
 
-**L'outil de l'agent `choose_pages`** (`agent/upstart-tools.ts`, pour Claude comme pour le harnais Pi)
+**L'outil de l'agent `choose_pages`** (`agent/spaka-tools.ts`, pour Claude comme pour le harnais Pi)
 - Ce qu'il reçoit : `pages: [{ type, label, line, checked }]` et `new: [{ label, line, route }]`, tout dans la langue du créateur.
-- Upstart refuse :
+- Spaka refuse :
   - un type inconnu ;
   - l'accueil décoché ;
   - un appel hors du premier tour d'une adaptation.
@@ -203,7 +203,7 @@ When removed: ce qu'il faut changer ailleurs (les liens qui y menaient, ses sour
 
 ## Avancement
 
-- Tranches 1 à 3 : faites, `6ffc7cb` (poussé).
-- Tranche 4 : faite, `d62d9ab` (poussé).
-- Tranche 5 : faite, `b7962ed`, templates `12ccfef` (poussés, sans tag).
-- Tranche 6 : faite. `31c3776` : `e2e/adaptation.e2e.ts` (enregistrement inventé, la carte des pages jouée pour de vrai) passe ; le cas Ember réel est réécrit. Puis la langue : Claude écrivait la carte en espagnol pour un message en anglais sur un bar de Séville ; `choose_pages` demande d'abord `language`, la langue du message. Cas Ember réel avec Claude (app empaquetée) : accueil 152 s (550 s avant pour tout le site), Visite 64 s, carte en anglais. Pi Gemini, avec `language` : accueil 131 s, Visite 69 s (241 s avant pour tout le site), carte en anglais.
+- Tranches 1 à 3 : faites, `f6de3e2` (poussé).
+- Tranche 4 : faite, `81256ad` (poussé).
+- Tranche 5 : faite, `dff1691`, templates `12ccfef` (poussés, sans tag).
+- Tranche 6 : faite. `794738c` : `e2e/adaptation.e2e.ts` (enregistrement inventé, la carte des pages jouée pour de vrai) passe ; le cas Ember réel est réécrit. Puis la langue : Claude écrivait la carte en espagnol pour un message en anglais sur un bar de Séville ; `choose_pages` demande d'abord `language`, la langue du message. Cas Ember réel avec Claude (app empaquetée) : accueil 152 s (550 s avant pour tout le site), Visite 64 s, carte en anglais. Pi Gemini, avec `language` : accueil 131 s, Visite 69 s (241 s avant pour tout le site), carte en anglais.

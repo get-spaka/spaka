@@ -238,7 +238,7 @@ Other settings:
 
 **Gentle,** by the restaurant's character: neighborly, practical, busy at noon. One movement carries the site, the tickets sliding onto the rail; beside it, a slow drift of the plate in front of the name, and short reveals. Everything respects `prefers-reduced-motion`.
 
-In edit mode nothing moves: Upstart's stillness rule stops CSS animations and transitions, and no script runs. Every ticket hangs in its place, the ones marked gone already struck through, and the plate stands where the stylesheet puts it. Each effect is turned on by an attribute, so a new section can have it too.
+In edit mode nothing moves: Spaka's stillness rule stops CSS animations and transitions, and no script runs. Every ticket hangs in its place, the ones marked gone already struck through, and the plate stands where the stylesheet puts it. Each effect is turned on by an attribute, so a new section can have it too.
 
 Nothing follows the clock, so `template.json` sets no `shoot.clock`.
 
@@ -319,7 +319,7 @@ Every "Reserve a booth" button leads to `/reserve#booth`, every "Order pickup" b
   - the address with "Get directions" (a link to the address on a map site), the phone, the email;
   - the two services in one line each, and "Closed Mondays";
   - "Gift cards at the counter";
-  - the links from `navigation`, Instagram as a link, and Upstart's credits link.
+  - the links from `navigation`, Instagram as a link, and Spaka's credits link.
 
 **Menu** (`/menu`):
 - the title, "The menu", and "Two menus, one kitchen. Lunch is fast and at the counter; supper takes its time in the booths. The specials change every morning.";
@@ -417,7 +417,7 @@ Every "Reserve a booth" button leads to `/reserve#booth`, every "Order pickup" b
 
 ## Reservations, pickup and what stays outside
 
-Upstart has no reservations, no ordering, no payments, no calendar and no embeds, so:
+Spaka has no reservations, no ordering, no payments, no calendar and no embeds, so:
 - **a booth is a request** (as built), confirmed by text; the form and its answer say so before and after sending. A restaurant on Resy, OpenTable or Tock links every "Reserve" button to its page there (see What varies), never its widget;
 - **pickup is a request too,** confirmed by text with the total and paid at the door. A restaurant that sells ahead online (Toast, Square, ChowNow) links "Order pickup" to that page;
 - **the specials are typed facts** the maker changes each morning: no live sold-out count. The rail says "86" because someone ticked it;

@@ -70,30 +70,30 @@ Each spike was throwaway code, run apart from the app, that ended with a report 
 
 Asked by Matt on 2026-11-14, after the templates; it reopens "Codex only after a speed trial" and "Gemini is out" (see [the decisions](../v2.0-decisions.md), Agent).
 
-**Question.** Can a maker build a site in Upstart with another agent than Claude's, as well as with Claude: OpenAI's Codex, Google's Gemini CLI, or an open harness that drives many models (Pi, opencode)? And what must Upstart's agent layer become to hold several?
+**Question.** Can a maker build a site in Spaka with another agent than Claude's, as well as with Claude: OpenAI's Codex, Google's Gemini CLI, or an open harness that drives many models (Pi, opencode)? And what must Spaka's agent layer become to hold several?
 
 **For each, studied first, then tried on this Mac.**
 
 - **Sign-in**: with the maker's own subscription (ChatGPT, Google, …) and with an API key (an AI Studio key for Gemini, Matt notes), whether a third-party app may start it that way, and where it keeps its sign-in (never in the maker's own folders, as for Claude: ADR 0010).
 - **Driven by an app**: a headless mode, an SDK or a server; the events it streams.
 - **The live preview** (ADR 0009): whether a file's content arrives while it is being written, token by token, or only once written; what the preview would show in each case.
-- **Confinement** (ADR 0007): its own sandbox and auto mode, or Upstart's around it; a refused action answered without asking the maker.
-- **What Upstart gives the agent**: its tools (an MCP server), skills (Agent Skills), instructions, hooks at the end of a turn and after a tool (the Stop and PostToolUse hooks Upstart uses).
+- **Confinement** (ADR 0007): its own sandbox and auto mode, or Spaka's around it; a refused action answered without asking the maker.
+- **What Spaka gives the agent**: its tools (an MCP server), skills (Agent Skills), instructions, hooks at the end of a turn and after a tool (the Stop and PostToolUse hooks Spaka uses).
 - **Speed**: the launch page request of spike 1, run three times: time to the first file content, to the complete home page, and the longest stretch with nothing moving.
 - **Quality**: the page it writes, judged against Claude's on the same request (Liquid, htmx 4, the theme), and the cost.
 - **Shipping it**: its licence, whether its binary can be shipped inside the app or must be downloaded, its size.
 
 **What gets built.** Throwaway code: each harness installed locally, a script that drives it on the same request in its own isolated configuration and records its stream with timestamps, and a probe per question above.
 
-**Decides.** Which agents Upstart offers, in what order, and the shape of the agent layer (a new ADR, or ADR 0002 reopened).
+**Decides.** Which agents Spaka offers, in what order, and the shape of the agent layer (a new ADR, or ADR 0002 reopened).
 
 **Outcome.** Run on 2026-11-14, see the [report](harnesses.md).
 - **Ready-made harnesses:** only Pi with an OpenAI model on an API key keeps the live preview, at about twice Claude's time to a complete page. Codex (code mode), opencode 2 and every Gemini route send a file only once it is written.
-- **A harness of Upstart's own on Pi's libraries** (second round, the same day, on Matt's question) gives every model the live preview when the model writes its files in its reply's text. Gemini 4 Hydrogen this way, with its thinking low, matches Claude's pace (complete at 22.5 s against 23.6 s) for $0.05 a page.
-- **Google's own agents over ACP, on an AI Studio key** (third round, the same day): with files in the text, Antigravity at effort low completes the page at 20.1 s for $0.065, the fastest of the spike, and Gemini CLI at 41.7 s. Antigravity has no licence, so Upstart may not ship it, and it updates itself.
-- **Subscriptions:** a Claude subscription stays on the Agent SDK. ChatGPT Plus works through Sign in with ChatGPT in Pi (tried with Matt's plan, but slow: Sol complete at 92 s), and an app like Upstart needs OpenAI's acceptance. Google offers apps no subscription route; an AI Studio key may drive both Google agents. Otherwise, the maker's API key.
+- **A harness of Spaka's own on Pi's libraries** (second round, the same day, on Matt's question) gives every model the live preview when the model writes its files in its reply's text. Gemini 4 Hydrogen this way, with its thinking low, matches Claude's pace (complete at 22.5 s against 23.6 s) for $0.05 a page.
+- **Google's own agents over ACP, on an AI Studio key** (third round, the same day): with files in the text, Antigravity at effort low completes the page at 20.1 s for $0.065, the fastest of the spike, and Gemini CLI at 41.7 s. Antigravity has no licence, so Spaka may not ship it, and it updates itself.
+- **Subscriptions:** a Claude subscription stays on the Agent SDK. ChatGPT Plus works through Sign in with ChatGPT in Pi (tried with Matt's plan, but slow: Sol complete at 92 s), and an app like Spaka needs OpenAI's acceptance. Google offers apps no subscription route; an AI Studio key may drive both Google agents. Otherwise, the maker's API key.
 
-Matt's decision (Q268): two adapters behind one interface, Claude through the Agent SDK and a harness of Upstart's own on Pi's libraries ([ADR 0012](../adr/0012-a-second-agent-layer-of-upstarts-own-on-pi.md)).
+Matt's decision (Q268): two adapters behind one interface, Claude through the Agent SDK and a harness of Spaka's own on Pi's libraries ([ADR 0012](../adr/0012-a-second-agent-layer-of-spakas-own-on-pi.md)).
 
 ## What the spikes need from Matt
 

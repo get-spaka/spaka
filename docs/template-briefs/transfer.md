@@ -363,7 +363,7 @@ The choices that change the design, page type by page type; the first option of 
 
 *How do clients ask for a tattoo?* (the whole website)
 - **With the request form** (as built):
-  - the book page's form and each design's claim form; requests arrive in Upstart's Content tab, and the shop replies with dates and a deposit link;
+  - the book page's form and each design's claim form; requests arrive in Spaka's Content tab, and the shop replies with dates and a deposit link;
   - keep `parts/request-form.liquid`, `parts/claim-form.liquid`, `data/requests/`, `data/claims/` and their fragments.
 - **On the shop's own booking system:**
   - for shops whose artists take bookings and deposits through a booking app;
@@ -480,7 +480,7 @@ The Blocks tab offers these first for a site started from Transfer:
 About 26 photographs from Wikimedia Commons and Openverse (CC0, public domain, CC BY, CC BY-SA), credited, plus the template's own drawings.
 
 **The flash: the template's own drawings.**
-- **What:** twelve designs drawn for the template as SVG files in `media/`, credited to Upstart under CC0. Each is drawn twice: in color (ink lines, with flat flash red, yellow and green fills) for the cards, and as lines only for the stencil (`outline`).
+- **What:** twelve designs drawn for the template as SVG files in `media/`, credited to Spaka under CC0. Each is drawn twice: in color (ink lines, with flat flash red, yellow and green fills) for the cards, and as lines only for the stencil (`outline`).
 - **The subjects** are those of a classic sheet: a swallow and dagger, a luna moth, a koi in a wave, moon phases, a coiled snake with a peony, a winged hourglass, a panther head, a little lighthouse, a rose, a spider web, an eye in a hand, a ship in a bottle.
 - **How they are drawn:** in the manner of traditional flash in general (bold outline, few colors), never traced or adapted from a real artist's sheet or a found image.
 - **The artists' marks** are among them, and the footer's "No. 00, Thank you" is a thirteenth, small drawing.
@@ -500,9 +500,9 @@ To read as one set, the photographs are chosen warm, clean and calm, not the usu
 
 The guide tells the agent never to fill an artist's work or flash with found images: the maker's own photos and drawings replace them. Until given, the template's drawings stay, or a placeholder in theme colors with the stencil.
 
-## What Upstart cannot do, and how the brief handles it
+## What Spaka cannot do, and how the brief handles it
 
-- **Deposits and payments:** Upstart has no payments. The forms send requests and claims, and the shop sends a deposit link from its own payment service by email.
+- **Deposits and payments:** Spaka has no payments. The forms send requests and claims, and the shop sends a deposit link from its own payment service by email.
 - **Consent forms and ID:** signed at the shop. The forms ask only that the visitor confirms being 18 or older; they never imitate a consent form.
 - **Reference images:** a form takes a link to references (a board, a post, a shared folder) rather than files.
 - **Live availability:** the books' statuses and the guests' dates are written by the shop, not read from a calendar.

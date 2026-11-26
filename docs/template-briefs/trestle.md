@@ -168,7 +168,7 @@ The choices the agent asks when the maker's messages leave them open, page type 
 **Home** (`/`), with what every page shares:
 
 - *How do clients ask for a quote?*
-  - **They request a site visit with the form** (as built): the request page's form; requests arrive in Upstart's Content tab; every "Request a visit" button points to `/quote#request`.
+  - **They request a site visit with the form** (as built): the request page's form; requests arrive in Spaka's Content tab; every "Request a visit" button points to `/quote#request`.
   - **They call first**: the phone number set large with a call button (`tel:`) in place of the form; the header's button and every request link call; `quote-requests` goes.
   - **Through the firm's own booking page elsewhere**: every request button links out to it, the form goes, and the request page keeps the steps, the area and the workshop.
 - *Do you show your work before and after?*
@@ -212,7 +212,7 @@ The choices the agent asks when the maker's messages leave them open, page type 
   - **Nobody by name**: the story, the wood and the credentials only; `team` goes.
 - *When left out:* the home page's workshop section keeps its photo and figures and loses its link; the credentials move to the request page.
 
-## What Upstart cannot do here, and how the brief handles it
+## What Spaka cannot do here, and how the brief handles it
 
 - **Photos with the request:** visitors cannot send files through a form. The answer asks them to reply to the confirmation email with photos and plans.
 - **A booking calendar:** the site visit is a request with a preferred time (weekday morning or afternoon, Saturday morning), confirmed by phone; a firm with its own online calendar links out to it.

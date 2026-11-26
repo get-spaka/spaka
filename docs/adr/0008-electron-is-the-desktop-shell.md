@@ -4,7 +4,7 @@ status: accepted; the agent running in a signed and notarised app is not yet ver
 
 # Electron is the desktop shell
 
-Upstart's desktop app is built on Electron. A spike built the same small app on Electron 45 and on Electrobun 2.0 and scored both on seven criteria ([report](../spikes/desktop-shell.md)). Electrobun failed one of them and needed a workaround on two that visual editing depends on.
+Spaka's desktop app is built on Electron. A spike built the same small app on Electron 45 and on Electrobun 2.0 and scored both on seven criteria ([report](../spikes/desktop-shell.md)). Electrobun failed one of them and needed a workaround on two that visual editing depends on.
 
 The preview has to show a project the way its visitors will see it, on every operating system the app runs on. Electron ships the same Chromium everywhere. Electrobun renders with each system's own web engine: WebKit on macOS, WebView2 on Windows, and on Linux a WebKitGTK whose version depends on the distribution. Electron also runs the editing script in a world of its own, so a project's scripts can neither break it nor reach it, and it captures the preview faithfully even while the app is in the background, which the agent needs to check its own work.
 

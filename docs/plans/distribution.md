@@ -1,24 +1,24 @@
-# Upstart v2 : plan de la diffusion (0.2.0, macOS et bêta Windows)
+# Spaka v2 : plan de la diffusion (0.2.0, macOS et bêta Windows)
 
-## État (2026-11-25) : tranches 0 à 5 faites, la 6 attend le nouveau nom
+## État (2026-11-26) : tranches 0 à 5 faites, la 6 suit le passage sur get-spaka
 
 | Tranche | Fait | Commits |
 |---|---|---|
-| 0. Le dépôt prêt à être public | ✅ | d4547c8 (licence MIT « Upstart contributors », Q377 ; README ; `.gitattributes`). Un nouveau scan gitleaks, le 2026-11-21, n'a rien trouvé. Le message à Anthropic ([anthropic-message](anthropic-message.md)) est envoyé, dit Matt le 2026-11-25 |
-| 1. La version minimale d'app par template (Q368, Q380) | ✅ | 7fc79ee, fusionnée en 6945e4a ; app en 0.2.0 ; templates v10 |
-| 2. La mise à jour automatique (Q367, Q378) | ✅ | 8429342 |
-| 3. macOS signé et notarisé (Q369, Q379) | ✅ en configuration | 533853e. Aucune app n'a encore été signée ni notarisée avec les vrais secrets : cela se vérifie en tranche 6 |
-| 4. Windows (Q361, Q365, Q372, Q375) | ✅ | b76dc9e ; ensuite, Git Bash sous garde pour le harnais Pi (Q381-Q382, 9570e76) |
-| 5. La CI et la release | ✅ | 5f0b674, ae60798, 5106e96 ; CI verte sur macOS et Windows depuis 16741fb. `release.yml`, `docs/releasing.md` et `docs/releases/0.2.0.md` sont écrits |
-| 6. Les candidates et la 0.2.0 | ⏸ mise de côté le 2026-11-21 | Le nom du projet va changer (Matt, 2026-11-25) : rien ne sort sous le nom Upstart |
+| 0. Le dépôt prêt à être public | ✅ | 79dcd94 (licence MIT « Spaka contributors », Q377 ; README ; `.gitattributes`). Un nouveau scan gitleaks, le 2026-11-21, n'a rien trouvé. Le message à Anthropic est envoyé, dit Matt le 2026-11-25 |
+| 1. La version minimale d'app par template (Q368, Q380) | ✅ | 46e0d15, fusionnée en 0f45cdc ; app en 0.2.0 ; templates v10 |
+| 2. La mise à jour automatique (Q367, Q378) | ✅ | 11a687b |
+| 3. macOS signé et notarisé (Q369, Q379) | ✅ en configuration | 3de4898. Aucune app n'a encore été signée ni notarisée avec les vrais secrets : cela se vérifie en tranche 6 |
+| 4. Windows (Q361, Q365, Q372, Q375) | ✅ | 884a0fd ; ensuite, Git Bash sous garde pour le harnais Pi (Q381-Q382, 1078df6) |
+| 5. La CI et la release | ✅ | c13b17d, 9f7af89, b968702 ; CI verte sur macOS et Windows depuis 4de9819. `release.yml`, `docs/releasing.md` et `docs/releases/0.2.0.md` sont écrits |
+| 6. Les candidates et la 0.2.0 | ⏸ mise de côté le 2026-11-21 | Le projet change de nom (Matt, 2026-11-25) : la release suit son passage sur get-spaka/spaka |
 
-Le 2026-11-25, Matt demande la release, puis répond que le nom va changer et que le dépôt reste privé : rien n'est tagué. Ce jour-là, gitleaks ne trouve rien sur les 335 commits de main, et le dépôt n'a encore aucun secret de signature. Tant que le dépôt est privé, la mise à jour automatique et la page de téléchargement ne marchent pas : il faudra décider où les releases se publient.
+Le 2026-11-25, Matt demande la release, puis répond que le nom va changer et que le dépôt reste privé : rien n'est tagué. Ce jour-là, gitleaks ne trouve rien sur les 335 commits de main, et le dépôt n'a encore aucun secret de signature. Le même jour, le projet prend le nom Spaka et le dépôt devient get-spaka/spaka, public (Q479-Q481) : les releases s'y publient, et la mise à jour automatique comme la page de téléchargement y lisent la dernière.
 
-Reste, pour la tranche 6 : le nouveau nom, dans l'app, son identifiant (`gg.upstart.desktop`), les dépôts et les notes ; où les releases se publient, le dépôt restant privé ; `docs/releases/0.2.0.md`, qui dit encore 24 templates (il y en a 37) ; Matt crée les secrets de signature ; puis `v0.2.0-rc.1`, `v0.2.0-rc.2` (mise à jour depuis la rc.1) et `v0.2.0`, avec l'essai de Matt sous Windows.
+Reste, pour la tranche 6 : Matt crée les secrets de signature ; puis `v0.2.0-rc.1`, `v0.2.0-rc.2` (mise à jour depuis la rc.1) et `v0.2.0`, avec l'essai de Matt sous Windows. Le nom, l'identifiant (`app.spaka.desktop`), les dépôts et les notes (37 templates) sont faits par le passage sur get-spaka.
 
 ## Contexte
 
-Vous avez choisi de préparer la diffusion de l'app. La conception est faite : Q361 à Q375, section « Distributing the app » de `docs/v2.0-decisions.md` (commits 2a0e5e8 et 2d0e2b7).
+Vous avez choisi de préparer la diffusion de l'app. La conception est faite : Q361 à Q375, section « Distributing the app » de `docs/v2.0-decisions.md` (commits 2091f51 et 86f63eb).
 
 Ce qui est décidé :
 - **0.2.0**, pour macOS sur Apple Silicon (signée et notarisée avec votre compte Apple Developer) et une bêta Windows x64 non signée, avec un installeur NSIS par utilisateur.
@@ -66,11 +66,11 @@ Ce qui est décidé :
   - `Documents` est pris par `homedir()` ;
   - pas de `setAppUserModelId` ;
   - pas de gestion de `second-instance`.
-- e2e : `scripts/background-electron.ts` ne connaît que `dist/mac-arm64/Upstart.app`, et quelques tests sont propres à macOS.
+- e2e : `scripts/background-electron.ts` ne connaît que `dist/mac-arm64/Spaka.app`, et quelques tests sont propres à macOS.
 
 ## Règles de travail (inchangées)
 
-- Lancements en arrière-plan (`UPSTART_BACKGROUND=1`). `dev:live` est arrêté pendant les builds.
+- Lancements en arrière-plan (`SPAKA_BACKGROUND=1`). `dev:live` est arrêté pendant les builds.
 - Un commit sur `main` par tranche qui fonctionne, puis un push.
 - `git add` par chemins explicites, après un scan des clés. Jamais `homes/keys.env`, `auth.json` ni aucune clé.
 - **Les secrets de signature** (certificat .p12 et son mot de passe, clé API App Store Connect) :
@@ -86,13 +86,13 @@ Ce qui est décidé :
   - **Si un secret apparaît** : je vous le dis, sans afficher sa valeur. Vous décidez : révoquer la clé, réécrire l'historique (Q376), ou les deux.
 - **`LICENSE`** : MIT, au nom que vous me donnerez.
 - **`README.md`** :
-  - ce qu'est Upstart ;
+  - ce qu'est Spaka ;
   - le téléchargement (dernière release) ;
   - Windows en bêta, avec l'avertissement SmartScreen et Git for Windows ;
   - la construction depuis les sources.
 - **`.gitattributes`** : `* text=auto eol=lf`, pour que la CI Windows ne voie pas tous les fichiers changés.
 - **Les fichiers ignorés** : je vérifie `.gitignore` (`homes/`, `e2e/.runs`, `dist`, `out`).
-- **Le message à Anthropic** (ADR 0002) : rédigé en anglais dans [`anthropic-message.md`](anthropic-message.md), pour que vous l'envoyiez.
+- **Le message à Anthropic** (ADR 0002) : rédigé en anglais, pour que vous l'envoyiez.
 
 ### 1. La version minimale d'app par template (Q368)
 - **`manifest.ts`** : `app`, facultatif, une version minimale `x.y.z`. `template:check` vérifie qu'un template qui utilise le champ `images` déclare `app` ≥ 0.2.0.
@@ -107,12 +107,12 @@ Ce qui est décidé :
 - **Côté templates** : Aspect 1.1.1 déclare `app: "0.2.0"`. Le script de release est régénéré. La release v10 se fait après votre accord.
 
 ### 2. La mise à jour automatique (Q367)
-- **Dépendance** : `electron-updater`, avec le fournisseur GitHub (`upstart-gg/upstart-editor`) dans `build.publish`.
+- **Dépendance** : `electron-updater`, avec le fournisseur GitHub (`get-spaka/spaka`) dans `build.publish`.
 - **Nouveau `main/update.ts`** :
   - une vérification au lancement, puis toutes les 4 h ;
   - `autoDownload` et `autoInstallOnAppQuit` ;
   - à `update-downloaded`, un événement vers le rendu.
-  - Il est éteint hors de l'app empaquetée, en e2e et quand `UPSTART_BACKGROUND` est posé.
+  - Il est éteint hors de l'app empaquetée, en e2e et quand `SPAKA_BACKGROUND` est posé.
 - **Le rendu** : une note discrète « Update ready — Restart », qui appelle `quitAndInstall`. Les textes vont dans `en.ts`.
 - **Statistiques** : un événement `update_installed` (Aptabase), avec la version seule.
 - **Tests** : unitaires avec un faux updater (calendrier, événements, rien hors paquet). La vérification réelle se fait en tranche 6.
@@ -138,7 +138,7 @@ Ce qui est décidé :
   - le lanceur `node` en `.cmd`.
 - **Git for Windows (Q375)** :
   - nouveau `main/agent/git-bash.ts` : il cherche bash dans les emplacements habituels, puis `where git` ;
-  - s'il n'est pas trouvé, le panneau de connexion montre « Upstart needs Git for Windows », avec le lien de téléchargement et « Check again » ;
+  - s'il n'est pas trouvé, le panneau de connexion montre « Spaka needs Git for Windows », avec le lien de téléchargement et « Check again » ;
   - l'agent ne démarre pas sans lui.
 - **`index.ts`** :
   - `path.delimiter` et une seule clé `PATH` ;
@@ -161,7 +161,7 @@ Ce qui est décidé :
   - `icon.mjs` produit aussi `build/icon.ico` (16 à 256 px, l'art sans l'ombre de macOS) ;
   - `build.win` en NSIS par utilisateur (`oneClick`, `perMachine: false`), x64.
 - **e2e** :
-  - `background-electron.ts` connaît `dist/win-unpacked/Upstart.exe` ;
+  - `background-electron.ts` connaît `dist/win-unpacked/Spaka.exe` ;
   - les tests propres à macOS sont marqués ;
   - le fixture rejoué fonctionne avec des chemins Windows.
 

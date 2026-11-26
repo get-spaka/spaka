@@ -1,13 +1,13 @@
-# Upstart
+# Spaka
 
-Upstart is an open-source desktop app for building websites and web apps by chatting with an AI agent and editing the result visually.
+Spaka is an open-source desktop app for building websites and web apps by chatting with an AI agent and editing the result visually.
 
 ## Language
 
 ### People
 
 **Maker**:
-The person using Upstart to build a project.
+The person using Spaka to build a project.
 _Avoid_: User (ambiguous with visitor), customer
 
 **Visitor**:
@@ -17,7 +17,7 @@ _Avoid_: End user, user
 ### Building
 
 **Project**:
-A single website or web app being built in Upstart, embodied as one folder of plain files on the maker's disk. That folder is the project's sole source of truth.
+A single website or web app being built in Spaka, embodied as one folder of plain files on the maker's disk. That folder is the project's sole source of truth.
 _Avoid_: Workspace, site (when meaning the whole unit of work)
 
 **Agent**:
@@ -25,7 +25,7 @@ The AI coding agent that edits a project on the maker's behalf, running under th
 _Avoid_: Assistant, bot, Upsie
 
 **Skill**:
-A set of instructions, sometimes with scripts, that the agent picks up when a task calls for it. A skill ships with Upstart, or is added by the maker either for all their projects or for one project, of which it is then a part.
+A set of instructions, sometimes with scripts, that the agent picks up when a task calls for it. A skill ships with Spaka, or is added by the maker either for all their projects or for one project, of which it is then a part.
 _Avoid_: Plugin, extension, prompt
 
 **Connector**:
@@ -142,11 +142,11 @@ The site's datasource of links, read by every header and footer: each link has i
 _Avoid_: Menu (one menu is one navigation link with links of its own)
 
 **Gallery**:
-The catalogue of blocks that ships with Upstart.
+The catalogue of blocks that ships with Spaka.
 _Avoid_: Library, marketplace
 
 **Template**:
-A complete, ready-made project that a maker can start a new project from, with its own design, its own blocks, a guide for the agent that adapts it and notes on its design. Made by Upstart or by an outside author.
+A complete, ready-made project that a maker can start a new project from, with its own design, its own blocks, a guide for the agent that adapts it and notes on its design. Made by Spaka or by an outside author.
 _Avoid_: Starter, theme; also avoid "template" for the source of a page
 
 **Template guide**:

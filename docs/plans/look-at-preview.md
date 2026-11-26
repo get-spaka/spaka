@@ -1,21 +1,21 @@
-# Upstart v2 : plan de construction du regard de l'agent sur une page
+# Spaka v2 : plan de construction du regard de l'agent sur une page
 
 ## État (2026-11-22) : terminé
 
-La conception (Q314-Q324) est dans [`docs/design/look-at-preview.md`](../design/look-at-preview.md) (c496f50).
+La conception (Q314-Q324) est dans [`docs/design/look-at-preview.md`](../design/look-at-preview.md) (af3edf1).
 
 | Tranche | Fait | Commits |
 |---|---|---|
-| 0. Sonde | ✅ | 9f70c10 (résultats dans `docs/spikes/`) |
-| 1. La vue de l'agent | ✅ | 601c2ec |
-| 2. Les étapes et la réponse | ✅ | 9ed4f31 |
-| 3. Les mesures | ✅ | 0b87fc8 |
-| 4. L'outil et les deux agents | ✅ | 0b87fc8 |
-| 5. Vérifications | ✅ | 1aa3863 ; templates v6 (Beacon, Folio, Marquee 1.1.1) |
+| 0. Sonde | ✅ | 4c2f80e (résultats dans `docs/spikes/`) |
+| 1. La vue de l'agent | ✅ | b72b247 |
+| 2. Les étapes et la réponse | ✅ | ca3ebf0 |
+| 3. Les mesures | ✅ | 36ad94d |
+| 4. L'outil et les deux agents | ✅ | 36ad94d |
+| 5. Vérifications | ✅ | da1223e ; templates v6 (Beacon, Folio, Marquee 1.1.1) |
 
 ## Contexte
 
-Tu as arbitré la conception le 2026-11-15, de Q314 à Q324. Elle est consignée dans `docs/design/look-at-preview.md` et dans la section « The agent looks at a page » de `docs/v2.0-decisions.md` (commit `c496f50`).
+Tu as arbitré la conception le 2026-11-15, de Q314 à Q324. Elle est consignée dans `docs/design/look-at-preview.md` et dans la section « The agent looks at a page » de `docs/v2.0-decisions.md` (commit `af3edf1`).
 
 **Le problème.** Aujourd'hui, `look_at_preview` déplace ton aperçu et n'en photographie que le premier écran, à la largeur de ta colonne.
 
@@ -40,11 +40,11 @@ Tu as arbitré la conception le 2026-11-15, de Q314 à Q324. Elle est consignée
 - une fenêtre hors écran (`offscreen: true`) pour les images. `capturePage` n'y marche pas : les images viennent de l'événement `paint`.
 
 **L'outil.**
-- `main/agent/upstart-tools.ts` définit `look_at_preview`, avec un seul champ, `route`.
+- `main/agent/spaka-tools.ts` définit `look_at_preview`, avec un seul champ, `route`.
 - Il est branché dans `main/index.ts:372` par `look: (route) => preview.look(route)`. Le même outil sert à Claude (MCP) et à Pi.
 - `activity.ts` affiche « Looking at the preview », sans détail.
 
-**Chaque élément rendu** porte `data-up-src="fichier:ligne:offset"`, ajouté par `injectTrace` dans `packages/runtime/src/template.ts`.
+**Chaque élément rendu** porte `data-spaka-src="fichier:ligne:offset"`, ajouté par `injectTrace` dans `packages/runtime/src/template.ts`.
 
 **Les tests et les consignes.**
 - `e2e/preview.e2e.ts:107` vérifie qu'un coup d'œil avec une adresse déplace l'aperçu. C'est à réécrire.
@@ -53,7 +53,7 @@ Tu as arbitré la conception le 2026-11-15, de Q314 à Q324. Elle est consignée
 
 ## Règles de travail (inchangées)
 
-- Toute ouverture de l'app se fait hors écran (`UPSTART_BACKGROUND=1`), sans prendre le focus.
+- Toute ouverture de l'app se fait hors écran (`SPAKA_BACKGROUND=1`), sans prendre le focus.
 - Un commit par tranche sur `main`, sans attribution, poussé. `git add` avec des chemins explicites, après un contrôle des clés.
 - `pnpm lint` reste propre. Les e2e tournent en arrière-plan.
 - Toute nouvelle question de conception passe par AskUserQuestion, à partir de Q325.
@@ -86,7 +86,7 @@ Tu as arbitré la conception le 2026-11-15, de Q314 à Q324. Elle est consignée
 
 **Les étapes**, exécutées par le protocole DevTools (`webContents.debugger`).
 - **Désigner un élément (Q321)** :
-  - `parts/x.liquid` donne le premier élément dont `data-up-src` commence par ce fichier ;
+  - `parts/x.liquid` donne le premier élément dont `data-spaka-src` commence par ce fichier ;
   - `parts/x.liquid:14` donne le premier élément de cette ligne ;
   - sinon, c'est un sélecteur CSS.
 - **Avant d'agir sur un élément**, il est amené à l'écran, puis contrôlé : il existe, il est visible, il n'est pas désactivé, et il n'est pas couvert (`elementFromPoint` au centre). Si un contrôle échoue, la suite s'arrête et la réponse dit pourquoi.
@@ -100,7 +100,7 @@ Tu as arbitré la conception le 2026-11-15, de Q314 à Q324. Elle est consignée
 
 **La réponse**, en plus de l'image :
 - la page, l'écran, « screen n of m » ;
-- les parties présentes à l'écran (fichiers de `data-up-src` des sections visibles) ;
+- les parties présentes à l'écran (fichiers de `data-spaka-src` des sections visibles) ;
 - les étapes faites ;
 - les erreurs de la page, les notes de rendu, les problèmes mesurés.
 
@@ -111,7 +111,7 @@ Tu as arbitré la conception le 2026-11-15, de Q314 à Q324. Elle est consignée
 - **des images non chargées** ;
 - **des liens vers une adresse sans page**, vérifiés par `runtime.resolve` côté main.
 
-Chaque problème vient avec son fichier et sa ligne (le `data-up-src` le plus proche). Le bruit se règle sur les huit templates (tranche 3).
+Chaque problème vient avec son fichier et sa ligne (le `data-spaka-src` le plus proche). Le bruit se règle sur les huit templates (tranche 3).
 
 **L'outil** `look_at_preview` garde son nom. Ses entrées :
 - `route` ;
@@ -187,7 +187,7 @@ Un seul appel exécute les étapes dans l'ordre et répond par une seule image. 
 
 ## Fichiers principaux
 - `apps/desktop/src/main/preview/agent-view.ts` (nouveau), `preview.ts`, `server.ts` si besoin.
-- `apps/desktop/src/main/agent/upstart-tools.ts`, `activity.ts`, `pi/tools.ts`, `index.ts`.
+- `apps/desktop/src/main/agent/spaka-tools.ts`, `activity.ts`, `pi/tools.ts`, `index.ts`.
 - `apps/desktop/src/shared/strings/en.ts`.
 - `apps/desktop/src/main/templates/adapt.ts`, `apps/desktop/skills/site-scripts/SKILL.md`.
 - `e2e/preview.e2e.ts`, `e2e/looks.e2e.ts` (nouveau), `e2e/fixtures/looks/` (nouveau).

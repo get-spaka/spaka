@@ -1,4 +1,4 @@
-# Upstart v2 : la vague 5 de templates
+# Spaka v2 : la vague 5 de templates
 
 Décidée avec Matt le 2026-11-23 (Q450-Q474, consignées dans `docs/v2.0-decisions.md`, « Templates (build step 5) »). Le vocabulaire (vague, lot, brief, move, effet signature, niveau de mouvement) est dans `GLOSSARY.md`.
 
@@ -8,10 +8,10 @@ Décidée avec Matt le 2026-11-23 (Q450-Q474, consignées dans `docs/v2.0-decisi
 |---|---|---|
 | 0. L'inventaire des 28 et la règle du skill | ✅ | (avec les briefs) |
 | 1. Les tendances, sujet par sujet | ✅ | (notes de travail, reprises dans chaque brief) |
-| 2. Les neuf briefs, approuvés ensemble | ✅ | c644b24 |
-| 3. Lot 1 : Batten (théâtre), Covered (SaaS), Dogear (librairie) | ✅ | templates ec350d9 (Dogear), d8e01b5 (Covered), 11a72bf (Batten) ; inventaire et pointeur 8423c9e |
-| 4. Lot 2 : Heats (modèle open source), Strum (école de musique), Spindle (restaurant) | ✅ | templates 4456f36 (Heats), 93a3e5a (Strum), 0f95d76 (Spindle), 4632ec3 (lien des crédits de Dogear) ; inventaire et pointeur d658aa9 ; corrections de Strum : templates a7ab107, pointeur c10e415 |
-| 5. Lot 3 : Ruled (formation), Bolster (yoga), Overhead (coworking) | ✅ | templates 02fc4ef (Ruled), f003c5a (Overhead), d3f18b2 (Bolster) ; inventaire et pointeur 1b82eca |
+| 2. Les neuf briefs, approuvés ensemble | ✅ | e39696c |
+| 3. Lot 1 : Batten (théâtre), Covered (SaaS), Dogear (librairie) | ✅ | templates ec350d9 (Dogear), d8e01b5 (Covered), 11a72bf (Batten) ; inventaire et pointeur acafa24 |
+| 4. Lot 2 : Heats (modèle open source), Strum (école de musique), Spindle (restaurant) | ✅ | templates 4456f36 (Heats), 93a3e5a (Strum), 0f95d76 (Spindle), 4632ec3 (lien des crédits de Dogear) ; inventaire et pointeur de94d31 ; corrections de Strum : templates a7ab107, pointeur c17a8a8 |
+| 5. Lot 3 : Ruled (formation), Bolster (yoga), Overhead (coworking) | ✅ | templates 02fc4ef (Ruled), f003c5a (Overhead), d3f18b2 (Bolster) ; inventaire et pointeur c7e1d5f |
 | 6. Releases v14 et v15, et pointeur | ✅ | templates a7ab107, tag v14 (2026-11-25) : 34 templates, les lots 1 et 2, sans attendre le lot 3 (Matt) ; puis templates d3f18b2, tag v15 (2026-11-25) : 37 templates, avec le lot 3 |
 
 ## D'où l'on part
@@ -42,7 +42,7 @@ Le plan initial (Q230) visait 30 à 50 templates, en vagues, « surtout des desi
 
 **Les images générées (Q452).** Chaque brief dit où une illustration, une texture ou une scène d'ambiance générée sert mieux son style qu'une photo libre, et les demande là. C'est `pnpm template:image generate`, payé par la clé du `.env`. Jamais l'équipe, une vraie personne, un logo ou du texte. Le template demande alors l'app 0.2.0.
 
-**Comment on construit (Q457, Q458, Q464).** Les neuf briefs sont écrits dans cette session et approuvés ensemble. Ensuite chaque template est construit par une session à lui, dans sa worktree et sur sa branche `template/<id>` de upstart-gg/upstart-templates, trois à la fois, en lots mélangés. Chacun est relu ici, puis mergé à son tour dans le main des templates. Une seule release, v14, à la fin. Le pointeur du submodule passe par une PR de upstart-editor.
+**Comment on construit (Q457, Q458, Q464).** Les neuf briefs sont écrits dans cette session et approuvés ensemble. Ensuite chaque template est construit par une session à lui, dans sa worktree et sur sa branche `template/<id>` de get-spaka/templates, trois à la fois, en lots mélangés. Chacun est relu ici, puis mergé à son tour dans le main des templates. Une seule release, v14, à la fin. Le pointeur du submodule passe par une PR de spaka-editor.
 
 **Les contrôles (Q465).** Ceux des vagues 2 à 4 : `template:check`, `template:shoot` et sa feuille de relecture, `e2e/templates-again.e2e.ts`. Pas d'adaptation par l'agent réel.
 
@@ -84,7 +84,7 @@ Le plan initial (Q230) visait 30 à 50 templates, en vagues, « surtout des desi
   - aucune teinte déjà prise ;
   - le SaaS et l'open source ne se ressemblent pas.
 - Je te les présente ensemble. Tes corrections sont écrites dedans, et l'approbation est consignée dans les décisions, comme pour la vague 4.
-- Les briefs et l'inventaire passent par une PR de upstart-editor (case non cochée), mergée avant les sessions : elles partent de main et y trouvent leur brief.
+- Les briefs et l'inventaire passent par une PR de spaka-editor (case non cochée), mergée avant les sessions : elles partent de main et y trouvent leur brief.
 - **Fini quand** les neuf briefs sont approuvés et mergés.
 
 ### 3 à 5. Les trois lots
@@ -99,7 +99,7 @@ Pour chaque lot :
 - Trois sessions, lancées d'ici, une par template, chacune dans sa worktree partant de main, avec un brief court :
   - le chemin de son brief approuvé ;
   - les étapes 3 à 5 du skill making-templates ;
-  - sa branche `template/<id>` dans le submodule, poussée sur upstart-gg/upstart-templates ;
+  - sa branche `template/<id>` dans le submodule, poussée sur get-spaka/templates ;
   - fini quand `template:check` ne trouve rien, que `template:shoot` a fait ses photos et sa feuille de relecture sans rien relever, et que `templates-again` passe sur ce template.
 - Je relis chaque template ici : la feuille de relecture, les pages en mouvement et sous reduced motion, le guide `TEMPLATE.md` et les notes de design, les crédits et les images générées.
 - Ce que je trouve repart à sa session. Une fois le template bon, il est mergé dans le main des templates, à son tour, et sa ligne entre dans l'inventaire.
@@ -109,7 +109,7 @@ Pour chaque lot :
 ### 6. Release v14 et pointeur
 
 - `pnpm template:release` en local d'abord, avec le catalogue de v13, puis le tag v14 et la CI du dépôt des templates : 37 templates, Latest.
-- Le pointeur du submodule passe sur ce commit par une PR de upstart-editor (case non cochée), avec le tableau d'état et les décisions à jour.
+- Le pointeur du submodule passe sur ce commit par une PR de spaka-editor (case non cochée), avec le tableau d'état et les décisions à jour.
 - **Fini quand** v14 est publiée et la PR du pointeur mergée.
 
 ## Ce qui reste hors de ce plan

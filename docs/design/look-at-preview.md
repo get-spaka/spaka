@@ -4,7 +4,7 @@ Design document, 2026-11-15. It decides how far `look_at_preview` should go beyo
 
 ## What the agent has today
 
-`look_at_preview` ([upstart-tools.ts](../../apps/desktop/src/main/agent/upstart-tools.ts), `look()` in [preview.ts](../../apps/desktop/src/main/preview/preview.ts)) is an Upstart tool, the same for Claude and for Pi (ADR 0012). Given a `route`, it first moves the maker's preview to that page, then answers with three things:
+`look_at_preview` ([spaka-tools.ts](../../apps/desktop/src/main/agent/spaka-tools.ts), `look()` in [preview.ts](../../apps/desktop/src/main/preview/preview.ts)) is a Spaka tool, the same for Claude and for Pi (ADR 0012). Given a `route`, it first moves the maker's preview to that page, then answers with three things:
 
 - **A picture of the visible screen only.** `Page.captureScreenshot` is called with no option, so the agent never sees below the first screen.
 - **The page's JavaScript errors** from the last minute: console messages of level `error`, at most 50.
@@ -22,7 +22,7 @@ What the agent cannot do:
 - hover or click;
 - see a scroll-driven section in motion.
 
-Upstart also tells the agent some things without being asked ([turn-checks.ts](../../apps/desktop/src/main/agent/turn-checks.ts)): datasource files that do not read, samples, lorem ipsum and template texts left, pages taken off still there. On 2026-11-15 Matt chose not to add a check of page errors before the agent stops. This document keeps to that: everything here happens when the agent looks.
+Spaka also tells the agent some things without being asked ([turn-checks.ts](../../apps/desktop/src/main/agent/turn-checks.ts)): datasource files that do not read, samples, lorem ipsum and template texts left, pages taken off still there. On 2026-11-15 Matt chose not to add a check of page errors before the agent stops. This document keeps to that: everything here happens when the agent looks.
 
 ## What went wrong that a look would have caught
 
@@ -36,7 +36,7 @@ Upstart also tells the agent some things without being asked ([turn-checks.ts](.
 
 [agent-browser](https://github.com/vercel-labs/agent-browser) (Vercel, Apache-2.0) is a CLI in Rust. Through a daemon, it drives Chrome for Testing, which it downloads. It reads the page as text with references (`@e1`), clicks, fills, hovers, scrolls, and reads the console, network, Web Vitals and accessibility.
 
-Electron already holds a Chromium and gives the DevTools protocol (`webContents.debugger`). The preview already uses it to emulate devices and take its pictures. Everything below can therefore be built on the preview's own page, rendered by Upstart's runtime. That keeps:
+Electron already holds a Chromium and gives the DevTools protocol (`webContents.debugger`). The preview already uses it to emulate devices and take its pictures. Everything below can therefore be built on the preview's own page, rendered by Spaka's runtime. That keeps:
 
 - the rendering notes;
 - the overlay of files being written;
@@ -71,7 +71,7 @@ The answer carries one picture of about 1,500 tokens with Claude, at any of the 
 ### 3. The rest of the page (Q316)
 
 - **a. One screen at a time, at a part of the page** ➡️ ✅: `at: "parts/pricing.liquid"`, or a CSS selector.
-  - Every element of the preview already carries `data-up-src="file:line:offset"`, so the agent can name a part by the file it wrote.
+  - Every element of the preview already carries `data-spaka-src="file:line:offset"`, so the agent can name a part by the file it wrote.
   - The view scrolls there as a person would (wheel events, so smooth-scroll libraries and scroll timelines follow), waits until the page settles, and takes one screen.
   - The answer says how many screens the page is tall and which parts it holds, so the agent knows what is left to see.
 - **b. A picture of the whole page.**
@@ -98,7 +98,7 @@ The answer carries one picture of about 1,500 tokens with Claude, at any of the 
 
 ### 5. Problems measured, in text (Q318)
 
-Text is cheap and does not depend on the model reading a picture well. In the hidden view, Upstart can measure:
+Text is cheap and does not depend on the model reading a picture well. In the hidden view, Spaka can measure:
 
 - the page wider than the screen (it scrolls sideways), and the widest element;
 - text cut off or running out of its box (an `overflow: hidden` box whose text is longer);
@@ -106,7 +106,7 @@ Text is cheap and does not depend on the model reading a picture well. In the hi
 - images that did not load;
 - links to an address that has no page.
 
-Each problem comes with the element's `file:line`, from `data-up-src`.
+Each problem comes with the element's `file:line`, from `data-spaka-src`.
 
 - **a. Measured at the three screens, whatever screen the picture is of** ➡️. The most common breakage is at the screen not looked at. It costs a few hundred tokens, and about a second for three layouts (to measure).
 - **b. Only at the screen looked at.** ✅

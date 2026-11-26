@@ -180,7 +180,7 @@ It is not:
 
 **Still**, the web-design skill's first level: hover and focus states only, with transitions of 150 to 200 ms. Why: the course sells calm attention, six weeks with one essay, and the page should behave as the course does. Nothing asks for the eye but the words. What answers the visitor answers them only where they point, at once and briefly. Its life comes from elsewhere: the large Gelasio and its italic, the ruled rhythm of every list, generous space (`py-24 md:py-36`), the one mark per section, and the syllabus that lights its evenings.
 
-The template has **no `scripts/` folder, no `scripts/libraries.json` and no library**. Everything below is CSS in `styles/site.css`. The page with no script is the page itself. Under `prefers-reduced-motion: reduce` every transition below is left out (they sit in `@media (prefers-reduced-motion: no-preference)`), and each state still appears, at once. In edit mode Upstart's stillness rule stops transitions and no script runs (there is none): the page is exactly as a visitor sees it at rest. A hover there still lights a week, at once, and nothing ever depends on it. There is no `stop` to write, and nothing follows the clock, so `template.json` sets no `shoot.clock`.
+The template has **no `scripts/` folder, no `scripts/libraries.json` and no library**. Everything below is CSS in `styles/site.css`. The page with no script is the page itself. Under `prefers-reduced-motion: reduce` every transition below is left out (they sit in `@media (prefers-reduced-motion: no-preference)`), and each state still appears, at once. In edit mode Spaka's stillness rule stops transitions and no script runs (there is none): the page is exactly as a visitor sees it at rest. A hover there still lights a week, at once, and nothing ever depends on it. There is no `stop` to write, and nothing follows the clock, so `template.json` sets no `shoot.clock`.
 
 - **The linked syllabus** (`data-syllabus` on the section; `data-week="2"` on week 2's row and on each of its calendar days, sessions and due day alike):
   - one rule a week number, from 1 to 16, written out in the stylesheet:
@@ -241,7 +241,7 @@ The cohorts are the template's own `cohorts` collection, read by the hero's fact
   - "The Slow Draft", "A live course in the personal essay, taught from Burlington, Vermont, three times a year." and the next cohorts as one ruled line each;
   - a compact waitlist field, adapted from `apps/desktop/gallery/newsletter/newsletter-compact-strip`, over `waitlist`;
   - the links from `navigation`, the email and the phone ("Mondays, 10 to noon");
-  - Upstart's credits link.
+  - Spaka's credits link.
 
 **Syllabus** (`/syllabus`):
 - the title, "Syllabus", and in Gelasio italic "Winter 2027 · January 12 to February 18 · Tuesdays and Thursdays, 7 to 8:30 pm Eastern";
@@ -319,7 +319,7 @@ No page shows the collected records, so neither has test records.
 
 ## Enrolling, and what stays outside
 
-Upstart has no checkout, no payments, no calendar and no embeds, so:
+Spaka has no checkout, no payments, no calendar and no embeds, so:
 - **a place is asked for** (as built). The teacher answers by email with a payment link from her own invoicing tool, and the form and its answer say so before and after sending. A teacher with her own checkout (a payment link, a course platform) links every "Ask for a place" to it instead (see What varies), never embeds it;
 - **places left are a number the maker types:** `places_left` shows "5 of 14 places left", 0 shows "This cohort is full", and empty shows nothing. Nothing counts down, and nothing counts enrollments;
 - **the calendar is the course's printed dates,** built from the weeks' records, not a widget. Nobody picks a date in it, and there is no "add to calendar" file: the dates go out with the payment link;

@@ -68,9 +68,9 @@ Other settings: `--theme-radius: 0.375rem` (only the letterbox and the plates sh
 
 ## Motion
 
-Everything respects `prefers-reduced-motion`. In edit mode nothing moves: Upstart's stillness rule stops every CSS animation and transition, no script runs, and every picture, highlight and rule is in its final place.
+Everything respects `prefers-reduced-motion`. In edit mode nothing moves: Spaka's stillness rule stops every CSS animation and transition, no script runs, and every picture, highlight and rule is in its final place.
 
-- **Ink:** a picture in a `data-ink` frame is printed in the green ink, in CSS alone: the image greyscale, multiplied onto the sage, with an overlay of the primary color lightening it, so dark becomes fir and light becomes sage. On a desktop, hovering or focusing its letter's link brings its color back over 0.5 s, only under `html[data-up-moving]` and `(hover: hover)`, so it stays inked while editing; under reduced motion the color returns at once. With no script it is inked: that is its final state.
+- **Ink:** a picture in a `data-ink` frame is printed in the green ink, in CSS alone: the image greyscale, multiplied onto the sage, with an overlay of the primary color lightening it, so dark becomes fir and light becomes sage. On a desktop, hovering or focusing its letter's link brings its color back over 0.5 s, only under `html[data-spaka-moving]` and `(hover: hover)`, so it stays inked while editing; under reduced motion the color returns at once. With no script it is inked: that is its final state.
 - **Develop:** on a letter's page, its cover and pictures under `data-develop` start inked and develop into full color as they come into view, over 1.2 s (`scripts/develop.js`: Motion's `inView` and `animate` on the image's `filter` and an ink layer's `opacity`). The script sets the inked state itself; with no script, under reduced motion and in edit mode they are in full color.
 - **The reading rule:** on a letter's page, the compact header's bottom rule (`data-progress`) fills in fir from left to right as you read. It is CSS only (`animation-timeline: scroll(root)`, in `@supports` and in `prefers-reduced-motion: no-preference`). With no support, under reduced motion and in edit mode, it is a plain full rule.
 - **Highlights:** a `<mark>` in a letter's text (`data-highlight` on the text) has its fern highlight swept in from the left as it comes into view. This is CSS only (`animation-timeline: view()`). Its base state is fully highlighted, so with no support, under reduced motion and in edit mode it is simply highlighted.
@@ -91,7 +91,7 @@ The posts are the gallery's `blog` collection, so a blog block dropped later lis
 - **topics (its own):** the five topics as inked plates cut from old maps and engravings of the city, each with its name and a line, linking to the topic's page;
 - **from the archive:** three older letters in text-only columns, then "Read one at random" and "All 142 letters";
 - **the writer:** an inked portrait, two sentences in her voice, and "More about Nell". It is adapted from `apps/desktop/gallery/about/about-founder-note`, on the light page;
-- **the footer (adapted from `apps/desktop/gallery/footer/footer-simple-centered`, on forest):** the name, one line, the links from `navigation`, "Written in Providence since 2021", and Upstart's credits link.
+- **the footer (adapted from `apps/desktop/gallery/footer/footer-simple-centered`, on forest):** the name, one line, the links from `navigation`, "Written in Providence since 2021", and Spaka's credits link.
 
 **Letters** (`/letters`):
 - the title, "142 letters since 2021", and a row of topic links;

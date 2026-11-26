@@ -80,7 +80,7 @@ The palette's pairing of a deep wine red with a powder blue is also from these e
   - the making shown on dot-and-cross pattern paper, with printed pattern pieces (cut line, notches, grain-line arrow, "Cut 2 on fold").
 
 **What it leaves out:**
-- a bag, a wishlist, accounts, a currency or country switch, newsletter pop-ups and cookie walls (an Upstart site tracks nothing);
+- a bag, a wishlist, accounts, a currency or country switch, newsletter pop-ups and cookie walls (a Spaka site tracks nothing);
 - preloaders, video, an Instagram feed, and product photos cut out on white, which small labels rarely have;
 - **effects other templates already have:**
   - a scrolling ticker (Corner's, and Tilly Sveaas's);
@@ -306,7 +306,7 @@ The choices that change the design, page type by page type; the first option of 
 
 *How does a visitor buy a piece?* (the whole website)
 - **By request, with the form** (as built):
-  - each piece's page has the request form; requests arrive in Upstart's Content tab, and the label replies with the timing and a payment link;
+  - each piece's page has the request form; requests arrive in Spaka's Content tab, and the label replies with the timing and a payment link;
   - keep `parts/order-form.liquid`, `data/orders/`, `fragments/order-thanks.liquid`, the pieces page's "How to buy" steps and the header's "How to buy" button (`/pieces#how-to-buy`).
 - **On the label's own online shop:**
   - each piece's button becomes "Buy at the shop", to its page on the shop (`shop_link`, or the shop's address);

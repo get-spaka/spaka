@@ -372,9 +372,9 @@ From Wikimedia Commons and Openverse (CC0, public domain, CC BY, CC BY-SA), cred
 
 No image is tinted or graded. They share the page's sun because they are chosen for it, and the openings' shadows pull them together. A maker's practice brings its own photographs. Until the maker gives them, a project keeps an empty opening in rammed earth with its plaque, which the guide says when adapting. The agent never shows found photos as the maker's built work.
 
-## What Upstart cannot do, and how the brief handles it
+## What Spaka cannot do, and how the brief handles it
 
-- **Booking the site study and taking its fee:** Upstart has no payments or calendar, so the brief is a request through a form, and the practice arranges the study and its invoice by email. A scheduling page can be linked instead (a choice of the home page).
+- **Booking the site study and taking its fee:** Spaka has no payments or calendar, so the brief is a request through a form, and the practice arranges the study and its invoice by email. A scheduling page can be linked instead (a choice of the home page).
 - **Files with the brief** (site photos, surveys, plans): the form takes no files, so the answer asks for them by reply to the confirmation email.
 - **The real sun:** the shadows turn with each element's place on the screen, not with the clock, and the sunset line is worked out in the browser from the studio's latitude and longitude, with no outside service.
 - **Maps:** the address is set large with a "Get directions" link, and there is no map embed.

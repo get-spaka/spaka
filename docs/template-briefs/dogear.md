@@ -141,7 +141,7 @@ It is not Saucer's marmalade with glass blue, Decal's truck yellow with guava, C
 
 ## Motion
 
-Gentle, by a neighborhood shop's character: the cards rise, and little else moves. Everything respects `prefers-reduced-motion`. In edit mode nothing moves: Upstart's stillness rule stops CSS animations and transitions and no script runs. So every card stands at its rest height (the hero's bands peeking, the others full), every reading is listed with no "Tonight", the gift card shows its sample label, and nothing is prefilled. Each effect is turned on by an attribute, so a new section can have it too.
+Gentle, by a neighborhood shop's character: the cards rise, and little else moves. Everything respects `prefers-reduced-motion`. In edit mode nothing moves: Spaka's stillness rule stops CSS animations and transitions and no script runs. So every card stands at its rest height (the hero's bands peeking, the others full), every reading is listed with no "Tonight", the gift card shows its sample label, and nothing is prefilled. Each effect is turned on by an attribute, so a new section can have it too.
 
 - **The jackets** (`data-jacket`, `data-tone`, `data-format` on a book; CSS only):
   - five layouts, `band` (a band across the middle with the title and author), `frame` (an inset rule, the title above and the author below), `type` (the title alone, huge, breaking over lines, flush left), `cloth` (woven cloth with a pasted paper label) and `art` (the print over the top two thirds, the type below);
@@ -195,7 +195,7 @@ The books are the gallery's `products` collection, labeled "Books" in the Conten
   - the wordmark in ochre, "Books & coffee in the Armory District since 2019";
   - the address with "Get directions" (a link to the address on a map site), the phone, the email, the week from `hours`;
   - the Tuesday letter (adapted from `apps/desktop/gallery/newsletter/newsletter-compact-strip` over `newsletter`): "The Tuesday letter: new books and the week's readings";
-  - the links from `navigation`, Instagram as a link, and Upstart's credits link.
+  - the links from `navigation`, Instagram as a link, and Spaka's credits link.
 
 **Books** (`/books`, with a page per book):
 - the title, "Books", and "What we're reading, what came in on Tuesday, and what's signed. Everything here is on our shelves or a phone call away.";
@@ -294,7 +294,7 @@ The books are the gallery's `products` collection, labeled "Books" in the Conten
 
 ## Buying, booking and what stays outside
 
-Upstart has no checkout, no payments, no calendar and no embeds, so:
+Spaka has no checkout, no payments, no calendar and no embeds, so:
 - **a book is asked for, then paid at the till** (as built): a hold or an order is a request; the shop calls or texts when it's in. A shop with an online store (IndieCommerce, Bookshop.org, Shopify) puts its address in each book's `order_link`, and the book shows "Buy online" beside "Hold a copy" (see What varies). It is never embedded;
 - **readings are an RSVP,** to count chairs; ticketed nights are paid at the door. A shop that sells tickets elsewhere (Eventbrite, Crowdcast) links each reading's `booking` there;
 - **gift cards are asked for and paid by phone,** or linked to the shop's own gift card page;

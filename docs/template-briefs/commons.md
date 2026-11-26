@@ -74,7 +74,7 @@ These come from 15 nonprofit, foundation and campaign sites opened in November 2
 **What it leaves out:**
 - lines that draw themselves (underlines, loops, outlines): Seam, briefed beside it, draws its grease-pencil loops. Commons takes the trend's paper and handwriting rather than its pen strokes;
 - preloaders and splash screens (woonpact.gent and the Walton site have them);
-- video, and any feed or map embedded from another site, which Upstart does not allow: a "Get directions" link replaces the map;
+- video, and any feed or map embedded from another site, which Spaka does not allow: a "Get directions" link replaces the map;
 - figures that count up from zero, which would have a script rewrite the maker's numbers: the figures are always the real text;
 - carousels; condensed poster capitals (Corner, Marquee, Reel); tilted stickers and slabs (Marquee, Reel); a ticker (Corner); duotoned photos (Margin); a word set on a pill or in an italic serif inside a heading (Pocket, Corner, Linen);
 - a "quick exit" button and a crisis line: they matter for some nonprofits, but not for this one. The design notes say how to add them.
@@ -261,7 +261,7 @@ The choices the agent asks for each page type, the first one recommended. Facts 
 It carries the choices for the whole website.
 
 **How do people give money?**
-- **On your own donation page** (as built): every Donate button opens, in a new tab, the page where the nonprofit already takes gifts (its bank's, PayPal, Givebutter, Donorbox, Zeffy…); Upstart takes no payments. Its address goes into `appeal.link`, which every Donate button, the jar and the give levels read; until it is given, they lead to `/give`.
+- **On your own donation page** (as built): every Donate button opens, in a new tab, the page where the nonprofit already takes gifts (its bank's, PayPal, Givebutter, Donorbox, Zeffy…); Spaka takes no payments. Its address goes into `appeal.link`, which every Donate button, the jar and the give levels read; until it is given, they lead to `/give`.
 - **With a pledge form:** visitors say what they mean to give, once or monthly, and leave their name and email; the nonprofit then sends them how to pay. This adds a `pledges` datasource (amount, frequency, name, email, note, collected) and its thank-you fragment, puts the form on the give page in place of the levels' buttons, and points the Donate buttons to `/give#pledge`.
 - **By check or in person only:** the give page says to whom to write the check, where to send it, and when the shed takes gifts in person. The Donate buttons lead to `/give#ways`, and the levels become examples without buttons.
 - **Things and time, not money:** "Donate" becomes "Give things" and leads to `/give#things`. The jar counts things instead of dollars ("120 winter coats by November 30: 74 so far"). The levels and the dollar bar go.
@@ -272,7 +272,7 @@ It carries the choices for the whole website.
 - **By phone:** a help line set large with its hours. The door's links and "Not sure where to start?" lead to `tel:`.
 
 **Does it send a newsletter?**
-- **Yes, sign-ups kept in Upstart** (as built): the footer's Porch Letter form posts to `newsletter`. Sign-ups arrive in the Content tab, to be copied into whatever tool sends the email; Upstart does not send it.
+- **Yes, sign-ups kept in Spaka** (as built): the footer's Porch Letter form posts to `newsletter`. Sign-ups arrive in the Content tab, to be copied into whatever tool sends the email; Spaka does not send it.
 - **On another service:** the form gives way to a "Get the Porch Letter" button to the maker's Mailchimp, Buttondown or other page; `data/newsletter/` and its fragment go.
 - **No newsletter:** the form goes, and the footer keeps the address and the hours.
 

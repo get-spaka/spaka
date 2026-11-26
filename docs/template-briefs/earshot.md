@@ -73,7 +73,7 @@ Two of them, rectangles.fm and dive.club, lead with video: the episode is a YouT
 - **the on-air lamp:** a lamp in the header that lights on release day ("On air today: episode 142"), and otherwise says when the next one comes. It is a small touch, not the signature: Taper, briefed at the same time, has a barber pole that turns only while the shop is open, also read from the clock. If the author wants that idea in one template only, the lamp stays an outlined dot beside "New episodes every Tuesday", and `scripts/on-air.js` goes.
 
 **What it leaves out:**
-- an audio player of its own, autoplay and a sound toggle: Upstart serves no audio, and sound that starts by itself sends visitors away (see the end of this brief);
+- an audio player of its own, autoplay and a sound toggle: Spaka serves no audio, and sound that starts by itself sends visitors away (see the end of this brief);
 - scroll-jacking (CTRL SHIFT's), a headphone cable or microphone drawn as the site's emblem, a wall of episode tiles as the hero (Acquired's), and a giant wordmark across the footer (Corner's, Ember's and Seam's);
 - **other templates' devices:** a ticker (Corner's), letters that stretch, flip or rise one by one (Marquee's, Encore's board), anything pinned while the page scrolls or scrolling sideways (Ember's, Pocket's, Reel's), a line drawing itself as the page scrolls (Chalk's), a reading-progress rule (Margin's), a picture following the cursor (Folio's), WebGL, and page transitions (Chalk, Seam, Ember, Reel and Encore each have theirs).
 
@@ -329,9 +329,9 @@ Its Party Line follows how the show pays for itself, chosen with the home page.
 
 **When left out:** delete the page, its parts, `tapings`, `listen-perks` and `listen-faq`, and its navigation record. The header's Listen pill keeps its list of platforms, "All the ways to listen" goes, and the footer keeps the platforms and the newsletter.
 
-## What stays outside Upstart
+## What stays outside Spaka
 
-- **Audio:** Upstart serves no audio and its media library takes none (decision Q169), and the template check refuses `<audio>`, `<video>` and `<iframe>` from another site in the template's own files. The episodes live on the maker's podcast host, which makes the RSS feed the apps read; the site links to them. A host's player can be embedded only by the maker's own address in an episode's `player` field (the choice above), never in the template as built.
+- **Audio:** Spaka serves no audio and its media library takes none (decision Q169), and the template check refuses `<audio>`, `<video>` and `<iframe>` from another site in the template's own files. The episodes live on the maker's podcast host, which makes the RSS feed the apps read; the site links to them. A host's player can be embedded only by the maker's own address in an episode's `player` field (the choice above), never in the template as built.
 - **The feed:** the site does not make the podcast's RSS feed; it shows its address.
 - **Membership:** payment and the ad-free feed are the membership platform's; the site links to its page.
 - **The voicemail line:** a phone number from a service the maker already has; the site shows it as a `tel:` link.

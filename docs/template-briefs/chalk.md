@@ -137,7 +137,7 @@ Other settings:
 - borders are bold (`--theme-border: 2px`), as chunky as the holds.
 
 **The circuits are the theme's colors, never their own.**
-- **The mapping:** yellow is `warning`, green `success`, blue `info`, red `error`, purple `primary` and black `neutral`. These are the status colors Upstart derives from the background (Q225-Q228).
+- **The mapping:** yellow is `warning`, green `success`, blue `info`, red `error`, purple `primary` and black `neutral`. These are the status colors Spaka derives from the background (Q225-Q228).
 - **In the files:** a record's `tone` field holds one of these names, and the element carries it as `data-tone`. `styles/site.css` maps each `[data-tone=…]` to `--tone: var(--color-…)`, which the holds, the tags and the timetable's blocks read. No class name is built in Liquid, which Tailwind would not see.
 - **The Theme tab** recolors the circuits with everything else.
 
@@ -406,7 +406,7 @@ Its booking section follows how newcomers start, chosen with the home page.
 - delete `pages/events.liquid`, `pages/events/`, `events`, `event-signups`, `fragments/signup-thanks.liquid` and its navigation record;
 - the home page's "coming up" goes, and the reset calendar no longer links to reset nights.
 
-## What stays outside Upstart
+## What stays outside Spaka
 
 - **Payments:** nothing is paid on the site. An intro, a class spot, a membership, an event place or a party is either a request through a form, kept in the Content tab, which the gym confirms by email and takes payment for at the desk, or a link to the gym's own booking or member system (the choices above). The thank-you fragments say so plainly.
 - **The waiver:** a legal waiver with a signature is not a form's job. The template links to the gym's waiver page in its own software, or says it is signed at the desk. It never imitates a waiver with a checkbox.

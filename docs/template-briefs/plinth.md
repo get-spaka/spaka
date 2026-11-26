@@ -296,9 +296,9 @@ From Wikimedia Commons and Openverse (CC0, public domain, CC BY, CC BY-SA), cred
 
 The works are never tinted, graded, cropped or set in a mockup. `object-contain` keeps them whole on their wall, and their alternative text describes the painting. A maker's exhibition brings its own photographs of its works. The agent never fills a living artist's works with found images: until the maker gives them, a work keeps a placeholder frame in theme colors with its label, which the guide says when adapting.
 
-## What Upstart cannot do, and how the brief handles it
+## What Spaka cannot do, and how the brief handles it
 
-- **Selling tickets and memberships:** Upstart has no payments, so tickets are a link to the museum's own ticketing page. Free time slots, reserved seats for talks and group visits are requests sent through forms, which the museum confirms by email.
+- **Selling tickets and memberships:** Spaka has no payments, so tickets are a link to the museum's own ticketing page. Free time slots, reserved seats for talks and group visits are requests sent through forms, which the museum confirms by email.
 - **The catalogue:** sold "at the museum shop", or through a link to the shop's own page.
 - **Zooming into a work:** there is no deep-zoom viewer and no embed. "Look closer" shows the image file at its own size, and step back's scale never goes beyond that file's pixels.
 - **Maps:** the address is set large with a "Get directions" link, and there is no map embed.

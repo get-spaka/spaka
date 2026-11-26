@@ -392,7 +392,7 @@ The choices that change the design, page type by page type; the first option of 
 
 *How do guests reply?* (the whole website)
 - **Online, with the reply card** (as built):
-  - replies arrive in Upstart's Content tab, and can be downloaded as a CSV for the caterer;
+  - replies arrive in Spaka's Content tab, and can be downloaded as a CSV for the caterer;
   - keep `parts/reply-form.liquid`, `data/rsvps/`, `fragments/rsvp-sealed.liquid`, the header's "Kindly reply", the floating seal and the reply bands.
 - **By email or text:**
   - the reply page keeps its date and its questions, but its card holds the address and a phone number with "Write to us" and "Text us" buttons;

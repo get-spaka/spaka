@@ -14,7 +14,7 @@ One of wave 2's original designs: the boutique hotel or guesthouse (`business`, 
 - **Outings:** the house arranges a few: a day at the looms in Teotitlán, a market morning with Marisol, a palenque visit and Monte Albán at opening time.
 - **A letter each season** goes to past and future guests.
 
-**Booking is a request, not a sale.** Upstart has no payments and no booking engine, and the template does not pretend to have them:
+**Booking is a request, not a sale.** Spaka has no payments and no booking engine, and the template does not pretend to have them:
 - **as built**, guests send a request for their dates through a form: arrival, departure, guests, the room or no preference, and a stay or the whole house. The hosts answer by email within a day with the room and the price. They also say how to pay the deposit of one night, by a payment link or a transfer that they send themselves, outside the site;
 - **for a house with its own booking engine**, every "Book" button can link to that outside booking page instead;
 - **without either**, guests can be sent to email, phone or WhatsApp links.
@@ -311,7 +311,7 @@ Each choice's first option is the one recommended.
 **How do guests book a room?**
 - **They ask for their dates here** (as built):
   - the booking bar, the Book page's request form and every "Book a room" link remain;
-  - requests arrive in Upstart's Content tab, and the house answers and takes its deposit itself.
+  - requests arrive in Spaka's Content tab, and the house answers and takes its deposit itself.
 - **On the house's own booking page:**
   - every "Book a room" and "Ask for this room" goes to the outside page's address;
   - the booking bar becomes one stitched button ("See dates and prices");

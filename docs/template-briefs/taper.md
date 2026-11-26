@@ -33,7 +33,7 @@ These come from fifteen sites of salons and barbershops opened in November 2026 
 5. **Warm off-white and near-black with one deep color, often a display serif over a neo-grotesk, and little movement.** giellygreen.co.uk (Sagittaire over GT America, burgundy #5d0f17 on #f2f0ed), fellowbarber.com (Reckless over Neue Haas Grotesk, #363636 on #ebe7df), fringeny.com (Cormorant Infant over Onest, violet ink #292145 with salmon #f6afa1), hairmeup.pl (DM Serif Display with Lora, rust #963e13 on #fbf5ef), crispmtl.com (black on #f3efed, a bold extended Helvetica Neue with a serif, Perfectly Nineties), alicehairart.se (#121212 on #f5f5f5, Px Grotesk), blindbarber.com (Monument Grotesk, #141414 on #f7f7f7), larrykinghair.com (GT America). Their motion is quiet: smooth scrolling with Lenis (giellygreen.co.uk, blindbarber.com), a home animation, a mouse interaction and a looping strip of partners with GSAP (crispmtl.com), carousels (giellygreen.co.uk, hairmeup.pl, blindbarber.com).
 6. **The work as a gallery, but rarely explained.** crispmtl.com ("What we do best" and a portfolio page of photos, uncredited and unnamed), serenityhairblaxland.com.au (a gallery page, "lived-in blondes, extensions, balayage"), alicehairart.se (the hair beside the studio's art), fringeny.com and serenityhairblaxland.com.au (an Instagram feed in place of the work). The gap is the same everywhere: a photo of a cut never says what it is called, who did it, how long it took or how to ask for it.
 
-Two things were common and stay outside: an online shop of hair products and gift cards (fellowbarber.com, palmsunday.co, hairmeup.pl, blindbarber.com, giellygreen.co.uk, larrykinghair.com), which Upstart cannot sell, and press quotes and award badges (fellowbarber.com, mrwinstons.com, larrykinghair.com).
+Two things were common and stay outside: an online shop of hair products and gift cards (fellowbarber.com, palmsunday.co, hairmeup.pl, blindbarber.com, giellygreen.co.uk, larrykinghair.com), which Spaka cannot sell, and press quotes and award badges (fellowbarber.com, mrwinstons.com, larrykinghair.com).
 
 **What makes it its own:**
 - **the fade:** the four levels are four tonal steps, from a pale wash to deep Barbicide blue-green, like the guard lengths of a fade blended up from the neckline. They are the columns of the price grid, the chip on every barber and stylist, and the choice of level in the request form, so a visitor learns one code: the deeper the step, the more experience in the chair. As the price grid comes into view its columns darken one after another, from the palest to the deepest;
@@ -96,7 +96,7 @@ Everything respects `prefers-reduced-motion`. In edit mode nothing moves and eve
 - **The open sign** (`data-open-sign`, `scripts/open-sign.js`, no library):
   - the sign holds the pole and three lines, all written in the template: "Open now, until {{ today.closes }}", "Closed now, opens {{ next.day }} at {{ next.opens }}" for each day, and the neutral line, "Tuesday to Sunday · walk-ins Tuesday to Friday mornings". With no script and in edit mode only the neutral line shows;
   - Liquid writes the week onto the sign as data (`data-week` from the `hours` records' `opens` and `closes`, and `data-tz="America/New_York"`, which the maker's city changes); the script works out from the shop's time zone, not the visitor's, whether it is open, sets `data-state="open"` or `"closed"` and `data-next` on the sign, and the stylesheet shows the matching line. It checks again every minute; `stop` clears the timer and the attributes;
-  - the pole's stripes slide upward (a `background-position` animation, 6 s a turn, linear) only when `[data-state="open"]`, under no-preference and `html[data-up-moving]`; closed, or under reduced motion, the pole stands still.
+  - the pole's stripes slide upward (a `background-position` animation, 6 s a turn, linear) only when `[data-state="open"]`, under no-preference and `html[data-spaka-moving]`; closed, or under reduced motion, the pole stands still.
 - **The week at the chair** (`data-week-chart`, CSS, and the same module): each day is a row with its bar placed by `style="--opens: 600; --closes: 1200"` (minutes since midnight) on a scale from 8 am to 9 pm, and its walk-in part striped by `--walk-in-from` and `--walk-in-until`; the hours are written in each row as text too. The script marks today's row (`data-today`) and sets `--now` on the chart, which draws a fine vermilion line at the current time; with no script there is no now line and no row is marked. As the chart enters view the bars grow from their opening time to their closing time (`scale: 0 1` from the left, CSS scroll-driven), one row after another.
 - **The hand mirror** (`data-mirror` on a cut card holding two `<img>`, the back marked `data-back`; CSS only):
   - at rest the back photo sits in an oval about a third of the card's width at its lower right corner, with a 3px vermilion rim and a short handle drawn in CSS; this is how it shows with no script, under reduced motion and in edit mode, so the maker can replace either photo;
@@ -123,7 +123,7 @@ The barbers and stylists are the gallery's `team` collection, the services its `
 - **the week at the chair (its own, over `hours`):** on lather, the week chart beside the address, "Get directions" (a link to the address on a map site), the phone, and a line on walk-ins: "Walk-ins Tuesday to Friday from 10 to noon, first come, first cut. After that, book ahead";
 - **what clients say** (adapted from `apps/desktop/gallery/testimonials/testimonials-card-grid` over `testimonials`, on the pale wash): three short quotes, each with a first name and what they came in for ("Curly cut with Wren"), no stars;
 - **the booking band** (adapted from `apps/desktop/gallery/cta/cta-booking-hours`, on night): "Pull up a chair." with "Book a chair", the phone as "Or call the shop", and the open sign;
-- **the footer** (adapted from `apps/desktop/gallery/footer/footer-local-shop`, without its map placeholder, on night): the name, the address with "Get directions", the phone, the email, Instagram, the hours from `hours`, the links from `navigation`, and Upstart's credits link.
+- **the footer** (adapted from `apps/desktop/gallery/footer/footer-local-shop`, without its map placeholder, on night): the name, the address with "Get directions", the phone, the email, Instagram, the hours from `hours`, the links from `navigation`, and Spaka's credits link.
 
 **Prices** (`/prices`):
 - the title, "Prices", and "Every service takes a set amount of chair time. You pay for that time at the level of whoever's cutting. Same for every head.";
@@ -195,7 +195,7 @@ The choices the agent asks when the maker's messages leave them open, page type 
 **Home** (`/`), with the choices for the whole site:
 
 - *How do clients book?*
-  - **A request form, confirmed by text** (as built): requests arrive in Upstart's Content tab; the shop texts back to set a time. Every booking button leads to `/book`.
+  - **A request form, confirmed by text** (as built): requests arrive in Spaka's Content tab; the shop texts back to set a time. Every booking button leads to `/book`.
   - **On the shop's own booking page** (Squire, Booksy, Fresha, Boulevard, Square Appointments…): every booking button, "Book with…" and "Book this cut" link out to that address and say "Book online"; `/book` keeps the walk-ins, the rules and finding us, with a large "Book online" button in place of the form; `data/bookings/`, its fragment and `scripts/prefill.js` go. Many shops already have such a page: the guide tells the agent to ask for its address, never to invent it.
   - **Walk-ins and phone only:** every booking button becomes "Call the shop" (`tel:`); `/book` becomes "Visit" (`/visit`), leading with the week chart and the walk-in line; the form, its fragment and `scripts/prefill.js` go.
 - *How are prices set?*
@@ -244,14 +244,14 @@ When adapting, the three quotes of "What clients say" are invented and never sta
 
 - *Do you sell what you use?*
   - **At the desk only** (as built): the shelf lists the products with "Sold in the shop only".
-  - **In an online store too:** the shelf links each product, and a "Shop online" link joins the footer, to the maker's store elsewhere; nothing is sold through Upstart.
+  - **In an online store too:** the shelf links each product, and a "Shop online" link joins the footer, to the maker's store elsewhere; nothing is sold through Spaka.
   - **No products:** the shelf goes, and "On my station" goes from the people's pages.
 - *Are you hiring?*
   - **Not right now** (as built): the short note with the email.
   - **Yes:** the note names the role and the level, and links to the email or an application page elsewhere.
 - *When left out:* the story and the years go; the footer keeps the address and hours; the navigation record goes.
 
-## What Upstart cannot do here, and how the brief handles it
+## What Spaka cannot do here, and how the brief handles it
 
 - **A booking calendar:** a chair is a request with the days and part of day that suit, confirmed by text; a shop with Squire, Booksy, Fresha or another booking page links out to it (see What varies), never embeds its widget.
 - **Photos with the request:** a form cannot take files; the note and the answer ask clients to text a photo of the cut they want.

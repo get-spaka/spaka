@@ -83,7 +83,7 @@ Few effects, each with a reason. Everything respects `prefers-reduced-motion`. I
   - under reduced motion, with no script and in edit mode, the markup is simply there.
 - **The tabbed index** (`data-index` on the section, CSS only):
   - the tabs are radio inputs and their labels, one per `practice-areas` record, the first checked; `:has()` brings the chosen sheet forward (`[data-index]:has(#area-wills:checked) [data-sheet="wills"]`), the others stay behind it with only their top edges showing, a few pixels apart, like a file;
-  - under `prefers-reduced-motion: no-preference` and `html[data-up-moving]`, the chosen sheet rises into place (`translate: 0 12px` to 0 and `opacity`, 0.35 s), and a tab under the pointer lifts 3 px; otherwise the sheet simply changes;
+  - under `prefers-reduced-motion: no-preference` and `html[data-spaka-moving]`, the chosen sheet rises into place (`translate: 0 12px` to 0 and `opacity`, 0.35 s), and a tab under the pointer lifts 3 px; otherwise the sheet simply changes;
   - on a phone the tabs wrap in two columns above a single sheet. The keyboard moves between tabs with the arrow keys, as radios do; each sheet ends with a link to its area's page, so the index is never the only way in.
 - **Reveals** (`data-reveal`, `scripts/reveal.js`, Motion's `inView`): a section's main elements rise a little (`y: [12, 0]`, `opacity: [0, 1]`, 0.7 s, `ease: [0.22, 1, 0.36, 1]`), a list's items 70 ms apart under `data-reveal="stagger"`, as the site-scripts skill shows. The memo slips arrive this way; nothing else moves.
 - **The request, filled in from the link** (`data-prefill`, `scripts/prefill.js`, no library): "Request a consultation with Miriam" leads to `/consultation?with=miriam-carrow`, an area's to `/consultation?area=employment`; the script checks the matching options of the form. It writes no text and does not move; with no script nothing is checked in advance.
@@ -104,7 +104,7 @@ The people are the gallery's `team` collection and the articles its `blog` colle
 - **from the firm's desk (its own memo slips, adapted from `apps/desktop/gallery/blog/blog-date-list` over `blog`):** the three latest articles as slips on pale manila, each with Re (the title), From (the author), the date and the area, slightly overlapping like a pile on a desk on wide screens and stacked on a phone; then "All articles";
 - **fees, in brief (adapted from `apps/desktop/gallery/services/services-price-list` over `fees`, the featured ones):** "Fixed fees, agreed before we start" beside five rows (a will package, a revocable trust, a residential closing, forming an LLC, reviewing an employment agreement) with a dotted leader to the fee in tabular figures, and a line: "Disputes are billed by the hour, against a written estimate";
 - **the request band** (adapted from `apps/desktop/gallery/cta/cta-primary-band`, on ink night): "Tell us what's happened. We'll reply ~~in due course~~ within a business day." with its redline; Request a consultation; the phone;
-- **the footer (its own, adapted from `apps/desktop/gallery/footer/footer-columns`):** the name, the address with "Get directions" (a link to a map site, never an embed), the phone, the email, the hours from `hours`, the links from `navigation`, then in small type: "Attorney advertising. Writing to us does not make us your lawyers, and we can't act for you until we've checked for conflicts: please don't send confidential details until we confirm.", and Upstart's credits link.
+- **the footer (its own, adapted from `apps/desktop/gallery/footer/footer-columns`):** the name, the address with "Get directions" (a link to a map site, never an embed), the phone, the email, the hours from `hours`, the links from `navigation`, then in small type: "Attorney advertising. Writing to us does not make us your lawyers, and we can't act for you until we've checked for conflicts: please don't send confidential details until we confirm.", and Spaka's credits link.
 
 **Practice areas** (`/practice`):
 - the title, "What we do", and "Six areas of law that touch families, homes and small businesses, each led by a partner.";
@@ -191,7 +191,7 @@ The choices the agent asks when the maker's messages leave them open, page type 
 **Home** (`/`), with what every page shares:
 
 - *How do clients ask for a first meeting?*
-  - **A request form, confirmed by the firm** (as built): requests arrive in Upstart's Content tab; the firm checks for conflicts and replies; every "Request a consultation" button leads to `/consultation`.
+  - **A request form, confirmed by the firm** (as built): requests arrive in Spaka's Content tab; the firm checks for conflicts and replies; every "Request a consultation" button leads to `/consultation`.
   - **They call first**: the phone set large with a call button (`tel:`) in place of the form, the hours beside it; the header's button and every request link call; `bookings` and its fragment go, and the conflict-check line moves to the footer's notice.
   - **Through the firm's own scheduling page elsewhere** (Clio Grow, Calendly, Lawmatics…): every request button links out to it, the form goes, and the request page keeps what the first meeting costs, the office and the questions.
 - *What does the first meeting cost?*
@@ -230,7 +230,7 @@ The choices the agent asks when the maker's messages leave them open, page type 
 **The firm** (`/firm`): no choices of its own.
 - *When left out:* the home page's process keeps how a matter works; how the firm charges moves under the home page's fees; the navigation record goes.
 
-## What Upstart cannot do here, and how the brief handles it
+## What Spaka cannot do here, and how the brief handles it
 
 - **A booking calendar:** the first meeting is a request with a preferred way and time, confirmed by the firm once it has checked for conflicts; a firm with its own scheduling page links out to it.
 - **Payments and retainers:** nothing is paid on the site; the first meeting's fee is paid at the meeting or invoiced, and retainers go into the firm's trust account outside the site. A firm with an online payment page (LawPay, Clio Payments) links to it from the footer, a link that leaves the site.

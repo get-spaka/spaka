@@ -101,7 +101,7 @@ It is not Kindly's deep wedding green with lilac, Margin's single green ink, Tre
 
 ## Motion
 
-Quiet and useful. Everything respects `prefers-reduced-motion`. In edit mode nothing moves: Upstart's stillness rule stops CSS animations and transitions and no script runs, so every stem stands in its pail, none is picked, the order-by line says the week in words, the ZIP check answers nothing and no month is marked. Each effect is turned on by an attribute, so a new section can have it too.
+Quiet and useful. Everything respects `prefers-reduced-motion`. In edit mode nothing moves: Spaka's stillness rule stops CSS animations and transitions and no script runs, so every stem stands in its pail, none is picked, the order-by line says the week in words, the ZIP check answers nothing and no month is marked. Each effect is turned on by an attribute, so a new section can have it too.
 
 - **The shop's clock** (`scripts/shop-clock.js`, no library): the one script that reads the time. Nothing it drives is a picture of the time of day: it only chooses among the template's own lines and marks a month.
   - it reads the week from the footer, on every page, which renders each `hours` record as a row with `data-weekday`, `data-opens`, `data-closes`, `data-delivers` and `data-cutoff` (24-hour times, as the records hold them), and the shop's time zone from `data-tz` on the footer ("America/New_York"; without it, the visitor's own clock);
@@ -135,7 +135,7 @@ The stems are the template's own `stems` collection, read by the pails, the orde
 - **one shop, four doors** (adapted from `apps/desktop/gallery/features/features-split-list`, over `home-doors`): "Beyond the counter", then Weddings & events, Standing orders, Workshops and Office flowers, each with a line and its link;
 - **weddings band** (adapted from `apps/desktop/gallery/cta/cta-split-image`, on blush): a photo of a ceremony arch of loose garden flowers, "Booking weddings for 2027", "Full service from $2,800, or market pails you arrange yourselves from $450.", and "Plan your flowers";
 - **what people say** (adapted from `apps/desktop/gallery/testimonials/testimonials-headline-quote` over `testimonials`): one large quote and two smaller ones, each with a first name and what it was for ("A Bucketful for a seventieth birthday"), no stars;
-- **the footer (its own, adapted from `apps/desktop/gallery/footer/footer-local-shop` without its map placeholder, on zinc dark):** "Incline Flowers", the address with "Get directions" (a link to the address on a map site), the phone, the email, the week as rows from `hours` (the rows the clock reads, with each day's delivery cutoff), the order-by line, the links from `navigation`, Instagram as a link, and Upstart's credits link.
+- **the footer (its own, adapted from `apps/desktop/gallery/footer/footer-local-shop` without its map placeholder, on zinc dark):** "Incline Flowers", the address with "Get directions" (a link to the address on a map site), the phone, the email, the week as rows from `hours` (the rows the clock reads, with each day's delivery cutoff), the order-by line, the links from `navigation`, Instagram as a link, and Spaka's credits link.
 
 **Flowers** (`/flowers`):
 - the title, "Flowers", and "Every bunch is our choice from what came in this week, built around the stems you'd like. Tell us the size, the day and who they're for; we'll call to confirm and take payment over the phone.";
@@ -207,7 +207,7 @@ The stems are the template's own `stems` collection, read by the pails, the orde
 
 ## Ordering and what stays outside
 
-Upstart has no checkout, no payments, no calendar and no embeds, so:
+Spaka has no checkout, no payments, no calendar and no embeds, so:
 - **an order is a request** (as built): the shop calls back to confirm the stems, the day and the address, and takes payment over the phone; the form and its answer say so before and after sending. A shop with an online store (Shopify, Square, a florist platform) links every "Order" button to it instead (see What varies), never embeds its widget;
 - **the bunch is a wish:** picking stems tells the florist what you like; the size sets the price; what sold out is swapped for something like it, and the questions say so;
 - **delivery zones are typed facts:** the ZIP check reads the zones table on the page, nothing else; no map, no address lookup; "Get directions" links to the address on a map site;

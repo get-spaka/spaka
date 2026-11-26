@@ -1,6 +1,6 @@
 # Spike 3: other agents and harnesses
 
-Ran on 2026-11-14, in four rounds that day: the first runs; a second on a harness of Upstart's own on Pi and files written in the reply's text; a third on ChatGPT Plus and Google's agents over ACP; a fourth on Gemini writing through tools alone. Matt decided the same day (Q268, then Q271).
+Ran on 2026-11-14, in four rounds that day: the first runs; a second on a harness of Spaka's own on Pi and files written in the reply's text; a third on ChatGPT Plus and Google's agents over ACP; a fourth on Gemini writing through tools alone. Matt decided the same day (Q268, then Q271).
 
 ## What we learned
 
@@ -11,10 +11,10 @@ Ran on 2026-11-14, in four rounds that day: the first runs; a second on a harnes
 - Through tools alone, Gemini keeps the live preview by writing a long file in several calls, each arriving as soon as it is complete: at low thinking, with parts of 25 lines asked, the home page starts at 6.7 s and is complete at 21.9 s, with a longest still of 4.7 s between two parts. Streaming a call's arguments on Gemini is offered on Vertex AI only.
 - Besides Claude's, only ChatGPT's subscription can be plugged in. A Claude subscription stays on the official binary (Pi's Claude sign-in impersonates Claude Code). Sign in with ChatGPT, OpenAI's program for apps, worked in Pi on Matt's Plus plan, and admits open-source apps. Google offers apps no route to a Google AI subscription: Gemini means the maker's AI Studio key, billed by Google Cloud, and a paid one in the EEA.
 - Installing Antigravity or Codex on the maker's side would settle their license and nothing else: Antigravity's terms forbid driving it on a Google sign-in, it has no license and updates itself; Codex gives no live preview.
-- Pi and opencode have no sandbox of their own. A macOS profile allowing writes only in the project held, but let them read everywhere: opencode listed the spike's folders. Upstart's confinement of such a harness must limit reads too, and be written for each system.
+- Pi and opencode have no sandbox of their own. A macOS profile allowing writes only in the project held, but let them read everywhere: opencode listed the spike's folders. Spaka's confinement of such a harness must limit reads too, and be written for each system.
 - Every combination wrote an acceptable page: valid htmx 4 in all, and a working form in all but one run. GPT-6.1 Sol's pages are the most crafted; the Gemini pages invent specifications, prices and named testimonials.
 
-Decided: two adapters behind one interface, Claude through the Agent SDK and a harness of Upstart's own on Pi's libraries for other models, with files written through tools only ([ADR 0012](../adr/0012-a-second-agent-layer-of-upstarts-own-on-pi.md); Q268 onward in [the v2.0 decisions](../v2.0-decisions.md)).
+Decided: two adapters behind one interface, Claude through the Agent SDK and a harness of Spaka's own on Pi's libraries for other models, with files written through tools only ([ADR 0012](../adr/0012-a-second-agent-layer-of-spakas-own-on-pi.md); Q268 onward in [the v2.0 decisions](../v2.0-decisions.md)).
 
 ## The report
 
@@ -37,7 +37,7 @@ Decided: two adapters behind one interface, Claude through the Agent SDK and a h
 
 The research for each harness, with its sources, is in [The harnesses studied](#the-harnesses-studied) (Codex, Pi, Pi's packages, opencode, Gemini CLI and Antigravity).
 
-**A second and a third round, the same day,** answered Matt's questions after the first report. Would Upstart do better with a harness of its own, built on Pi, with every subscription plugged in? And how far do Google's own agents go on an AI Studio key, over ACP? They tried:
+**A second and a third round, the same day,** answered Matt's questions after the first report. Would Spaka do better with a harness of its own, built on Pi, with every subscription plugged in? And how far do Google's own agents go on an AI Studio key, over ACP? They tried:
 - Gemini writing its files in the reply's text instead of through a tool, in Pi and over ACP;
 - Pi's thinking level set low, for Hydrogen and for Sol;
 - Argon twice more;
@@ -55,7 +55,7 @@ A fourth round tried Gemini writing through tools alone, after Matt's answer to 
 - its own configuration folder (`CODEX_HOME`, `PI_CODING_AGENT_DIR`, opencode's `XDG_*` folders, `GEMINI_CLI_HOME`, and `HOME` for Antigravity, which has no folder variable);
 - a fresh project in a temporary folder outside any repository.
 
-**Over ACP, the spike was the client**, as Upstart would be. It:
+**Over ACP, the spike was the client**, as Spaka would be. It:
 - wrote the files when the agent asked it to (`fs/write_text_file`);
 - answered permission requests itself;
 - read the reply's text as it came.
@@ -70,9 +70,9 @@ A fourth round tried Gemini writing through tools alone, after Matt's answer to 
 
 ## The answer
 
-**No harness stands in for Claude as it is driven today.** But one change on Upstart's side gives every model the live preview: the model writes each file in its reply's text, which every provider and every agent protocol streams. With that, Gemini 4 Hydrogen matches Claude's pace, both in a harness of Upstart's own on Pi and in Google's own Antigravity over ACP.
+**No harness stands in for Claude as it is driven today.** But one change on Spaka's side gives every model the live preview: the model writes each file in its reply's text, which every provider and every agent protocol streams. With that, Gemini 4 Hydrogen matches Claude's pace, both in a harness of Spaka's own on Pi and in Google's own Antigravity over ACP.
 
-**The live preview, Upstart's defining moment:**
+**The live preview, Spaka's defining moment:**
 
 | Harness | Live preview | Why |
 |---|---|---|
@@ -98,12 +98,12 @@ Once they start, neither stands still longer than about half a second.
 
 Their pages start showing early (6 to 12 s), and the longest pause is 2 to 6 s.
 
-**Subscriptions: only ChatGPT's can be plugged in besides Claude's, and only if OpenAI accepts Upstart.**
+**Subscriptions: only ChatGPT's can be plugged in besides Claude's, and only if OpenAI accepts Spaka.**
 - **Claude:** only through the official binary, so through the Agent SDK, as today. Pi's Claude sign-in impersonates Claude Code, which Anthropic's terms forbid (Pi itself warns that it draws paid extra usage).
 - **ChatGPT Plus or Pro:** "Sign in with ChatGPT", OpenAI's program for apps, which Pi implements. **It works:** Matt signed in with his new Plus plan, and Sol and Terra answered on OpenAI's own API. The program is open to open-source and local apps; paid apps go on a waitlist.
 - **Google AI (Pro, Ultra):** no route for apps. Google moved personal accounts and Google AI subscriptions off Gemini CLI to Antigravity, whose terms forbid an app to drive it on a Google sign-in. **On an AI Studio key, both Google agents may be driven by an app, and both were, over ACP.** See [Gemini: the AI Studio key and ACP](#gemini-the-ai-studio-key-and-acp).
 
-So **besides Claude's subscription and, perhaps, ChatGPT's, a second agent means the maker's own API key.** See [Upstart's own harness on Pi](#upstarts-own-harness-on-pi).
+So **besides Claude's subscription and, perhaps, ChatGPT's, a second agent means the maker's own API key.** See [Spaka's own harness on Pi](#spakas-own-harness-on-pi).
 
 **Every combination wrote an acceptable page.**
 - Valid htmx 4 in all of them, and a working form in all but one run (GPT-6 Luna once wrote a form that sends nothing).
@@ -206,7 +206,7 @@ When a harness sends a file only once it is complete, the two are the same momen
 
 ## Files in the reply's text: a live preview for any model
 
-**The idea.** A harness of Upstart's own does not have to take a file from a tool call. The model can write each file in its reply instead, in a block of its own:
+**The idea.** A harness of Spaka's own does not have to take a file from a tool call. The model can write each file in its reply instead, in a block of its own:
 
 ```
 <file path="pages/index.liquid">
@@ -214,7 +214,7 @@ When a harness sends a file only once it is complete, the two are the same momen
 </file>
 ```
 
-**Every provider streams a reply's text as it is generated,** Gemini included. Upstart reads the blocks as they come:
+**Every provider streams a reply's text as it is generated,** Gemini included. Spaka reads the blocks as they come:
 - it sends each block to the preview while it grows;
 - it writes the file when the block closes.
 
@@ -246,9 +246,9 @@ The spike tried it this way:
 - **Once the reply starts, the text comes in small, even pieces** (213 to 297 pieces for the home page), as in Pi.
 
 **What it costs:**
-- **Upstart's instructions must teach the format,** and Upstart must take the blocks out of the reply it shows the maker.
+- **Spaka's instructions must teach the format,** and Spaka must take the blocks out of the reply it shows the maker.
 - **A small change to an existing file still goes through the edit tool,** which Gemini sends whole. Such a change is short, so it lands quickly anyway.
-- **It is Upstart's own convention, not a provider's feature.** Each model must be checked to keep to it, and a model may drift on long sessions; only one request was tried.
+- **It is Spaka's own convention, not a provider's feature.** Each model must be checked to keep to it, and a model may drift on long sessions; only one request was tried.
 - **Claude keeps its write tool:** the Agent SDK streams it already.
 
 ## Gemini: the AI Studio key and ACP
@@ -280,11 +280,11 @@ Carbon, kept to Ultra on a Google AI subscription, is open to any paid key. Gemi
 - Antigravity's FAQ, which forbids only consumer plans;
 - the Google collaborator's answers on GitHub.
 
-**For a maker, it is a heavier start than a sign-in:** a Google Cloud billing account, a key, then the key pasted into Upstart.
+**For a maker, it is a heavier start than a sign-in:** a Google Cloud billing account, a key, then the key pasted into Spaka.
 
 ### ACP, the Agent Client Protocol
 
-**What it is.** An open protocol, started by Zed for editors: JSON-RPC 2.0 over the agent's standard input and output. The client (an editor, or Upstart) starts the agent, opens sessions and sends prompts. The agent streams updates back:
+**What it is.** An open protocol, started by Zed for editors: JSON-RPC 2.0 over the agent's standard input and output. The client (an editor, or Spaka) starts the agent, opens sessions and sends prompts. The agent streams updates back:
 - the reply's text (`agent_message_chunk`) and thinking (`agent_thought_chunk`);
 - tool calls and their progress (`tool_call`, `tool_call_update`, with the diff of an edit);
 - usage.
@@ -302,11 +302,11 @@ It asks the client for permission (`session/request_permission`). If the client 
 | Claude | `@agentclientprotocol/claude-agent-acp` (Apache-2.0), on the Agent SDK | No |
 | Pi | `pi-acp` (MIT, community) | No |
 
-**What it would give Upstart:**
+**What it would give Spaka:**
 - one client for several agents;
-- sessions, cancel, and permissions answered by Upstart;
-- Upstart's MCP servers passed when a session opens (Upstart's tools);
-- the files written through Upstart when the agent agrees. Gemini CLI asked the client to write every file; Antigravity wrote them itself.
+- sessions, cancel, and permissions answered by Spaka;
+- Spaka's MCP servers passed when a session opens (Spaka's tools);
+- the files written through Spaka when the agent agrees. Gemini CLI asked the client to write every file; Antigravity wrote them itself.
 
 **What it lacks for the live preview: a tool call's input while it is generated.** The protocol has no field for it, and both Google agents send a call only once it is complete. So over ACP the live preview needs files in the reply's text, which ACP does stream.
 
@@ -333,7 +333,7 @@ It asks the client for permission (`session/request_permission`). If the client 
 
 **Standing:**
 - Google keeps it for organizations and paid keys, "not optimized for Gemini 4+".
-- Apache-2.0, a 99 MB bundle that Upstart may ship.
+- Apache-2.0, a 99 MB bundle that Spaka may ship.
 
 ### Antigravity CLI 1.5.9 over ACP
 
@@ -366,27 +366,27 @@ It asks the client for permission (`session/request_permission`). If the client 
 
 **Updating:**
 - At each start it launches an update process in the background ("Already on the latest version" here).
-- Under the spike's sandbox it could not replace its own binary. Upstart would have to make sure of that, since no documented switch turns it off.
+- Under the spike's sandbox it could not replace its own binary. Spaka would have to make sure of that, since no documented switch turns it off.
 
 **Its terms and license:**
 - **On a key, an app may drive it;** on a Google sign-in, it may not.
-- **It has no license:** Upstart may not ship it. The maker would install it, or Upstart would fetch it from Google at first use; whether that counts as redistribution is not settled.
+- **It has no license:** Spaka may not ship it. The maker would install it, or Spaka would fetch it from Google at first use; whether that counts as redistribution is not settled.
 - **Releases come almost daily,** with open bugs on hangs at exit and orphaned processes.
 
 ### Which harness for Gemini
 
-| | Pi (Upstart's own harness) | Antigravity over ACP | Gemini CLI over ACP |
+| | Pi (Spaka's own harness) | Antigravity over ACP | Gemini CLI over ACP |
 |---|---|---|---|
 | Live preview | Files in the text | Files in the text | Files in the text |
 | Hydrogen, fastest to a complete page | 22.5 s (thinking low) | **20.1 s** (effort low) | 41.7 s |
 | Cost a page, that way | **$0.05** | $0.065 | $0.07 |
 | Other providers | **All** (OpenAI, Anthropic key, OpenRouter…) | Gemini only on a key | Gemini only |
-| License; can Upstart ship it | **MIT; yes** | None; no | Apache-2.0; yes |
+| License; can Spaka ship it | **MIT; yes** | None; no | Apache-2.0; yes |
 | Kept apart from the maker's own | Its folder variable | `HOME` only | Its folder variable, plus settings paths |
-| Upstart's tools, instructions, checks | In-process tools and hooks | MCP at session start, `GEMINI.md`, prompt addition, hooks | MCP at session start, `GEMINI.md`, hooks |
+| Spaka's tools, instructions, checks | In-process tools and hooks | MCP at session start, `GEMINI.md`, prompt addition, hooks | MCP at session start, `GEMINI.md`, hooks |
 | Standing | Fast-moving, open, new owner | Google's current agent, daily releases, closed | Kept for organizations, not tuned for Gemini 4 |
 
-**Antigravity is the fastest and Google's own,** but closed, unshippable, self-updating and Gemini-only. **Pi** reaches every provider with one harness Upstart can ship and confine. **Gemini CLI** brings nothing the other two do not.
+**Antigravity is the fastest and Google's own,** but closed, unshippable, self-updating and Gemini-only. **Pi** reaches every provider with one harness Spaka can ship and confine. **Gemini CLI** brings nothing the other two do not.
 
 ## Signing in: what each account allows
 
@@ -398,12 +398,12 @@ It asks the client for permission (`session/request_permission`). If the client 
 - **Who may use it:** open-source projects, personal apps running locally, and "selected private apps". Paid or hosted apps must join a waitlist.
 - **Plans:** Plus and Pro only.
 - **The tokens.**
-  - With Codex, the app runs the OAuth and holds the tokens. That is against Upstart's rule of never handling a maker's tokens.
-  - Pi implements SIWC itself (with the host app's name) and keeps the tokens in its own folder, so Upstart would not hold them.
-- **Upstart is in the first category:** v2 is open source under MIT and free ([the v2.0 decisions](../v2.0-decisions.md), confirmed by Matt on 2026-11-14). Whether OpenAI admits it is seen at the first sign-in under Upstart's name.
+  - With Codex, the app runs the OAuth and holds the tokens. That is against Spaka's rule of never handling a maker's tokens.
+  - Pi implements SIWC itself (with the host app's name) and keeps the tokens in its own folder, so Spaka would not hold them.
+- **Spaka is in the first category:** v2 is open source under MIT and free ([the v2.0 decisions](../v2.0-decisions.md), confirmed by Matt on 2026-11-14). Whether OpenAI admits it is seen at the first sign-in under Spaka's name.
 
 **Tried with Matt's Plus plan, taken on 2026-11-14:**
-- **Signing in:** Pi printed OpenAI's sign-in address. Matt signed in in his browser, and Pi kept the tokens in its own folder, in a file readable by Matt alone. The client was registered under the name Pi; Upstart's would carry its own.
+- **Signing in:** Pi printed OpenAI's sign-in address. Matt signed in in his browser, and Pi kept the tokens in its own folder, in a file readable by Matt alone. The client was registered under the name Pi; Spaka's would carry its own.
 - **Models:** Pi's catalog for OpenAI lists GPT-6.1 Sol and Terra, GPT-6 Astra, Sol and Luna, and older ones; Sol and Terra were tried, on OpenAI's own API.
 - **The live preview works,** as with an API key: a tool call's arguments arrive a few characters at a time.
 - **But it is slow.** Sol's home page is complete at 92 s, against 56 s through OpenRouter. Terra's is complete at 55 s.
@@ -454,8 +454,8 @@ Google says it is "not optimized for Gemini 4+" and is kept "for enterprise Gemi
 | Argon and Carbon | $2 | $10 | Doubling on 2026-12-01; no free tier |
 
 **Antigravity CLI is where Google sends individuals.** It takes every plan, free included. Hydrogen is open to all plans, Argon to Pro and above, and Claude Sonnet and Opus 5.5 to Pro.
-- **Its terms forbid Upstart's use.** The FAQ says wrapping `agy` in a third-party app "is not supported under consumer plans". The Additional Terms (§6) make it a breach that can lead to suspension.
-- **A Google collaborator spelled it out** on GitHub (2026-11-12): starting the unmodified `agy -p` or `agy acp` from a third-party app breaches §6 on a personal sign-in. So does replacing its identity instructions, which Upstart's own instructions would do.
+- **Its terms forbid Spaka's use.** The FAQ says wrapping `agy` in a third-party app "is not supported under consumer plans". The Additional Terms (§6) make it a breach that can lead to suspension.
+- **A Google collaborator spelled it out** on GitHub (2026-11-12): starting the unmodified `agy -p` or `agy acp` from a third-party app breaches §6 on a personal sign-in. So does replacing its identity instructions, which Spaka's own instructions would do.
 - **Google sends apps to an API key or Vertex.** On a key, the spike drove Antigravity over ACP: see [Antigravity CLI 1.5.9 over ACP](#antigravity-cli-159-over-acp).
 - **Other problems:**
   - on a Google sign-in, its login sits in the macOS Keychain, with no way to keep it apart from the maker's own (on a key, none is made);
@@ -473,7 +473,7 @@ Google says it is "not optimized for Gemini 4+" and is kept "for enterprise Gemi
 ### Claude through another harness
 
 **Not an option.**
-- **Pi's Claude subscription login** impersonates Claude Code (its OAuth client and user agent). Anthropic forbids that, and it breaks Upstart's own rule.
+- **Pi's Claude subscription login** impersonates Claude Code (its OAuth client and user agent). Anthropic forbids that, and it breaks Spaka's own rule.
 - **opencode's "Claude Agent" provider** does run the official `claude` binary through the Agent SDK. But it drops the tool-input stream too, and adds a layer for nothing.
 
 ## Confinement (ADR 0007)
@@ -486,7 +486,7 @@ Google says it is "not optimized for Gemini 4+" and is kept "for enterprise Gemi
 - Gemini CLI: Seatbelt profiles on macOS (the default lets it write in the project only, and read everywhere), Docker or Podman, gVisor or LXC on Linux, a native one on Windows.
 - Antigravity: Seatbelt on macOS, namespaces on Linux, AppContainer on Windows 11 24H2 or later. Its `auto` mode has a second, smaller model review the commands that would leave the sandbox.
 
-Over ACP, Upstart also answers every permission request itself, and may write the files itself (`fs/write_text_file`), which Gemini CLI asks it to.
+Over ACP, Spaka also answers every permission request itself, and may write the files itself (`fs/write_text_file`), which Gemini CLI asks it to.
 
 **Pi and opencode have none.** The spike ran them under macOS's sandbox (`sandbox-exec`), with a profile that allows writing only in:
 - the project;
@@ -495,7 +495,7 @@ Over ACP, Upstart also answers every permission request itself, and may write th
 
 **The profile held.** In its misdirected first run, opencode tried to write `theme.css` into the spike's folder, and the sandbox refused it.
 
-**But it let them read everywhere.** opencode listed the spike's folders, including the one that holds the API keys (it did not read them). Upstart's profile for such a harness must:
+**But it let them read everywhere.** opencode listed the spike's folders, including the one that holds the API keys (it did not read them). Spaka's profile for such a harness must:
 - **also limit reading**, to the project, the harness's folder and the system;
 - be written again for Windows and Linux. Pi dropped its own sandbox example in 1.5.0.
 
@@ -507,23 +507,23 @@ Over ACP, Upstart also answers every permission request itself, and may write th
 | Pi | A `tool_call` hook can block a call. |
 | opencode | Rules that deny, or a reply `reject` through its API. |
 
-## What Upstart gives the agent
+## What Spaka gives the agent
 
 From each harness's sources and docs; not tried in the spike.
 
 | | Codex | Pi | opencode | Claude Agent SDK (today) |
 |---|---|---|---|---|
-| Upstart's own tools | Dynamic tools (experimental; can return an image), or an MCP server outside the app | Native tools in the process, or MCP | MCP outside the app, or an opencode plugin | In-process MCP server |
+| Spaka's own tools | Dynamic tools (experimental; can return an image), or an MCP server outside the app | Native tools in the process, or MCP | MCP outside the app, or an opencode plugin | In-process MCP server |
 | Agent Skills (SKILL.md) | Yes | Yes | Yes | Yes |
 | Instructions | `developerInstructions`, or the base prompt replaced | `--system-prompt` or `--append-system-prompt` | `AGENTS.md`, or a custom agent | System prompt |
 | End-of-turn check that can keep the agent going | Stop hook | `agent_before_settle` | None: re-prompt from a plugin | Stop hook |
 | Check after each tool | PostToolUse | `tool_result` | `execute.after` | PostToolUse |
-| Web search | Built in (OpenAI's index) | None: an extension or Upstart's own tool | `webfetch`; search needs a search provider's key | Built in |
+| Web search | Built in (OpenAI's index) | None: an extension or Spaka's own tool | `webfetch`; search needs a search provider's key | Built in |
 | Kept apart from the maker's own setup | `CODEX_HOME`, except skills from `~/.agents/skills` and `/etc/codex` | `PI_CODING_AGENT_DIR` and flags | `XDG_*` folders and flags, except `~/.agents/skills` and system settings | `CLAUDE_CONFIG_DIR` |
 
 ## Shipping
 
-| | License | Size (macOS arm64) | Can Upstart bundle it | Release pace |
+| | License | Size (macOS arm64) | Can Spaka bundle it | Release pace |
 |---|---|---|---|---|
 | Codex | Apache-2.0 | 281 MB binary; a standalone app-server of about 88 MB compressed | Yes | Near daily; protocol tied to each version |
 | Pi | MIT | 24 MB package; 104 MB of Node packages here; runs on Electron's own Node | Yes | Fast: 0.73 to 1.5 in six months, under a new owner (Earendil) |
@@ -552,63 +552,63 @@ From each harness's sources and docs; not tried in the spike.
 - **Claude's page is simpler and as clean.**
 - **The Gemini pages are the longest and densest.** They invent specifications (lumens, battery, weight), founder prices and named testimonials ("Dr. Helena …"). On a page for a product not yet launched, that would need watching.
 
-## What Upstart's agent layer would need to hold a second agent
+## What Spaka's agent layer would need to hold a second agent
 
 Not built; what the spike showed it would take.
 
 - **An adapter per harness** that turns its stream into the preview's events: a file's content as it grows, a file complete, a tool used, the turn's end. The spike's were throwaway versions, for Codex, Pi and opencode.
 - **Instructions per harness and per model.** Claude's instructions name its tools. Codex's model must be told to write with `apply_patch`.
-- **Upstart's sandbox around harnesses that have none**, limiting reads as well as writes, on each system.
-- **Upstart's tools and hooks, given through each harness's own mechanism:**
+- **Spaka's sandbox around harnesses that have none**, limiting reads as well as writes, on each system.
+- **Spaka's tools and hooks, given through each harness's own mechanism:**
   - the preview tool, `find_blocks` and the rest;
   - the end-of-turn checks;
   - the checks after each tool.
-- **A key per provider**, entered by the maker and kept by Upstart (or by the harness, in its own folder).
+- **A key per provider**, entered by the maker and kept by Spaka (or by the harness, in its own folder).
 - **For a model that sends tool calls whole (Gemini), files in the reply's text.** Without that, only "files then reload", spike 1's approach C, which Matt turned down for Claude.
 
-## Upstart's own harness on Pi
+## Spaka's own harness on Pi
 
-**Matt's question:** rather than another ready-made harness, would Upstart do better with a harness of its own, built on Pi, with every subscription plugged in?
+**Matt's question:** rather than another ready-made harness, would Spaka do better with a harness of its own, built on Pi, with every subscription plugged in?
 
 ### What it would be
 
-**Not the `pi` program, but Pi's libraries in Upstart's main process,** as the Agent SDK is today. Electron 45's Node meets their requirement (22.19 or later).
+**Not the `pi` program, but Pi's libraries in Spaka's main process,** as the Agent SDK is today. Electron 45's Node meets their requirement (22.19 or later).
 - **`pi-ai` for the models:** about fifty providers, by API key or sign-in. It streams text, thinking and a tool call's arguments as events.
 - **A loop around it:** `pi-agent-core`, the one Pi's own program uses, or `pi-durable` (below).
-- **Upstart's tools as native tools,** and an adapter of Upstart's own from the events to the preview's.
+- **Spaka's tools as native tools,** and an adapter of Spaka's own from the events to the preview's.
 
 The spike drove the `pi` program over RPC; the libraries themselves were not run.
 
 ### What blocks each subscription
 
-| Account | Through Upstart's own harness | Why |
+| Account | Through Spaka's own harness | Why |
 |---|---|---|
-| Claude Pro or Max | **No** | Pi's Claude sign-in uses Claude Code's OAuth client and a `claude-cli` user agent. Anthropic does not permit third-party apps to offer Claude.ai login or to route requests through a plan's credentials, and Pi itself warns that the sign-in draws paid extra usage. It is also against Upstart's own rule. A Claude subscription stays on the Agent SDK, which runs the official binary. |
-| ChatGPT Plus or Pro | **Yes, if OpenAI accepts Upstart** | Pi implements "Sign in with ChatGPT" in `pi-ai`: each sign-in registers a client under the app's name, and the token goes to OpenAI's own API, which streams a tool call's arguments. The program is open to open-source and locally run apps; a paid app applies through an interest form. |
+| Claude Pro or Max | **No** | Pi's Claude sign-in uses Claude Code's OAuth client and a `claude-cli` user agent. Anthropic does not permit third-party apps to offer Claude.ai login or to route requests through a plan's credentials, and Pi itself warns that the sign-in draws paid extra usage. It is also against Spaka's own rule. A Claude subscription stays on the Agent SDK, which runs the official binary. |
+| ChatGPT Plus or Pro | **Yes, if OpenAI accepts Spaka** | Pi implements "Sign in with ChatGPT" in `pi-ai`: each sign-in registers a client under the app's name, and the token goes to OpenAI's own API, which streams a tool call's arguments. The program is open to open-source and locally run apps; a paid app applies through an interest form. |
 | ChatGPT Free or Go | No | Sign in with ChatGPT is for Plus and Pro. Matt's free plan cannot try it. |
 | Google AI Pro or Ultra | **No** | Google offers apps no route: Antigravity's terms forbid it, and Pi removed its Gemini CLI and Antigravity sign-ins in 0.71.0 (2026-04-30). |
 | GitHub Copilot | No | Pi's sign-in passes itself off as VS Code's Copilot Chat. |
 | API keys: OpenAI, Google, Anthropic, OpenRouter and others | Yes | A paid key for Gemini in the EEA. An Anthropic key reaches Claude through Pi without the subscription. |
 
-**Pi's other ChatGPT sign-in, `openai-codex`, reuses Codex's own OAuth client.** Pi calls it superseded by Sign in with ChatGPT; Upstart would leave it out, as it would the Claude and Copilot sign-ins.
+**Pi's other ChatGPT sign-in, `openai-codex`, reuses Codex's own OAuth client.** Pi calls it superseded by Sign in with ChatGPT; Spaka would leave it out, as it would the Claude and Copilot sign-ins.
 
 **So "every subscription" comes down to two agent layers:**
 - the Agent SDK for a Claude subscription, as today;
-- Upstart's own harness for everything else: ChatGPT Plus or Pro if OpenAI accepts Upstart, and the maker's API keys.
+- Spaka's own harness for everything else: ChatGPT Plus or Pro if OpenAI accepts Spaka, and the maker's API keys.
 
 ### What it settles, and what it leaves
 
 **Settled:**
 - **The live preview with every provider:** a tool call's arguments with OpenAI and Anthropic, files in the reply's text with Gemini. Hydrogen this way matches Claude's pace.
-- **Upstart's tools, skills and checks** given natively, with Pi's hooks (`tool_call`, `tool_result`, `agent_before_settle`).
-- **Confinement by construction.** In Pi's libraries the built-in tools reach files only through an environment the host provides. Upstart's could reach the project alone, and run a shell command only inside Upstart's sandbox, or offer none. The macOS-only sandbox profile around the whole program is then no longer needed for file tools.
+- **Spaka's tools, skills and checks** given natively, with Pi's hooks (`tool_call`, `tool_result`, `agent_before_settle`).
+- **Confinement by construction.** In Pi's libraries the built-in tools reach files only through an environment the host provides. Spaka's could reach the project alone, and run a shell command only inside Spaka's sandbox, or offer none. The macOS-only sandbox profile around the whole program is then no longer needed for file tools.
 
 **Left:**
-- **Two agent layers to keep,** with instructions and checks per model family, and each model checked against Upstart's requests.
+- **Two agent layers to keep,** with instructions and checks per model family, and each model checked against Spaka's requests.
 - **Pi's pace:** 0.73 to 1.5 in six months, under a new owner.
 - **Web search**, which Pi does not have (see [Pi's extensions](#pis-extensions)).
-- **The maker's keys,** kept by Upstart (in the system's keychain) or by Pi in its own folder.
-- **Sign in with ChatGPT's terms:** whether a closed or paid Upstart is accepted, which only OpenAI can say.
+- **The maker's keys,** kept by Spaka (in the system's keychain) or by Pi in its own folder.
+- **Sign in with ChatGPT's terms:** whether a closed or paid Spaka is accepted, which only OpenAI can say.
 
 ### Pi Durable
 
@@ -628,8 +628,8 @@ The spike drove the `pi` program over RPC; the libraries themselves were not run
 - `NodeExecutionEnv` serves a folder;
 - a custom one can serve a container or a virtual file system.
 
-**For Upstart, the fit is partial:**
-- Upstart already keeps its own record of a session and its snapshots, so Durable's storage would be a second record of the conversation.
+**For Spaka, the fit is partial:**
+- Spaka already keeps its own record of a session and its snapshots, so Durable's storage would be a second record of the conversation.
 - What it adds is resuming after a crash, and a stream already shaped for an interface.
 - `pi-agent-core` is the lighter base. Durable is worth a closer look once its API settles.
 
@@ -637,7 +637,7 @@ The spike drove the `pi` program over RPC; the libraries themselves were not run
 
 **Pi is easy to extend, and many people do:** its gallery lists 5,355 packages. The full review, with each package's version, license, downloads and source, is in [Pi's packages](#pis-packages). Nothing was installed or run.
 
-**An extension runs inside Pi's process with all its rights,** and sees prompts, files and credentials. So Upstart would:
+**An extension runs inside Pi's process with all its rights,** and sees prompts, files and credentials. So Spaka would:
 - bundle the few it uses as reviewed code of its own;
 - load nothing else (`--no-extensions` with `-e <path>`, or `noExtensions` in Pi's SDK);
 - never install a package at start (`-e npm:…` does);
@@ -648,26 +648,26 @@ The spike drove the `pi` program over RPC; the libraries themselves were not run
   - reuses the vendor's own client and passes itself off as its program (some say in their README that this may break the vendor's terms);
   - drives the vendor's program, which Google calls a breach for Antigravity.
 - Several pool accounts to get round quotas.
-- `pi-claude-bridge` runs Claude through the official Agent SDK inside Pi: where Upstart already is, with one more layer.
+- `pi-claude-bridge` runs Claude through the official Agent SDK inside Pi: where Spaka already is, with one more layer.
 - Sign in with ChatGPT, built into Pi, stays the only official route.
 
-**No package gives the live preview, and none writes files from the reply's text.** That part would be Upstart's own:
+**No package gives the live preview, and none writes files from the reply's text.** That part would be Spaka's own:
 - **Inside Pi:** an extension's `message_update` handler receives the reply in progress, with a `write` call's arguments already parsed as they grow. That is simpler than rebuilding them from the RPC stream's deltas, as the spike did. Read from Pi's docs, not run.
 - **Other edit formats:** `apply_patch`, hash-anchored lines and Armin Ronacher's single-payload edit stream changes, not a file's content, which makes the preview harder.
 
 **Confinement:**
 - **Nothing official replaces the sandbox Pi dropped.** Earendil points to Gondolin, micro-VMs that need QEMU: too heavy for a maker's machine.
-- **The community sandboxes wrap Pi's tools from inside its process,** and most ask the user before each refused action, which Upstart does not do. Most are built on Anthropic's `sandbox-runtime`. `@yandy0725/pi-sandbox` is the only one with a Windows backend: a reference for later.
-- **Upstart's own boundary stays the design:** its execution environment, or its sandbox around the whole process.
+- **The community sandboxes wrap Pi's tools from inside its process,** and most ask the user before each refused action, which Spaka does not do. Most are built on Anthropic's `sandbox-runtime`. `@yandy0725/pi-sandbox` is the only one with a Windows backend: a reference for later.
+- **Spaka's own boundary stays the design:** its execution environment, or its sandbox around the whole process.
 
 **Worth taking or copying:**
 - **Web search: `pi-web-search`.** It uses the current model's own search (OpenAI's `web_search`, Anthropic's web search, Gemini's grounding), so no other key is needed and queries go only to the maker's provider.
   - `pi-web-access` is the most used, but it sends queries to Exa by default.
   - Whether a ChatGPT plan's requests may use OpenAI's search is not confirmed.
 - **Asking the maker a question: `@thinkrail/pi-ask-user-question`** (JetBrains, Apache-2.0). It is close to Claude's AskUserQuestion, with a hook for an app's own interface.
-  - Alternatively, the tool lives in Upstart's own MCP server. Pi's MCP client gives up after 60 s unless the server sends progress.
+  - Alternatively, the tool lives in Spaka's own MCP server. Pi's MCP client gives up after 60 s unless the server sends progress.
 - **Testing an extension without a model: `pi-coding-agent-test`.**
-- **Embedding Pi in an Electron app: Pace,** a Pi interface in Electron (Apache-2.0). It is a reference, though it shares the user's Pi folder, which Upstart would not.
+- **Embedding Pi in an Electron app: Pace,** a Pi interface in Electron (Apache-2.0). It is a reference, though it shares the user's Pi folder, which Spaka would not.
 
 ## Not tried, or not settled
 
@@ -679,32 +679,32 @@ The spike drove the `pi` program over RPC; the libraries themselves were not run
 - **The other agents over ACP:** opencode (`opencode acp`), Codex (`codex-acp`), Claude (`claude-agent-acp`) and Pi (`pi-acp`). ACP carries no tool call's input while it is generated, so each would need files in the text too.
 - **Hydrogen's thinking level in Gemini CLI**, which it takes from its settings, not a flag.
 - **What Antigravity offers an app beyond the run:** its addition to the system prompt, MCP servers passed at session start, its own sandbox and modes.
-- **Upstart's tools, skills and hooks inside Pi, Codex or Google's agents.**
+- **Spaka's tools, skills and hooks inside Pi, Codex or Google's agents.**
 - **Windows and Linux.**
-- **Sign in with ChatGPT under Upstart's own name.** Upstart is open source, the program's first category; the sign-in was tried under Pi's name.
-- **Whether Upstart may fetch Antigravity from Google at first use**, since it may not ship it.
+- **Sign in with ChatGPT under Spaka's own name.** Spaka is open source, the program's first category; the sign-in was tried under Pi's name.
+- **Whether Spaka may fetch Antigravity from Google at first use**, since it may not ship it.
 
 ## If the maker installs the agent
 
-Matt's question after the report: rather than shipping Antigravity or Codex, could Upstart ask the maker to install it, and drive it? That settles the license and nothing else.
+Matt's question after the report: rather than shipping Antigravity or Codex, could Spaka ask the maker to install it, and drive it? That settles the license and nothing else.
 
 | Installed by the maker | What it settles | What stays |
 |---|---|---|
-| Antigravity | The license: Upstart distributes nothing | A Google sign-in stays forbidden: starting the unmodified `agy acp` from a third-party app breaches §6 on it. On an AI Studio key it is allowed, but Pi does almost as well (22.5 s against 20.1 s, cheaper). It updates itself, so Upstart cannot hold its version or its ACP behavior. |
-| Codex | Nothing: Apache-2.0, Upstart could ship it already | No live preview: Codex does not pass on what code mode writes. Its ChatGPT sign-in is not OpenAI's route for apps; Sign in with ChatGPT is, and Pi has it. |
+| Antigravity | The license: Spaka distributes nothing | A Google sign-in stays forbidden: starting the unmodified `agy acp` from a third-party app breaches §6 on it. On an AI Studio key it is allowed, but Pi does almost as well (22.5 s against 20.1 s, cheaper). It updates itself, so Spaka cannot hold its version or its ACP behavior. |
+| Codex | Nothing: Apache-2.0, Spaka could ship it already | No live preview: Codex does not pass on what code mode writes. Its ChatGPT sign-in is not OpenAI's route for apps; Sign in with ChatGPT is, and Pi has it. |
 | Claude Code | This is today's design: the official binary, driven by the Agent SDK | The message to Anthropic about the subscription ([ADR 0002](../adr/0002-claude-runs-through-the-unmodified-official-binary.md)). |
 
-**Pi in front of the vendors' agents** (Claude Code, Codex, agy) would only relay: two nested agent loops, the preview still decided by the agent underneath, the subscription by its terms. `pi-claude-bridge` does it for Claude. The single point Upstart needs is its own agent layer, one interface with an adapter per agent; for vendors' agents, ACP is the standard protocol.
+**Pi in front of the vendors' agents** (Claude Code, Codex, agy) would only relay: two nested agent loops, the preview still decided by the agent underneath, the subscription by its terms. `pi-claude-bridge` does it for Claude. The single point Spaka needs is its own agent layer, one interface with an adapter per agent; for vendors' agents, ACP is the standard protocol.
 
 ## Recommendation, and Matt's decision
 
 **Decided (Q268, Matt, 2026-11-14): two adapters behind one interface.**
 1. **Claude, through the Agent SDK** and the official binary, as today: a Claude subscription or an Anthropic key. No other route to that subscription is allowed.
-2. **A harness of Upstart's own on Pi's libraries** for other models:
+2. **A harness of Spaka's own on Pi's libraries** for other models:
    - files written in the reply's text, so every model has the live preview;
-   - Upstart's own execution environment, reaching the project alone;
-   - ChatGPT Plus or Pro through Sign in with ChatGPT (Upstart is open source), the maker's Gemini key from AI Studio first (Hydrogen, thinking low: Claude's pace at about 60% of its API price), then other keys.
-3. **Antigravity and Codex stay out,** even installed by the maker: they open no subscription Upstart may use, and Codex gives no live preview. An ACP adapter can come later if a vendor's agent brings what Pi does not.
+   - Spaka's own execution environment, reaching the project alone;
+   - ChatGPT Plus or Pro through Sign in with ChatGPT (Spaka is open source), the maker's Gemini key from AI Studio first (Hydrogen, thinking low: Claude's pace at about 60% of its API price), then other keys.
+3. **Antigravity and Codex stay out,** even installed by the maker: they open no subscription Spaka may use, and Codex gives no live preview. An ACP adapter can come later if a vendor's agent brings what Pi does not.
 
 Its design follows, from Q269, in [the v2.0 decisions](../v2.0-decisions.md). Point 2's files in the reply's text were then turned down (Q271): see the next section.
 
@@ -735,7 +735,7 @@ Matt's answer to Q271: files go through tools, never in the reply's text, and Ge
 - **Every assembled page is well-formed:** each cut fell between two elements, no tag or Liquid tag left open.
 - **The preview moves in steps, not character by character:** the longest still between two parts is 2 to 6 s, against 1.7 s for Claude.
 - **At low thinking, Hydrogen keeps Claude's pace through tools alone:** the home page starts at 6.7 s and is complete at 21.9 s, against 5.9 s and 23.6 s.
-- **At medium thinking, Upstart's default (Q272),** it starts at 12.2 s and is complete at 34.1 s: it thinks longer before the first part and writes a longer page (18,000 to 22,000 characters against 13,000 to 15,000).
+- **At medium thinking, Spaka's default (Q272),** it starts at 12.2 s and is complete at 34.1 s: it thinks longer before the first part and writes a longer page (18,000 to 22,000 characters against 13,000 to 15,000).
 - **Vertex AI would stream a call's arguments as OpenAI does,** but it is not measured: it needs a key for Vertex AI (its express mode gives one to a Google account), which a maker would make apart from the AI Studio key.
 
 After the spike, Vertex AI was connected in the app (Q280 in [the v2.0 decisions](../v2.0-decisions.md)): on Matt's project the page's path reached the preview at 0.9 s and its text at 1.05 s, in 42 pieces.
@@ -756,9 +756,9 @@ Each tool was also read from its docs and sources on 2026-11-14, mostly before i
 - **`codex app-server`, the one for an app** ([App Server](https://learn.chatgpt.com/docs/app-server); [OpenAI's post](https://openai.com/index/unlocking-the-codex-harness/)): JSON-RPC 2.0 over stdio (WebSocket is "experimental and unsupported"). Its own help labels it experimental, and experimental fields need `experimentalApi` at initialize. Its TypeScript types and JSON schema are generated from the binary and match its version exactly. Threads resume and fork; `turn/interrupt` ends a turn as interrupted; `turn/steer` adds the maker's words to the turn in progress; `ephemeral` skips keeping the thread.
 
 **The live preview, as read.** `item/fileChange/patchUpdated`, which the public docs do not mention, follows the `apply_patch` tool's input as the Responses API streams it:
-- it parses complete lines only, and sends the state so far: the whole content for a new file, the `-`/`+` hunks for an edit, which Upstart would have to apply to the file on disk;
+- it parses complete lines only, and sends the state so far: the whole content for a new file, the `-`/`+` hunks for an edit, which Spaka would have to apply to the file on disk;
 - it is throttled to one notification every 500 ms;
-- it follows only the freeform `apply_patch`, which every model in the catalog uses. MCP tools, dynamic tools and shell commands get no argument streaming, so a `write_file` tool of Upstart's would not stream either;
+- it follows only the freeform `apply_patch`, which every model in the catalog uses. MCP tools, dynamic tools and shell commands get no argument streaming, so a `write_file` tool of Spaka's would not stream either;
 - the flag has been "under development", off by default, since [PR #17862](https://github.com/openai/codex/pull/17862) and [PR #18289](https://github.com/openai/codex/pull/18289) (April 2026), which aim at progress shown during file writes in Codex's own app;
 - everything else arrives complete: `item/started` for a file change, `turn/diff/updated`, and `item/fileChange/outputDelta`, which current versions no longer send.
 
@@ -768,7 +768,7 @@ The runs then showed that the GPT-6 models never call `apply_patch` directly (se
 - **Two modes:** a ChatGPT sign-in, which uses the plan's included usage, or an API key at standard API prices.
 - **The app-server's login types:** an API key; the ChatGPT browser flow, whose loopback returns to a fixed port, 1455; a device code, which the maker must first allow in ChatGPT's security settings; and, experimental, tokens supplied and refreshed by the host app.
 - **For an app, OpenAI's docs say** local or open-source apps already on app-server sign-in may continue, though asked to move to Sign in with ChatGPT, and that it "has never been permitted for commercial or hosted services". Paid or hosted apps are sent to a [partner waitlist](https://openai.com/form/sign-in-with-chatgpt-interest/).
-- **Sign in with ChatGPT with Codex** ([overview](https://developers.openai.com/siwc/token-sharing-open-source), [Codex app-server page](https://developers.openai.com/siwc/token-sharing-open-source/codex-app-server), [cookbook](https://developers.openai.com/cookbook/articles/sign-in-with-chatgpt)): the app runs the OAuth (PKCE, on a loopback address), stores the tokens and starts `codex app-server` with the access token in its environment. That is the part against Upstart's rule.
+- **Sign in with ChatGPT with Codex** ([overview](https://developers.openai.com/siwc/token-sharing-open-source), [Codex app-server page](https://developers.openai.com/siwc/token-sharing-open-source/codex-app-server), [cookbook](https://developers.openai.com/cookbook/articles/sign-in-with-chatgpt)): the app runs the OAuth (PKCE, on a loopback address), stores the tokens and starts `codex app-server` with the access token in its environment. That is the part against Spaka's rule.
 - **Where it keeps the sign-in:** a file under `CODEX_HOME`, or the keyring, whose entry is keyed by a hash of the `CODEX_HOME` path. So setting `CODEX_HOME` keeps both sign-in and settings apart from the maker's own Codex.
 
 **Confinement** ([Sandbox](https://learn.chatgpt.com/docs/sandboxing), [Agent approvals & security](https://learn.chatgpt.com/docs/agent-approvals-security)):
@@ -776,14 +776,14 @@ The runs then showed that the GPT-6 models never call `apply_patch` directly (se
 - The sandbox applies to the commands Codex starts, and `apply_patch` writes are checked against the writable folders; the Codex process itself is not sandboxed. Codex has no file-reading tool: the model reads through sandboxed shell commands.
 - Linux and WSL2 need bubblewrap and unprivileged user namespaces (Ubuntu 24.04 an AppArmor profile). On Windows ([Windows sandbox](https://learn.chatgpt.com/docs/windows/windows-sandbox)) the recommended `mxc` needs no admin, the older `elevated` one an admin-approved setup, and `unelevated` cannot deny reads.
 - Reads can be limited by the app-server's `readOnlyAccess` ([Sandbox read access](https://learn.chatgpt.com/docs/app-server#sandbox-read-access-readonlyaccess)) or by [permission profiles](https://learn.chatgpt.com/docs/permissions), in beta, which also allow or deny network domains through a proxy.
-- Upstart's "refuse the rest": `workspace-write` with every approval request answered `decline` by code, or `never`, where anything outside the sandbox simply fails back to the model.
+- Spaka's "refuse the rest": `workspace-write` with every approval request answered `decline` by code, or `never`, where anything outside the sandbox simply fails back to the model.
 
 **Extending:**
-- **MCP** ([MCP](https://learn.chatgpt.com/docs/extend/mcp)): stdio and Streamable HTTP servers, which an app can pass per thread; a 60 s tool timeout by default. No in-process MCP server: Upstart's would run on localhost or as a child.
-- **Dynamic tools** ([Dynamic tool calls](https://learn.chatgpt.com/docs/app-server#dynamic-tool-calls-experimental)), experimental: Codex asks the app to run a tool, and the app returns text, an image or audio. The closest match to Upstart's in-process server, `look_at_preview` included.
+- **MCP** ([MCP](https://learn.chatgpt.com/docs/extend/mcp)): stdio and Streamable HTTP servers, which an app can pass per thread; a 60 s tool timeout by default. No in-process MCP server: Spaka's would run on localhost or as a child.
+- **Dynamic tools** ([Dynamic tool calls](https://learn.chatgpt.com/docs/app-server#dynamic-tool-calls-experimental)), experimental: Codex asks the app to run a tool, and the app returns text, an image or audio. The closest match to Spaka's in-process server, `look_at_preview` included.
 - **Skills** ([Build skills](https://learn.chatgpt.com/docs/build-skills)): read from the project, `CODEX_HOME`, and also `~/.agents/skills` and `/etc/codex/skills`, outside it; the built-in ones can be turned off. Admin settings in `/etc/codex` also apply.
 - **Instructions:** `AGENTS.md` ([AGENTS.md](https://learn.chatgpt.com/docs/agent-configuration/agents-md)), and per thread the base prompt replaced or developer instructions added.
-- **Hooks** ([Hooks](https://learn.chatgpt.com/docs/hooks)), stable and on by default: a Stop hook that blocks makes Codex continue with the reason as a new prompt; PostToolUse covers `apply_patch`, shell, MCP and local tools, not the hosted web search. A hook can be a call to a tool on an MCP server, so Upstart's own server could answer hooks. Hooks must be trusted by hash, which an app can bypass per thread. The app also sees each turn's end, and can start the next turn itself.
+- **Hooks** ([Hooks](https://learn.chatgpt.com/docs/hooks)), stable and on by default: a Stop hook that blocks makes Codex continue with the reason as a new prompt; PostToolUse covers `apply_patch`, shell, MCP and local tools, not the hosted web search. A hook can be a call to a tool on an MCP server, so Spaka's own server could answer hooks. Hooks must be trusted by hash, which an app can bypass per thread. The app also sees each turn's end, and can start the next turn itself.
 - **Web search** ([Web search](https://learn.chatgpt.com/docs/web-search)): hosted, from OpenAI's cached index or live, and it can open a page and find in it; there is no separate fetch tool. Its billing on an API key was not confirmed.
 
 **Models and plans** ([Models](https://learn.chatgpt.com/docs/models), [Speed](https://learn.chatgpt.com/docs/agent-configuration/speed), [Pricing](https://learn.chatgpt.com/docs/pricing), [API pricing](https://developers.openai.com/api/docs/pricing)):
@@ -792,7 +792,7 @@ The runs then showed that the GPT-6 models never call `apply_patch` directly (se
 - On Plus, per 5 hours: Sol 6.1 roughly 15 to 160 local messages, Terra 35 to 285, Astra 5 to 45; weekly limits may apply too.
 - Cached input on the API: $0.10 per million tokens for Sol, $0.05 for Terra.
 
-**Shipping:** the npm package pulls one platform package. On macOS arm64 it unpacks to 377 MB: the 281 MB binary, a 70 MB code-mode host, ripgrep and voice libraries. The standalone app-server is about 88 MB as `.tar.gz` and 62 MB as `.zst`; the Windows arm64 one is 250 MB uncompressed. Apache-2.0 allows bundling with the NOTICE kept; "Codex" is OpenAI's trademark. Releases are near daily and the protocol follows each version, so Upstart would pin one. Signing and notarization of its macOS binaries were not checked.
+**Shipping:** the npm package pulls one platform package. On macOS arm64 it unpacks to 377 MB: the 281 MB binary, a 70 MB code-mode host, ripgrep and voice libraries. The standalone app-server is about 88 MB as `.tar.gz` and 62 MB as `.zst`; the Windows arm64 one is 250 MB uncompressed. Apache-2.0 allows bundling with the NOTICE kept; "Codex" is OpenAI's trademark. Releases are near daily and the protocol follows each version, so Spaka would pin one. Signing and notarization of its macOS binaries were not checked.
 
 ### Pi 1.5.2
 
@@ -800,7 +800,7 @@ The runs then showed that the GPT-6 models never call `apply_patch` directly (se
 
 **Who makes it.** `badlogic/pi-mono` now redirects to earendil-works/pi: Pi moved into Earendil, Armin Ronacher's company, on 2026-04-08 ([Armin's post](https://lucumr.pocoo.org/2026/4/8/mario-and-earendil/)). The `@mariozechner/*` packages are deprecated at 0.73.1 (2026-05-07). Pi 1.0 shipped on 2026-10-01. About 122k GitHub stars, MIT.
 
-**Read before the runs, it fit the live preview,** with everything else Upstart plugs in: built-in MCP, custom tools, skills, a replaceable system prompt, a hook that can block a call, and one that can keep the agent going. Against it: no confinement of its own, and a Claude sign-in that cannot be used.
+**Read before the runs, it fit the live preview,** with everything else Spaka plugs in: built-in MCP, custom tools, skills, a replaceable system prompt, a hook that can block a call, and one that can keep the agent going. Against it: no confinement of its own, and a Claude sign-in that cannot be used.
 
 **Providers and sign-in:**
 - **About 35 providers by API key** ([providers.md](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/providers.md), [pi-ai README](https://github.com/earendil-works/pi/blob/main/packages/ai/README.md#oauth-providers)), among them Anthropic, OpenAI, Google Gemini, Vertex, Bedrock, Azure, Mistral, Groq, xAI, OpenRouter and DeepSeek; local and OpenAI-compatible endpoints are declared by hand.
@@ -832,8 +832,8 @@ The runs then showed that the GPT-6 models never call `apply_patch` directly (se
 - project trust: in RPC and JSON modes, a project's `.pi/` is skipped unless trusted.
 
 **Extending:**
-- **MCP is built in** since 1.x, through Pi's own client `@earendil-works/pi-mcp` ([mcp.md](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/mcp.md)): stdio and streamable HTTP (not SSE), with OAuth. Each server's tools are exposed directly, through code mode, or deferred; Upstart's would be direct. SDK sessions load it only when asked.
-- **Custom tools** take TypeBox schemas, can stream partial results and return images, so Upstart's tools can be native rather than MCP.
+- **MCP is built in** since 1.x, through Pi's own client `@earendil-works/pi-mcp` ([mcp.md](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/mcp.md)): stdio and streamable HTTP (not SSE), with OAuth. Each server's tools are exposed directly, through code mode, or deferred; Spaka's would be direct. SDK sessions load it only when asked.
+- **Custom tools** take TypeBox schemas, can stream partial results and return images, so Spaka's tools can be native rather than MCP.
 - **Hooks** ([events](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/extensions.md#events)): `tool_call` (PreToolUse), `tool_result` (PostToolUse), `agent_before_settle`, which can add entries and continue (the Stop hook that keeps the agent going), and others that rewrite the messages sent to the model or inject a message.
 - **Skills** follow the [agentskills.io](https://agentskills.io/specification) specification. The system prompt can be replaced or added to.
 - **No web search** in its core or in its Anthropic adapter: see [Pi's packages](#pis-packages).
@@ -863,7 +863,7 @@ The runs then showed that the GPT-6 models never call `apply_patch` directly (se
 - **Claude.** Anthropic's [legal and compliance page](https://code.claude.com/docs/en/legal-and-compliance) forbids third-party apps to offer Claude.ai sign-in or to route requests through plan credentials, and to hold Claude.ai credentials or session tokens; it does not stop a user signing in to the unmodified Claude Code binary. The [Agent SDK overview](https://code.claude.com/docs/en/agent-sdk/overview.md) keeps claude.ai sign-in for SDK-built agents to approved developers. Anthropic's [support article](https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan) says the "Agent SDK credit" change was paused on 2026-06-15: the SDK and third-party apps still draw from the subscription's limits. Packages:
   - [`@gotgenes/pi-anthropic-auth`](https://github.com/gotgenes/pi-anthropic-auth) (9,085 a week) adds Claude Code's billing header and replaces Pi's preamble "to avoid prompt fingerprinting": deliberate impersonation;
   - [`@cortexkit/pi-anthropic-auth`](https://github.com/cortexkit/anthropic-auth) pools accounts, rewrites requests and offers a Cloudflare relay;
-  - [`pi-claude-bridge`](https://github.com/elidickinson/pi-claude-bridge) (31,983 a week) runs the official Claude Code through the Agent SDK, signed in with Claude's own sign-in: Upstart's present position, under the same approval note. Whether it passes Claude's partial tool input to Pi is not confirmed. [`pi-claude-agent-sdk`](https://github.com/pi-pod/pi-claude-agent-sdk) is a fork;
+  - [`pi-claude-bridge`](https://github.com/elidickinson/pi-claude-bridge) (31,983 a week) runs the official Claude Code through the Agent SDK, signed in with Claude's own sign-in: Spaka's present position, under the same approval note. Whether it passes Claude's partial tool input to Pi is not confirmed. [`pi-claude-agent-sdk`](https://github.com/pi-pod/pi-claude-agent-sdk) is a fork;
   - Earendil's [pi-claude-code](https://github.com/earendil-works/pi-claude-code) runs `claude -p` per turn behind a loopback relay that rebuilds and rewrites the requests on the wire, its own README unsure of its future: arguably an intermediary for session tokens, to avoid.
 - **Google:** every route is forbidden. [`pi-antigravity`](https://github.com/Rahularya01/pi-antigravity) (5,045 a week) uses the Antigravity desktop client's ID and a user agent matching Antigravity's "wire fingerprint"; [`@cortexkit/pi-antigravity-auth`](https://github.com/cortexkit/antigravity-auth) says in its README that using it violates Google's terms; [`pi-geminicli-oauth`](https://github.com/Heelc/pi-geminicli-oauth) uses Gemini CLI's client; [`pi-gemini-oauth-apikey`](https://github.com/vforvaick/pi-gemini-oauth-apikey) pools Code Assist accounts. Three bridges drive Google's own `agy` or its ACP server with Google's sign-in (about 1.5 GB to download), exactly the case Google's collaborator called a §6 breach. A Google AI forum reply of 2026-10-19 also says there is no supported way for a third-party extension to use a Google AI subscription ([thread](https://discuss.ai.google.dev/t/supported-gemini-subscription-access-for-a-third-party-vs-code-extension/189889/2)).
 - **GitHub Copilot:** Pi's built-in sign-in impersonates VS Code, and so do the packages built on it. GitHub's sanctioned routes are its [OpenCode partnership](https://github.blog/changelog/2026-01-16-github-copilot-now-supports-opencode/) (2026-01-16), for OpenCode only, and the [Copilot SDK](https://docs.github.com/en/copilot/how-tos/copilot-sdk/auth/authenticate) (public preview since 2026-04), which uses the app's own GitHub OAuth app and the user's subscription but drives Copilot CLI's agent. No Pi provider built on it was found.
@@ -896,7 +896,7 @@ The runs then showed that the GPT-6 models never call `apply_patch` directly (se
 **Other parts of the ecosystem:**
 - Subagents, to-do and plan tools exist (the most used, [`pi-subagents`](https://github.com/nicobailon/pi-subagents), at 221,680 a week), with terminal interfaces: reference code at most.
 - Pi's `read` returns image blocks, and custom and MCP tools can return images, so a `look_at_preview` returning a picture works with any vision model.
-- The continue and block hooks are Pi's own; Upstart's Stop logic maps onto `agent_before_settle`.
+- The continue and block hooks are Pi's own; Spaka's Stop logic maps onto `agent_before_settle`.
 - **For embedding:** Pi exports an RPC client and the bundled RPC child. `@earendil-works/pi-client`, `pi-protocol` and `pi-server` (1.1.0) are an experimental CBOR protocol, too early. `pi-durable` (1.4M a week) and `pi-mcp` (4.0M a week, a standalone MCP client) are Earendil's; `pi-web-ui` (0.75.3) predates 1.0. Vercel's [`@ai-sdk/harness-pi`](https://github.com/vercel/ai) runs Pi in the host's process with a sandbox as its remote file system and shell: the host-environment seam, used at scale. [Pace](https://github.com/bubbleptr/pace) runs each root session in an Electron utility process. [`pi-acp`](https://github.com/svkozak/pi-acp) (526,685 a week) is the ACP adapter. Vendor tracing exporters (LangSmith, Braintrust, Langfuse, OpenTelemetry) are for development only. [`@oh-my-pi/*`](https://github.com/can1357/oh-my-pi) is an incompatible fork.
 
 **Not confirmed:** whether ChatGPT-plan requests may use OpenAI's hosted search; GitHub's, xAI's and Moonshot's positions on the reused clients; Anthropic's on Earendil's relay and on `pi-claude-bridge`; licenses npm leaves empty (`@cortexkit/pi-anthropic-auth`, `@igormaka/pi-sandbox`, `@maxiaochao/pi-codex-edit`, `mitsupi`).
@@ -917,11 +917,11 @@ The runs then showed that the GPT-6 models never call `apply_patch` directly (se
 - **The "Claude Agent" provider** ([PR #58782](https://github.com/anomalyco/opencode/pull/58782), 2026-10-30; [docs](https://github.com/anomalyco/opencode/blob/dev/services/site/src/docs/content/claude-agent.mdx), unindexed; [spec](https://github.com/anomalyco/opencode/blob/dev/specs/v2/claude-agent-provider.md)): it runs the maker's own `claude` through the Agent SDK, never reads Claude Code's sign-in, turns off Claude Code's own tools, settings, hooks, memory, skills and MCP servers, and offers opencode's tools as an in-process MCP server. Its spec asks whether Anthropic's approval is needed, and Anthropic's note on claude.ai sign-in in SDK-built apps applies whoever wraps the binary. Its stream converter ignores tool-input deltas, it runs tools one at a time, and it restarts Claude whenever the tool list changes.
 - **Where it keeps credentials:** in its SQLite database under the XDG data folder, not the keychain; version 2 imports version 1's file at first start.
 
-**Kept apart from the maker's setup:** the four XDG folders and opencode's own settings variables move everything; Claude Code's skills and project settings can be turned off, and the models.dev list pinned to a local copy. Still read: `~/.agents/skills`, and system settings in `/Library/Application Support/opencode/` and macOS managed preferences, which always apply. By default version 2 starts one shared background service per user, which Upstart would avoid by running its own standalone server.
+**Kept apart from the maker's setup:** the four XDG folders and opencode's own settings variables move everything; Claude Code's skills and project settings can be turned off, and the models.dev list pinned to a local copy. Still read: `~/.agents/skills`, and system settings in `/Library/Application Support/opencode/` and macOS managed preferences, which always apply. By default version 2 starts one shared background service per user, which Spaka would avoid by running its own standalone server.
 
 **Driving it:**
 - `opencode serve` on a local port with Basic auth ([cli/web.mdx](https://github.com/anomalyco/opencode/blob/dev/services/site/src/docs/content/cli/web.mdx)): sessions, prompts, interrupt, fork, compaction, permission replies, sign-in and an SSE event stream. The typed client ([`@opencode/client`](https://github.com/anomalyco/opencode/blob/dev/services/site/src/docs/content/build/client/index.mdx)) is generated from the API contract; its event stream is live only, with no replay or reconnection.
-- The embedded SDK runs the whole server inside the host's process, which would put the agent's shell inside Upstart's Electron process.
+- The embedded SDK runs the whole server inside the host's process, which would put the agent's shell inside Spaka's Electron process.
 - Events cover runs, steps, text, reasoning, tool input and tool calls, queued follow-ups, compaction and permissions ([session-event.ts](https://github.com/anomalyco/opencode/blob/dev/packages/schema/src/session-event.ts)); text and reasoning deltas are batched every 100 ms. A follow-up is steered in at the next step or queued; sessions persist and fork.
 
 **The live preview, as read.** Version 2 receives the provider's tool-input deltas and accumulates them, but publishes only the call's start and its whole input ([publish-llm-event.ts](https://github.com/anomalyco/opencode/blob/dev/packages/core/src/session/runner/publish-llm-event.ts)). The change came with a commit batching streamed deltas, is reported in [#58415](https://github.com/anomalyco/opencode/issues/58415) (open since 2026-10-23), and [#58416](https://github.com/anomalyco/opencode/pull/58416) would publish tool input in 100 ms batches. Version 1 dropped tool-input deltas too; the request to send them ([#28800](https://github.com/anomalyco/opencode/issues/28800)) was closed as not planned. Watching the disk does not help: the file is written after the call completes. The workaround is a small patch of opencode, plus the Claude converter, kept as a fork.
@@ -938,7 +938,7 @@ The runs then showed that the GPT-6 models never call `apply_patch` directly (se
 - Instructions from `AGENTS.md` ([instructions.mdx](https://github.com/anomalyco/opencode/blob/dev/services/site/src/docs/content/instructions.mdx)); a custom agent's prompt replaces the provider's base prompt, with its own permissions and model ([agents.mdx](https://github.com/anomalyco/opencode/blob/dev/services/site/src/docs/content/agents.mdx)).
 - `webfetch` is built in; search needs a key for Exa, Firecrawl, Parallel, Tavily or TinyFish ([websearch.mdx](https://github.com/anomalyco/opencode/blob/dev/services/site/src/docs/content/websearch.mdx)).
 
-**Shipping:** one Bun-compiled binary per platform. For v2.3.0 the macOS arm64 zip is 103 MB and the npm package 224 MB unpacked; the Linux and Windows archives 112 to 118 MB; version 1's zips were 64 to 82 MB ([release assets](https://github.com/anomalyco/opencode/releases/tag/v2.3.0)). The macOS build is ad-hoc signed, so Upstart would re-sign and notarize it. Auto-update can be turned off. The Claude Agent path also needs the `claude` binary.
+**Shipping:** one Bun-compiled binary per platform. For v2.3.0 the macOS arm64 zip is 103 MB and the npm package 224 MB unpacked; the Linux and Windows archives 112 to 118 MB; version 1's zips were 64 to 82 MB ([release assets](https://github.com/anomalyco/opencode/releases/tag/v2.3.0)). The macOS build is ad-hoc signed, so Spaka would re-sign and notarize it. Auto-update can be turned off. The Claude Agent path also needs the `claude` binary.
 
 ### Gemini CLI 0.68.0
 
@@ -964,7 +964,7 @@ The runs then showed that the GPT-6 models never call `apply_patch` directly (se
 
 **Confinement** ([sandbox](https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/sandbox.md)):
 - Seatbelt profiles on macOS, from permissive (the default, writing in the project only, reads and network open) to strict, or a custom one in the project; Docker or Podman; on Windows a low-integrity label that stays on the files; gVisor or LXC on Linux. A per-tool sandbox asks to widen its access when a command needs more; in headless mode, not confirmed.
-- Approval modes, tool allow and deny lists, and a policy engine of TOML rules ([policy engine](https://github.com/google-gemini/gemini-cli/blob/main/docs/reference/policy-engine.md)) where, in headless mode, "ask the user" counts as deny: Upstart's refusal without asking. Its workspace tier is "currently non-functional".
+- Approval modes, tool allow and deny lists, and a policy engine of TOML rules ([policy engine](https://github.com/google-gemini/gemini-cli/blob/main/docs/reference/policy-engine.md)) where, in headless mode, "ask the user" counts as deny: Spaka's refusal without asking. Its workspace tier is "currently non-functional".
 
 **Extending:**
 - MCP servers in its settings or passed over ACP ([MCP server](https://github.com/google-gemini/gemini-cli/blob/main/docs/tools/mcp-server.md)); skills loaded on demand ([skills](https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/skills.md)).

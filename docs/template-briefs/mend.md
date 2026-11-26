@@ -77,12 +77,12 @@ It is not Margin's single green, Corner's warm paper with cobalt, nor Ember's da
 
 ## Motion
 
-Everything respects `prefers-reduced-motion`. In edit mode nothing moves: Upstart's stillness rule stops CSS animations and transitions, no script runs, the figure stands still with the first area open and its joints lit, and the hour's ring is whole. Each effect is turned on by an attribute, so a new section can have it too.
+Everything respects `prefers-reduced-motion`. In edit mode nothing moves: Spaka's stillness rule stops CSS animations and transitions, no script runs, the figure stands still with the first area open and its joints lit, and the hour's ring is whole. Each effect is turned on by an attribute, so a new section can have it too.
 
 - **The jointed figure** (`data-body-map` on the section; CSS, plus `scripts/body-map.js` with no library):
   - the figure is an inline SVG in the part, `aria-hidden="true"`, stroked in `currentColor` at 1.25 px: ovals for the head and the two halves of the trunk, tapered capsules for the limbs, and a circle at each joint (`data-joint="knee"`, both knees sharing it). Each limb is a group nested in the one above it (upper arm, forearm, hand; thigh, shin, foot), turning about its joint (`transform-origin` set in the SVG's own units). Being faceless, it stands for front and back at once; the back's two dots sit on the trunk;
   - beside it, the areas are a list of `<details>`, one per `areas` record, each with `data-area` naming the joints it lights; the first is `open`. **In CSS alone,** `:has()` lights the joints of the open area (`[data-body-map]:has(details[data-area="knee"][open]) [data-joint="knee"]`), and of an area hovered or focused in the list;
-  - **the movement** (`data-move`): the same `:has()` rule plays that area's keyframes on the figure's groups, one slow repetition every eight seconds, eased in and out like an exercise: the head turns from side to side (head and neck), the arm rises to shoulder height and lowers (shoulder and arm), the trunk bends a little to the side (back), the leg lifts outward (hip and pelvis), both knees bend in a small squat while the trunk lowers (knee), the figure rises onto its toes (ankle and foot). Only under `prefers-reduced-motion: no-preference` and `html[data-up-moving]`; otherwise the figure stands still, its joints lit;
+  - **the movement** (`data-move`): the same `:has()` rule plays that area's keyframes on the figure's groups, one slow repetition every eight seconds, eased in and out like an exercise: the head turns from side to side (head and neck), the arm rises to shoulder height and lowers (shoulder and arm), the trunk bends a little to the side (back), the leg lifts outward (hip and pelvis), both knees bend in a small squat while the trunk lowers (knee), the figure rises onto its toes (ankle and foot). Only under `prefers-reduced-motion: no-preference` and `html[data-spaka-moving]`; otherwise the figure stands still, its joints lit;
   - the script adds what CSS cannot: a click or tap on a joint opens its area and closes the others, and on a phone scrolls the opened area into view. It writes no text. With no script the list alone is the control, which is also what screen readers use.
 - **The breath** (`data-breath`, CSS only): a lit joint has a soft terracotta halo that swells and fades in time with the movement, three seconds in and five out. Same conditions; otherwise a still, faint ring. The request band's small dot beside "We reply within one working day" breathes the same way.
 - **The hour** (`data-hour`, `scripts/hour.js`, Motion's `inView`):
@@ -110,7 +110,7 @@ The practitioners are the gallery's `team` collection and the advice notes its `
 - **prices and insurance, in brief (its own fee card, adapted from `apps/desktop/gallery/pricing/pricing-session-rates` over `fees`, the featured ones):** "Plain fees. Insurance, handled." with three lines (no referral needed; we bill most extended health plans directly; receipts by email for the rest), beside an oat card of four fees with their minutes, then "All fees and how insurance works";
 - **in our patients' words** (adapted from `apps/desktop/gallery/testimonials/testimonials-headline-quote` over `testimonials`): one large quote and two smaller ones, each with a short headline ("I finally understood my back"), a first name and what they came in for. These are invented: see What varies;
 - **the request band** (adapted from `apps/desktop/gallery/cta/cta-dark-panel`, on lake night): "Tell us what's going on. We'll take it from there.", Request an appointment, the phone, and the breathing dot beside "We reply within one working day";
-- **the footer** (adapted from `apps/desktop/gallery/footer/footer-local-shop`, without its map placeholder, on lake night): the name, the address with "Get directions" (a link to a map's address, never an embed), the phone and email, the hours from `hours`, the links from `navigation`, "Not an emergency service: in an emergency, call 911", and Upstart's credits link.
+- **the footer** (adapted from `apps/desktop/gallery/footer/footer-local-shop`, without its map placeholder, on lake night): the name, the address with "Get directions" (a link to a map's address, never an embed), the phone and email, the hours from `hours`, the links from `navigation`, "Not an emergency service: in an emergency, call 911", and Spaka's credits link.
 
 **Request an appointment** (`/book`):
 - the title, and "Tell us what's going on and when suits you. We call or email within one working day to set a time; nothing is booked until we confirm.";
@@ -176,7 +176,7 @@ The practitioners are the gallery's `team` collection and the advice notes its `
 
 ## Bookings, payments and what stays outside
 
-Upstart has no calendar, no payments and no embeds, so:
+Spaka has no calendar, no payments and no embeds, so:
 - **an appointment is a request,** sent through the form to `bookings`, which the practice confirms by phone or email; the page says so before and after sending. A practice with its own online booking page (Jane, Cliniko, Acuity…) links to it from every booking button instead (see What varies): a link that leaves the site, never its widget;
 - **fees are paid at the clinic,** by card or debit; there is no deposit and no online payment. Direct billing and claims are described in words, not done by the site;
 - **no review widgets or star badges:** patients' words are records typed in by the maker;

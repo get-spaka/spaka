@@ -2,9 +2,9 @@
 status: accepted
 ---
 
-# Claude runs through the unmodified official Claude Code binary; Upstart never touches credentials
+# Claude runs through the unmodified official Claude Code binary; Spaka never touches credentials
 
-Upstart drives Claude through the Claude Agent SDK, which runs Anthropic's published Claude Code binary. The maker signs in through Anthropic's own flow with their subscription, or supplies an API key, Bedrock or Vertex credentials. Upstart never shows a claude.ai login of its own, never reads, stores or proxies tokens, and never restricts the binary's authentication methods.
+Spaka drives Claude through the Claude Agent SDK, which runs Anthropic's published Claude Code binary. The maker signs in through Anthropic's own flow with their subscription, or supplies an API key, Bedrock or Vertex credentials. Spaka never shows a claude.ai login of its own, never reads, stores or proxies tokens, and never restricts the binary's authentication methods.
 
 Subscription sign-in is enabled from the first release, without waiting for Anthropic's approval. Anthropic's documents do not line up on this point, and we knowingly take the risk:
 
@@ -24,4 +24,4 @@ We take the risk because using the subscription a maker already pays for is the 
 
 - The binary is shipped and run exactly as published. Running it in a product means accepting Anthropic's Commercial Terms.
 - API key authentication must always work as a complete alternative, and subscription sign-in must be removable in a single release without breaking anything else.
-- Naming follows the Agent SDK branding guidelines: the agent is called "Claude" or "Claude Agent", and Upstart may say "Powered by Claude". The "Claude Code" name and visuals are never used in the product.
+- Naming follows the Agent SDK branding guidelines: the agent is called "Claude" or "Claude Agent", and Spaka may say "Powered by Claude". The "Claude Code" name and visuals are never used in the product.

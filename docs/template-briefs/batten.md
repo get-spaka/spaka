@@ -2,7 +2,7 @@
 
 One of wave 5's templates, and its immersive one: the season of a theater, a repertory company that plays six productions a year with one ensemble (`event`). The whole site moves as a show changes scene. Each production is a painted cloth that comes down from above on its batten as the visitor scrolls. It lands at its mark inside a fixed portal in the house color and settles with a slight swing. The next cloth comes down in front of it. Between pages, the next page comes down the same way. On a phone and under reduced motion, the productions are stacked one after another, plain and complete.
 
-`batten` is a working name. A batten is the pipe a cloth hangs from: it is flown in and out on its lines from the fly tower above the stage. A web search found no website template or theme called Batten: Framer's marketplace has no template at that address, ThemeForest's search for the word returns only a roofing kit, Shopify's theme store lists none, and no Webflow or Squarespace template of that name came up. The theater templates sold now are Framer's Stageo, Opening Night and Marquee Cinema, Webflow's Thespo and Theatre 128, and WordPress's Theatre WP, Bard, OsTende and Cultera; Upstart's Marquee and Encore are taken too. The name is the template's, not the business's.
+`batten` is a working name. A batten is the pipe a cloth hangs from: it is flown in and out on its lines from the fly tower above the stage. A web search found no website template or theme called Batten: Framer's marketplace has no template at that address, ThemeForest's search for the word returns only a roofing kit, Shopify's theme store lists none, and no Webflow or Squarespace template of that name came up. The theater templates sold now are Framer's Stageo, Opening Night and Marquee Cinema, Webflow's Thespo and Theatre 128, and WordPress's Theatre WP, Bard, OsTende and Cultera; Spaka's Marquee and Encore are taken too. The name is the template's, not the business's.
 
 ## Concept
 
@@ -156,7 +156,7 @@ It is not Marquee's hot pink (h 352) on tangerine, Coteau's deep grape (h 330) o
 **Immersive**: the whole site moves the way a show changes scene. Scenery comes down from the flies and lands inside a portal that never moves, and the next page comes in the same way. The web-design skill's "one orchestrated moment a page" does not hold. Yet:
 - every page reads on a phone, where nothing is pinned;
 - everything respects `prefers-reduced-motion`: under `reduce` nothing flies and nothing swings; the productions are stacked, and the tags and today's line are still marked;
-- in edit mode no script runs and Upstart's stillness rule holds CSS animations: the hero's statement is in place, the cloths are stacked one after another, each complete with its title, credits, run and buttons, no tag is chosen and no line marks today.
+- in edit mode no script runs and Spaka's stillness rule holds CSS animations: the hero's statement is in place, the cloths are stacked one after another, each complete with its title, credits, run and buttons, no tag is chosen and no line marks today.
 
 Each effect is turned on by an attribute, so a new section can have it too. The libraries are Motion and Lenis, pinned on jsDelivr as in the site-scripts skill, both under MIT. There is no WebGL and no Splitting.
 
@@ -245,7 +245,7 @@ Every page ends with the footer.
 - **the footer** (its own, adapted from `apps/desktop/gallery/footer/footer-columns`, on flies black):
   - "Bottineau Rep" in League Gothic at 2 rem, the address, the phone and the box office email;
   - the box office's hours;
-  - the links from `navigation`, Instagram and Facebook as links, and Upstart's credits link;
+  - the links from `navigation`, Instagram and Facebook as links, and Spaka's credits link;
   - `data-tz` for the run;
   - the legs end at its foot on a magenta rule.
 
@@ -355,7 +355,7 @@ Every page ends with the footer.
 
 ## Tickets and what stays outside
 
-Upstart has no checkout, no payments, no seat map, no calendar and no embeds, so:
+Spaka has no checkout, no payments, no seat map, no calendar and no embeds, so:
 - **tickets are sold elsewhere** (as built): each production's "Tickets" button links to its page at the company's outside box office, and the header's "Box office" to its home. Nothing is embedded. A company without one asks for tickets with a form or sells them by phone (see What varies);
 - **subscriptions are requests:** the box office calls back to choose the seats and take payment; the form and its answer say so before and after sending;
 - **access seats are booked by phone,** never through a form that asks about a disability; the access performances are typed facts;

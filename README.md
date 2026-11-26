@@ -1,21 +1,21 @@
-# Upstart
+# Spaka
 
-Build websites by talking to an agent, on your own computer. Upstart is a desktop app: you describe the website, or pick a template, the agent writes it, and you watch the page take shape as it writes. MIT licensed, free, no account.
+Build websites by talking to an agent, on your own computer. Spaka is a desktop app: you describe the website, or pick a template, the agent writes it, and you watch the page take shape as it writes. MIT licensed, free, no account.
 
-A website is a folder of plain files (Liquid templates, records in Markdown and YAML, a theme, Tailwind and daisyUI classes, htmx 4) that Upstart serves in a live preview and exports as a static site, a Node app or a Cloudflare Worker.
+A website is a folder of plain files (Liquid templates, records in Markdown and YAML, a theme, Tailwind and daisyUI classes, htmx 4) that Spaka serves in a live preview and exports as a static site, a Node app or a Cloudflare Worker.
 
 ## Download
 
-Get the latest version from the [releases page](https://github.com/upstart-gg/upstart-editor/releases/latest):
+Get the latest version from the [releases page](https://github.com/get-spaka/spaka/releases/latest):
 
 - **macOS**, Apple silicon: the `.dmg`, signed and notarized.
-- **Windows**, x64, beta: the `.exe` installer. It is not signed yet, so Windows SmartScreen warns of an unknown publisher at the first launch: choose "More info", then "Run anyway". Upstart needs [Git for Windows](https://git-scm.com/downloads/win), which gives the agent its shell; it asks for it at the first launch.
+- **Windows**, x64, beta: the `.exe` installer. It is not signed yet, so Windows SmartScreen warns of an unknown publisher at the first launch: choose "More info", then "Run anyway". Spaka needs [Git for Windows](https://git-scm.com/downloads/win), which gives the agent its shell; it asks for it at the first launch.
 
 The app updates itself.
 
 ## What it does
 
-- A conversation with the agent: Claude, through the official Claude binary, signed in with a Claude subscription through its own sign-in or with an API key; or other models (ChatGPT, OpenAI, Gemini, Vertex AI) through a harness of Upstart's own. The agent can ask you questions and propose a plan, and looks at the pages it builds.
+- A conversation with the agent: Claude, through the official Claude binary, signed in with a Claude subscription through its own sign-in or with an API key; or other models (ChatGPT, OpenAI, Gemini, Vertex AI) through a harness of Spaka's own. The agent can ask you questions and propose a plan, and looks at the pages it builds.
 - A live preview that follows the file being written, before it is saved, and a history of every version, with undo.
 - Templates to start from, adapted to your business page by page, and a gallery of nearly two hundred ready-made sections.
 - Editing by hand in the preview: texts, links, images, sections, with a visitor's view and phone and tablet widths. Comments on the page's elements, sent to the agent together.
@@ -35,7 +35,7 @@ pnpm install
 ```
 
 ```bash
-pnpm --filter @upstart/desktop dev
+pnpm --filter @spaka/desktop dev
 ```
 
 | Command | What it does |
@@ -45,13 +45,13 @@ pnpm --filter @upstart/desktop dev
 | `pnpm format` | Biome's fixes, here and in the templates |
 | `pnpm typecheck` | TypeScript, every package |
 | `pnpm e2e` | Builds the app and checks it whole, launched in the background (no window, never takes the focus), with a recorded agent |
-| `pnpm --filter @upstart/desktop package` | The packaged app in `apps/desktop/dist` |
+| `pnpm --filter @spaka/desktop package` | The packaged app in `apps/desktop/dist` |
 
 `pnpm install` also installs the Git hooks (Lefthook, `lefthook.yml`), here and in the templates' submodule, which gets them after the next checkout or pull if it is checked out later: before each commit, Biome's fixes on the staged files, staged again, and what it cannot fix stops the commit; a commit that moves the submodule also checks the templates it points to. `git commit --no-verify` skips them once.
 
-Checks with the real agent spend a little of a Claude subscription, so they run only when asked: sign in once with `CLAUDE_CONFIG_DIR=.cache/agent-config` and the agent binary's `auth login`, then run the e2e checks with `UPSTART_REAL_AGENT=1`.
+Checks with the real agent spend a little of a Claude subscription, so they run only when asked: sign in once with `CLAUDE_CONFIG_DIR=.cache/agent-config` and the agent binary's `auth login`, then run the e2e checks with `SPAKA_REAL_AGENT=1`.
 
-The templates live in their own repository, [upstart-gg/upstart-templates](https://github.com/upstart-gg/upstart-templates), checked out at `apps/desktop/templates` (`git submodule update --init`).
+The templates live in their own repository, [get-spaka/templates](https://github.com/get-spaka/templates), checked out at `apps/desktop/templates` (`git submodule update --init`).
 
 ## Layout
 

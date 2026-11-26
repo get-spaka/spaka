@@ -1,21 +1,21 @@
-# Upstart v2: plan for the tour and the polish (end of step 5)
+# Spaka v2: plan for the tour and the polish (end of step 5)
 
 ## Status (2026-11-22): complete
 
 | Slice | Done | Commits |
 |---|---|---|
-| 0. Dark appearance and color tokens | ✅ | 6dbe928 |
-| 1. Menus and keyboard shortcuts | ✅ | 75824d3 |
-| 2. Tooltips | ✅ | 3d79710 |
-| 3. The tour | ✅ | 88ae8c3 |
-| 4. Statistics | ✅ | 77213df; Aptabase key set in 507be76 |
-| 5. Startup screen, About, icon | ✅ | ff32da3, 4a3b780 |
-| 6. Review of every screen, light and dark | ✅ | 38fd266; accent from the icon's violet, Q341-Q342, fd11222 |
-| 7. All together, the real agent, the packaged app | ✅ | 513d99d |
+| 0. Dark appearance and color tokens | ✅ | 18ea14b |
+| 1. Menus and keyboard shortcuts | ✅ | cec4627 |
+| 2. Tooltips | ✅ | 9b1070c |
+| 3. The tour | ✅ | 785d3bd |
+| 4. Statistics | ✅ | 1e7d51d; Aptabase key set in 2b0df5f |
+| 5. Startup screen, About, icon | ✅ | 82ec895, b76bc6b |
+| 6. Review of every screen, light and dark | ✅ | 2ea3cf9; accent from the icon's violet, Q341-Q342, f89d8f6 |
+| 7. All together, the real agent, the packaged app | ✅ | b0363b8 |
 
 ## Context
 
-After wave 2 of the templates (v7), you chose to finish step 5 (Q327). The design is done (Q328-Q340, commit `7a7dc20`, section "Editing" of `docs/v2.0-decisions.md`, glossary term **Tour**).
+After wave 2 of the templates (v7), you chose to finish step 5 (Q327). The design is done (Q328-Q340, commit `1101492`, section "Editing" of `docs/v2.0-decisions.md`, glossary term **Tour**).
 
 Goals:
 - a five-step tour, shown once after the first website is built;
@@ -63,7 +63,7 @@ Goals:
 
 ## Working rules (unchanged)
 
-- Launches run in the background (`UPSTART_BACKGROUND=1`). `dev:live` is stopped during builds and restarted afterwards.
+- Launches run in the background (`SPAKA_BACKGROUND=1`). `dev:live` is stopped during builds and restarted afterwards.
 - One commit on `main` per slice that works, without attribution, then main is pushed.
 - `pnpm lint` stays clean. The e2e tests run in the background.
 - Any new design question goes to you, from Q341 on.
@@ -140,7 +140,7 @@ Goals:
     - text size;
     - show or hide the sidebar.
   - **Window:** the default role.
-  - **Help:** Tour of Upstart (wired at slice 3), Ask the agent, Keyboard shortcuts.
+  - **Help:** Tour of Spaka (wired at slice 3), Ask the agent, Keyboard shortcuts.
 - **The shortcuts sheet:** a small dialog that lists them, opened from Help.
 - **"Ask the agent":** opens the conversation tab with "How do I …?" in the message box, the cursor at the end.
 - **e2e** (`shell.e2e.ts`, extended): the menu items through the main process, and the shortcuts sent to the window.
@@ -176,7 +176,7 @@ Goals:
   3. The blocks: drag a section into the page.
   4. The theme: colors and fonts.
   5. Publish.
-- **Help → Tour of Upstart** starts the tour again.
+- **Help → Tour of Spaka** starts the tour again.
 - **e2e `tour.e2e.ts`**, on a recording, since the replay already exists:
   - a first website built: the tour opens, goes through its five steps and closes;
   - reopened: it does not open again;
@@ -206,7 +206,7 @@ Goals:
 - **The startup:**
   - the window appears once it has drawn, in the color of its appearance;
   - while the first data loads, a quiet view shows the icon and the name, in place of the empty frame.
-- **The About page** (the app menu's and Settings → About Upstart, made the same):
+- **The About page** (the app menu's and Settings → About Spaka, made the same):
   - the icon, the name, the version;
   - the licence;
   - the main open source components and their licences;

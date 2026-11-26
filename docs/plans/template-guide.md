@@ -1,13 +1,13 @@
-# Upstart v2 : le guide d'un template (Q297 à Q301)
+# Spaka v2 : le guide d'un template (Q297 à Q301)
 
 ## État (2026-11-22) : terminé
 
 | Tranche | Fait | Commits |
 |---|---|---|
-| 0. Les décisions | ✅ | 5d10f93 |
-| 1. L'app | ✅ | 68e9e6a |
-| 2. Les templates | ✅ | 68e9e6a (templates af8a934) |
-| 3. Vérification avec les vrais agents | ✅ | 2f40abb |
+| 0. Les décisions | ✅ | fd33191 |
+| 1. L'app | ✅ | cc78a44 |
+| 2. Les templates | ✅ | cc78a44 (templates af8a934) |
+| 3. Vérification avec les vrais agents | ✅ | 0dbf940 |
 
 ## Contexte
 
@@ -16,7 +16,7 @@ En essayant les questions des templates, vous avez trouvé qu'elles nuisaient à
 Ce qui change :
 - **L'écran de départ** ne montre plus que les templates et la zone de message.
 - **Chaque template a un guide**, `TEMPLATE.md`, à sa racine. Il dit ce qu'est le template et à qui il convient, comment il est fait, comment l'adapter, et ce qu'il faut demander avant de construire, dans une section `## Before building`.
-- **Le guide est lu une seule fois.** Upstart le met dans le premier message de l'adaptation et ne le copie pas dans le site.
+- **Le guide est lu une seule fois.** Spaka le met dans le premier message de l'adaptation et ne le copie pas dans le site.
 - **Les notes de design** (le skill `<id>-design`) restent dans le site, pour ce qui vaut toute sa vie : la typo, les couleurs, les effets, le fonctionnement des listes.
 - **L'agent lit le message d'abord.** Il pose dans une carte, avant de construire, les choix de « Before building » que le message laisse ouverts. Quand le message tranche tout, il construit tout de suite.
 - **La carte de fin reste**, comme pour tout nouveau site (Q301). Une adaptation peut donc avoir deux cartes dans son tour.
@@ -24,14 +24,14 @@ Ce qui change :
 
 ## Règles de travail (inchangées)
 
-- Les lancements de l'app se font en arrière-plan (`UPSTART_BACKGROUND=1`). La fenêtre de dev de l'onglet « dev window » reste ouverte pour vous.
+- Les lancements de l'app se font en arrière-plan (`SPAKA_BACKGROUND=1`). La fenêtre de dev de l'onglet « dev window » reste ouverte pour vous.
 - Un commit par tranche sur `main`, sans attribution, poussé ensuite. Le sous-module des templates est poussé sur son `main`, sans tag ni release.
 - Avant de stager, je fais un scan des clés, puis j'ajoute les fichiers par chemins explicites. `keys.env` et les fichiers `auth.json` ne sont jamais ajoutés.
 - `pnpm lint` reste propre.
 
 ## Tranches
 
-### 0. Les décisions (fait : 5d10f93, poussé)
+### 0. Les décisions (fait : fd33191, poussé)
 - `docs/v2.0-decisions.md` : Q297 à Q301. Q287 et Q293 sont marquées comme remplacées.
 - `GLOSSARY.md` : les deux termes ajoutés et le terme retiré.
 

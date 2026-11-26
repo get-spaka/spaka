@@ -141,7 +141,7 @@ It is not Coteau's grape must (h 330, lighter and brighter, a button color on li
 
 ## Motion
 
-**Gentle**, by the studio's character: people come to slow down, and the site moves the way a teacher lays out the room before class, once and calmly, then stays still. Everything respects `prefers-reduced-motion`. In edit mode nothing moves: Upstart's stillness rule stops CSS animations and transitions and no script runs. So every mat lies flat, Monday is the day shown, nothing is dimmed, and the dock is a plain band in its place above the footer. Each effect is turned on by an attribute, so a new section can have it too.
+**Gentle**, by the studio's character: people come to slow down, and the site moves the way a teacher lays out the room before class, once and calmly, then stays still. Everything respects `prefers-reduced-motion`. In edit mode nothing moves: Spaka's stillness rule stops CSS animations and transitions and no script runs. So every mat lies flat, Monday is the day shown, nothing is dimmed, and the dock is a plain band in its place above the footer. Each effect is turned on by an attribute, so a new section can have it too.
 
 - **The mats** (`data-mats` on a list, `data-mat` on each mat inside a `relative` list item; `scripts/mats.js`, with Motion's `inView` and `animate`):
   - **at rest,** in CSS, a mat is its tone with the grip texture and the inner edge, `rounded-box`. A class style's mat is `aspect-[3/1]` from 768 px and as tall as its content on a phone; a session row's mat is 3.5 rem tall. On the classes page, `[data-mats="floor"]` sets the mats at offsets of 0, 6%, 2% and 8% of the width from 1024 px, like mats laid by hand. On a phone they are all full width;
@@ -192,7 +192,7 @@ The class styles are the template's own `classes` collection, with a page each. 
 - **two ways to pay (its own, over `plans`):** on the field, "Every week, or when you can". On the left, "By the month": Every class $169, Eight a month $129, Four a month $72. On the right, "By the pack": a drop-in $24, five classes $110, ten classes $200, each with its validity and a cork "Reformer counts as two". Between them, the line "Coming twice a week or more? A membership costs less.", then "All prices" (`/prices`);
 - **the teachers** (adapted from `apps/desktop/gallery/team/team-round-row` over `team`): "The people at the front of the room", the five as round portraits (or initials on chalk pink), each with what they teach, then "Meet the teachers";
 - **Saturdays and the retreat** (adapted from `apps/desktop/gallery/events/events-featured-next` over `workshops`): the retreat featured ("Three days near Stanley · September 17-19, 2027 · 16 places"), then the next three workshops as tiles with their dates and prices;
-- **the dock** (`parts/dock.liquid`), then **the footer (its own, adapted from `apps/desktop/gallery/footer/footer-local-shop` without its map placeholder, on night):** "Artesian Yoga & Pilates", the address with "Get directions" (a link to the address on a map site), "Second floor; elevator from the street door", the phone, the email, the front desk's hours from `hours`, the links from `navigation`, Instagram as a link, and Upstart's credits link.
+- **the dock** (`parts/dock.liquid`), then **the footer (its own, adapted from `apps/desktop/gallery/footer/footer-local-shop` without its map placeholder, on night):** "Artesian Yoga & Pilates", the address with "Get directions" (a link to the address on a map site), "Second floor; elevator from the street door", the phone, the email, the front desk's hours from `hours`, the links from `navigation`, Instagram as a link, and Spaka's credits link.
 
 **Schedule** (`/schedule`):
 - the title on the field, "The week", and "Thirty-eight classes, 6:15 am to 7:15 pm on weekdays, mornings at the weekend. Book in the app; come fifteen minutes early the first time.";
@@ -269,7 +269,7 @@ The class styles are the template's own `classes` collection, with a page each. 
 
 ## Booking and what stays outside
 
-Upstart has no checkout, no payments, no calendar and no embeds, so:
+Spaka has no checkout, no payments, no calendar and no embeds, so:
 - **the timetable is a glance** (as built): the usual week, typed in `sessions`. The app holds the real one, with subs, cancellations and how many places are left, and the page says so in one line. Every Book links out to the app, never frames its widget;
 - **the booking app's address is asked for, never invented:** the template's `book.artesianyoga.example` stays only until the maker gives theirs. A session's `book` can link to that class in the app, or stay empty and use the address in `navigation`;
 - **everything is bought in the app:** the offer, the memberships, the packs and the workshops. The site states prices and terms and never asks for a card;

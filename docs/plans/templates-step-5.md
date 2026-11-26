@@ -1,20 +1,20 @@
-# Upstart v2 : plan des templates (étape 5)
+# Spaka v2 : plan des templates (étape 5)
 
 ## État (2026-11-22) : terminé
 
 | Tranche | Fait | Commits |
 |---|---|---|
-| 0. Le mode visiteur par défaut | ✅ | 68f173f |
-| 1. Le runtime : scripts et feuille d'un site | ✅ | 88544e2 |
-| 2. L'agent et le JavaScript | ✅ | 8af328f |
-| 3. Le format d'un template et ses contrôles | ✅ | ee7712f |
-| 4. Le skill `making-templates` | ✅ | 8db5278 |
-| 5. Vague 1 : huit templates | ✅ | db2605f, 3fafc81, f05093c, d60f705, 8052230, 629f4cd, f029e5a, fcf74c5 |
-| 6. L'écran de départ | ✅ | 16e297a |
-| 7. Partir d'un template et l'adapter | ✅ | 0f1c51f |
-| 8. L'onglet Blocks : « Ce design » | ✅ | 94dcae8 |
-| 9. Distribution et import | ✅ | f60b9bb |
-| 10. Ensemble, agent réel, app empaquetée | ✅ | 28c7644 (templates devenus un sous-module, Q267) |
+| 0. Le mode visiteur par défaut | ✅ | 387a8b7 |
+| 1. Le runtime : scripts et feuille d'un site | ✅ | eff3688 |
+| 2. L'agent et le JavaScript | ✅ | b93d509 |
+| 3. Le format d'un template et ses contrôles | ✅ | b752ec0 |
+| 4. Le skill `making-templates` | ✅ | 0086c83 |
+| 5. Vague 1 : huit templates | ✅ | 88c479e, 6cee5c9, d791c45, c6a6415, f772141, 4627487, b7fbef6, f1fd040 |
+| 6. L'écran de départ | ✅ | 55938f3 |
+| 7. Partir d'un template et l'adapter | ✅ | 75363ba |
+| 8. L'onglet Blocks : « Ce design » | ✅ | 1ca3b0a |
+| 9. Distribution et import | ✅ | 21a2f81 |
+| 10. Ensemble, agent réel, app empaquetée | ✅ | 3952c71 (templates devenus un sous-module, Q267) |
 
 Après ce plan : les vagues 2, 3 et 4 de templates, soit 28 templates dans la release v13 (2026-11-22). Les briefs sont dans `docs/template-briefs/`.
 
@@ -44,10 +44,10 @@ La tournée de découverte et le polish de l'étape 5 viendront après ce plan.
 **Les blocs**
 - La galerie vit dans `apps/desktop/gallery/<kind>/<id>/` : `block.liquid`, `block.json`, `data/`, `detail.liquid`, `fragments/`.
 - Elle est lue par `main/gallery/catalogue.ts` et contrôlée par `gallery.test.ts`.
-- Vignettes et aperçu passent par `/__up/block/<id>`.
+- Vignettes et aperçu passent par `/__spaka/block/<id>`.
 
 **Les skills**
-- Ceux livrés avec l'app sont dans `apps/desktop/skills/`, ceux d'un projet dans `.upstart/skills/`. `main/skills/skills.ts` les lit.
+- Ceux livrés avec l'app sont dans `apps/desktop/skills/`, ceux d'un projet dans `.spaka/skills/`. `main/skills/skills.ts` les lit.
 
 **Les modes de l'aperçu**
 - Visiteur par défaut depuis Q253 (en cours dans ce tour) : un site s'ouvre en mode visiteur.
@@ -55,7 +55,7 @@ La tournée de découverte et le polish de l'étape 5 viendront après ce plan.
 
 ## Règles de travail (inchangées)
 
-- Lancements hors écran (`UPSTART_BACKGROUND=1`).
+- Lancements hors écran (`SPAKA_BACKGROUND=1`).
 - Un commit par tranche sur `main`, sans attribution, poussé sur `origin/main`.
 - Toute nouvelle question de conception passe par AskUserQuestion, à partir de Q257.
 - Vérification avec l'agent réel à la fin seulement (elle coûte votre abonnement).
@@ -67,14 +67,14 @@ La tournée de découverte et le polish de l'étape 5 viendront après ce plan.
 - `scripts/lib/*.js` : les bibliothèques embarquées, chargées en premier, par ordre de nom.
 - `scripts/libraries.json` : les bibliothèques données par adresse (Q241), avec `{ name, url, licence }`.
 - `scripts/*.js` : des modules ES qui exportent `start(root)`, et éventuellement `stop(root)`.
-- Un petit script d'Upstart, `up-start.js`, servi comme htmx :
+- Un petit script de Spaka, `spaka-start.js`, servi comme htmx :
   - il importe ces modules ;
   - il appelle `start(document)` au chargement, puis `start(cible)` après chaque swap htmx et après chaque mise à jour de l'aperçu ;
   - l'aperçu émet pour cela un événement à lui après le morph.
 - `styles/*.css` : la feuille du site, chargée après le thème. À l'export, elle est compilée avec Tailwind, pour que `@apply` et les variables du thème y marchent.
 - **Mode édition (Q242)** :
   - la page est rendue sans aucun de ces scripts ;
-  - une feuille d'Upstart y arrête animations et transitions ;
+  - une feuille de Spaka y arrête animations et transitions ;
   - passer en visiteur recharge la page avec ses scripts.
 - **Les conventions imposées par le skill et les contrôles** :
   - un état caché « jusqu'à l'apparition » est posé par le script, jamais par la feuille seule ;
@@ -89,9 +89,9 @@ C'est un dossier de projet ordinaire, plus :
   - les crédits des images ;
   - les bibliothèques et leur licence ;
 - `blocks/` : ses blocs, au format de la galerie, avec la liberté de Q256 et de sa propre feuille ;
-- `.upstart/skills/<id>-design/SKILL.md` : ses notes de design pour l'agent (Q239) ;
+- `.spaka/skills/<id>-design/SKILL.md` : ses notes de design pour l'agent (Q239) ;
 - ses images dans `media/`, avec leur `media/<x>.json` de crédits (Q231).
-- Au départ d'un site, tout est copié dans le nouveau projet sauf `template.json`. Le projet garde `template: <id>` dans son fichier `.upstart`, pour la vérification de fin d'adaptation.
+- Au départ d'un site, tout est copié dans le nouveau projet sauf `template.json`. Le projet garde `template: <id>` dans son fichier `.spaka`, pour la vérification de fin d'adaptation.
 
 **Les contrôles d'un template (`templates.test.ts` et la commande `template:check`)**
 - le manifeste est valide ;
@@ -109,7 +109,7 @@ C'est un dossier de projet ordinaire, plus :
 - Le tout donne une planche à relire.
 
 **La distribution (Q247, Q250)**
-- Le dépôt public `upstart-gg/upstart-templates`, créé le 2026-11-13 (`upstart-gg/templates` est celui de l'ancien Upstart : on n'y touche pas). Chaque version publie :
+- Le dépôt public `get-spaka/templates`, créé le 2026-11-13 (`spaka-gg/templates` est celui de l'ancien Spaka : on n'y touche pas). Chaque version publie :
   - `catalogue.json` (manifestes, empreinte sha256 et taille de chaque .zip) ;
   - les vignettes ;
   - un .zip par template.
@@ -128,10 +128,10 @@ C'est un dossier de projet ordinaire, plus :
 
 ### 1. Le runtime : scripts et feuille d'un site (ADR 0011)
 - **`head.ts`** :
-  - dans l'aperçu : les bibliothèques par adresse, `scripts/lib`, la feuille, `up-start.js` et les modules, en mode visiteur seulement, plus la feuille qui arrête le mouvement en édition ;
+  - dans l'aperçu : les bibliothèques par adresse, `scripts/lib`, la feuille, `spaka-start.js` et les modules, en mode visiteur seulement, plus la feuille qui arrête le mouvement en édition ;
   - à l'export, la même chose.
 - **Le runtime** sert `scripts/` et `styles/`.
-- **Le builder** copie `scripts/`, compile `styles/` avec Tailwind et ajoute `up-start.js`.
+- **Le builder** copie `scripts/`, compile `styles/` avec Tailwind et ajoute `spaka-start.js`.
 - **`preload/preview.ts`** :
   - après le morph, il émet l'événement de redémarrage ;
   - au changement de mode, il recharge la page.
@@ -160,7 +160,7 @@ C'est un dossier de projet ordinaire, plus :
   3. écrire les blocs du template, la feuille, les scripts, les pages, les enregistrements et les notes de design ;
   4. chercher les images avec `find_images` et `use_image`, crédits compris ;
   5. lancer les contrôles, puis les photos.
-- **Avant de l'écrire**, je vérifie que l'agent d'Upstart peut lire le web pour la recherche (outils actuels de la session). Sinon, je vous pose la question.
+- **Avant de l'écrire**, je vérifie que l'agent de Spaka peut lire le web pour la recherche (outils actuels de la session). Sinon, je vous pose la question.
 
 ### 5. Vague 1 : huit templates, faits ici avec le skill
 - Les quatre standard (commerce local, portfolio, blog, page de lancement), puis les quatre originaux.
@@ -204,7 +204,7 @@ C'est un dossier de projet ordinaire, plus :
 - Tests, lint, tous les e2e, réempaquetage.
 - **Avec l'agent réel** :
   - partir d'un template original pour un vrai cas (par exemple un studio de céramique), puis vérifier que tout est réécrit, que le design et les effets sont gardés, et qu'aucun texte du template ne reste ;
-  - ~~faire fabriquer un petit template par l'agent d'Upstart~~ : retiré (Q266). La fabrication dans l'app et la soumission par pull request (compte GitHub exigé des créateurs) feront une étape à part, conçue plus tard.
+  - ~~faire fabriquer un petit template par l'agent de Spaka~~ : retiré (Q266). La fabrication dans l'app et la soumission par pull request (compte GitHub exigé des créateurs) feront une étape à part, conçue plus tard.
 - Je vous propose ensuite de l'essayer dans la fenêtre de dev.
 
 ## Ordre
@@ -213,7 +213,7 @@ Les tranches 1 à 3 viennent avant le skill (4), parce qu'il décrit le format e
 
 ## Fichiers principaux
 
-- **Runtime et export** : `packages/runtime/src/head.ts`, `runtime.ts`, `packages/builder/src/shared.ts`, le nouveau `up-start.js`.
+- **Runtime et export** : `packages/runtime/src/head.ts`, `runtime.ts`, `packages/builder/src/shared.ts`, le nouveau `spaka-start.js`.
 - **Aperçu** : `apps/desktop/src/preload/preview.ts`, `preload/editor/editor.ts`, `main/preview/preview.ts`.
 - **Templates** (nouveaux) : `apps/desktop/src/main/templates/`, et `apps/desktop/templates/` pour la vague 1.
 - **Agent** : `main/agent/instructions.ts`, les hooks dans `main/index.ts`, et les skills `skills/site-scripts/` et `skills/making-templates/`.

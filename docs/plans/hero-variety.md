@@ -1,17 +1,17 @@
-# Upstart v2 : des héros aussi variés que les commerces
+# Spaka v2 : des héros aussi variés que les commerces
 
 ## État (2026-11-23) : les cinq suggestions appliquées et mesurées, puis le geste par caractère (Q444) et le fond par direction (Q445)
 
 | Suggestion | Fait | Commits |
 |---|---|---|
-| 1. Le banc élargi : six commerces opposés, Claude et Gemini, la variété comptée (Q439) | ✅ | f547e10, 312a439 |
-| 2. Sept héros de compositions nouvelles, seize en tout (Q440) | ✅ | 939ec69 |
-| 3. Le skill et la galerie parlent des mêmes gestes (Q441) | ✅ | 88694d3 |
-| 4. Les exemples des skills ne poussent plus vers un seul look (Q442) | ✅ | 1d131f3 |
-| 5. L'agent peut réécrire la structure du héros (Q443) | ✅ | b2dcd4c |
-| Mesure et consignation | ✅ | ef063c8 |
-| 6. Le geste suit le caractère du commerce, plus son métier (Q444) | ✅ | d06be62, 4904b3a |
-| 7. Le fond clair suit la direction (Q445) | ✅ | 77b3e98 |
+| 1. Le banc élargi : six commerces opposés, Claude et Gemini, la variété comptée (Q439) | ✅ | bc726bc, 417c69b |
+| 2. Sept héros de compositions nouvelles, seize en tout (Q440) | ✅ | 68e5206 |
+| 3. Le skill et la galerie parlent des mêmes gestes (Q441) | ✅ | 4a9897e |
+| 4. Les exemples des skills ne poussent plus vers un seul look (Q442) | ✅ | a1a21dd |
+| 5. L'agent peut réécrire la structure du héros (Q443) | ✅ | a56bafd |
+| Mesure et consignation | ✅ | a0061a2 |
+| 6. Le geste suit le caractère du commerce, plus son métier (Q444) | ✅ | 46bbbd3, bd837cd |
+| 7. Le fond clair suit la direction (Q445) | ✅ | cb4235d |
 
 Mesuré le 2026-11-23 avec le banc, six commerces par agent :
 
@@ -46,7 +46,7 @@ Les deux paires s'ouvrent différemment chez les deux agents. Chez Gemini, les h
 
 ## Le fond clair suit la direction (Q445)
 
-Le crème de Gemini venait de son propre goût : aucun texte d'Upstart ne le suggérait, et le skill ne disait que « clair ou sombre par caractère ». La section Color du skill donne maintenant au fond clair une famille choisie avec la direction : blanc pur ou gris froid pour le précis et le graphique, une teinte pâle de la couleur primaire pour le vif et le joueur, un papier chaud seulement pour le chaleureux ou le littéraire. « Le blanc cassé chaud de tous les sites » rejoint ce qui fait générique. Le tableau du banc compte les sites sur un blanc cassé chaud.
+Le crème de Gemini venait de son propre goût : aucun texte de Spaka ne le suggérait, et le skill ne disait que « clair ou sombre par caractère ». La section Color du skill donne maintenant au fond clair une famille choisie avec la direction : blanc pur ou gris froid pour le précis et le graphique, une teinte pâle de la couleur primaire pour le vif et le joueur, un papier chaud seulement pour le chaleureux ou le littéraire. « Le blanc cassé chaud de tous les sites » rejoint ce qui fait générique. Le tableau du banc compte les sites sur un blanc cassé chaud.
 
 | Sites clairs sur un blanc cassé chaud | Avant Q445 | Après Q445 |
 |---|---|---|
@@ -67,6 +67,6 @@ Les causes trouvées :
 
 ## Le banc
 
-`e2e/agent-design.e2e.ts` (opt-in, `UPSTART_REAL_AGENT=1`, l'agent choisi par `UPSTART_DESIGN_AGENT`, une partie des commerces par `UPSTART_DESIGN_BRIEFS`, l'étiquette par `UPSTART_DESIGN_LABEL`). Pour chaque site : le bloc qui ouvre l'accueil, ce que l'agent a demandé à la galerie pour son héros, les polices, la surface et la couleur primaire du thème. Un tableau par passage dans `e2e/.runs/agent-design/<étiquette>-<agent>.md`, et `node e2e/agent-design-sheet.ts [desktop-1|phone-1]` met les premiers écrans côte à côte.
+`e2e/agent-design.e2e.ts` (opt-in, `SPAKA_REAL_AGENT=1`, l'agent choisi par `SPAKA_DESIGN_AGENT`, une partie des commerces par `SPAKA_DESIGN_BRIEFS`, l'étiquette par `SPAKA_DESIGN_LABEL`). Pour chaque site : le bloc qui ouvre l'accueil, ce que l'agent a demandé à la galerie pour son héros, les polices, la surface et la couleur primaire du thème. Un tableau par passage dans `e2e/.runs/agent-design/<étiquette>-<agent>.md`, et `node e2e/agent-design-sheet.ts [desktop-1|phone-1]` met les premiers écrans côte à côte.
 
-Le « avant » a tourné sur une copie de `main` (a99bf9c) avec le banc (f547e10) et la correction de la connexion de Claude depuis un worktree (312a439), sans les suggestions 2 à 5 ; le « après » sur cette branche.
+Le « avant » a tourné sur une copie de `main` (0dd9669) avec le banc (bc726bc) et la correction de la connexion de Claude depuis un worktree (417c69b), sans les suggestions 2 à 5 ; le « après » sur cette branche.

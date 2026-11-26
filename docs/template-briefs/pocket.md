@@ -77,7 +77,7 @@ The palette keeps clear of the wave's cobalt, butter, vermilion, deep green, vio
 
 ## Motion
 
-Everything respects `prefers-reduced-motion`. In edit mode, Upstart runs no script and plays no animation: every phone, screen and card is in its final place, and each chapter shows its own phone.
+Everything respects `prefers-reduced-motion`. In edit mode, Spaka runs no script and plays no animation: every phone, screen and card is in its final place, and each chapter shows its own phone.
 
 - **The glow** (`<canvas data-aurora aria-hidden="true">` in the hero and the download band):
   - `scripts/aurora.js` uses OGL to draw three soft blobs that drift slowly and lean toward the cursor. Their colors are the theme's secondary, surface-alt and accent, read from the CSS variables at start, so the Theme tab still restyles the glow;

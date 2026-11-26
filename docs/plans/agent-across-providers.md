@@ -1,17 +1,17 @@
-# Upstart v2 : plan de l'agent, pareil d'un fournisseur à l'autre
+# Spaka v2 : plan de l'agent, pareil d'un fournisseur à l'autre
 
 ## État (2026-11-23) : terminé, vérifié avec les vrais comptes
 
 | Tranche | Fait | Commits |
 |---|---|---|
-| 1. Pi 1.6.0 | ✅ | 175c546 |
-| 2. La recherche, portable et dans les règles (et Q437) | ✅ | 2ef9036, 830400a |
-| 3. Les outils de Pi, au niveau de Claude (Q433) | ✅ | 7c5fd89 |
-| 4. Les tours de Pi : compactage et nouveaux essais (Q434, Q435) | ✅ | cc337a4 |
-| 5. Le mode Plan, pareil des deux côtés (Q436) | ✅ | 9f427af |
-| 6. generate_image | ✅ | d5d90ee |
-| 7. Le skill web-design | ✅ | 5b76f4e ; banc avant/après avec Claude (`e2e/agent-design.e2e.ts`) |
-| 8. Images générées dans les templates (Q432) | ✅ | 38f9647 (templates b283147) |
+| 1. Pi 1.6.0 | ✅ | 0fe7886 |
+| 2. La recherche, portable et dans les règles (et Q437) | ✅ | 1d9dd14, 347494b |
+| 3. Les outils de Pi, au niveau de Claude (Q433) | ✅ | 88ddeed |
+| 4. Les tours de Pi : compactage et nouveaux essais (Q434, Q435) | ✅ | 44e0df0 |
+| 5. Le mode Plan, pareil des deux côtés (Q436) | ✅ | a577513 |
+| 6. generate_image | ✅ | 5dc14a6 |
+| 7. Le skill web-design | ✅ | 4da1971 ; banc avant/après avec Claude (`e2e/agent-design.e2e.ts`) |
+| 8. Images générées dans les templates (Q432) | ✅ | 98b3362 (templates b283147) |
 
 Vérifié le 2026-11-23 avec les clés de Matt, lues dans le `.env` du dépôt (Q438) : `generate.real.test.ts` avec Gemini et OpenAI ; la recherche Google de Pi ; `agent-pi.e2e.ts` en entier (6/6) avec Gemini 4 Hydrogen, par une clé AI Studio et sur Vertex AI ; le banc web-design avec Gemini (pâtisserie 266 s, studio 188 s, contre 448 s et 373 s pour Claude). `agent-pi.e2e.ts` répond désormais aux cartes de questions, et retouche le fichier qui porte le titre, une partie quand la page est faite de blocs. Pas encore essayé : generate_image sur Vertex.
 
@@ -85,7 +85,7 @@ Trois recherches l'ont nourrie :
 ## Règles de travail (inchangées)
 
 **Lancements et commits**
-- L'app est lancée en arrière-plan (`UPSTART_BACKGROUND=1`), et `dev:live` est arrêté pendant les builds.
+- L'app est lancée en arrière-plan (`SPAKA_BACKGROUND=1`), et `dev:live` est arrêté pendant les builds.
 - Un commit sur `main` par tranche qui marche, puis un push.
 - `git add` par chemins explicites, après un scan des clés.
 
@@ -148,7 +148,7 @@ Dans `pi/tools.ts`, chaque outil suit le binaire, paramètre par paramètre.
 - S'il a changé sur le disque depuis sa lecture (une retouche du maker, Q294), l'outil le dit et demande de le relire.
 
 **Glob**
-- Il voit `.upstart/` mais pas `.git` ni `node_modules`.
+- Il voit `.spaka/` mais pas `.git` ni `node_modules`.
 - Il trie par date de modification et plafonne à 100.
 
 **Grep**
@@ -165,7 +165,7 @@ Dans `pi/tools.ts`, chaque outil suit le binaire, paramètre par paramètre.
 **Un contrat commun**
 - `agent/tool-contract.test.ts` décrit chaque outil : entrées, sorties, erreurs.
 - Il tourne sur les outils de Pi.
-- Pour Claude, une vérification réelle (`UPSTART_REAL_CLAUDE=1`) prend les mêmes cas, quand le binaire les expose.
+- Pour Claude, une vérification réelle (`SPAKA_REAL_CLAUDE=1`) prend les mêmes cas, quand le binaire les expose.
 
 **Les petits écarts relevés**
 - `readSkill` qui échoue est signalé dans `problems` au lieu d'être tu.
@@ -213,7 +213,7 @@ Dans `pi/tools.ts`, chaque outil suit le binaire, paramètre par paramètre.
 
 **choose_pages**
 - Il est refusé en Plan des deux côtés (`PLAN_WRITERS`).
-- Je vérifie dans le vrai test que `use_block` et `use_image` passent bien par `canUseTool` en Plan, comme le test réel de 3db6681 le montre pour `use_block`.
+- Je vérifie dans le vrai test que `use_block` et `use_image` passent bien par `canUseTool` en Plan, comme le test réel de 29dc1e0 le montre pour `use_block`.
 
 **Tests**
 - Unitaires des deux sessions.
@@ -234,7 +234,7 @@ Dans `pi/tools.ts`, chaque outil suit le binaire, paramètre par paramètre.
 - Les entrées : `prompt`, `aspect` (`1:1`, `4:3`, `3:4`, `16:9`, `21:9`, `9:16`), jusqu'à 4 `references` prises dans `media/`.
 - 2K au plus.
 
-**L'outil dans `upstart-tools.ts`**
+**L'outil dans `spaka-tools.ts`**
 - `generate_image` prend `prompt`, `aspect`, `file` (nom court), `alt`, et `references` (facultatif).
 - Il écrit `media/<file>.webp`, au plus 2 400 px comme `use_image`.
 - Son `.json` porte `generated: { model, prompt, date, references }`, sans crédits.
@@ -268,7 +268,7 @@ Dans `pi/tools.ts`, chaque outil suit le binaire, paramètre par paramètre.
 
 **Nouveau `apps/desktop/skills/web-design/SKILL.md`**
 - Écrit selon writing-for-agents.
-- Sa description, en pointeur : « Upstart's rules for a website's design — read before a new page, a change of style, or a script. »
+- Sa description, en pointeur : « Spaka's rules for a website's design — read before a new page, a change of style, or a script. »
 - Son contenu :
   - choisir pour ce commerce ;
   - un pari esthétique fort ;
@@ -323,7 +323,7 @@ Dans `pi/tools.ts`, chaque outil suit le binaire, paramètre par paramètre.
 ## Fichiers principaux
 
 **L'agent (`apps/desktop/src/main/agent/`)**
-- `instructions.ts`, `session.ts`, `questions.ts`, `upstart-tools.ts`.
+- `instructions.ts`, `session.ts`, `questions.ts`, `spaka-tools.ts`.
 - `pi/session.ts`, `pi/tools.ts`, `pi/web-search.ts`, `pi/models.json`.
 - Nouveaux : `image-models.json`, `tool-contract.test.ts`.
 

@@ -226,7 +226,7 @@ It is not Saucer's milk and marmalade, Commons's tomato and sky on newsprint, Ma
 
 ## Motion
 
-Short and useful. Everything respects `prefers-reduced-motion`. In edit mode nothing moves: Upstart's stillness rule stops CSS animations and transitions and no script runs. So the truck sits at home base, no bay is marked, every stop's details are in place to edit, and the guest count shows its plain line. Each effect is turned on by an attribute, so a new section can have it too.
+Short and useful. Everything respects `prefers-reduced-motion`. In edit mode nothing moves: Spaka's stillness rule stops CSS animations and transitions and no script runs. So the truck sits at home base, no bay is marked, every stop's details are in place to edit, and the guest count shows its plain line. Each effect is turned on by an attribute, so a new section can have it too.
 
 - **Where the truck is** (`data-parking-row`, `scripts/parking-row.js`, Motion's `animate` and `inView`): the one script that reads the clock. It chooses a bay and nothing else. It never says open, closed or "now".
   - It reads the week from the page. Each bay is rendered from a `stops` record with `data-day` (mon to sun), `data-starts` and `data-ends` (24-hour times, as the records hold them), and `data-off` when the stop is off this week. The truck's time zone comes from `data-tz` on the row ("America/New_York"; without it, the visitor's own clock);
@@ -294,7 +294,7 @@ The weekly route is the template's own `stops`. The dishes are the gallery's `me
   - "Follow the truck" in Bagel Fat One, and "Changes go up on Instagram by 9 am";
   - the Monday email strip (adapted from `apps/desktop/gallery/newsletter/newsletter-compact-strip` over `newsletter`): "Get the week's stops by email on Mondays";
   - the phone and email for bookings, "Home base: a shared kitchen east of downtown (no service there)";
-  - the links from `navigation`, Instagram as a link, and Upstart's credits link.
+  - the links from `navigation`, Instagram as a link, and Spaka's credits link.
 
 **Where & when** (`/where`):
 - the title, "Where & when", and "Our regular week. We're out rain or shine unless it's lightning; if we change anything, it's on Instagram by 9 am and in Monday's email.";
@@ -393,7 +393,7 @@ The weekly route is the template's own `stops`. The dishes are the gallery's `me
 
 ## Ordering, bookings and what stays outside
 
-Upstart has no ordering, no payments, no live location, no calendar and no embeds, so:
+Spaka has no ordering, no payments, no live location, no calendar and no embeds, so:
 - **visitors order at the window** (as built). A truck that sells ahead online sends an "Order ahead" link on each stop and in the header to its own ordering page (Square, Toast, Hotplate…). It is a link that leaves the site, never the ordering page's widget (see What varies);
 - **events are a request,** answered with a quote by email and held by a deposit paid outside the site. The page says so before and after sending;
 - **the truck's whereabouts follow the maker's regular week,** not a tracker. A change for one week is the stop's "not this week" and its note, edited in the Content tab, with Instagram and Monday's email for the rest;

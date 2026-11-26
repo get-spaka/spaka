@@ -2,7 +2,7 @@
 
 One of wave 4's templates: the personal résumé (`portfolio`), one person's CV and professional profile, for job seekers and freelancers of any trade. Its motion is quiet and useful: a résumé that folds from its full length to one page under the visitor's hand, a sheet whose page ends are drawn on it, and careers drawn as spans of time.
 
-Corrected after the author's decisions Q415 and Q416: the palette moves off purple (the winery, Coteau, keeps it) to a deep indigo, oklch(0.45 0.15 270) (asked around hue 275, set at 270 to keep clear of Transfer's violet at 282), with the sheet, desk, ink and dark retuned around it and the mint and fern kept; the printed CV leaves out the footer, so Upstart's credits link is not printed, which is accepted.
+Corrected after the author's decisions Q415 and Q416: the palette moves off purple (the winery, Coteau, keeps it) to a deep indigo, oklch(0.45 0.15 270) (asked around hue 275, set at 270 to keep clear of Transfer's violet at 282), with the sheet, desk, ink and dark retuned around it and the mint and fern kept; the printed CV leaves out the footer, so Spaka's credits link is not printed, which is accepted.
 
 **Why `portfolio`:** the category is where a maker looks for a site about one person and their work. `business` is a place or a service sold, `blog` dated posts. Folio and Reel are already portfolios, of projects: Folio a quiet index of pictures for one photographer, Reel a loud studio's cases. Cursus is the portfolio of a career: what a person has done, where, for how long, with what result, and what they want next. It has no project pictures at its heart and reads first as a document.
 
@@ -10,7 +10,7 @@ Corrected after the author's decisions Q415 and Q416: the palette moves off purp
 
 ## Concept
 
-**Concept.** A résumé site that *is* the résumé. One set of records is shown twice: as a profile for people who browse (what this person does, what they are open to, the proof, the career at a glance) and as a typeset sheet, true to the paper, that folds from its full length to a one-page CV with one switch and prints, or saves as a PDF, exactly as it is shown. The maker keeps no Word file in step with the site any more: the site is the file. The page ends are drawn on the sheet, so the maker sees in Upstart, while editing, whether their CV still fits on one page. Above everything, a plain panel of **terms** answers the recruiter's first question: open to what, how, from when, and where.
+**Concept.** A résumé site that *is* the résumé. One set of records is shown twice: as a profile for people who browse (what this person does, what they are open to, the proof, the career at a glance) and as a typeset sheet, true to the paper, that folds from its full length to a one-page CV with one switch and prints, or saves as a PDF, exactly as it is shown. The maker keeps no Word file in step with the site any more: the site is the file. The page ends are drawn on the sheet, so the maker sees in Spaka, while editing, whether their CV still fits on one page. Above everything, a plain panel of **terms** answers the recruiter's first question: open to what, how, from when, and where.
 
 The type is a warm humanist serif for the name and headings, a clear grotesk for reading and a soft mono for dates and labels; the page is a cool white sheet on a pale blue-grey desk, with one deep indigo ink and a mint panel for the terms.
 
@@ -156,7 +156,7 @@ Quiet and useful. Everything respects `prefers-reduced-motion`. In edit mode no 
 - **The header** is sticky on the sheet's white at 95% with a hairline under it, and does not change as you scroll.
 
 **The print stylesheet** (`@media print` in `styles/site.css`), the other half of the signature:
-- `@page { size: letter; margin: 0.55in 0.6in; }` (`size: A4; margin: 14mm 15mm;` for A4); the sheet's own padding and shadow go, as do the desk, the header, the footer (Upstart's credits link included, so a printed CV carries no badge: accepted by the author, Q416), the toolbar, buttons, forms and anything marked `data-print-hide`;
+- `@page { size: letter; margin: 0.55in 0.6in; }` (`size: A4; margin: 14mm 15mm;` for A4); the sheet's own padding and shadow go, as do the desk, the header, the footer (Spaka's credits link included, so a printed CV carries no badge: accepted by the author, Q416), the toolbar, buttons, forms and anything marked `data-print-hide`;
 - the sheet prints at its screen sizes in points, in ink on white, the indigo kept for the rule under the name and the section labels (`print-color-adjust: exact` on those only); entries never split across pages (`break-inside: avoid`), section labels stay with what follows (`break-after: avoid`);
 - the contact line prints in full (city, email, the site's address, LinkedIn as its address), and other links print as their text;
 - what prints follows the switch: full or one page;
@@ -167,7 +167,7 @@ Quiet and useful. Everything respects `prefers-reduced-motion`. In edit mode no 
 The career is the `experience` collection, the skills `skills`, the schooling `education`, the colleagues' words the gallery's `testimonials`; the résumé sheet and the home page read the same records. The contact form posts to the gallery's `contact` collection. The name and the contact line (city, email, the site's address, LinkedIn) are one part, `parts/contact-line.liquid`; the terms are another, `parts/terms.liquid`; the date of the last update a third, `parts/updated.liquid`: each written once and rendered wherever it appears. Every "Get in touch" leads to `/contact`.
 
 - **The header (adapted from `apps/desktop/gallery/header/header-simple`):** "Hollis Amadi" in the serif at 1.375 rem with "Operations lead" in the mono beside it; Résumé, Highlights and Contact; "Get in touch" as the filled button. Labels hold a third more on one line (`whitespace-nowrap`); below the width where they all fit, a menu button takes over, the button staying in sight.
-- **The footer (adapted from `apps/desktop/gallery/footer/footer-compact`), on night:** the name, "Cincinnati, Ohio · Open to work from February 2027", the contact line, the links from `navigation`, "Updated November 2026", and Upstart's credits link.
+- **The footer (adapted from `apps/desktop/gallery/footer/footer-compact`), on night:** the name, "Cincinnati, Ohio · Open to work from February 2027", the contact line, the links from `navigation`, "Updated November 2026", and Spaka's credits link.
 
 **Home** (`/`):
 - **the hero (its own):** the label "Operations lead · Cincinnati, Ohio" in the mono; the sentence "I keep food moving: trucks, warehouses, schedules, and the people who make them work."; under it, two lines of plain text ("Thirteen years in operations and logistics, the last eight feeding people: a produce wholesaler, then a food-bank network of 140 pantries."); "Read the résumé" and "Get in touch". Beside it on the desk, the small sheet in its one-page form, "One page · Updated November 2026" and "Save as PDF" under it. On a phone the small sheet comes after the buttons, at 70% of the width;
@@ -282,9 +282,9 @@ When removed: delete `pages/highlights/`, `data/highlights/` and its navigation 
 
 When removed: delete `pages/contact.liquid`, `data/contact-faq/`, `data/contact/`, `fragments/contact-thanks.liquid` and its navigation record; every "Get in touch" becomes a `mailto:` link to the maker's email, and the terms stay on the home page.
 
-## Résumés, PDFs and what stays outside Upstart
+## Résumés, PDFs and what stays outside Spaka
 
-- **No PDF file is made by Upstart.** The visitor's browser makes it, from the print stylesheet ("Save as PDF" in every browser's print dialog). The maker never keeps a separate file in step; the "Updated" date is a line they change in one part.
+- **No PDF file is made by Spaka.** The visitor's browser makes it, from the print stylesheet ("Save as PDF" in every browser's print dialog). The maker never keeps a separate file in step; the "Updated" date is a line they change in one part.
 - **No import** from LinkedIn or a Word document: the maker pastes or tells their CV, and the agent writes the records.
 - **Applicant tracking systems:** the printed sheet is real text in one column, in reading order, with plain section names (Experience, Skills, Education), which these systems read well; no promise beyond that.
 - **References are not published:** the page says they are given on request.

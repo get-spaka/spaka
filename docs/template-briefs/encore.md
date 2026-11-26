@@ -12,11 +12,11 @@ One of wave 2's original designs: the musician or band (`portfolio`, one of the 
 
 The same structure suits a singer-songwriter, a jazz trio, a DJ or producer, a classical ensemble, a choir or a small label's single artist. The agent rewrites the records, the shows, the videos and the press.
 
-**What Upstart cannot do, and how the site does without it.**
-- **No audio in the page.** The media library takes images and documents, never audio or video (`mediaKind` in `apps/desktop/src/main/media/library.ts`, decision Q169: no players in v2.0); the preview's server does not even serve an `.mp3`, and `template:image` finds only images. So a visitor hears the music where it lives: each record has a "Listen" row of links to the services (Bandcamp, Spotify, Apple Music, YouTube Music, Tidal: a `links` field, only those filled are shown), the header's Listen button leads to the featured record's row, and the footer links the band's profile on each service. If Upstart later takes audio, the release page has the place for a short preview per track.
+**What Spaka cannot do, and how the site does without it.**
+- **No audio in the page.** The media library takes images and documents, never audio or video (`mediaKind` in `apps/desktop/src/main/media/library.ts`, decision Q169: no players in v2.0); the preview's server does not even serve an `.mp3`, and `template:image` finds only images. So a visitor hears the music where it lives: each record has a "Listen" row of links to the services (Bandcamp, Spotify, Apple Music, YouTube Music, Tidal: a `links` field, only those filled are shown), the header's Listen button leads to the featured record's row, and the footer links the band's profile on each service. If Spaka later takes audio, the release page has the place for a short preview per track.
 - **No embedded videos.** The template check refuses `<video>`, `<audio>` and `<iframe>` from another site. A video is its poster (an image of `media/`), its kind and running time, and a link to it on YouTube or Vimeo, opened in a new tab.
 - **No tickets or payments.** Each show links to its own ticket page, at the venue or the ticket seller (an outside page); a sold-out show has no link. Records are bought on the band's Bandcamp page (an outside page).
-- **Bookings and the mailing list are requests sent through forms**, kept by Upstart: a promoter's booking request (date, city and venue, kind of show, capacity, message) and a fan's email and city. Press writes to the publicist's email.
+- **Bookings and the mailing list are requests sent through forms**, kept by Spaka: a promoter's booking request (date, city and venue, kind of show, capacity, message) and a fan's email and city. Press writes to the publicist's email.
 
 ## Trends it draws on
 
@@ -37,7 +37,7 @@ These come from 14 musician, band and label sites opened with WebFetch in Novemb
 - **front and back:** each record's page is its sleeve, the dark front with the cover, then the paper back with the sides, the credits and the notes.
 
 **What it leaves out:**
-- audio players, a sound toggle and autoplay (Upstart has no audio, and sound that starts by itself sends visitors away), embedded videos and social feeds;
+- audio players, a sound toggle and autoplay (Spaka has no audio, and sound that starts by itself sends visitors away), embedded videos and social feeds;
 - loaders and "Enter" gates, WebGL and 3D, a custom cursor;
 - lyrics, fan art, a shop of its own (Bandcamp or the maker's shop is linked);
 - wave 1's devices: duotone photos (Margin, Marquee), stickers and tape (Marquee), letters that stretch, rise, blur in or flicker (Marquee, Folio, Beacon, Ember), a picture following the cursor (Folio), anything pinned while the page scrolls (Pocket, Ember) or scrolling sideways (Reel), a ticker (Corner).
@@ -196,12 +196,12 @@ The choices that change the design and cost the agent work, page type by page ty
 - **Nowhere, streaming only:** the Buy buttons and the formats line go, from the hero, the sleeves and the record pages; the listen links stay.
 
 **How do promoters book the band?**
-- **With the booking form** (as built): requests arrive in Upstart's Content tab; "Book the band" links lead to `/contact#booking`.
+- **With the booking form** (as built): requests arrive in Spaka's Content tab; "Book the band" links lead to `/contact#booking`.
 - **Through a booking agent:** the agent's name, agency and email replace the form; every booking link becomes a `mailto:`; `data/bookings/` and its fragment go.
 - **Not booking shows:** the footer's "Encore" call and every booking link go; the contact page keeps press and management.
 
 **How do fans hear about new shows?**
-- **The mailing list form** (as built): email and city, kept by Upstart and downloadable as CSV from the Content tab.
+- **The mailing list form** (as built): email and city, kept by Spaka and downloadable as CSV from the Content tab.
 - **The maker's newsletter service:** a "Join the list" link to its sign-up page (Mailchimp, Substack, Laylo…) in place of each form; `data/newsletter/` and its fragment go.
 - **Follow links only:** no list; the footer and the shows page point to the band's social pages.
 

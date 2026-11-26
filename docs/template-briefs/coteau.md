@@ -48,7 +48,7 @@ Their motion is mostly carousels (Swiper on monemvasia, kettmeir, imperiale, ast
 - **the typed label:** a wine without a photo is its label, set in the site's flared capitals on a paper panel with its vintage, block and a band in its style's tone, so a winery with no bottle shots still has a whole list, and a bottle photo replaces it when the maker has one.
 
 **What it leaves out:**
-- a cart, checkout, prices with tax and shipping, and a booking or club widget (Tock, Commerce7, Vinoshipper, CellarPass): Upstart has none and embeds none (see below); a map embed, an Instagram feed, video heroes, carousels, smooth scrolling, page transitions, a 3D bottle;
+- a cart, checkout, prices with tax and shipping, and a booking or club widget (Tock, Commerce7, Vinoshipper, CellarPass): Spaka has none and embeds none (see below); a map embed, an Instagram feed, video heroes, carousels, smooth scrolling, page transitions, a 3D bottle;
 - critics' scores and press quotes: they cannot be invented for a fictional estate, and a real winery adds its own as text if it wants;
 - an age question in front of the site, as built (see below);
 - **other templates' devices:** a dark room, candlelight following the pointer, an evening scrolled by the hour, a tilted menu card and a list of wines by the glass with dotted leaders (Ember); whether the place is open right now, in any form: a door card, a served-now line, an open sign, a week of bars with a now line, an "Open now" pill (Saucer, Taper, Corner): Coteau's hours are a plain table by season and its only clock is the year, for the wines; the sun, shadows or the time of day (Gnomon); round photos set down like plates (Saucer); four tonal steps as a code (Taper); lines that draw themselves (Chalk, Seam): the hills are filled shapes that never draw, and the marker walks on one that is already there; a jar that fills (Commons); a ribbon or ticker, an arch and a turning stamp (Corner); anything sliding out of a sleeve or flipping into place (Encore); anything scrolling sideways (Reel); dimension lines and rings of distance (Trestle); a curtain (Linen); an envelope, a seal or die-cut arches (Kindly); a door swinging open (Aspect); hang tags and pinked edges (Seam); a stencil (Transfer); handwriting; an italic accent word in a heading; a huge wordmark across the footer.
@@ -98,7 +98,7 @@ It is not Seam's oxblood, Linen's red or Ember's wine on a dark room (the must i
 
 ## Motion
 
-Quiet and useful. Everything respects `prefers-reduced-motion`. In edit mode nothing moves: Upstart's stillness rule stops CSS animations and transitions and no script runs, so every marker stands where the page was rendered and every wine shows its stage as Liquid wrote it. Each effect is turned on by an attribute, so a new section can have it too.
+Quiet and useful. Everything respects `prefers-reduced-motion`. In edit mode nothing moves: Spaka's stillness rule stops CSS animations and transitions and no script runs, so every marker stands where the page was rendered and every wine shows its stage as Liquid wrote it. Each effect is turned on by an attribute, so a new section can have it too.
 
 - **The hill** (`data-hill` on a wine's figure; CSS, and `scripts/hill.js` with Motion's `animate` and `inView`):
   - the figure carries the wine's years as numbers, `style="--vintage: 2024; --ready: 2026; --best: 2031; --by: 2035; --now: 2026"` (no color in the style), from the record's `vintage`, `ready_from`, `best_until` and `drink_by`; `--now` is the year the page was rendered, from Liquid's `"now" | date: "%Y"`, as Encore's past shows already use it;
@@ -129,7 +129,7 @@ The wines are the gallery's `products` collection with fields of the template's 
 - **the story, short** (adapted from `apps/desktop/gallery/about/about-story-picture`): a photo of the barn in the snow, "Cherries for three generations, then vines", two paragraphs, "The estate";
 - **the club band** (adapted from `apps/desktop/gallery/cta/cta-split-image`, on must): a photo of the April release party, "Join the Hill Club", "Four or eight bottles in April and October, first pick of the library, and free tastings for two every time you come up.", "Join the club";
 - **what's on** (adapted from `apps/desktop/gallery/events/events-date-list` over `events`, the next three): the date in Marcellus, the title, the time, the price, "Reserve a seat"; then "All events";
-- **the footer** (adapted from `apps/desktop/gallery/footer/footer-columns`, on the cellar): "Vossberg Hill" with its small hill, the address and "Get directions" (a link to a map site), the phone, the email, the hours by season, the links from `navigation`, Instagram as a link; the release letter (adapted from `apps/desktop/gallery/newsletter/newsletter-interests` over `newsletter`: first name, email, and New releases, Events, Library offers as checkboxes); the line "You must be 21 or older to taste or buy wine. Please drink with care."; Upstart's credits link.
+- **the footer** (adapted from `apps/desktop/gallery/footer/footer-columns`, on the cellar): "Vossberg Hill" with its small hill, the address and "Get directions" (a link to a map site), the phone, the email, the hours by season, the links from `navigation`, Instagram as a link; the release letter (adapted from `apps/desktop/gallery/newsletter/newsletter-interests` over `newsletter`: first name, email, and New releases, Events, Library offers as checkboxes); the line "You must be 21 or older to taste or buy wine. Please drink with care."; Spaka's credits link.
 
 **Wines** (`/wines`):
 - the title, "The wines", and "Everything we've made that's still worth opening, current and past. Buy at the cellar door, or ask us to hold bottles for you.";
@@ -199,7 +199,7 @@ No page shows the collected records, so they have no test records. The choices o
 
 ## Buying, booking and what stays outside
 
-Upstart has no shop, no payments, no calendar and no embeds, so:
+Spaka has no shop, no payments, no calendar and no embeds, so:
 - **bottles are sold at the cellar door** (as built), and held on request from each wine's page, paid on collection. A winery with an online shop (Commerce7, WineDirect, Vinoshipper, Shopify) links each wine's "Buy" to its page there through the gallery's `order_link`, a link that leaves the site, never its widget (see What varies);
 - **tastings and events are requests,** confirmed by email; a winery on Tock, Resy or CellarPass sends every "Book" there;
 - **the club is a request:** the card and the shipping address are set up by phone, never typed on the site; the page says so before and after sending;
@@ -210,7 +210,7 @@ Upstart has no shop, no payments, no calendar and no embeds, so:
 
 ### The age question
 
-The sites above split: six ask the visitor's age at the door, three do not. A question a visitor answers with one click verifies nothing; what the law asks of a winery is at the sale and the delivery (in the US, an adult of 21 to sign for a shipment, checked by the shop or the carrier) and, in some countries, rules on how alcohol is advertised. Upstart sells nothing, so the template, as built:
+The sites above split: six ask the visitor's age at the door, three do not. A question a visitor answers with one click verifies nothing; what the law asks of a winery is at the sale and the delivery (in the US, an adult of 21 to sign for a shipment, checked by the shop or the carrier) and, in some countries, rules on how alcohol is advertised. Spaka sells nothing, so the template, as built:
 - asks no question at the door, and says in the footer of every page that tasting and buying are for those of legal age ("You must be 21 or older…", the age the maker's country sets);
 - asks for it where it matters, as a required checkbox on every request: "Everyone in my group is 21 or older", "I am 21 or older";
 - offers a door question as a choice (below) for the maker whose market, shop provider or own policy wants one. The guide tells the agent never to call either option "compliant" and to tell the maker that the rules of their state or country are theirs to check.

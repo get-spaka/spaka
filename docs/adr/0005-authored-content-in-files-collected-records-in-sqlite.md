@@ -12,7 +12,7 @@ We split it this way so that a local database never has to be synchronised with 
 ## Consequences
 
 - A project with no collected datasource needs no database.
-- Static hosting cannot store anything, so in a static export each form becomes a plain HTML form that posts to a third-party form service the maker chooses and then shows a thank-you page. Those submissions never appear in Upstart.
+- Static hosting cannot store anything, so in a static export each form becomes a plain HTML form that posts to a third-party form service the maker chooses and then shows a thank-you page. Those submissions never appear in Spaka.
 - A project with a page that displays collected records cannot be exported statically.
 - A datasource is either authored or collected, never both.
 - In the preview a collected datasource holds test records, written by the agent or by trying a form. They are never published: a published collected datasource starts empty.

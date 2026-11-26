@@ -8,7 +8,7 @@ Ran on 2026-11-14; the confinement part was checked while building slice 1.
 - Choices (a single label, or an array of labels for a multi-select question), an answer in the maker's own words and a skipped card each reach the agent as such, and the previews asked for (`block:hero-split`, `media/shop.jpg`) came back exactly as asked.
 - Nothing times out: with `dialogExpiry: "never"`, a question answered after 5.5 minutes was taken as any other.
 - ExitPlanMode brings the plan's text in the `canUseTool` call; a refusal carrying the maker's words gets a rewritten plan at once, and switching to `acceptEdits` inside `canUseTool` lets the agent build in the same turn.
-- In plan mode Upstart's own tools reach `canUseTool` even when `allowedTools` names them, so the app lets through those that only read, with no PreToolUse hook.
+- In plan mode Spaka's own tools reach `canUseTool` even when `allowedTools` names them, so the app lets through those that only read, with no PreToolUse hook.
 - `permissions.denyInsteadOfPrompting: true` takes AskUserQuestion out of the agent's tools, so the app stopped setting it and has `canUseTool` refuse all but the agent's questions.
 - A question left waiting when the app closes reads, once the session is resumed, as rejected and never answered.
 - With `strictMcpConfig`, a plan turn reports $0.07 and a resumed turn $0.01; without it, the account's claude.ai connectors pushed a first turn to $1.67.
@@ -32,8 +32,8 @@ Decided: recorded in [the decisions on the agent asking the maker](../v2.0-decis
 ## Plan mode
 
 - `ExitPlanMode` must be in `tools`, as AskUserQuestion: otherwise the agent is told "No such tool available: ExitPlanMode".
-- In plan mode Upstart's tools reach `canUseTool` even when `allowedTools` names them (with `useAutoModeDuringPlan: false`): the app allows those that only read (find_blocks, find_images, look_at_preview, and the web's) and refuses the others. No PreToolUse hook is needed. The agent did not call use_block by itself in plan mode, since it writes.
-- The agent writes its plan in a file of its own, `<CLAUDE_CONFIG_DIR>/plans/<words>.md`, in Upstart's agent data, then calls ExitPlanMode. `canUseTool` gets `{ plan, planFilePath }`: the plan's text is in the call, nothing needs reading.
+- In plan mode Spaka's tools reach `canUseTool` even when `allowedTools` names them (with `useAutoModeDuringPlan: false`): the app allows those that only read (find_blocks, find_images, look_at_preview, and the web's) and refuses the others. No PreToolUse hook is needed. The agent did not call use_block by itself in plan mode, since it writes.
+- The agent writes its plan in a file of its own, `<CLAUDE_CONFIG_DIR>/plans/<words>.md`, in Spaka's agent data, then calls ExitPlanMode. `canUseTool` gets `{ plan, planFilePath }`: the plan's text is in the call, nothing needs reading.
 - Changes in the maker's words: a refusal whose message carries them. The agent rewrote its plan (a wedding-cakes page added) and handed it in again at once.
 - Build: `await q.setPermissionMode("acceptEdits")` inside `canUseTool`, then `allow`. The agent reads "User has approved your plan. You can now start coding…" with the plan, and builds in the same turn: index.html written with the four pages.
 - The plan-mode instructions given by `planModeInstructions` were followed: pages and sections, style, what is invented, short.
