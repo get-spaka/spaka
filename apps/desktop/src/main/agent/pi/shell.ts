@@ -7,6 +7,7 @@
 // bash-gate.ts (Q382).
 import { spawn } from "node:child_process";
 import { realpathSync } from "node:fs";
+import { dirname } from "node:path";
 import { systemTmp } from "../confinement";
 
 export type ShellPlace = {
@@ -32,11 +33,23 @@ const real = (path: string) => {
 
 const quote = (path: string) => JSON.stringify(path);
 
+/** The folders that hold `dir` inside /Users or /Volumes, nearest first: none for a folder elsewhere. */
+function deniedParents(dir: string): string[] {
+  const parents: string[] = [];
+  for (let at = dirname(dir); /^\/(Users|Volumes)\/./.test(at); at = dirname(at)) parents.push(at);
+  return parents;
+}
+
 /** The sandbox profile for one project's shell. Later rules win over earlier ones. */
 export function sandboxProfile({ projectDir, readable, skillsDir }: ShellPlace): string {
   const project = real(projectDir);
   const skills = skillsDir ? [real(skillsDir)] : [];
   const readHere = [project, real(systemTmp), ...readable.map(real), ...skills];
+  // Electron run as Node reads the metadata of each folder above its own, and
+  // dies at start when it cannot (SIGTRAP): the app sits under /Users in a
+  // checkout, or installed in ~/Applications. Their metadata only; listing
+  // them or reading their files stays refused.
+  const parents = [...new Set(readHere.flatMap(deniedParents))];
   return [
     "(version 1)",
     "(allow default)",
@@ -45,6 +58,9 @@ export function sandboxProfile({ projectDir, readable, skillsDir }: ShellPlace):
     ...skills.map((dir) => `(deny file-write* (subpath ${quote(dir)}))`),
     '(deny file-read* (subpath "/Users") (subpath "/Volumes"))',
     `(allow file-read* (literal "/Users") ${readHere.map((dir) => `(subpath ${quote(dir)})`).join(" ")})`,
+    ...(parents.length
+      ? [`(allow file-read-metadata ${parents.map((dir) => `(literal ${quote(dir)})`).join(" ")})`]
+      : []),
   ].join("\n");
 }
 
