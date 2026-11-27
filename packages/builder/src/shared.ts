@@ -203,13 +203,31 @@ export function templateTexts(project: BuildProject): string[] {
   );
 }
 
-/** The export's .env: the website's management token (Q191), read by the server or sent by wrangler at deploy. */
-export function writeEnv(out: Output, token: string | undefined) {
-  if (!token) return;
-  out.write(
-    ".env",
-    `# The website's management token, with which Spaka reads what visitors send. Keep it private.\nSPAKA_TOKEN=${token}\n`,
-  );
+const ENV_HEADER = "# The website's management token, with which Spaka reads what visitors send. Keep it private.";
+
+/**
+ * The export's .env: the website's management token (Q191), read by the
+ * server or sent by wrangler at deploy, then what the maker wrote into the
+ * .env of the export this one replaces (Q486), and each of the variables
+ * given that it does not set yet, with the lines that explain it.
+ */
+export function writeEnv(
+  out: Output,
+  token: string | undefined,
+  earlier?: string,
+  variables: { name: string; lines: string }[] = [],
+) {
+  const kept = (earlier ?? "")
+    .split(/\r?\n/)
+    .filter((line) => line !== ENV_HEADER && !/^\s*SPAKA_TOKEN\s*=/.test(line))
+    .join("\n")
+    .trim();
+  const parts = [
+    ...(token ? [`${ENV_HEADER}\nSPAKA_TOKEN=${token}`] : []),
+    ...(kept ? [kept] : []),
+    ...variables.filter((v) => !new RegExp(`^\\s*${v.name}\\s*=`, "m").test(kept)).map((v) => v.lines),
+  ];
+  if (parts.length) out.write(".env", `${parts.join("\n\n")}\n`);
 }
 
 /** A name for what an export creates: lower case, letters, digits and dashes. */

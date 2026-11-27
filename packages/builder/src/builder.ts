@@ -1,7 +1,8 @@
 // What every way of exporting a website offers (Q181, Q186): the app lists
 // BUILDERS, asks each whether the project can use it, builds with the one the
-// maker picks and shows its guide. A new destination (a hosting of Spaka's
-// own, for one) is one more file in builders/ and one more line in BUILDERS.
+// maker picks and shows its guide. Spaka hosts nothing itself (Q482): each
+// builder writes a folder for a kind of hosting the maker gets elsewhere. A
+// new one is one more file in builders/ and one more line in BUILDERS.
 import type { ProjectSource } from "@spaka/runtime";
 
 /** The project being exported. */
@@ -40,6 +41,11 @@ export type BuildOptions = {
    * into the export's .env (Q191), which git and the Docker image leave out.
    */
   managementToken?: string;
+  /**
+   * The .env of the export this one replaces, read before it is cleared: what
+   * the maker wrote into it (a domain name, Q486) is kept.
+   */
+  earlierEnv?: string;
   /** The day of the export, for the Worker's compatibility date. */
   today?: Date;
 };

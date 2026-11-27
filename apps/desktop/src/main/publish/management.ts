@@ -66,7 +66,7 @@ const MESSAGES = {
   unreachable: "The published site does not answer. Check its address, and that it is online.",
   "wrong-token":
     "The published site does not accept this website's management token: give it the token shown in its settings.",
-  "not-spaka": "This address is not a site published with Spaka's Node or Cloudflare export.",
+  "not-spaka": "This address is not a website published with Spaka on a server (Docker or Node.js) or on Cloudflare.",
   failed: "The published site could not do it.",
 } as const;
 

@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { RECORDS_SCHEMA } from "../sql.ts";
-import { siteServer } from "./node.ts";
+import { siteServer, visitorAddress } from "./node.ts";
 import type { PublishedSite } from "./site.ts";
 import { siteWorker } from "./worker.ts";
 
@@ -21,6 +21,17 @@ const SITE: PublishedSite = {
   images: { "media/cafe.jpg": [480, 960] },
 };
 const TOKEN = "a-token-long-enough";
+
+describe("a visitor's address", () => {
+  test("is the one a reverse proxy gives, from this machine or when every request comes through one (Q486)", () => {
+    expect(visitorAddress("203.0.113.9", "198.51.100.1", false)).toBe("203.0.113.9");
+    expect(visitorAddress("127.0.0.1", "198.51.100.1, 10.0.0.2", false)).toBe("198.51.100.1");
+    expect(visitorAddress("::1", "", false)).toBe("::1");
+    // Caddy in another container of the export's compose.yaml.
+    expect(visitorAddress("172.18.0.3", "198.51.100.1", true)).toBe("198.51.100.1");
+    expect(visitorAddress("172.18.0.3", "", true)).toBe("172.18.0.3");
+  });
+});
 
 describe("the Node export's server", () => {
   const dir = mkdtempSync(join(tmpdir(), "node-host-"));

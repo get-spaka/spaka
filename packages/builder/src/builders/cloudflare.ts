@@ -91,9 +91,19 @@ You need Node.js and a Cloudflare account (the free plan is enough).
 
        npx wrangler d1 migrations apply DB --remote
 
-4. Give the site's address (\`https://${name}.<your-subdomain>.workers.dev\`, or
-   your own domain once added in Cloudflare) in the website's settings in
-   Spaka, to see what visitors sent.
+4. Give the site's address (\`https://${name}.<your-subdomain>.workers.dev\`)
+   in the website's settings in Spaka, to see what visitors sent.
+
+## Your own domain name
+
+Cloudflare has to manage the domain name. Add it to your Cloudflare account,
+then, on the website of the registrar it was bought from, replace the domain's
+name servers with the two Cloudflare gives you. That change takes from a few
+minutes to a few hours.
+
+Then, in Cloudflare, open the Worker, its settings, and add a custom domain:
+Cloudflare creates the DNS record and the HTTPS certificate by itself. Give
+the new address in the website's settings in Spaka.
 
 To try it on this machine first: \`npx wrangler d1 migrations apply DB --local\`,
 then \`npm run dev\`. It uses the test token in \`.dev.vars\`.
@@ -135,7 +145,7 @@ export const cloudflareBuilder: Builder = {
       "",
     );
     out.write(".dev.vars", `# A token for trying the site on this machine only.\nSPAKA_TOKEN=${local}\n`);
-    writeEnv(out, options.managementToken);
+    writeEnv(out, options.managementToken, options.earlierEnv);
     out.write(".gitignore", "node_modules/\n.wrangler/\n.dev.vars\n.env\n");
     out.write("README.md", guide(name));
     return { ...site, files: out.files, name };
