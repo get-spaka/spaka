@@ -7,7 +7,7 @@
 | 0. La sonde : pnpm 12, Vite, wrangler et Node sous permissions | ✅ | e762c96 (résultats dans [`docs/spikes/packages.md`](../spikes/packages.md)) ; correctif trouvé en passant, le `node` du shell Pi sous `/Users` : get-spaka/spaka#4 |
 | 1. Le pnpm de Spaka et le `node_modules` du projet | ✅ | 999d123 |
 | 2. `add_package`, ses règles et la section Paquets | ✅ | 0cc63a3 |
-| 3. Les paquets dans le navigateur | ✅ | à venir |
+| 3. Les paquets dans le navigateur | ✅ | 7936aee |
 | 4. Les 37 templates passent aux paquets | | |
 | 5. Les modules serveur dans l'aperçu | | |
 | 6. Les secrets | | |
