@@ -7,7 +7,7 @@
 // every system, and in the signed app, whose hardened runtime would refuse a
 // library signed by someone else.
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import host from "./build-host.mjs?raw";
 import { type DownloadOptions, ensurePnpm, type PnpmFolders, runPnpm } from "./pnpm";
@@ -53,13 +53,14 @@ export function ensureVite(place: VitePlace): Promise<ViteTools> {
   return pending;
 }
 
-/** Whether the folder holds this release's Vite: its lockfile, installed as pnpm left it. */
+/** Written once pnpm has installed this release's lockfile: what it installed, the optional packages left out. */
+const INSTALLED = "installed.txt";
+const LOCKFILE_HASH = createHash("sha256").update(lockfile).digest("hex");
+
+/** Whether the folder holds this release's Vite, installed to the end. */
 function isInstalled(dir: string): boolean {
   try {
-    return (
-      readFileSync(join(dir, "pnpm-lock.yaml"), "utf8") === lockfile &&
-      readFileSync(join(dir, "node_modules", ".pnpm", "lock.yaml"), "utf8") === lockfile
-    );
+    return readFileSync(join(dir, INSTALLED), "utf8") === LOCKFILE_HASH;
   } catch {
     return false;
   }
@@ -78,30 +79,25 @@ function withHost(dir: string): ViteTools {
 
 async function install(dir: string, place: VitePlace): Promise<ViteTools> {
   const program = await ensurePnpm(place.folders, place.download);
-  // Installed beside its final folder, then moved there whole: a Vite is never half there.
-  const partial = `${dir}.partial-${process.pid}-${Date.now()}`;
-  mkdirSync(partial, { recursive: true });
-  try {
-    writeFileSync(join(partial, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
-    writeFileSync(join(partial, "pnpm-lock.yaml"), lockfile);
-    const run = await runPnpm("install", [], {
-      program,
-      projectDir: partial,
-      folders: place.folders,
-      nodeBinDir: place.nodeBinDir,
-      ...(place.env ? { env: place.env } : {}),
-      tools: true,
-    });
-    if (!run.ok)
-      throw new Error(
-        `Spaka could not install its Vite ${VITE_VERSION}: ${run.report.errors.map((e) => e.message).join(" ") || `pnpm stopped (${run.code})`}`,
-      );
-    const old = `${dir}.old-${process.pid}-${Date.now()}`;
-    if (existsSync(dir)) renameSync(dir, old);
-    renameSync(partial, dir);
-    rmSync(old, { recursive: true, force: true });
-  } finally {
-    rmSync(partial, { recursive: true, force: true });
-  }
+  // Installed in place: pnpm's junctions on Windows hold absolute paths, which a
+  // folder moved afterwards would break. Its mark is written last, so an
+  // install cut short is never taken for one done (isInstalled).
+  rmSync(dir, { recursive: true, force: true });
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+  writeFileSync(join(dir, "pnpm-lock.yaml"), lockfile);
+  const run = await runPnpm("install", [], {
+    program,
+    projectDir: dir,
+    folders: place.folders,
+    nodeBinDir: place.nodeBinDir,
+    ...(place.env ? { env: place.env } : {}),
+    tools: true,
+  });
+  if (!run.ok)
+    throw new Error(
+      `Spaka could not install its Vite ${VITE_VERSION}: ${run.report.errors.map((e) => e.message).join(" ") || `pnpm stopped (${run.code})`}`,
+    );
+  writeFileSync(join(dir, INSTALLED), LOCKFILE_HASH);
   return withHost(dir);
 }
