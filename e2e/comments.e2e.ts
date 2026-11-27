@@ -63,6 +63,18 @@ describe("comments on the page", () => {
     await until(async () => (await invoke("comments:list"))[0].text === "Warmer, please and bigger");
   });
 
+  test("a comment card open closes in edit mode, as in view mode; the comments stay", async () => {
+    await click('[data-testid="comment-pin"]', true);
+    await until(() => drawn('[data-testid="comment-card"]'));
+    await launched.window.getByTestId("mode-edit").click();
+    await until(async () => !(await drawn('[data-testid="comment-card"]')));
+    await launched.window.getByTestId("mode-comment").click();
+    await until(() => page("document.querySelector('spaka-editor').dataset.mode === 'comment'"));
+    expect(await drawn('[data-testid="comment-card"]')).toBe(false);
+    expect(await inShadow("root.querySelectorAll('[data-testid=comment-pin]').length")).toBe(2);
+    expect((await invoke("comments:list")).length).toBe(3);
+  });
+
   test("sending makes one message, a list for the maker, places for the agent", async () => {
     await launched.app.evaluate(() => {
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks

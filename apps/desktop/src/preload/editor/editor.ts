@@ -415,7 +415,8 @@ export class Editor {
     this.host.dataset.mode = mode;
     this.paused = paused;
     this.comments.setPaused(paused);
-    if (mode === "visitor") this.comments.close();
+    // A comment being written belongs to comment mode: the card closes in the others.
+    if (mode !== "comment") this.comments.close();
     if (mode !== "edit" || paused) {
       this.commitEdit();
       this.select(undefined);
