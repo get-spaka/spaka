@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: accepted; amended by ADR 0014 (2026-11-27): a site may have server modules
 ---
 
 # Published projects are served by one portable, declarative runtime
