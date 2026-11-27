@@ -71,7 +71,9 @@ function setAttribute(tag: string, name: string, value: string): string {
 
 /**
  * An image's address replaced in the template (Q159), and its alt text with
- * the new image's when it has one, so that it says what the image now shows.
+ * the new image's, so that it says what the image now shows: empty when the
+ * new one has none, the old one describing another image. An alt written
+ * with Liquid is the template's, and is left.
  */
 export function setImageSource(src: string, at: number, address: string, alt?: string): string {
   const el = locate(src, at);
@@ -82,7 +84,7 @@ export function setImageSource(src: string, at: number, address: string, alt?: s
   if (current && /\{[{%]/.test(current)) throw new EditRefused(en.editor.notReplaceable);
   let next = setAttribute(tag, "src", address.trim());
   const currentAlt = /\salt\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/i.exec(tag)?.[1];
-  if (alt?.trim() && !(currentAlt && /\{[{%]/.test(currentAlt))) next = setAttribute(next, "alt", alt.trim());
+  if (!(currentAlt && /\{[{%]/.test(currentAlt))) next = setAttribute(next, "alt", alt?.trim() ?? "");
   return src.slice(0, el.outer.start) + next + src.slice(el.outer.start + tag.length);
 }
 

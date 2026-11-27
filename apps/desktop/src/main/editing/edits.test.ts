@@ -13,6 +13,7 @@ import {
   removeRange,
   renameInclude,
   setImageFrame,
+  setImageSource,
   setLink,
   targetAt,
 } from "./edits";
@@ -163,4 +164,18 @@ test("an image's frame is refused where it would not be this image's alone", () 
   expect(() => setImageFrame(computed, 0, frame, ["phone"])).toThrow(EditRefused);
   expect(imageFrames(computed, 0)).toBeUndefined();
   expect(() => setImageFrame("<p>x</p>", 0, frame, ["phone"])).toThrow("This is not an image.");
+});
+
+test("a replaced image takes the new one's alt text, empty when it has none (Q159)", () => {
+  const src = '<p>x</p>\n<img class="hero" src="/media/a.jpg" alt="Croissants on a counter">\n';
+  const at = src.indexOf("<img");
+  expect(setImageSource(src, at, "/media/b.jpg", "Bread")).toContain('src="/media/b.jpg" alt="Bread"');
+  // The old one described another image.
+  expect(setImageSource(src, at, "/media/b.jpg")).toContain('src="/media/b.jpg" alt=""');
+  expect(setImageSource(src, at, "/media/b.jpg", "  ")).toContain('alt=""');
+  // Without one, it is given an empty one: a screen reader would read the file's name.
+  expect(setImageSource('<img src="/media/a.jpg">', 0, "/media/b.jpg")).toBe('<img alt="" src="/media/b.jpg">');
+  // Written with Liquid, it is the template's.
+  const liquid = '<img src="/media/a.jpg" alt="{{ page.title }}">';
+  expect(setImageSource(liquid, 0, "/media/b.jpg")).toBe('<img src="/media/b.jpg" alt="{{ page.title }}">');
 });
