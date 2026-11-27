@@ -22,5 +22,6 @@ Every builder still exports a folder the maker deploys themselves (Q531). A buil
 ## Consequences
 
 - Spaka holds a token for the maker's Cloudflare account, in wrangler's own format, in its data folder.
-- Wrangler brings miniflare and workerd (142 MB) with it unless its optional dependencies are left out; whether packaging and deploying need them is checked first.
+- Wrangler cannot run without workerd: miniflare loads its binary (145 MB) as wrangler starts, even to package a Worker. With sharp left out, wrangler and Vite take about 300 MB in Spaka's tools, downloaded at the first export for Cloudflare ([the probe](../spikes/packages.md), 2026-11-27).
+- Wrangler run by Electron as Node needs a preload that sets `process.defaultApp`, or its argument parser takes the script's path for a command.
 - A site's address on Cloudflare is the one wrangler reports, and the app knows it as the published site's.

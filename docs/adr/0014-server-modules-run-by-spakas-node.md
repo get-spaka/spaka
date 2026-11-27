@@ -20,8 +20,8 @@ ADR 0003 had kept the agent from writing server code in v2.0 and named "custom T
   - It runs with `--permission`, reading the project and writing only the module's folder, with no child process, worker or native addon.
   - It runs with `--experimental-transform-types`, so TypeScript's `enum` and constructor properties work (Q507).
   - Its environment is emptied but for the site's secrets.
-  - On macOS it also runs inside Spaka's sandbox profile. On Windows and Linux the permission model is the only guard (Q510).
-  - Measured on 2026-11-27 with Electron 45's Node 24.22.2, under `--permission`: the maker's home folder, `child_process`, workers, `process.binding`, native addons and an `import()` from outside the project were refused. The network, the environment's variables and a symbolic link placed in the project pointing outside it were not.
+  - On macOS it also runs inside a sandbox profile of Spaka's own, given to `sandbox-exec`, as the Pi harness's shell does. On Windows and Linux the permission model is the only guard (Q510).
+  - Measured on 2026-11-27 with Electron 45's Node 24.22.2, under `--permission`: the maker's home folder, `child_process`, workers, `process.binding`, native addons and an `import()` from outside the project were refused. The network, the environment's variables and a symbolic link placed in the project pointing outside it were not. Inside the sandbox profile that link was refused too ([the probe](../spikes/packages.md)).
 - **Exports:**
   - The static export runs each `load` when it exports, and refuses `action` and `route`, saying so (Q503).
   - The Node export bundles the modules and their packages with Vite's SSR build (Q526).
@@ -38,6 +38,7 @@ ADR 0003 had kept the agent from writing server code in v2.0 and named "custom T
 ## Consequences
 
 - Node's documentation says its permission model "does not protect against malicious code". On Windows and Linux, the rules of ADR 0013 are what stands between a hostile package and the maker. On macOS, the sandbox stands there too.
+- Rendering becomes asynchronous, for `{% load %}` to wait for the server: 3 to 6% slower, and 0.1 to 0.2 ms more for each `load` ([the probe](../spikes/packages.md)).
 - The network stays open to the modules, and Node 24 has no `--allow-net`. A hostile package could send a site's secrets elsewhere, as it could at any host.
 - The preview runs Node and Cloudflare runs workerd: wrangler's packaging at export shows what does not run there. ADR 0003's promise, that the preview and the published site behave the same, holds for server modules as far as Node and Workers agree.
 - A module's SQL may change or delete the records visitors sent, outside the status and validation Spaka gives them.
