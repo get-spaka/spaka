@@ -100,7 +100,8 @@ export function confinement({ projectDir, readable, skillsDir, platform = proces
         // canUseTool, which refuses all but the agent's questions (ADR 0007).
         // Reading the web, granted rather than asked for (Q257): the maker is never asked (ADR 0007).
         allow: ["WebSearch", "WebFetch"],
-        deny: skills.map((dir) => `Edit(${ruleDir(dir, platform)}/**)`),
+        // Nor in the installed packages, which Spaka alone writes (ADR 0013): it may read them.
+        deny: [...skills, `${projectDir}/node_modules`].map((dir) => `Edit(${ruleDir(dir, platform)}/**)`),
       },
       // Native Windows has no sandbox for the binary's shell (ADR 0007): auto mode is its guard there.
       sandbox: SANDBOX_HOLDS.includes(platform) ? sandboxFor(projectDir, readable, skills) : { enabled: false },

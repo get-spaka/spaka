@@ -49,7 +49,10 @@ test("on Windows, which has no sandbox for the shell, auto mode guards it, and t
   });
   expect(options.permissionMode).toBe("auto");
   expect(options.settings.sandbox).toEqual({ enabled: false });
-  expect(options.settings.permissions.deny).toEqual(["Edit(//c/Users/x/AppData/Roaming/Spaka/skills/site/**)"]);
+  expect(options.settings.permissions.deny).toEqual([
+    "Edit(//c/Users/x/AppData/Roaming/Spaka/skills/site/**)",
+    "Edit(//c/Users/x/Documents/Spaka/site/node_modules/**)",
+  ]);
   expect(ruleDir("/Users/x/skills", "darwin")).toBe("//Users/x/skills");
 });
 

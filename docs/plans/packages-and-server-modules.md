@@ -1,11 +1,11 @@
 # Spaka v2 : plan de construction des paquets et des modules serveur (Q490-Q535)
 
-## État (2026-11-27) : conçu, la sonde faite
+## État (2026-11-27) : la sonde et la tranche 1 faites
 
 | Tranche | Fait | Commits |
 |---|---|---|
-| 0. La sonde : pnpm 12, Vite, wrangler et Node sous permissions | ✅ | (résultats dans [`docs/spikes/packages.md`](../spikes/packages.md)) |
-| 1. Le pnpm de Spaka et le `node_modules` du projet | | |
+| 0. La sonde : pnpm 12, Vite, wrangler et Node sous permissions | ✅ | e762c96 (résultats dans [`docs/spikes/packages.md`](../spikes/packages.md)) ; correctif trouvé en passant, le `node` du shell Pi sous `/Users` : get-spaka/spaka#4 |
+| 1. Le pnpm de Spaka et le `node_modules` du projet | ✅ | (ce commit, sur la branche `packages/pnpm`) |
 | 2. `add_package`, ses règles et la section Paquets | | |
 | 3. Les paquets dans le navigateur | | |
 | 4. Les 37 templates passent aux paquets | | |
@@ -127,6 +127,27 @@ But : vérifier avant de construire ce qui n'a été que lu.
 - Les outils de fichiers des deux agents refusent d'écrire dans `node_modules`.
 - Un `.npmrc` du projet est supprimé avant chaque installation, et l'agent est prévenu.
 - Tests unitaires : l'environnement, les drapeaux, l'analyse du ndjson, les exclusions.
+
+Fait le 2026-11-27 :
+- **`main/packages/pnpm.ts`** :
+  - Le téléchargement vérifie l'intégrité sha512 que donne le registre, plutôt qu'un sha256 : `pnpm.json` l'épingle pour six systèmes, avec la version 12.23.0.
+  - Le programme est lu dans le `.tgz` par un petit lecteur tar, puis écrit dans `tools/pnpm-<version>/` d'un seul coup. Un seul téléchargement sert tous les appels simultanés.
+  - L'environnement est nettoyé, les réglages passent tous par `--config.<nom>` (ils valent pour `add`, `remove` et `install`), et l'appel se fait sans terminal.
+  - `packageSpec` n'accepte qu'un nom du registre npm, avec une version exacte ou sans version.
+  - `readReport` lit le ndjson : les paquets ajoutés et retirés, les avertissements (y compris ceux en texte brut) et les erreurs avec leur code.
+- **`main/packages/project.ts`**, avant chaque appel :
+  - le `.npmrc` est supprimé, `devEngines` retiré et `"type": "module"` posé, et l'agent reçoit une phrase pour chaque changement ;
+  - un `.ignore` liste `node_modules/`. Fichier caché, il n'entre ni dans l'historique ni dans les exports.
+- **L'exclusion de `node_modules`** :
+  - Les exports (par `published`), les archives de templates, l'adaptation et le Glob et le Grep du harness Pi l'excluaient déjà.
+  - Le Grep de Claude lit le `.ignore`. Son Glob le lit aussi une fois `CLAUDE_CODE_GLOB_NO_IGNORE=false` posé dans l'environnement de l'agent.
+  - Une limite, vue avec ripgrep sur les arguments mêmes du binaire : un motif qui désigne le dossier lui-même, comme `**/*`, y entre encore, car un `--glob` de ripgrep passe devant les fichiers d'ignore.
+- **Les écritures** dans `node_modules` sont refusées :
+  - pour Claude, par une règle `Edit(<projet>/node_modules/**)` ;
+  - pour le harness Pi, dans ses `Write`, `Edit` et `Append`.
+
+  La lecture reste permise : un README ou des types aident l'agent.
+- **Vérifié** : les tests unitaires, et `pnpm.real.test.ts` (`SPAKA_REAL_PNPM=1`). Ce dernier télécharge pnpm, l'ajoute à un projet piégé (un `.npmrc` à jeton, un `pnpm-workspace.yaml`, un `.pnpmfile.cjs`, `devEngines`), puis le retire, en 4,5 s.
 
 ### 2. `add_package`, ses règles et la section Paquets
 

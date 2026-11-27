@@ -476,7 +476,10 @@ test("the agent gets Spaka's skills only, read-only, and starts again when they 
   expect(options.skills).toEqual(["spaka:spaka-help"]);
   expect(options.plugins).toEqual([{ type: "local", path: join(assembled, "spaka"), skipMcpDiscovery: true }]);
   expect(options.additionalDirectories).toContain(assembled);
-  expect(options.settings.permissions.deny).toEqual([`Edit(${ruleDir(assembled)}/**)`]);
+  expect(options.settings.permissions.deny).toEqual([
+    `Edit(${ruleDir(assembled)}/**)`,
+    `Edit(${ruleDir(`${dir}/node_modules`)}/**)`,
+  ]);
   if (process.platform === "darwin") expect(options.settings.sandbox.filesystem.denyWrite).toEqual([assembled]);
   let ended = turnEnd();
   s.send("First");
