@@ -11,6 +11,21 @@
 //
 // The edits are written by the main process (main/editing); this script only
 // says what the maker did, where, as the trace gives it.
+
+import {
+  dragged,
+  FORMATS,
+  type Format,
+  FROM_DESKTOP,
+  FROM_TABLET,
+  type Frame,
+  frameDeclarations,
+  MAX_ZOOM,
+  RATIOS,
+  readFrame,
+  readFrameClasses,
+  shownRect,
+} from "../../shared/frame";
 import {
   BLOCK_DRAG_TYPE as BLOCK_TYPE,
   type EditAction,
@@ -109,6 +124,7 @@ const ICONS = {
   parent: '<path d="M14 9 9 4 4 9"/><path d="M20 20h-7a4 4 0 0 1-4-4V4"/>',
   image:
     '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>',
+  frame: '<path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/>',
   link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
 };
 
@@ -142,6 +158,36 @@ const STYLE = `
 .pop input { all: unset; width: 240px; padding: 4px 6px; border: 1px solid var(--spaka-input); border-radius: 5px; font-size: 12px; }
 .pop button { all: unset; padding: 4px 8px; border-radius: 5px; background: #4f46e5; color: #fff; }
 .pop button.secondary { background: var(--spaka-hover); color: var(--spaka-text-2); }
+.frame { position: fixed; display: none; flex-direction: column; gap: 8px; width: 300px; box-sizing: border-box; padding: 10px;
+  background: var(--spaka-surface); border: 1px solid var(--spaka-border); border-radius: 10px; box-shadow: 0 4px 16px rgb(0 0 0 / .12); pointer-events: auto; }
+.frame .row { display: flex; align-items: center; gap: 8px; }
+.frame .grow { flex: 1; }
+.frame .name { color: var(--spaka-muted); }
+.frame input[type="range"] { flex: 1; min-width: 0; margin: 0; accent-color: #4f46e5; }
+.frame output { width: 36px; text-align: right; color: var(--spaka-muted); font-variant-numeric: tabular-nums; }
+.frame .grid { display: grid; grid-template-columns: repeat(3, 20px); gap: 2px; padding: 2px; border: 1px solid var(--spaka-border); border-radius: 6px; }
+.frame .grid button { all: unset; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 4px; cursor: default; }
+.frame .grid button i { width: 6px; height: 6px; border-radius: 50%; background: var(--spaka-input); }
+.frame .grid button:hover { background: var(--spaka-hover); }
+.frame .grid button[aria-pressed="true"] i { width: 8px; height: 8px; background: #4f46e5; }
+.frame .ratios { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; padding: 2px; background: var(--spaka-hover); border-radius: 6px; }
+.frame .ratios button { all: unset; padding: 5px 2px; border-radius: 4px; text-align: center; white-space: nowrap; color: var(--spaka-text-2); cursor: default; font-variant-numeric: tabular-nums; }
+.frame .ratios button[aria-pressed="true"] { background: var(--spaka-surface); color: var(--spaka-text); box-shadow: 0 0 0 1px var(--spaka-border); }
+.frame .seg { display: flex; gap: 2px; padding: 2px; background: var(--spaka-hover); border-radius: 6px; }
+.frame .seg button { all: unset; flex: 1; padding: 3px 4px; border-radius: 4px; text-align: center; white-space: nowrap; color: var(--spaka-text-2); cursor: default; }
+.frame .seg button[aria-pressed="true"] { background: var(--spaka-surface); color: var(--spaka-text); box-shadow: 0 0 0 1px var(--spaka-border); }
+.frame .seg button[data-format] { display: flex; align-items: center; justify-content: center; gap: 4px; }
+.frame .seg .tick { width: 15px; height: 15px; flex: none; fill: none; stroke: #4f46e5; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; visibility: hidden; }
+.frame .seg button[aria-pressed="true"] .tick { visibility: visible; }
+.frame .seg .tick .second { display: none; }
+.frame .seg button[disabled] .tick .second { display: inline; }
+@media (prefers-color-scheme: dark) { .frame .seg .tick { stroke: #a5b4fc; } }
+.frame .hint { display: none; color: var(--spaka-muted); }
+.frame .acts button { all: unset; padding: 4px 8px; border-radius: 5px; background: #4f46e5; color: #fff; cursor: default; }
+.frame .acts button.secondary { background: var(--spaka-hover); color: var(--spaka-text-2); }
+.frame button:focus-visible, .frame input:focus-visible { outline: 2px solid #6366f1; outline-offset: 1px; }
+.frame-drag { position: fixed; display: none; pointer-events: auto; cursor: grab; touch-action: none; }
+.frame-drag.held { cursor: grabbing; }
 .toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); max-width: 80%; padding: 8px 12px;
   background: #18181b; color: #fafafa; border-radius: 8px; display: none; pointer-events: none; }
 .line { position: fixed; left: 0; right: 0; height: 3px; margin-top: -1px; background: #4f46e5; border-radius: 2px; display: none;
@@ -170,6 +216,97 @@ const STYLE = `
 .editing-note { position: fixed; display: none; padding: 3px 7px; background: var(--spaka-note); color: var(--spaka-note-text); border-radius: 5px; white-space: nowrap; }
 `;
 
+const f = t.frame;
+const HOLDS = [0, 50, 100] as const;
+const pressed = (label: string, tip: string, attrs: string) =>
+  `<button type="button" ${attrs} data-tip="${tip}" aria-pressed="false">${label}</button>`;
+
+/**
+ * The tick before a screen the frame is set for; its room is kept when it is
+ * not, so the names do not move. The screen the preview shows has two: it is
+ * the one being set, and cannot be turned off.
+ */
+const CHECK =
+  '<svg class="tick" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 7 17l-5-5"/><path class="second" d="m22 10-7.5 7.5L13 16"/></svg>';
+
+/** The panel that sets an image in its frame (Q490). */
+const FRAME_PANEL = `<div class="frame" data-testid="frame-pop" role="group" aria-label="${t.adjust}">
+  <div class="row"><span class="name">${f.appliesTo}</span><div class="seg grow" role="group" aria-label="${f.appliesTo}">${[
+    ...FORMATS,
+  ]
+    .reverse()
+    .map((format) =>
+      pressed(`${CHECK}${f.formats[format]}`, "", `data-format="${format}" data-testid="frame-format-${format}"`),
+    )
+    .join("")}</div></div>
+  <div class="hint sideways" data-testid="frame-sideways"></div>
+  <div class="hint others" data-testid="frame-hint">${f.otherFormats}</div>
+  <label class="row"><span class="name">${f.zoom}</span><input type="range" min="1" max="${MAX_ZOOM}" step="0.05" value="1" data-testid="frame-zoom"><output>100%</output></label>
+  <div class="row">
+    <div class="grid" role="group" aria-label="${f.position}">${HOLDS.flatMap((y) =>
+      HOLDS.map(
+        (x) =>
+          `<button type="button" data-x="${x}" data-y="${y}" data-testid="frame-pos-${x}-${y}" data-tip="${f.positions[`${x}-${y}`]}" aria-label="${f.positions[`${x}-${y}`]}" aria-pressed="false"><i></i></button>`,
+      ),
+    ).join("")}</div>
+    <div class="ratios grow" role="group" aria-label="${f.shape}">${pressed(f.original, f.originalTip, 'data-ratio="" data-testid="frame-ratio-original"')}${RATIOS.map(
+      ([w, h]) =>
+        pressed(`${w}:${h}`, f.ratioTip(`${w}:${h}`), `data-ratio="${w}:${h}" data-testid="frame-ratio-${w}-${h}"`),
+    ).join("")}</div>
+  </div>
+  <div class="row acts"><button type="button" class="secondary" data-act="reset" data-testid="frame-reset" data-tip="${f.resetTip}">${f.reset}</button><span class="grow"></span><button type="button" class="secondary" data-act="cancel" data-testid="frame-cancel" data-tip="${f.cancelTip}">${t.cancel}</button><button type="button" data-act="save" data-testid="frame-save" data-tip="${f.saveTip}">${t.save}</button></div>
+</div>`;
+
+/** The screen the page is, as the classes of a frame see it. */
+function shownFormat(): Format {
+  return matchMedia(FROM_DESKTOP).matches ? "desktop" : matchMedia(FROM_TABLET).matches ? "tablet" : "phone";
+}
+
+/** Where an element shows: a zoomed image is scaled past its frame, and cut back to it (Q490). */
+function rectOf(el: Element) {
+  const r = el.getBoundingClientRect();
+  if (el.localName !== "img") return r;
+  const style = getComputedStyle(el);
+  const zoom = style.clipPath === "none" ? 1 : Number(/^matrix\(([\d.]+), 0, 0, \1,/.exec(style.transform)?.[1] ?? 1);
+  if (!(zoom > 1)) return r;
+  // The point it is scaled from, in its own frame's pixels.
+  const [ox = 0, oy = 0] = style.transformOrigin.split(" ").map(Number.parseFloat);
+  return shownRect(r, { zoom, x: (ox / (r.width / zoom)) * 100, y: (oy / (r.height / zoom)) * 100 });
+}
+
+const FRAME_STYLES = ["object-fit", "object-position", "aspect-ratio", "transform", "transform-origin", "clip-path"];
+
+/**
+ * An image's style without what the panel shows a frame with: after Save it stays on the
+ * image until the page is rendered again, and a frame set then must not start from it.
+ */
+function templateStyle(el: HTMLElement): string | null {
+  const style = el.getAttribute("style");
+  if (!FRAME_STYLES.some((name) => el.style.getPropertyPriority(name) === "important")) return style;
+  const copy = el.cloneNode(false) as HTMLElement;
+  for (const name of FRAME_STYLES)
+    if (copy.style.getPropertyPriority(name) === "important") copy.style.removeProperty(name);
+  return copy.style.length ? copy.getAttribute("style") : null;
+}
+
+/** An image being set in its frame: how it was, how it is now, and whether the maker changed it. */
+type Framing = {
+  el: HTMLImageElement;
+  origin: Origin;
+  /** Its style and its classes before, put back on Cancel. */
+  before: string | null;
+  beforeClass: string | null;
+  /** The screen the preview shows, whose frame is the one seen changing, and the screens it is set for. */
+  format: Format;
+  formats: Set<Format>;
+  frame: Frame;
+  /** Its fit was written with a frame, not by the template: it is written again with this one. */
+  ownFit: boolean;
+  changed: boolean;
+  /** Back to what the template's classes give: the frame is taken out. */
+  reset: boolean;
+};
+
 type Selected = { el: HTMLElement; origin: Origin; section?: Origin; info?: EditInfo; sectionInfo?: EditInfo };
 
 export class Editor {
@@ -195,6 +332,11 @@ export class Editor {
   private draggingItem = false;
   private selected: Selected | undefined;
   private editing: { el: HTMLElement; before: string; origin: Origin; field?: string } | undefined;
+  private readonly framePop: HTMLElement;
+  private readonly frameDrag: HTMLElement;
+  private framing: Framing | undefined;
+  /** The preview shows a phone or a tablet turned on its side: as wide as a larger screen, whose frame it shows. */
+  private sideways = false;
   private toastTimer: ReturnType<typeof setTimeout> | undefined;
   private frame = 0;
   private observed = false;
@@ -214,8 +356,10 @@ export class Editor {
       <div class="shield" data-testid="page-shield"></div>
       <div class="box hover"><span class="tag"></span></div>
       <div class="box selected"></div>
+      <div class="frame-drag" data-testid="frame-drag" data-tip="${f.drag}"></div>
       <div class="bar" data-testid="editor-bar"></div>
       <div class="pop"><input type="text"><button class="secondary" data-act="cancel" data-tip="${t.cancelTip}"></button><button data-act="save" data-tip="${t.saveTip}"></button></div>
+      ${FRAME_PANEL}
       <div class="editing-note"></div>
       <div class="line" data-testid="insertion-line"></div>
       <div class="toast" role="status"></div>
@@ -225,6 +369,8 @@ export class Editor {
     this.selectedBox = q(".selected");
     this.bar = q(".bar");
     this.pop = q(".pop");
+    this.framePop = q(".frame");
+    this.frameDrag = q(".frame-drag");
     this.toastEl = q(".toast");
     this.note = q(".editing-note");
     this.line = q(".line");
@@ -234,8 +380,8 @@ export class Editor {
     q(".working .sub").textContent = `· ${t.workingPaused}`;
     q(".working button span").textContent = t.stop;
     q(".working button").addEventListener("click", () => bridge.stop());
-    q<HTMLButtonElement>('[data-act="cancel"]').textContent = t.cancel;
-    q<HTMLButtonElement>('[data-act="save"]').textContent = t.save;
+    q<HTMLButtonElement>('.pop [data-act="cancel"]').textContent = t.cancel;
+    q<HTMLButtonElement>('.pop [data-act="save"]').textContent = t.save;
     this.comments = new CommentLayer(q(".layer"), bridge, (text) => this.toast(text));
     attachTips(this.root, q(".layer"));
     this.tour = new PageTourLayer(q(".layer"));
@@ -262,13 +408,15 @@ export class Editor {
     this.tour.set(tour, act);
   }
 
-  set(mode: PreviewMode, paused: boolean) {
+  set(mode: PreviewMode, paused: boolean, sideways = false) {
+    this.sideways = sideways;
     this.mode = mode;
     // Said on its element too: the app's checks wait for a mode to have reached the page.
     this.host.dataset.mode = mode;
     this.paused = paused;
     this.comments.setPaused(paused);
-    if (mode === "visitor") this.comments.close();
+    // A comment being written belongs to comment mode: the card closes in the others.
+    if (mode !== "comment") this.comments.close();
     if (mode !== "edit" || paused) {
       this.commitEdit();
       this.select(undefined);
@@ -315,6 +463,8 @@ export class Editor {
       if (again) void this.select(again);
       else this.select(undefined);
     }
+    // A rendering writes the image's style again: what the maker is setting stays shown.
+    if (this.framing?.changed && this.framing.el.isConnected) this.showFrame();
     this.place();
   }
 
@@ -421,7 +571,8 @@ export class Editor {
           return;
         }
         if (!this.active || !this.selected || ours(e)) return;
-        if (e.key === "Escape") this.select(undefined);
+        if (e.key === "Escape") this.framing ? this.closeFrame(true) : this.select(undefined);
+        else if (this.framing) return;
         else if ((e.key === "Backspace" || e.key === "Delete") && this.canDelete()) {
           e.preventDefault();
           void this.act("delete");
@@ -455,6 +606,7 @@ export class Editor {
       if (e.key === "Enter") void this.saveLink();
       if (e.key === "Escape") this.closePop();
     });
+    this.listenForFrame();
   }
 
   // ---- selection -----------------------------------------------------------
@@ -541,6 +693,7 @@ export class Editor {
     if (s.info?.text) button("text", "text", t.editText);
     if (s.el.localName === "a") button("link", "link", t.link);
     if (s.info?.image) button("replace", "image", t.replace);
+    if (s.info?.image?.frame) button("frame", "frame", t.adjust);
     const shared = s.info?.sharedBy ?? 0;
     if (shared > 0) buttons.push(`<span class="chip" data-testid="editor-shared">${t.shared(shared)}</span>`);
     this.bar.innerHTML = buttons.join("");
@@ -772,6 +925,7 @@ export class Editor {
     if (act === "parent") return this.select(tracedFrom(s.el.parentElement));
     if (act === "link") return this.openPop();
     if (act === "replace") return this.replaceImage(s.el);
+    if (act === "frame") return this.openFrame();
     const item = this.listItem();
     if (item && (act === "earlier" || act === "later")) return this.moveItem(item.index + (act === "earlier" ? -1 : 1));
     if (item && (act === "remove" || act === "delete")) {
@@ -880,6 +1034,218 @@ export class Editor {
 
   private closePop() {
     this.pop.style.display = "none";
+    this.closeFrame(true);
+  }
+
+  // ---- an image in its frame (Q490) ----------------------------------------
+
+  private async openFrame() {
+    const s = this.selected;
+    if (s?.el.localName !== "img") return;
+    // Asked again: a frame may have been written since the image was selected.
+    const frames = (await this.bridge.info(s.origin.file, s.origin.at).catch(() => undefined))?.image?.frame;
+    if (!frames || this.selected !== s) return;
+    this.closePop();
+    const el = s.el as HTMLImageElement;
+    const format = shownFormat();
+    const same = (other: Format) => JSON.stringify(frames[other]) === JSON.stringify(frames[format]);
+    this.framing = {
+      el,
+      origin: s.origin,
+      before: templateStyle(el),
+      beforeClass: el.getAttribute("class"),
+      format,
+      // The screens set as this one is: all of them, until one is set apart.
+      formats: new Set(FORMATS.filter(same)),
+      frame: frames[format] ?? readFrame(getComputedStyle(el)),
+      ownFit: !!frames[format]?.fit,
+      changed: false,
+      reset: false,
+    };
+    this.framePop.style.display = "flex";
+    this.syncFrame();
+    this.place();
+    this.framePop.querySelector<HTMLInputElement>('input[type="range"]')!.focus();
+  }
+
+  /** Closes the panel; `restore` puts the image back as it was before it opened. */
+  private closeFrame(restore: boolean) {
+    const fr = this.framing;
+    if (!fr) return;
+    this.framing = undefined;
+    if (restore && fr.changed) {
+      const put = (name: string, value: string | null) =>
+        value === null ? fr.el.removeAttribute(name) : fr.el.setAttribute(name, value);
+      put("style", fr.before);
+      put("class", fr.beforeClass);
+    }
+    fr.el.removeAttribute("data-spaka-zoomed");
+    this.framePop.style.display = "none";
+    this.frameDrag.style.display = "none";
+    this.place();
+  }
+
+  /** The frame as it will be written: with the image's own corners, which a zoom would otherwise cut square. */
+  private frameToWrite(fr: Framing): Frame {
+    const radius = getComputedStyle(fr.el).borderRadius;
+    // How the image fills its frame is the template's to say, unless a frame said it (below).
+    const { fit, ...frame } = fr.frame;
+    return { ...frame, ...(fr.ownFit ? { fit } : {}), ...(/[1-9]/.test(radius) ? { radius } : {}) };
+  }
+
+  /** Shows on the image itself what the panel says: the page is the preview. */
+  private showFrame() {
+    const fr = this.framing;
+    if (!fr) return;
+    // From the style the image has in its template, which Save leaves as it is: what shows is what will be written.
+    if (fr.before === null) fr.el.removeAttribute("style");
+    else fr.el.setAttribute("style", fr.before);
+    // Without the classes a frame was written with: the one shown replaces them, and a saved
+    // zoom or proportions the panel no longer has would otherwise still show (a zoom of 100%
+    // or Auto set nothing over them). The other screens' do not apply at this width.
+    fr.el.className = readFrameClasses(fr.beforeClass ?? "").rest.join(" ");
+    // What contains it cuts what a zoom makes go past (the runtime's rule), while it is being set too.
+    fr.el.toggleAttribute("data-spaka-zoomed", !fr.reset && fr.frame.zoom > 1);
+    if (fr.reset) {
+      // As the template has it.
+      fr.frame = readFrame(getComputedStyle(fr.el));
+      fr.ownFit = false;
+    }
+    // Important, as the classes a frame is written with are: what is being set shows over what was saved.
+    else
+      for (const [name, value] of frameDeclarations(this.frameToWrite(fr)))
+        fr.el.style.setProperty(name, value, "important");
+  }
+
+  /** The panel's controls, as the frame is. */
+  private syncFrame() {
+    const fr = this.framing;
+    if (!fr) return;
+    const { frame } = fr;
+    const press = (b: HTMLElement, on: boolean) => b.setAttribute("aria-pressed", String(on));
+    this.framePop.querySelector<HTMLInputElement>('input[type="range"]')!.value = String(frame.zoom);
+    this.framePop.querySelector("output")!.textContent = `${Math.round(frame.zoom * 100)}%`;
+    for (const b of this.framePop.querySelectorAll<HTMLElement>("[data-x]"))
+      press(b, Number(b.dataset.x) === frame.x && Number(b.dataset.y) === frame.y);
+    for (const b of this.framePop.querySelectorAll<HTMLButtonElement>("[data-format]")) {
+      const format = b.dataset.format as Format;
+      press(b, fr.formats.has(format));
+      // The screen shown is always one of them: it is the one seen changing.
+      b.disabled = format === fr.format;
+      b.dataset.tip = (format === fr.format ? f.shownTip : f.formatTip)(f.formats[format]);
+    }
+    this.framePop.querySelector<HTMLElement>(".hint.others")!.style.display =
+      fr.formats.size < FORMATS.length ? "block" : "none";
+    // A device on its side is as wide as the next screen up, whose frame is the one set here.
+    const turned = !this.sideways
+      ? ""
+      : fr.format === "tablet"
+        ? f.sidewaysPhone
+        : fr.format === "desktop"
+          ? f.sidewaysTablet
+          : "";
+    const sideways = this.framePop.querySelector<HTMLElement>(".hint.sideways")!;
+    sideways.textContent = turned;
+    sideways.style.display = turned ? "block" : "none";
+    for (const b of this.framePop.querySelectorAll<HTMLElement>("[data-ratio]")) {
+      press(b, b.dataset.ratio === (frame.ratio ? frame.ratio.join(":") : ""));
+    }
+  }
+
+  /** One gesture of the maker's on the frame, shown at once. */
+  private setFrame(change: Partial<Frame>) {
+    const fr = this.framing;
+    if (!fr) return;
+    fr.frame = { ...fr.frame, ...change };
+    // Proportions that are not the image's own would stretch it: it fills its frame instead.
+    if (change.ratio && !fr.frame.fit) {
+      fr.frame.fit = "cover";
+      fr.ownFit = true;
+    }
+    fr.changed = true;
+    fr.reset = false;
+    this.showFrame();
+    this.syncFrame();
+    this.place();
+  }
+
+  private async saveFrame() {
+    const fr = this.framing;
+    if (!fr) return;
+    if (!fr.changed) return this.closeFrame(true);
+    const ok = await this.run({
+      type: "image-frame",
+      file: fr.origin.file,
+      at: fr.origin.at,
+      frame: fr.reset ? null : this.frameToWrite(fr),
+      formats: [...fr.formats],
+    });
+    // The rendering that follows writes the same style: the image stays as it is shown.
+    if (ok && this.framing === fr) this.closeFrame(false);
+  }
+
+  private listenForFrame() {
+    const pop = this.framePop;
+    pop.addEventListener("click", (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLElement>("button");
+      const fr = this.framing;
+      if (!b || !fr) return;
+      if (b.dataset.format) {
+        const format = b.dataset.format as Format;
+        if (!fr.formats.delete(format)) fr.formats.add(format);
+        // The screens it is for are part of what is saved.
+        fr.changed = true;
+        this.showFrame();
+        this.syncFrame();
+        this.place();
+      } else if (b.dataset.x) this.setFrame({ x: Number(b.dataset.x), y: Number(b.dataset.y) });
+      else if (b.dataset.ratio !== undefined) {
+        const ratio = RATIOS.find(([w, h]) => `${w}:${h}` === b.dataset.ratio);
+        this.setFrame({ ratio: ratio && [ratio[0], ratio[1]] });
+      } else if (b.dataset.act === "reset") {
+        fr.changed = true;
+        fr.reset = true;
+        this.showFrame();
+        this.syncFrame();
+        this.place();
+      } else if (b.dataset.act === "cancel") this.closeFrame(true);
+      else if (b.dataset.act === "save") void this.saveFrame();
+    });
+    pop.querySelector('input[type="range"]')!.addEventListener("input", (e) => {
+      this.setFrame({ zoom: Number((e.target as HTMLInputElement).value) });
+    });
+    pop.addEventListener("keydown", (e) => {
+      // The page's own shortcuts see none of what is typed here.
+      e.stopPropagation();
+      if (e.key === "Escape") this.closeFrame(true);
+    });
+    // The image dragged in its frame, while the panel is open: it follows the pointer.
+    const drag = this.frameDrag;
+    let from: { x: number; y: number; frame: Frame } | undefined;
+    drag.addEventListener("pointerdown", (e) => {
+      if (!this.framing || e.button !== 0) return;
+      e.preventDefault();
+      drag.setPointerCapture(e.pointerId);
+      drag.classList.add("held");
+      from = { x: e.clientX, y: e.clientY, frame: this.framing.frame };
+    });
+    drag.addEventListener("pointermove", (e) => {
+      const fr = this.framing;
+      if (!from || !fr) return;
+      const moved = dragged(
+        from.frame,
+        e.clientX - from.x,
+        e.clientY - from.y,
+        { width: fr.el.clientWidth, height: fr.el.clientHeight },
+        { width: fr.el.naturalWidth, height: fr.el.naturalHeight },
+      );
+      if (moved.x !== fr.frame.x || moved.y !== fr.frame.y) this.setFrame({ x: moved.x, y: moved.y });
+    });
+    for (const type of ["pointerup", "pointercancel"] as const)
+      drag.addEventListener(type, () => {
+        from = undefined;
+        drag.classList.remove("held");
+      });
   }
 
   private async saveLink() {
@@ -908,7 +1274,7 @@ export class Editor {
         box.style.display = "none";
         return undefined;
       }
-      const r = el.getBoundingClientRect();
+      const r = rectOf(el);
       Object.assign(box.style, {
         display: "block",
         left: `${r.left}px`,
@@ -921,7 +1287,10 @@ export class Editor {
     const hoverRect = fit(this.hover, this.active || this.commenting ? this.hovered : undefined);
     if (hoverRect && this.hovered) this.hover.querySelector(".tag")!.textContent = this.hovered.localName;
     const r = fit(this.selectedBox, this.active ? this.selected?.el : undefined);
-    const showBar = !!r && !!this.selected?.info && !this.editing;
+    // The preview shows another screen: what was being set was for the one before.
+    if (this.framing && shownFormat() !== this.framing.format) this.closeFrame(true);
+    const framing = this.framing;
+    const showBar = !!r && !!this.selected?.info && !this.editing && !framing;
     this.bar.style.display = showBar ? "flex" : "none";
     if (!r) {
       this.pop.style.display = "none";
@@ -935,6 +1304,16 @@ export class Editor {
     if (this.pop.style.display !== "none")
       Object.assign(this.pop.style, { top: `${Math.min(r.bottom + 6, innerHeight - 44)}px`, left: `${left}px` });
     if (this.editing) Object.assign(this.note.style, { top: `${Math.max(4, r.top - 26)}px`, left: `${left}px` });
+    if (framing) {
+      // Under the image, or over its foot when the window ends first.
+      const height = this.framePop.offsetHeight;
+      Object.assign(this.framePop.style, {
+        top: `${Math.max(4, Math.min(r.bottom + 6, innerHeight - height - 4))}px`,
+        left: `${Math.max(4, Math.min(r.left, innerWidth - this.framePop.offsetWidth - 4))}px`,
+      });
+      // An image without a size of its own (some drawings) has nothing to drag.
+      fit(this.frameDrag, framing.el.naturalWidth > 0 ? framing.el : undefined);
+    }
   }
 }
 

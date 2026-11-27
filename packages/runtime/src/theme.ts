@@ -90,6 +90,18 @@ body { font-family: var(--theme-font-body, ${FONT_FALLBACK}); background-color: 
 h1, h2, h3, h4 { font-family: var(--theme-font-heading, var(--theme-font-body, ${FONT_FALLBACK})); }
 `;
 
+/**
+ * An image the maker zoomed (Q490) is scaled past its frame and cut back to
+ * it for the eye, but a page still counts it whole and would scroll sideways
+ * to it: what contains it cuts what goes past. In the base layer, so that a
+ * class of the template's still has the last word. Not the page's body, whose
+ * overflow is the window's: an image right in it is not cut. \`data-spaka-zoomed\`
+ * marks the image while the maker is setting it in the preview.
+ */
+export const ZOOMED_IMAGE = `@layer base {
+  :where(:not(html, body):has(> img[class*="[transform:scale("], > img[data-spaka-zoomed])) { overflow: clip; }
+}`;
+
 /** Tailwind's `@theme`: the same names as utilities (bg-primary, rounded-box, font-heading…). */
 export const TAILWIND_THEME = `@theme inline {
 ${THEME_MAP.map(([d, t, f]) => `  ${d}: var(${t}, ${f});`).join("\n")}
@@ -98,7 +110,8 @@ ${THEME_MAP.map(([d, t, f]) => `  ${d}: var(${t}, ${f});`).join("\n")}
 ${STATUS_COLORS.map(([d, v]) => `  ${d}: ${v};`).join("\n")}
   --font-heading: var(--theme-font-heading, ${FONT_FALLBACK});
   --font-body: var(--theme-font-body, ${FONT_FALLBACK});
-}`;
+}
+${ZOOMED_IMAGE}`;
 
 /**
  * The theme as a page shows it: theme.css, and the color scheme its

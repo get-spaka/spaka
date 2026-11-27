@@ -3,6 +3,15 @@
 // returns the new text, or throws with a reason the maker can read. Nothing
 // here touches the disk.
 import { locate, type Range, replaceTexts, sections, textRuns } from "@spaka/runtime";
+import {
+  type Format,
+  type Frame,
+  type Frames,
+  frameClasses,
+  frameOf,
+  frameUtilities,
+  readFrameClasses,
+} from "../../shared/frame";
 import { en } from "../../shared/strings/en";
 
 export class EditRefused extends Error {}
@@ -62,7 +71,9 @@ function setAttribute(tag: string, name: string, value: string): string {
 
 /**
  * An image's address replaced in the template (Q159), and its alt text with
- * the new image's when it has one, so that it says what the image now shows.
+ * the new image's, so that it says what the image now shows: empty when the
+ * new one has none, the old one describing another image. An alt written
+ * with Liquid is the template's, and is left.
  */
 export function setImageSource(src: string, at: number, address: string, alt?: string): string {
   const el = locate(src, at);
@@ -73,8 +84,68 @@ export function setImageSource(src: string, at: number, address: string, alt?: s
   if (current && /\{[{%]/.test(current)) throw new EditRefused(en.editor.notReplaceable);
   let next = setAttribute(tag, "src", address.trim());
   const currentAlt = /\salt\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/i.exec(tag)?.[1];
-  if (alt?.trim() && !(currentAlt && /\{[{%]/.test(currentAlt))) next = setAttribute(next, "alt", alt.trim());
+  if (!(currentAlt && /\{[{%]/.test(currentAlt))) next = setAttribute(next, "alt", alt?.trim() ?? "");
   return src.slice(0, el.outer.start) + next + src.slice(el.outer.start + tag.length);
+}
+
+const ATTRIBUTE = (name: string) => new RegExp(`\\s${name}\\s*=\\s*("[^"]*"|'[^']*'|[^\\s>]+)`, "i");
+
+/** An attribute's value as written in the tag, without its quotes; undefined when the tag has none. */
+function attributeOf(tag: string, name: string): string | undefined {
+  const value = ATTRIBUTE(name).exec(tag)?.[1];
+  return value?.replace(/^(["'])([\s\S]*)\1$/, "$2");
+}
+
+function removeAttribute(tag: string, name: string): string {
+  return tag.replace(ATTRIBUTE(name), "");
+}
+
+/** The <img> starting at `at`, written for this place alone: not repeated for each item of a list. */
+function ownImage(src: string, at: number): { start: number; tag: string } {
+  const el = locate(src, at);
+  if (el?.name !== "img") throw new EditRefused("This is not an image.");
+  if (el.inLoop) throw new EditRefused(en.editing.notFramed);
+  return { start: el.outer.start, tag: src.slice(el.outer.start, src.indexOf(">", el.outer.start) + 1) };
+}
+
+/** An <img>'s classes as written, or undefined when Liquid writes some of them. */
+function classesOf(tag: string): string | undefined {
+  const written = attributeOf(tag, "class") ?? "";
+  return /\{[{%]/.test(written) ? undefined : written;
+}
+
+/**
+ * An image set in its frame for some screens (Q490): the frame's classes
+ * among the <img>'s, in place of the ones an earlier frame left for those
+ * screens; the other screens keep theirs, and the template's classes stay.
+ * Without a frame they are only taken out, and the image is there as the
+ * template's classes have it.
+ */
+export function setImageFrame(src: string, at: number, frame: Frame | null, formats: Format[]): string {
+  const { start, tag } = ownImage(src, at);
+  const classes = classesOf(tag);
+  if (classes === undefined) throw new EditRefused(en.editing.notFramed);
+  const { utilities, rest } = readFrameClasses(classes);
+  for (const format of formats) {
+    if (frame) utilities[format] = frameUtilities(frame);
+    else delete utilities[format];
+  }
+  const all = [...rest, ...frameClasses(utilities)];
+  const next = all.length ? setAttribute(tag, "class", all.join(" ")) : removeAttribute(tag, "class");
+  return src.slice(0, start) + next + src.slice(start + tag.length);
+}
+
+/**
+ * The frame each screen has for an image (Q490); undefined when it cannot be
+ * given one: repeated for each item of a list, or with computed classes.
+ */
+export function imageFrames(src: string, at: number): Frames | undefined {
+  const el = locate(src, at);
+  if (el?.name !== "img" || el.inLoop) return undefined;
+  const classes = classesOf(src.slice(at, src.indexOf(">", at) + 1));
+  if (classes === undefined) return undefined;
+  const { utilities } = readFrameClasses(classes);
+  return Object.fromEntries(Object.entries(utilities).map(([format, own]) => [format, frameOf(own)]));
 }
 
 /** Removes a range, with the whitespace that only served to put it on its own line. */

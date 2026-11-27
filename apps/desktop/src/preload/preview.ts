@@ -76,7 +76,7 @@ ipcRenderer.on("preview:message", (_event, message: ToPreview) => {
   else if (message.type === "theme") setTheme(message.css, message.styles);
   else if (message.type === "clip") thumbStyle(message.top);
   else if (message.type === "editor") {
-    editor?.set(message.mode, message.paused);
+    editor?.set(message.mode, message.paused, !!message.sideways);
     if (!thumbnail) setMoving(message.mode === "visitor");
   } else if (message.type === "comments") editor?.setComments(message.comments);
   else if (message.type === "tour") editor?.setTour(message.tour, (action) => send({ type: "tour", action }));
