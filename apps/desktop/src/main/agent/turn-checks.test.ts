@@ -43,3 +43,21 @@ test("after the agent wrote package.json, or ran a command, its dependencies are
   expect(checks.afterTool("Read", { file_path: join(dir, "package.json") })).toBeUndefined();
   expect(asked).toHaveLength(4);
 });
+
+test("a script it wrote that imports a package not installed is told at once (ADR 0013)", () => {
+  dir = mkdtempSync(join(tmpdir(), "spaka-checks-"));
+  mkdirSync(join(dir, "scripts"), { recursive: true });
+  mkdirSync(join(dir, "node_modules/motion"), { recursive: true });
+  writeFileSync(join(dir, "node_modules/motion/package.json"), JSON.stringify({ name: "motion", version: "14.14.0" }));
+  writeFileSync(
+    join(dir, "scripts/reveal.js"),
+    'import { animate } from "motion";\nimport Lenis from "lenis";\nexport function start() {}\n',
+  );
+  const checks = new TurnChecks(dir);
+  expect(checks.afterTool("Write", { file_path: join(dir, "scripts/reveal.js") })).toBe(
+    "scripts/reveal.js imports lenis, which is not installed: add it with add_package first.",
+  );
+  writeFileSync(join(dir, "scripts/reveal.js"), 'import { animate } from "motion";\nexport function start() {}\n');
+  expect(checks.afterTool("Edit", { file_path: "scripts/reveal.js" })).toBeUndefined();
+  expect(checks.afterTool("Read", { file_path: join(dir, "scripts/reveal.js") })).toBeUndefined();
+});

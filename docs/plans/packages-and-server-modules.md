@@ -1,13 +1,13 @@
 # Spaka v2 : plan de construction des paquets et des modules serveur (Q490-Q535)
 
-## État (2026-11-27) : la sonde et les tranches 1 et 2 faites
+## État (2026-11-27) : la sonde et les tranches 1 à 3 faites
 
 | Tranche | Fait | Commits |
 |---|---|---|
 | 0. La sonde : pnpm 12, Vite, wrangler et Node sous permissions | ✅ | e762c96 (résultats dans [`docs/spikes/packages.md`](../spikes/packages.md)) ; correctif trouvé en passant, le `node` du shell Pi sous `/Users` : get-spaka/spaka#4 |
 | 1. Le pnpm de Spaka et le `node_modules` du projet | ✅ | 999d123 |
 | 2. `add_package`, ses règles et la section Paquets | ✅ | 0cc63a3 |
-| 3. Les paquets dans le navigateur | | |
+| 3. Les paquets dans le navigateur | ✅ | à venir |
 | 4. Les 37 templates passent aux paquets | | |
 | 5. Les modules serveur dans l'aperçu | | |
 | 6. Les secrets | | |
@@ -55,8 +55,8 @@ L'ordre suit Q490 : d'abord le côté navigateur (tranches 1 à 4), qui pose l'i
 ## Choix techniques (sans nouvelle décision de produit)
 
 **Les dossiers de Spaka** (`<userData>` est le dossier de données de l'app)
-- `tools/pnpm-<version>/pnpm`, plus `tools/node_modules/` pour Vite et wrangler, installés par ce pnpm depuis un `package.json` et un lockfile livrés avec l'app.
-  - Vite seul pèse 31 Mo, et vient avec le premier paquet.
+- `tools/pnpm-<version>/pnpm`, plus `tools/vite/` pour Vite (et un dossier à lui pour wrangler), installés par ce pnpm depuis un `package.json` et un lockfile livrés avec l'app.
+  - Vite pèse 20 Mo sans ses programmes natifs (tranche 3), et vient avec le premier paquet.
   - Wrangler ne démarre pas sans workerd : avec lui, l'ensemble pèse environ 300 Mo, téléchargés au premier export pour Cloudflare. sharp (17 Mo) n'est pas nécessaire ; la façon de le laisser de côté se règle dans la tranche 7.
 - `pnpm/home`, `pnpm/config` (un `config.yaml` de Spaka, sans `auth.ini`), `pnpm/store`, `pnpm/cache`, `pnpm/state`, `pnpm/run` et un `npmrc` vide.
 - `server-files/<id du projet>/` : le dossier inscriptible des modules serveur dans l'aperçu (Q528).
@@ -192,7 +192,33 @@ Fait le 2026-11-27 :
 - Le skill site-scripts est réécrit : les paquets à la place des librairies, et les imports à la place des globales (`import { animate } from "motion"`).
 - Vérification : un site qui ajoute embla-carousel, dans l'aperçu et dans un export statique servi hors ligne.
 
+Décidé en route (des choix techniques, sans nouvelle question) :
+- **Rolldown en WebAssembly.** L'app publiée est signée avec le runtime renforcé de macOS, qui refuse de charger une bibliothèque native signée par un autre : le binding natif de rolldown, téléchargé par pnpm, ne se chargerait pas. Plutôt que d'ôter cette protection (`disable-library-validation`), Vite s'installe sans ses paquets optionnels, avec `@rolldown/binding-wasm32-wasi`, et l'hôte de build tourne sous les permissions de Node, qui refusent tout code natif. Mesuré : deux à six fois plus lent qu'en natif, mais sous la seconde (three.js en 0,3 à 0,5 s, Motion en 0,2 à 0,4 s), et gardé en cache. Le même chemin vaut sur chaque système et en développement.
+- **L'adresse** est `/assets/packages/<nom>@<version>[/<chemin>].js` plutôt que `/_spaka/packages/` : `/_spaka/` est la route de gestion des sites publiés, où le Worker de Cloudflare passe en premier.
+- **L'entrée de Vite est le nom importé lui-même**, résolu comme un navigateur le résout, avec `preserveEntrySignatures: "strict"` : le module exporte ce que le paquet exporte, son export par défaut compris, sans fichier d'entrée à écrire. Un paquet CommonJS n'a que son export par défaut.
+- **`scripts/libraries.json` et `scripts/lib/` restent lus jusqu'à la tranche 4**, et `template:check` ne les refuse pas encore : les 37 templates s'en servent, et la vérification des templates de la CI échouerait. Le skill et les instructions ne parlent plus que des paquets ; un site qui en a encore les garde.
+
+Fait le 2026-11-27 :
+- **`main/packages/vite.ts`** : le pnpm de Spaka installe Vite 8.3.8 dans `tools/vite/` depuis `vite/package.json` et `vite/pnpm-lock.yaml` (faits avec les drapeaux de Spaka, donc sans version de moins de 7 jours), en lockfile figé et sans paquets optionnels (`pnpmFlags(…, { tools: true })`). L'installation se fait à côté, puis le dossier est déplacé d'un coup ; une seule installation sert tous les appels.
+- **`main/packages/build-host.mjs`**, lancé par le Node de Spaka avec `--permission --allow-fs-read=* --allow-wasi --allow-worker` : il lit, mais n'écrit rien, ne lance aucun programme et ne charge aucun code natif. Il reçoit la liste des modules sur stdin et rend leur code sur stdout, et une erreur de rolldown en une ligne, sans le dossier du projet.
+- **`main/packages/modules.ts`** : un module par nom ou chemin importé, fait par lots (un seul hôte pour tous ceux qui manquent).
+  - Le reste de l'import map lui est laissé en externe, sauf un paquet dont il amène une autre version : `three/addons/…` importe le `three` de la page.
+  - En tête, une notice par paquet empaqueté (trouvé par les fichiers que rolldown a lus) : nom, version, licence, et le texte du fichier de licence quand le paquet en livre un (embla-carousel et ogl n'en livrent pas).
+  - Gardé dans `package-modules/` pour tous les sites, sous un hachage de ce dont il est fait : le nom importé, la version du paquet et de tout ce qu'il amène (le lockfile), ce qu'il laisse en externe, et les outils de cette version de Spaka. Une erreur n'est jamais gardée.
+- **`runtime/scripts.ts`** : `packageImports` lit les imports de `scripts/**/*.js` (sauf `scripts/lib/`) et la version installée dans `node_modules`, d'où les entrées de l'import map (`SiteAssets.packages`). Un paquet importé mais pas installé, ou un nom qui n'en est pas un, est une note. L'import map passe dans la tête avant le script de démarrage, dans l'aperçu comme une fois exporté, et dans `site.json`.
+- **L'aperçu** sert les modules à leur adresse, fait le premier demandé avec tous ceux qui manquent, et un module que Spaka n'a pas pu faire lève une erreur que l'aperçu lit dans la console. Il ne sert plus `node_modules`, `package.json` ni le lockfile, comme un export. La page se recharge quand l'import map change. Les modules d'un site sont faits d'avance après chaque installation, et Vite s'installe avec le premier paquet.
+- **Les exports** reçoivent les modules de l'app (`BuildOptions.packageModules`), les écrivent dans `assets/packages/`, et avertissent pour un module manquant. `package.json`, le lockfile et `node_modules` n'y entrent jamais.
+- **L'agent** : une note dès qu'un script qu'il écrit importe un paquet pas installé ; la description de `add_package` dit comment l'importer ; le skill site-scripts et les instructions parlent des paquets et des imports.
+- **Les réglages** : le poids servi aux visiteurs, compressé, pour chaque paquet dont les modules sont faits.
+- **Vérifié** :
+  - les tests unitaires : les imports et l'import map, les modules faits avec le Vite du dépôt (la notice, l'export par défaut, le chemin qui partage son paquet, CommonJS, le cache, les erreurs), la route de l'aperçu, les exports, la note à l'agent ;
+  - `e2e/browser-packages.e2e.ts` (il remplace `libraries.e2e.ts`, et demande le réseau) : les cinq paquets du skill écrits dans `package.json`, installés par le vrai pnpm sous les règles, faits par le vrai Vite sous les permissions de Node, chacun à l'œuvre en mode visiteur sans erreur, le module d'exemple du skill compris ; puis l'export statique, servi avec toute autre adresse refusée, où ils marchent pareil. En 10 s, téléchargements compris.
+- **Limites** : la feuille de style d'un paquet n'est pas importée (l'agent copie ce qu'il faut dans `styles/`, le skill le dit) ; le module d'un paquet en contient tout, quoi qu'on en importe.
+
 ### 4. Les 37 templates passent aux paquets
+
+- Repris de la tranche 3 : `scripts/libraries.json` et `scripts/lib/` ne sont plus lus (`runtime/scripts.ts`, `head.ts`, `START_JS`), et `template:check` les refuse.
+- La vue d'un template (`templates/viewer.ts`) doit servir les modules de ses paquets : un template n'a pas de `node_modules`.
 
 - Dans get-spaka/templates : chaque template remplace `libraries.json` par des paquets (Motion, Lenis, Splitting, Embla, OGL) et ses modules par des imports.
 - `FORMAT.md` est mis à jour, avec la version minimale de l'app relevée.

@@ -1,0 +1,9 @@
+{
+  "name": "spaka-vite",
+  "private": true,
+  "description": "Spaka's Vite, installed by Spaka's pnpm in the app's tools folder (packages/vite.ts). Its lockfile is made with Spaka's pnpm and its flags, so that no version is younger than a week.",
+  "dependencies": {
+    "@rolldown/binding-wasm32-wasi": "1.2.19",
+    "vite": "8.3.8"
+  }
+}

@@ -5,8 +5,9 @@ import { createReadStream, readFileSync, statSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { createRequire } from "node:module";
 import { extname, join, normalize, resolve, sep } from "node:path";
-import type { Runtime } from "@spaka/runtime";
-import { daisyuiBelowComponents, START_JS, START_SCRIPT, VENDOR } from "@spaka/runtime";
+import type { PackageImport, Runtime } from "@spaka/runtime";
+import { daisyuiBelowComponents, PACKAGES_BASE, START_JS, START_SCRIPT, VENDOR } from "@spaka/runtime";
+import type { ModuleResult } from "../packages/modules";
 
 /** Named so that it does not collide with the `require` electron-vite adds to ESM output. */
 const nodeRequire = createRequire(import.meta.url);
@@ -41,6 +42,13 @@ const STATIC_TYPES: Record<string, string> = {
 
 export type Site = { root: string; runtime: Runtime };
 
+/** The module of a package at an address of the site's import map, made by Spaka's Vite (ADR 0013). */
+export type PackageModuleAt = (
+  root: string,
+  packages: PackageImport[],
+  url: string,
+) => Promise<ModuleResult | undefined>;
+
 export class PreviewServer {
   private server: Server | undefined;
   private port = 0;
@@ -50,12 +58,14 @@ export class PreviewServer {
   /**
    * `site()` gives what is served now: the open project, or nothing. `block(id)`
    * gives a gallery block's template, shown alone with the project's theme at
-   * /__spaka/block/<id>, for its thumbnail.
+   * /__spaka/block/<id>, for its thumbnail. `packageModule` makes the
+   * modules of the packages the site's scripts import.
    */
   constructor(
     private readonly site: () => Site | undefined,
     private readonly block: (id: string) => string | undefined = () => undefined,
     private readonly font: (path: string) => string | undefined = () => undefined,
+    private readonly packageModule?: PackageModuleAt,
   ) {}
 
   get origin() {
@@ -124,6 +134,24 @@ export class PreviewServer {
       res.end(site.runtime.decorate(`<!doctype html><html><head><title></title></head><body>${source}</body></html>`));
       return;
     }
+
+    // A package's module (ADR 0013), made the first time it is asked for. One
+    // Spaka could not make says why where the preview reads the page's errors.
+    if (url.pathname.startsWith(`${PACKAGES_BASE}/`)) {
+      const packages = site.runtime.assets().packages ?? [];
+      const entry = packages.find((p) => p.url === url.pathname);
+      const result = entry && (await this.packageModule?.(site.root, packages, url.pathname));
+      if (!entry || !result) return notFound(res);
+      res.writeHead(200, { "content-type": "text/javascript; charset=utf-8" });
+      res.end(
+        "module" in result
+          ? result.module.code
+          : `throw new Error(${JSON.stringify(`Spaka could not make the module of the package ${entry.specifier} ${entry.version}: ${result.error}`)});\n`,
+      );
+      return;
+    }
+    // What pnpm installs stays out of the pages, as it does once exported.
+    if (/^\/(node_modules(\/|$)|package\.json$|pnpm-lock\.yaml$)/.test(url.pathname)) return notFound(res);
 
     // A file of the project that is not a template: an image, a font, a script.
     const ext = extname(url.pathname).toLowerCase();

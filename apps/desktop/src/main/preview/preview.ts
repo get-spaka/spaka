@@ -37,7 +37,7 @@ import {
   type Seen,
   type StepDone,
 } from "./look-steps";
-import { PreviewServer, VENDOR_BASE } from "./server";
+import { type PackageModuleAt, PreviewServer, VENDOR_BASE } from "./server";
 import { isTestRecord, TestRecordStore, testRecordsSource } from "./test-records";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
@@ -69,6 +69,8 @@ export type PreviewOptions = {
   block?: (id: string) => string | undefined;
   /** A shipped font's file, from its path under /__spaka/fonts/, for a theme shown before it is written. */
   font?: (path: string) => string | undefined;
+  /** The modules of the packages the site's scripts import (ADR 0013). */
+  packageModule?: PackageModuleAt;
   /** A page's thumbnail in the "All pages" view was clicked, right-clicked or hovered (Q132). */
   onThumb?: (route: string, action: ThumbnailAction) => void;
   /** A page's picture in the "All pages" view, new or taken again (Q141). */
@@ -144,6 +146,7 @@ export class Preview {
       () => this.site && { root: this.site.root, runtime: this.site.runtime },
       options.block,
       options.font,
+      options.packageModule,
     );
     this.view = new WebContentsView({
       webPreferences: {
@@ -832,10 +835,12 @@ function dataNotes(runtime: Runtime): string[] {
   }
 }
 
-/** The site's scripts, what they are and what they hold: what a page that runs them depends on. */
+/** The site's scripts, what they are and what they hold, and its packages: what a page that runs them depends on. */
 function scriptsKey(runtime: Runtime): string {
-  const { libraries, lib, modules } = runtime.assets();
-  const hash = createHash("sha256").update(JSON.stringify(libraries));
+  const { libraries, lib, modules, packages } = runtime.assets();
+  const hash = createHash("sha256")
+    .update(JSON.stringify(libraries))
+    .update(JSON.stringify(packages ?? []));
   for (const path of [...lib, ...modules])
     hash
       .update(path)

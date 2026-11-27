@@ -30,3 +30,4 @@ Until then a site could only load a library from a CDN address pinned in `script
 - A flaw published later for an installed version gives a card when the site opens, and a warning at each export (Q521).
 - Packages from a private registry, its token kept in Spaka's Accounts, or from a git repository at a fixed commit, come last (Q502); the registry's rules do not apply to them.
 - The templates' format, `template:check` and the site-scripts skill change with the move to packages; a template that uses packages needs an app that knows them.
+- Vite runs as WebAssembly. The signed app's hardened runtime refuses a native library signed by anyone else, so Spaka's Vite is installed without its optional native programs, with rolldown's WebAssembly build, and its builds run under Node's permissions, which refuse native code on every system. A package's module takes up to half a second to make instead of a tenth, once: it is kept (the packages plan, slice 3).

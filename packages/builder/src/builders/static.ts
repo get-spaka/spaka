@@ -42,6 +42,7 @@ export async function buildStatic(options: {
   readFile?: (path: string) => Buffer;
   images?: ImageCopies;
   formServices?: Record<string, string>;
+  packageModules?: BuildOptions["packageModules"];
 }): Promise<BuildResult> {
   const project: BuildProject = {
     name: "",
@@ -64,7 +65,7 @@ export async function buildStatic(options: {
     );
   for (const f of fragments)
     out.write(f.rel, formsToServices(withSrcset(f.html, copies), options.formServices ?? {}, f.file, warnings));
-  await writeAssets(project, out, [html]);
+  await writeAssets(project, out, [html], options, warnings);
   return {
     files: out.files,
     pages: pages.map((p) => p.route),

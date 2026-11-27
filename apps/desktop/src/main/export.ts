@@ -2,7 +2,7 @@
 // builders (Q181, Q186): the app knows only their common interface.
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { basename, join, relative } from "node:path";
-import { BUILDERS, type BuildProject, builderById, collectedUse } from "@spaka/builder";
+import { BUILDERS, type BuildOptions, type BuildProject, builderById, collectedUse } from "@spaka/builder";
 import { diskSource } from "@spaka/runtime/node";
 import type { ExportResult, PublishInfo } from "../shared/ipc";
 import { published } from "./history/history";
@@ -44,6 +44,8 @@ export type ExportOptions = {
   formServices?: Record<string, string>;
   /** The website's management token, made when a builder first needs it (Q191). */
   managementToken: () => string;
+  /** The modules of the packages the site's scripts import, made by Spaka's Vite (ADR 0013). */
+  packageModules?: BuildOptions["packageModules"];
 };
 
 function buildProject(projectDir: string, name: string): BuildProject {
@@ -96,6 +98,7 @@ export async function exportProject(projectDir: string, chosen: string, options:
     ...(options.formServices ? { formServices: options.formServices } : {}),
     ...(builder.needs.managementToken ? { managementToken: options.managementToken() } : {}),
     ...(builder.needs.managementToken && earlierEnv !== undefined ? { earlierEnv } : {}),
+    ...(options.packageModules ? { packageModules: options.packageModules } : {}),
   });
   writeFileSync(join(folder, MARKER), "This folder was exported by Spaka. A new export replaces what it holds.\n");
   return {

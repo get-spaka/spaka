@@ -274,6 +274,60 @@ describe("a site's scripts and stylesheet (ADR 0011)", () => {
     expect(existsSync(join(out, "public/styles/edges/wave.svg"))).toBe(true);
   });
 
+  // The packages its scripts import (ADR 0013): their modules, made by the app, written where the import map points.
+  const withPackages = () =>
+    project({
+      "pages/index.liquid": '<h1 data-carousel class="text-primary">Chez Margot</h1>',
+      "scripts/carousel.js":
+        'import EmblaCarousel from "embla-carousel";\nimport gone from "gone";\nexport function start() {}',
+      "node_modules/embla-carousel/package.json": JSON.stringify({ name: "embla-carousel", version: "8.6.0" }),
+      "node_modules/gone/package.json": JSON.stringify({ name: "gone", version: "1.0.0" }),
+      "package.json": JSON.stringify({ dependencies: { "embla-carousel": "8.6.0", gone: "1.0.0" } }),
+      "pnpm-lock.yaml": "lockfileVersion: '9.0'\n",
+    });
+  const made = async (imports: { specifier: string }[]) =>
+    new Map(
+      imports.map((p) => [
+        p.specifier,
+        p.specifier === "gone"
+          ? { error: "Vite could not resolve it" }
+          : { code: `/*! ${p.specifier} */export default 1;` },
+      ]),
+    );
+
+  test("the static site gets its packages' modules and the import map; package.json and the lockfile stay out", async () => {
+    const result = await builderById("static")!.build(withPackages(), {
+      outDir: out,
+      formServices: {},
+      packageModules: made,
+    });
+    expect(readFileSync(join(out, "assets/packages/embla-carousel@8.6.0.js"), "utf8")).toBe(
+      "/*! embla-carousel */export default 1;",
+    );
+    expect(readFileSync(join(out, "index.html"), "utf8")).toContain(
+      '<script type="importmap">{"imports":{"embla-carousel":"/assets/packages/embla-carousel@8.6.0.js","gone":"/assets/packages/gone@1.0.0.js"}}</script>',
+    );
+    expect(result.warnings).toContain(
+      "The package gone 1.0.0 has no module in the export (Vite could not resolve it): the pages whose scripts import it will not run them.",
+    );
+    expect(existsSync(join(out, "assets/packages/gone@1.0.0.js"))).toBe(false);
+    for (const file of ["package.json", "pnpm-lock.yaml", "node_modules"])
+      expect(existsSync(join(out, file))).toBe(false);
+  });
+
+  test("a published site gets them in public/, its import map in site.json; without the app's modules, a warning", async () => {
+    await builderById("node")!.build(withPackages(), { outDir: out, serverBundle: "// server", packageModules: made });
+    expect(existsSync(join(out, "public/assets/packages/embla-carousel@8.6.0.js"))).toBe(true);
+    const site = JSON.parse(readFileSync(join(out, "site.json"), "utf8"));
+    expect(site.assets.packages.map((p: { url: string }) => p.url)).toEqual([
+      "/assets/packages/embla-carousel@8.6.0.js",
+      "/assets/packages/gone@1.0.0.js",
+    ]);
+    expect(existsSync(join(out, "public/package.json"))).toBe(false);
+    const again = await builderById("static")!.build(withPackages(), { outDir: join(out, "again"), formServices: {} });
+    expect(again.warnings.filter((w) => w.startsWith("The package"))).toHaveLength(2);
+  });
+
   test("a site without them gets no start script", async () => {
     await builderById("static")!.build(contact(), { outDir: out, formServices: {} });
     expect(existsSync(join(out, "assets/spaka-start.js"))).toBe(false);
