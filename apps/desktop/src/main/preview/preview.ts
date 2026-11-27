@@ -277,7 +277,10 @@ export class Preview {
     this.parked = !!rect && parked;
     const changed = JSON.stringify(device) !== JSON.stringify(this.device);
     this.device = device;
-    if (changed) this.emulate();
+    if (changed) {
+      this.emulate();
+      this.sendMode();
+    }
     this.layout();
   }
 
@@ -454,8 +457,15 @@ export class Preview {
     this.sendEditor();
   }
 
+  /** How the page answers the pointer, and whether it is on a device turned on its side. */
+  private sendMode() {
+    const d = this.device;
+    const sideways = !!d && (d.mobile ?? true) && d.width > d.height;
+    this.send({ type: "editor", mode: this.mode, paused: this.paused, sideways });
+  }
+
   private sendEditor() {
-    this.send({ type: "editor", mode: this.mode, paused: this.paused });
+    this.sendMode();
     this.send({ type: "comments", comments: this.comments });
     if (this.pageTour) this.send({ type: "tour", tour: this.pageTour });
   }

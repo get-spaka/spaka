@@ -28,6 +28,7 @@ import {
   validRecordId,
 } from "@spaka/runtime";
 import { diskSource } from "@spaka/runtime/node";
+import { cleanFrame, FORMATS } from "../../shared/frame";
 import type { EditAction, EditInfo } from "../../shared/ipc";
 import { copyOfPage } from "../../shared/page-grid";
 import { en } from "../../shared/strings/en";
@@ -41,6 +42,7 @@ import {
   duplicateRange,
   EditRefused,
   editText,
+  imageFrames,
   includeAt,
   insertBefore,
   moveSection,
@@ -48,6 +50,7 @@ import {
   placeFor,
   removeRange,
   renameInclude,
+  setImageFrame,
   setImageSource,
   setLink,
   targetAt,
@@ -424,6 +427,20 @@ export class Editor {
         } else writes[action.file] = setImageSource(src, action.at, action.src, this.altOf(action.src));
         label = t.imageReplaced;
         break;
+      case "image-frame": {
+        // Set in its frame, or put back as the template's classes have it (Q490).
+        const framed = setImageFrame(
+          src,
+          action.at,
+          action.frame === null ? null : cleanFrame(action.frame),
+          FORMATS.filter((format) => action.formats.includes(format)),
+        );
+        // Nothing to take out, or the same frame again: no version says the image changed.
+        if (framed === src) return { label: t.imageAdjusted, files: [] };
+        writes[action.file] = framed;
+        label = t.imageAdjusted;
+        break;
+      }
       case "record-item": {
         // An image taken out of its list, or moved in it (Q356).
         const file = this.recordFileFor(action.file, src, action.at, action.record, "src", en.editing.notRecordImage);
@@ -582,7 +599,11 @@ export class Editor {
   private imageInfo(file: string, src: string, at: number, record?: string): Pick<EditInfo, "image"> {
     const tag = src.slice(at, src.indexOf(">", at) + 1);
     const address = /\ssrc\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/i.exec(tag)?.[1];
-    if (!address || !/\{[{%]/.test(address)) return { image: {} };
+    if (!address || !/\{[{%]/.test(address)) {
+      // Written here for this place alone: it can be set in its frame too (Q490).
+      const frame = imageFrames(src, at);
+      return { image: frame ? { frame } : {} };
+    }
     const shown = this.recordField(file, src, at, "src");
     if (shown?.kind === "image" && !shown.sub && !shown.item) return { image: { field: shown.field } };
     if (shown?.kind !== "images" || !shown.item) return {};

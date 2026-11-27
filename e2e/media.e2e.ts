@@ -13,11 +13,12 @@ const FIXTURE = join(import.meta.dirname, "fixtures/images");
 // shown and its deletion refused; renamed everywhere it is used; an unused
 // file deleted and brought back; the credits page. In the preview: a
 // record's title edited in place, "Replace…" on an image written in the
-// template and on a record's image, a file dropped onto an image.
+// template and on a record's image, a file dropped onto an image, an image
+// set in its frame (Q490).
 describe("the media library", () => {
   let launched: LaunchedApp;
   let path: string;
-  const { invoke, until, page, click, typeText, key } = previewDriver(() => launched);
+  const { invoke, until, page, input, center, click, typeText, key, drawn, picture } = previewDriver(() => launched);
   const w = () => launched.window;
   const last = async () => ((await invoke("history:list")) as { label: string }[]).at(-1)?.label;
   const items = () =>
@@ -212,6 +213,247 @@ describe("the media library", () => {
     expect(((await invoke("history:list")) as unknown[]).length).toBe(versions + 1);
     expect(await last()).toBe("Image replaced");
     await until(async () => (await items()).includes("media/shop-front-2.jpg"));
+  });
+
+  test("an image written in the template is set in its frame, shown as it is set (Q490)", async () => {
+    const file = () => readFileSync(join(path, "pages/blog.liquid"), "utf8");
+    const hero = (read: string) => page(`(() => { const el = document.querySelector('img.hero'); return ${read}; })()`);
+    const control = (testid: string, read: string) =>
+      page(
+        `(() => { const el = document.querySelector('spaka-editor').shadowRoot.querySelector('[data-testid="${testid}"]'); return ${read}; })()`,
+      );
+    const open = async () => {
+      await until(() => control("editor-frame", "!!el"));
+      await click('[data-testid="editor-frame"]', true);
+      await until(() => drawn('[data-testid="frame-pop"]'));
+    };
+    const before = file();
+    const versions = ((await invoke("history:list")) as unknown[]).length;
+    // The image is put back in sight and selected by a point of its own.
+    await page("document.querySelector('img.hero').scrollIntoView({ block: 'center' })");
+    await click("img.hero");
+    await open();
+    // It is set for every screen, the one the preview shows being the one seen changing.
+    const shown = (await page("innerWidth < 768 ? 'phone' : innerWidth < 1024 ? 'tablet' : 'desktop'")) as string;
+    for (const format of ["desktop", "tablet", "phone"]) {
+      expect(await control(`frame-format-${format}`, "el.getAttribute('aria-pressed')")).toBe("true");
+      expect(await control(`frame-format-${format}`, "el.disabled")).toBe(format === shown);
+    }
+    expect(await drawn('[data-testid="frame-hint"]')).toBe(false);
+    // Each gesture shows on the image itself; nothing is written yet.
+    // The shapes go from the widest to the tallest, after the one the page gives.
+    expect(
+      await page(
+        `[...document.querySelector('spaka-editor').shadowRoot.querySelectorAll('[data-ratio]')].map((b) => b.textContent)`,
+      ),
+    ).toEqual(["Auto", "16:9", "3:2", "4:3", "1:1", "3:4", "2:3", "9:16"]);
+    expect(await control("frame-ratio-original", "el.getAttribute('aria-pressed')")).toBe("true");
+    await click('[data-testid="frame-ratio-9-16"]', true);
+    await until(() => hero("getComputedStyle(el).aspectRatio === '9 / 16'"));
+    await click('[data-testid="frame-ratio-1-1"]', true);
+    await until(() =>
+      hero("getComputedStyle(el).aspectRatio === '1 / 1' && getComputedStyle(el).objectFit === 'cover'"),
+    );
+    expect(await control("frame-ratio-1-1", "el.getAttribute('aria-pressed')")).toBe("true");
+    await click('[data-testid="frame-pos-0-0"]', true);
+    await until(() => hero("el.style.objectPosition === '0% 0%'"));
+    await click('[data-testid="frame-zoom"]', true);
+    await until(() => control("frame-zoom", "Number(el.value) > 1"));
+    const zoom = Number(await control("frame-zoom", "el.value"));
+    expect(await hero("el.style.transform")).toBe(`scale(${zoom})`);
+    expect(await hero("el.style.clipPath")).toContain("inset(0%");
+    // The outline stays on the frame, which the zoom does not make larger.
+    const size = await hero("[el.clientWidth, el.clientHeight]");
+    expect(await control("frame-drag", "[Math.round(el.offsetWidth), Math.round(el.offsetHeight)]")).toEqual(size);
+    // Dragged to the left, the image shows more of its right.
+    const { x, y } = await center('[data-testid="frame-drag"]', true);
+    await input([
+      { type: "mouseMove", x, y },
+      { type: "mouseDown", x, y, button: "left", clickCount: 1 },
+      { type: "mouseMove", x: x - 12, y, button: "left" },
+      { type: "mouseMove", x: x - 24, y, button: "left" },
+      { type: "mouseUp", x: x - 24, y, button: "left", clickCount: 1 },
+    ]);
+    await until(() => hero("parseFloat(el.style.objectPosition) > 0"));
+    expect(await control("frame-pos-0-0", "el.getAttribute('aria-pressed')")).toBe("false");
+    // A picture is taken of a frame the page draws: it is kept drawing for a moment.
+    await page(`(() => { let n = 0; const tick = () => { document.body.style.opacity = n++ % 2 ? "1" : "0.999";
+      if (n < 240) requestAnimationFrame(tick); else document.body.style.opacity = ""; }; tick(); })()`);
+    await picture("image-frame");
+    expect(file()).toBe(before);
+    await click('[data-testid="frame-save"]', true);
+    await until(async () => file() !== before);
+    const tag = /<img [^>]*class="hero[^>]*>/.exec(file())?.[0] ?? "";
+    // Classes of the image, for every screen: none names one.
+    expect(tag).toMatch(/class="hero object-cover! object-\[[\d.]+%_0%\]! aspect-\[1\/1\]! \[transform:scale\(/);
+    // The page's own Tailwind gives them their rules: the image stays as it was set, without a style of its own.
+    await until(() =>
+      hero(
+        "el.style.transform === '' && getComputedStyle(el).transform !== 'none' && getComputedStyle(el).aspectRatio === '1 / 1'",
+      ),
+    );
+    expect(await last()).toBe("Image adjusted");
+    expect(((await invoke("history:list")) as unknown[]).length).toBe(versions + 1);
+    expect(await drawn('[data-testid="frame-pop"]')).toBe(false);
+    // Opened again it says what was saved; Reset shows the template's own frame, Cancel takes it back.
+    const saved = file();
+    await open();
+    expect(Number(await control("frame-zoom", "el.value"))).toBe(zoom);
+    await click('[data-testid="frame-reset"]', true);
+    await until(() =>
+      hero("getComputedStyle(el).transform === 'none' && getComputedStyle(el).aspectRatio !== '1 / 1'"),
+    );
+    await click('[data-testid="frame-cancel"]', true);
+    await until(() =>
+      hero("getComputedStyle(el).transform !== 'none' && getComputedStyle(el).aspectRatio === '1 / 1'"),
+    );
+    expect(file()).toBe(saved);
+    // On a phone it is set apart: the larger screens keep what they have. The page is drawn smaller
+    // there, so the panel is driven from the page itself.
+    const press = (testid: string) => control(testid, "(el.click(), true)");
+    await w().getByTestId("width-phone").click();
+    await until(() => page("innerWidth < 768"));
+    await page("document.querySelector('img.hero').click()");
+    await until(() => control("editor-frame", "!!el"));
+    await press("editor-frame");
+    await until(() => drawn('[data-testid="frame-pop"]'));
+    expect(await control("frame-format-phone", "el.disabled")).toBe(true);
+    await press("frame-format-desktop");
+    await press("frame-format-tablet");
+    expect(await drawn('[data-testid="frame-hint"]')).toBe(true);
+    // A tick says which screens it is for: only the phone's shows now.
+    const ticked = (format: string) =>
+      control(`frame-format-${format}`, "getComputedStyle(el.querySelector('.tick')).visibility === 'visible'");
+    expect([await ticked("desktop"), await ticked("tablet"), await ticked("phone")]).toEqual([false, false, true]);
+    // The screen shown has a second tick, the others never do.
+    const twice = (format: string) =>
+      control(`frame-format-${format}`, "getComputedStyle(el.querySelector('.second')).display !== 'none'");
+    expect([await twice("desktop"), await twice("tablet"), await twice("phone")]).toEqual([false, false, true]);
+    await press("frame-ratio-16-9");
+    await until(() => hero("getComputedStyle(el).aspectRatio === '16 / 9'"));
+    await press("frame-save");
+    await until(async () => file() !== saved);
+    const apart = /<img [^>]*class="hero[^>]*>/.exec(file())?.[0] ?? "";
+    expect(apart).toContain("max-md:aspect-[16/9]!");
+    expect(apart).toContain("md:aspect-[1/1]!");
+    expect(apart).not.toMatch(/ aspect-\[/);
+    expect(await last()).toBe("Image adjusted");
+    await until(() => hero("el.style.aspectRatio === '' && getComputedStyle(el).aspectRatio === '16 / 9'"));
+    // Back on a wide page, the image is as it was set there.
+    await w().getByTestId("width-desktop").click();
+    await until(() => page("innerWidth >= 1024"));
+    await until(() => hero("getComputedStyle(el).aspectRatio === '1 / 1'"));
+    await w().getByTestId("width-fit").click();
+    await until(() => page(`(innerWidth < 768 ? 'phone' : innerWidth < 1024 ? 'tablet' : 'desktop') === '${shown}'`));
+    // An image whose template gives it a style of its own: Reset shows it with that style, which Save
+    // leaves in the file, so that what was seen is what stays.
+    const styled = file().replace(
+      /<img [^>]*class="hero[^>]*>/,
+      '<img class="hero" style="aspect-ratio: 2 / 1" src="/media/croissants.jpg" alt="x">',
+    );
+    writeFileSync(join(path, "pages/blog.liquid"), styled);
+    await until(() =>
+      hero("el.getAttribute('style') === 'aspect-ratio: 2 / 1' && getComputedStyle(el).aspectRatio === '2 / 1'"),
+    );
+    const adjust = async () => {
+      await page("document.querySelector('img.hero').click()");
+      await until(() => control("editor-frame", "!!el"));
+      await press("editor-frame");
+      await until(() => drawn('[data-testid="frame-pop"]'));
+    };
+    await adjust();
+    await press("frame-ratio-1-1");
+    await until(() => hero("getComputedStyle(el).aspectRatio === '1 / 1'"));
+    await press("frame-save");
+    await until(async () => file().includes("aspect-[1/1]!"));
+    await until(() =>
+      hero("el.getAttribute('style') === 'aspect-ratio: 2 / 1' && getComputedStyle(el).aspectRatio === '1 / 1'"),
+    );
+    await adjust();
+    await press("frame-reset");
+    await until(() => hero("getComputedStyle(el).aspectRatio === '2 / 1'"));
+    await press("frame-save");
+    await until(async () => file() === styled);
+    await until(async () => !(await drawn('[data-testid="frame-pop"]')));
+    expect(await hero("getComputedStyle(el).aspectRatio")).toBe("2 / 1");
+    // On a tablet, an image as wide as the page zoomed to twice its size spills out of the page, which
+    // then reads wider; the screen is still a tablet, and the panel stays open on it.
+    writeFileSync(
+      join(path, "pages/blog.liquid"),
+      file().replace(
+        /<img [^>]*class="hero[^>]*>/,
+        '<div class="around"><img class="hero" style="display: block; width: 100%" src="/media/croissants.jpg" alt="x"></div>',
+      ),
+    );
+    await until(() => hero("el.getAttribute('style') === 'display: block; width: 100%'"));
+    await w().getByTestId("width-tablet").click();
+    await until(() => page("matchMedia('(width >= 48rem)').matches && !matchMedia('(width >= 64rem)').matches"));
+    await adjust();
+    await control("frame-zoom", "(el.value = '2', el.dispatchEvent(new Event('input', { bubbles: true })), true)");
+    await until(() => hero("getComputedStyle(el).transform.startsWith('matrix(2,')"));
+    await new Promise((r) => setTimeout(r, 300));
+    expect(await drawn('[data-testid="frame-pop"]')).toBe(true);
+    expect(await control("frame-format-tablet", "el.disabled")).toBe(true);
+    // What contains the image cuts what goes past: the page is no wider for it, while it is set and once saved.
+    const wide = () => page("document.documentElement.scrollWidth > document.documentElement.clientWidth");
+    expect(await wide()).toBe(false);
+    await press("frame-save");
+    await until(async () => file().includes("[transform:scale(2)]!"));
+    await until(() => hero("el.style.transform === '' && getComputedStyle(el).transform.startsWith('matrix(2,')"));
+    expect(await hero("getComputedStyle(el.parentElement).overflow")).toBe("clip");
+    expect(await wide()).toBe(false);
+    // Brought back to 100%, the saved zoom no longer shows: the panel's frame stands for the saved one.
+    await adjust();
+    await control("frame-zoom", "(el.value = '1', el.dispatchEvent(new Event('input', { bubbles: true })), true)");
+    await until(() => hero("getComputedStyle(el).transform === 'none' && getComputedStyle(el).clipPath === 'none'"));
+    // Saved proportions too, once the panel is back to Auto.
+    await press("frame-ratio-16-9");
+    await press("frame-save");
+    await until(async () => file().includes("aspect-[16/9]!"));
+    await until(async () => !(await drawn('[data-testid="frame-pop"]')));
+    await adjust();
+    await press("frame-ratio-original");
+    await until(() => hero("getComputedStyle(el).aspectRatio !== '16 / 9'"));
+    // Cancelled, the image is as saved again.
+    await press("frame-cancel");
+    await until(() => hero("getComputedStyle(el).aspectRatio === '16 / 9'"));
+    writeFileSync(join(path, "pages/blog.liquid"), styled);
+    await until(() => hero("el.getAttribute('style') === 'aspect-ratio: 2 / 1'"));
+    // A phone turned on its side is as wide as a tablet: the tablet's frame is the one set, and the panel says why.
+    await w().getByTestId("width-phone").click();
+    await until(() => page("innerWidth < 768"));
+    await adjust();
+    expect(await control("frame-format-phone", "el.disabled")).toBe(true);
+    expect(await drawn('[data-testid="frame-sideways"]')).toBe(false);
+    await w().getByTestId("rotate").click();
+    await until(() => page("innerWidth >= 768 && innerWidth < 1024"));
+    // The page being another screen now, the panel has closed.
+    await until(async () => !(await drawn('[data-testid="frame-pop"]')));
+    await adjust();
+    expect(await control("frame-format-tablet", "el.disabled")).toBe(true);
+    expect(await control("frame-sideways", "el.textContent")).toContain("A phone held sideways is as wide as a tablet");
+    expect(await drawn('[data-testid="frame-sideways"]')).toBe(true);
+    await press("frame-cancel");
+    await w().getByTestId("rotate").click();
+    await w().getByTestId("width-fit").click();
+    await until(() => page(`(innerWidth < 768 ? 'phone' : innerWidth < 1024 ? 'tablet' : 'desktop') === '${shown}'`));
+    // A zoomed image takes no more room than its frame: held by its bottom left and shown twice as
+    // large, it is cut to the frame it had, which a point just outside of it does not reach.
+    expect(
+      await page(`(() => {
+        const img = document.createElement("img");
+        img.style.cssText = "position: fixed; left: 100px; top: 100px; width: 100px; height: 100px; z-index: 9; object-position: 0% 100%; transform: scale(2); transform-origin: 0% 100%; clip-path: inset(50% 50% 0% 0%)";
+        document.body.append(img);
+        const hit = (x, y) => document.elementFromPoint(x, y) === img;
+        const hits = [hit(105, 105), hit(195, 195), hit(205, 150), hit(150, 95), hit(150, 205)];
+        img.remove();
+        return hits;
+      })()`),
+    ).toEqual([true, true, false, false, false]);
+    // A record's image is shown for each record: it has no frame of its own.
+    await click("img.cover");
+    await until(() => control("editor-replace", "!!el"));
+    expect(await control("editor-frame", "!!el")).toBe(false);
   });
 
   test("an image generated by the agent: WebP, marked Generated, with its model and prompt, no credits (Q428)", async () => {

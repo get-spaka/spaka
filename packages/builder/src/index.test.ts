@@ -125,7 +125,7 @@ test("the images the pages show get WebP copies and a srcset; the original stays
   const files: Record<string, string> = {
     "pages/index.liquid": page(
       "Home",
-      `<img src="/media/cafe.jpg" alt="x"><img src="/media/logo.svg" alt="y"><img src="/media/shop.jpg" srcset="/media/shop.jpg 1x" alt="z">`,
+      `<img src="/media/cafe.jpg" alt="x"><img src="/media/logo.svg" alt="y"><img src="/media/shop.jpg" srcset="/media/shop.jpg 1x" alt="z"><img class="max-md:object-[25%_50%]! md:max-lg:aspect-[4/3]! lg:[clip-path:inset(0%_50%_50%_0%_round_4px)]!" src="/media/unframed.png" alt="w">`,
     ),
     "parts/header.liquid": "",
     "media/cafe.jpg": "jpeg",
@@ -154,6 +154,17 @@ test("the images the pages show get WebP copies and a srcset; the original stays
     '<img srcset="/media/cafe-480w.webp 480w, /media/cafe-960w.webp 960w, /media/cafe-1200w.webp 1200w" sizes="100vw" src="/media/cafe.jpg" alt="x">',
   );
   expect(home).toContain('<img src="/media/logo.svg" alt="y">');
+  // The frame the maker set on an image for some screens is published: its classes, and their rules (Q490).
+  expect(home).toContain(
+    '<img class="max-md:object-[25%_50%]! md:max-lg:aspect-[4/3]! lg:[clip-path:inset(0%_50%_50%_0%_round_4px)]!" src="/media/unframed.png" alt="w">',
+  );
+  const css = readFileSync(join(out, "assets/site.css"), "utf8").replace(/\s+/g, " ");
+  expect(css).toContain("object-position: 25% 50% !important");
+  expect(css).toContain("aspect-ratio: 4/3 !important");
+  expect(css).toContain("clip-path: inset(0% 50% 50% 0% round 4px) !important");
+  expect(css).toMatch(/@media \(width < 48rem\) \{ \.max-md/);
+  // What contains a zoomed image cuts what goes past it: the page does not scroll sideways for it.
+  expect(css).toMatch(/:not\(html, body\):has\(> img\[class\*="\[transform:scale\("\][^{]*\{ overflow: clip/);
   expect(home).toContain('<img src="/media/shop.jpg" srcset="/media/shop.jpg 1x" alt="z">');
   expect(readFileSync(join(out, "media/cafe-960w.webp"), "utf8")).toBe("webp 960");
   expect(result.files).toContain("media/cafe-1200w.webp");

@@ -4,6 +4,7 @@ import {
   duplicateRange,
   EditRefused,
   editText,
+  imageFrames,
   includeAt,
   insertBefore,
   moveSection,
@@ -11,6 +12,7 @@ import {
   placeFor,
   removeRange,
   renameInclude,
+  setImageFrame,
   setLink,
   targetAt,
 } from "./edits";
@@ -114,4 +116,51 @@ test("the pages using a shared part, through other parts too", () => {
   };
   expect(pagesUsing("header", files)).toBe(2);
   expect(pagesUsing("layout", files)).toBe(1);
+});
+
+test("an image's frame is written among its classes for the screens asked, the others keeping theirs (Q490)", () => {
+  const src = '<img class="hero object-contain md:object-top" src="/media/a.jpg">';
+  const all = ["phone", "tablet", "desktop"] as const;
+  const framed = setImageFrame(src, 0, { x: 50, y: 0, zoom: 1, fit: "cover" }, [...all]);
+  expect(framed).toBe(
+    '<img class="hero object-contain md:object-top object-cover! object-[50%_0%]!" src="/media/a.jpg">',
+  );
+  expect(imageFrames(framed, 0)).toEqual({
+    phone: { x: 50, y: 0, zoom: 1, fit: "cover" },
+    tablet: { x: 50, y: 0, zoom: 1, fit: "cover" },
+    desktop: { x: 50, y: 0, zoom: 1, fit: "cover" },
+  });
+  // Set apart on a phone: the tablet and the desktop keep what they had.
+  const phone = setImageFrame(framed, 0, { x: 0, y: 0, zoom: 1, ratio: [1, 1], fit: "cover" }, ["phone"]);
+  expect(phone).toBe(
+    '<img class="hero object-contain md:object-top max-md:object-cover! max-md:object-[0%_0%]! max-md:aspect-[1/1]! md:object-cover! md:object-[50%_0%]!" src="/media/a.jpg">',
+  );
+  // Taken out for the larger screens, then for the phone: the template's classes are as they were.
+  const less = setImageFrame(phone, 0, null, ["tablet", "desktop"]);
+  expect(less).toContain('md:object-top max-md:object-cover! max-md:object-[0%_0%]! max-md:aspect-[1/1]!"');
+  expect(setImageFrame(less, 0, null, ["phone"])).toBe(src);
+  // An image without classes gets some, and loses the attribute with them.
+  const bare = '<p><img src="/media/a.jpg"></p>';
+  const one = setImageFrame(bare, 3, { x: 0, y: 0, zoom: 1 }, ["desktop"]);
+  expect(one).toBe('<p><img class="lg:object-[0%_0%]!" src="/media/a.jpg"></p>');
+  expect(setImageFrame(one, 3, null, ["desktop"])).toBe(bare);
+  expect(imageFrames(bare, 3)).toEqual({});
+});
+
+test("a frame that says nothing of the fit leaves it to the template: an image shown whole stays so", () => {
+  const logo = '<img class="object-contain h-12" src="/media/logo.svg">';
+  expect(setImageFrame(logo, 0, { x: 0, y: 50, zoom: 1.5 }, ["phone", "tablet", "desktop"])).toBe(
+    '<img class="object-contain h-12 object-[0%_50%]! [transform:scale(1.5)]! [transform-origin:0%_50%]! [clip-path:inset(16.67%_33.33%_16.67%_0%)]!" src="/media/logo.svg">',
+  );
+});
+
+test("an image's frame is refused where it would not be this image's alone", () => {
+  const frame = { x: 0, y: 0, zoom: 1 };
+  const looped = '{% for p in data.posts %}<img src="/media/a.jpg">{% endfor %}';
+  expect(() => setImageFrame(looped, looped.indexOf("<img"), frame, ["phone"])).toThrow(EditRefused);
+  expect(imageFrames(looped, looped.indexOf("<img"))).toBeUndefined();
+  const computed = '<img class="hero {{ shape }}" src="/media/a.jpg">';
+  expect(() => setImageFrame(computed, 0, frame, ["phone"])).toThrow(EditRefused);
+  expect(imageFrames(computed, 0)).toBeUndefined();
+  expect(() => setImageFrame("<p>x</p>", 0, frame, ["phone"])).toThrow("This is not an image.");
 });

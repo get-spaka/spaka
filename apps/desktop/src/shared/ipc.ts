@@ -6,6 +6,7 @@
 // interface's own main frame.
 
 import type { ConversationEvent, ConversationItem, QuestionAnswer } from "./conversation";
+import type { Format, Frame, Frames } from "./frame";
 import type { Command } from "./shortcuts";
 
 /** Where the app's own update stands (Q367): found and downloading, then ready to restart into. */
@@ -389,6 +390,11 @@ export type EditAction =
    */
   | { type: "image"; file: string; at: number; src: string; record?: string; from?: string }
   /**
+   * An image written in the template set in its frame (Q490), for some
+   * screens: how it sits there, or null for as the template's classes have it.
+   */
+  | { type: "image-frame"; file: string; at: number; frame: Frame | null; formats: Format[] }
+  /**
    * An image of a record's list of images taken out of the list, or moved to
    * another place in it (`to`, its place once moved) (Q356). `record` names
    * the record and the image: "homes/wren#2".
@@ -414,8 +420,10 @@ export type EditInfo = {
    * An image the maker can replace: its address is in the template, or in a
    * record's field (Q159). `list`: it is one of a record's list of images,
    * which holds `count` images when the record was named (Q355, Q356).
+   * `frame`: it is written in the template for this place alone, so the maker
+   * can set it in its frame (Q490): the frame each screen has now.
    */
-  image?: { field?: string; list?: { count?: number } };
+  image?: { field?: string; list?: { count?: number }; frame?: Frames };
 };
 
 /** A project's conversation, as shown. */
@@ -1115,7 +1123,8 @@ export type ToPreview =
   /** The theme or the site's stylesheets changed: replace them in place (styles: what Tailwind compiles). */
   | { type: "theme"; css: string; styles?: string }
   /** How the page answers the pointer (Q99), and whether editing waits for the agent (Q91). */
-  | { type: "editor"; mode: PreviewMode; paused: boolean }
+  /** `sideways`: the page is on a phone or a tablet turned on its side, as wide as a larger screen (Q490). */
+  | { type: "editor"; mode: PreviewMode; paused: boolean; sideways?: boolean }
   /** The maker's comments, all pages included, so the page can show its own. */
   | { type: "comments"; comments: PageComment[] }
   /** Hides Spaka's own drawings in the page while a capture is taken; answered by "chrome-hidden". */

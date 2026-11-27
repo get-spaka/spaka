@@ -250,7 +250,7 @@ test("an image of a record's list of images is replaced, removed and moved in pl
 test("an image replaced: its address in the template with the new alt text, or the record's field (Q159)", () => {
   const { root, editor, changes, list, at } = withBlog();
   const fixed = at('<img src="/media');
-  expect(editor.info("pages/blog/index.liquid", fixed).image).toEqual({});
+  expect(editor.info("pages/blog/index.liquid", fixed).image).toEqual({ frame: {} });
   expect(editor.info("pages/blog/index.liquid", at("<img")).image).toEqual({ field: "cover" });
   expect(editor.info("pages/blog/index.liquid", at("<h2>")).image).toBeUndefined();
   editor.apply({ type: "image", file: "pages/blog/index.liquid", at: fixed, src: "/media/new.jpg" });
@@ -271,6 +271,43 @@ test("an image replaced: its address in the template with the new alt text, or t
   expect(() =>
     editor.apply({ type: "image", file: "pages/blog/index.liquid", at: at("<img"), src: "/media/new.jpg" }),
   ).toThrow("This image's address is computed: ask the agent to change it.");
+});
+
+test("an image written in the template is set in its frame, one version (Q490)", () => {
+  const { root, editor, changes, list, at } = withBlog();
+  const file = "pages/blog/index.liquid";
+  const fixed = at('<img src="/media');
+  const read = () => readFileSync(join(root, file), "utf8");
+  editor.apply({ type: "image", file, at: fixed, src: "/media/new.jpg" });
+  editor.apply({
+    type: "image-frame",
+    file,
+    at: fixed,
+    frame: { x: 0, y: 50, zoom: 2, fit: "cover", ratio: [1, 1], radius: "8px" },
+    formats: ["phone", "tablet", "desktop"],
+  });
+  expect(read()).toBe(
+    list.replace(
+      '<img src="/media/old.jpg" alt="The old shop">',
+      '<img class="object-cover! object-[0%_50%]! aspect-[1/1]! [transform:scale(2)]! [transform-origin:0%_50%]! [clip-path:inset(25%_50%_25%_0%_round_4px)]!" src="/media/new.jpg" alt="The new shop">',
+    ),
+  );
+  expect(changes.at(-1)).toEqual({ label: "Image adjusted", files: [file] });
+  expect(editor.info(file, fixed).image?.frame?.phone).toEqual({ x: 0, y: 50, zoom: 2, fit: "cover", ratio: [1, 1] });
+  // Put back as the template had it.
+  editor.apply({ type: "image-frame", file, at: fixed, frame: null, formats: ["phone", "tablet", "desktop"] });
+  expect(read()).toBe(
+    list.replace('<img src="/media/old.jpg" alt="The old shop">', '<img src="/media/new.jpg" alt="The new shop">'),
+  );
+  // Taken out where there is none: nothing is written, and no version is added.
+  const versions = changes.length;
+  expect(editor.apply({ type: "image-frame", file, at: fixed, frame: null, formats: ["phone"] }).files).toEqual([]);
+  expect(changes.length).toBe(versions);
+  // A record's image is shown for each record: its frame is the template's.
+  expect(editor.info(file, at("<img")).image).toEqual({ field: "cover" });
+  expect(() =>
+    editor.apply({ type: "image-frame", file, at: at("<img"), frame: { x: 0, y: 0, zoom: 1 }, formats: ["phone"] }),
+  ).toThrow(EditRefused);
 });
 
 test("an image file dropped onto an image is added and used, one version; another file is refused", async () => {
