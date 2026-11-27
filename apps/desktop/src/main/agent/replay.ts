@@ -9,7 +9,7 @@ import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { dirname, isAbsolute } from "node:path";
 import type { ModelInfo, Query, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
 import { CARD_TOOLS } from "./questions";
-import { LOOK_TOOL, PAGES_TOOL, SPAKA_SERVER } from "./spaka-tools";
+import { ADD_PACKAGE_TOOL, LOOK_TOOL, PAGES_TOOL, REMOVE_PACKAGE_TOOL, SPAKA_SERVER } from "./spaka-tools";
 
 type Line = { t: number; m: Record<string, unknown> & { type: string } };
 
@@ -127,6 +127,18 @@ export function replayQuery(file: string, speed = 1) {
             start = Date.now() - (turn[i + 1]?.t ?? line.t) / speed;
           }
           yield answered(m, looked);
+          // A package added or removed runs for real too, after the call is shown: it may ask the maker (Q536).
+          const packaged = toolCall(m, ADD_PACKAGE_TOOL) ?? toolCall(m, REMOVE_PACKAGE_TOOL);
+          if (packaged && runTool) {
+            const controller = new AbortController();
+            stopAsking = () => controller.abort();
+            const content = await runTool(packaged.name, packaged.input, controller.signal);
+            stopAsking = undefined;
+            const text = content.flatMap((c) => (c.text !== undefined ? [c.text] : [])).join("\n");
+            looked.set(packaged.id, text);
+            replayed.push(`[${packaged.name}] ${text}`);
+            start = Date.now() - (turn[i + 1]?.t ?? line.t) / speed;
+          }
           // A question or a plan asks the app, as the binary does, and the
           // recording goes on once it is answered (Q283, Q286); the maker's
           // time to answer in the recording is not waited again.

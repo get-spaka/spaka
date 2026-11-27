@@ -106,6 +106,10 @@ import { FileTap } from "./live/tap";
 import { addFoundImages, libraryFiles, mediaKind, usesLabel, usesOf, usingFiles } from "./media/library";
 import { FixtureImages, type ImageFinder, ImageSearch, imagesAnswer } from "./media/search";
 import { buildMenu } from "./menu";
+import { fixtureFetch } from "./packages/fixture-fetch";
+import { exportWarnings, flawNotices, greyAnswer, greyCard, syncNotices } from "./packages/maker";
+import { Packages } from "./packages/packages";
+import { pnpmFolders } from "./packages/pnpm";
 import { Preview } from "./preview/preview";
 import { testRecordFile } from "./preview/test-records";
 import { isEffort, Projects, readProjectFile } from "./projects";
@@ -370,6 +374,8 @@ async function main() {
     // or a template, which decides which page shows a list (Q210, Q211).
     onFileChanged: (path) => {
       blocks.changed(path);
+      // package.json changed by hand is installed by the rules (Q491); the agent's changes are checked as it makes them (Q536).
+      if (path === "package.json") packagesChanged();
       if (!/^(data|media|pages|parts|\.spaka\/test-records)\//.test(path)) return;
       clearTimeout(contentTimer);
       contentTimer = setTimeout(() => ipc.emit("content:changed"), 80);
@@ -447,6 +453,12 @@ async function main() {
   const userData = app.getPath("userData");
   const binary = agentBinary();
   const launcher = nodeLauncher(userData);
+  // A website's packages (ADR 0013): Spaka's own pnpm, and its rules on public signals (Q500).
+  const packages = new Packages({
+    folders: pnpmFolders(userData),
+    nodeBinDir: launcher.binDir,
+    ...(env.packagesFixture ? { fetch: fixtureFetch(env.packagesFixture) } : {}),
+  });
   const agentEnv = () => {
     const base = cleanEnv();
     return {
@@ -522,10 +534,30 @@ async function main() {
     };
   // What Spaka gives a project's agent, whichever layer runs it (ADR 0012): its tools and its checks.
   const kitFor = (project: { id: string; path: string; model?: string }): AgentKit => {
-    const checks = new TurnChecks(project.path);
+    const checks = new TurnChecks(project.path, () => packages.putBackAfterAgent(project.path));
     return {
       checks,
       tools: {
+        // Packages, judged by Spaka's rules, the maker asked in the grey zone (Q491, Q493, Q536).
+        addPackage: async (name, version, signal) => {
+          const answer = await packages.add(
+            project.path,
+            name,
+            version,
+            async (grey, asking) => {
+              const card = greyCard(grey);
+              return greyAnswer(card, await agent.askQuestions(project.id, [card], asking));
+            },
+            signal,
+          );
+          ipc.emit("packages:changed", project.id);
+          return answer;
+        },
+        removePackage: async (name, signal) => {
+          const { text } = await packages.remove(project.path, name, signal);
+          ipc.emit("packages:changed", project.id);
+          return text;
+        },
         ...(imageModelOf(project) ? { generateImage: generateFor(project) } : {}),
         look: (route, options) => preview.look(route, options),
         findBlocks: findBlocksIn(project.path),
@@ -667,6 +699,8 @@ async function main() {
         stats.track("error", { type: errorType(event.error, t.errors) });
       // The agent's next look starts from a fresh page (Q324).
       if (event.type === "turn-end" && projectId === current?.id) preview.endTurn();
+      // What package.json lists once the agent is done: changed by hand meanwhile, it is installed now (Q491).
+      if (event.type === "turn-end" && projectId === current?.id) void syncPackages(current);
     },
     emitStatus: (status) => ipc.emit("agent:status", status),
     // A replayed agent asks no model for a website's name: a check may give it one.
@@ -853,6 +887,41 @@ async function main() {
       }
     }
   };
+  /**
+   * A package.json changed by hand, or at a website's opening: what it lists
+   * installed by the rules, those refused taken out, each change in a notice
+   * (Q491, Q536, Q540). The agent's own changes wait for its turn's end.
+   */
+  const syncPackages = async (project: { id: string; path: string }) => {
+    try {
+      const report = await packages.sync(project.path);
+      if (!report) return;
+      for (const text of syncNotices(report)) agent.notice(project.id, text);
+      ipc.emit("packages:changed", project.id);
+    } catch (error) {
+      agent.notice(project.id, t.packages.failed((error as Error).message));
+    }
+  };
+  let packagesTimer: NodeJS.Timeout | undefined;
+  const packagesChanged = () => {
+    clearTimeout(packagesTimer);
+    packagesTimer = setTimeout(() => {
+      if (current && !agent.isWorking(current.id)) void syncPackages(current);
+    }, 300);
+  };
+  /** At a website's opening: its packages installed, then their known flaws, each told once (Q521, Q538). */
+  const packagesAtOpen = async (project: { id: string; path: string }) => {
+    await syncPackages(project);
+    let notices: ReturnType<typeof flawNotices>;
+    try {
+      notices = flawNotices(await packages.flaws(project.path));
+    } catch {
+      // OSV out of reach: the flaws are looked for again at the next opening, and before each export.
+      return;
+    }
+    const told = new Set(agent.conversation(project.id).flatMap((item) => (item.kind === "notice" ? [item.text] : [])));
+    for (const { text, action } of notices) if (!told.has(text)) agent.notice(project.id, text, action);
+  };
   const opened = async (opening: ProjectInfo) => {
     // A record being written in the Content tab gets its version first (Q162).
     editor.leaveRecord();
@@ -880,6 +949,7 @@ async function main() {
     ipc.emit("project:opened", project);
     ipc.emit("projects:changed", projects.list());
     emitAdaptation(project.id);
+    void packagesAtOpen(project);
     return project;
   };
   const changed = (project: ProjectInfo) => {
@@ -1322,6 +1392,8 @@ async function main() {
     if (!current) throw new Error("No project is open.");
     if (agent.isWorking(current.id)) throw new Error("The agent is working: export once it is done.");
     const formServices = readProjectFile(current.path)?.formServices;
+    // The packages' known flaws, said with each export (Q521).
+    const flawWarnings = await packages.flaws(current.path).then(exportWarnings, () => [t.packages.exportUnchecked]);
     const result = await exportProject(current.path, folder, {
       builder,
       name: current.name,
@@ -1337,7 +1409,18 @@ async function main() {
       lastExportFile()!,
       JSON.stringify({ builder, folders: { ...lastExport().folders, [builder]: result.folder } }),
     );
-    return result;
+    return { ...result, warnings: [...result.warnings, ...flawWarnings] };
+  });
+  // The open website's packages, in its settings (Q520).
+  ipc.handle("packages:list", () => (current ? packages.list(current.path) : []));
+  ipc.handle("packages:remove", async (name) => {
+    if (!current) throw new Error("No project is open.");
+    if (agent.isWorking(current.id)) throw new Error(t.editing.busy);
+    const project = current;
+    const removed = await packages.remove(project.path, name);
+    if (!removed.ok) throw new Error(removed.text);
+    ipc.emit("packages:changed", project.id);
+    return packages.list(project.path);
   });
   ipc.handle("export:reveal", (folder) => {
     if (!env.background && existsSync(folder)) shell.showItemInFolder(folder);

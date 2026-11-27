@@ -33,6 +33,8 @@ export type Environment = {
   imagesFixture: string | undefined;
   /** Images generated as plain colors, no account asked, for the checks (generate_image, Q423). */
   imagesGenerated: boolean;
+  /** Recorded answers of npm's registry, its download counts, OSV and deps.dev, by address, for the checks of packages. */
+  packagesFixture: string | undefined;
   /** Where to record the agent's stream, to play it back in later checks. */
   agentRecord: string | undefined;
   /** Recorded replies of a model of Spaka's own harness, played back instead of asking it (pi/replay.ts). */
@@ -72,6 +74,7 @@ export function readEnvironment(
     agentReplaySpeed: Number(env.SPAKA_AGENT_REPLAY_SPEED) || 4,
     imagesFixture: env.SPAKA_IMAGES_FIXTURE || undefined,
     imagesGenerated: env.SPAKA_IMAGES_GENERATED === "1",
+    packagesFixture: env.SPAKA_PACKAGES_FIXTURE || undefined,
     statsLog: env.SPAKA_STATS_LOG || undefined,
     agentRecord: env.SPAKA_AGENT_RECORD || undefined,
     piReplay: env.SPAKA_PI_REPLAY || undefined,

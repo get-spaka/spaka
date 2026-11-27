@@ -28,3 +28,18 @@ test("an agent that left nothing behind may stop", () => {
   expect(checks.beforeStop(false)).toBeUndefined();
   expect(checks.beforeStop(true)).toBeUndefined();
 });
+
+test("after the agent wrote package.json, or ran a command, its dependencies are put back (Q536)", () => {
+  dir = mkdtempSync(join(tmpdir(), "spaka-checks-"));
+  const asked: string[] = [];
+  const checks = new TurnChecks(dir, () => {
+    asked.push("put back");
+    return "Spaka put package.json's dependencies back as installed.";
+  });
+  for (const tool of ["Write", "Edit", "Append"])
+    expect(checks.afterTool(tool, { file_path: join(dir, "package.json") })).toMatch(/^Spaka put package\.json/);
+  expect(checks.afterTool("Bash", { command: "npm pkg set dependencies.x=1" })).toMatch(/^Spaka put package\.json/);
+  expect(checks.afterTool("Write", { file_path: join(dir, "pages/package.json") })).toBeUndefined();
+  expect(checks.afterTool("Read", { file_path: join(dir, "package.json") })).toBeUndefined();
+  expect(asked).toHaveLength(4);
+});

@@ -1,0 +1,111 @@
+{
+  "name": "nanoid",
+  "dist-tags": {
+    "latest": "6.0.2"
+  },
+  "versions": {
+    "5.1.6": {
+      "name": "nanoid",
+      "version": "5.1.6",
+      "description": "A tiny (118 bytes), secure URL-friendly unique string ID generator",
+      "license": "MIT",
+      "repository": {
+        "url": "git+https://github.com/ai/nanoid.git",
+        "type": "git"
+      },
+      "dist": {
+        "tarball": "https://registry.npmjs.org/nanoid/-/nanoid-5.1.6.tgz"
+      }
+    },
+    "5.1.16": {
+      "name": "nanoid",
+      "version": "5.1.16",
+      "description": "A tiny (118 bytes), secure URL-friendly unique string ID generator",
+      "license": "MIT",
+      "repository": {
+        "url": "git+https://github.com/ai/nanoid.git",
+        "type": "git"
+      },
+      "dist": {
+        "tarball": "https://registry.npmjs.org/nanoid/-/nanoid-5.1.16.tgz",
+        "attestations": {
+          "url": "https://registry.npmjs.org/-/npm/v1/attestations/nanoid@5.1.16",
+          "provenance": {
+            "predicateType": "https://slsa.dev/provenance/v1"
+          }
+        }
+      }
+    },
+    "6.0.0": {
+      "name": "nanoid",
+      "version": "6.0.0",
+      "description": "A tiny (118 bytes), secure URL-friendly unique string ID generator",
+      "license": "MIT",
+      "repository": {
+        "url": "git+https://github.com/ai/nanoid.git",
+        "type": "git"
+      },
+      "dist": {
+        "tarball": "https://registry.npmjs.org/nanoid/-/nanoid-6.0.0.tgz",
+        "attestations": {
+          "url": "https://registry.npmjs.org/-/npm/v1/attestations/nanoid@6.0.0",
+          "provenance": {
+            "predicateType": "https://slsa.dev/provenance/v1"
+          }
+        }
+      }
+    },
+    "6.0.1": {
+      "name": "nanoid",
+      "version": "6.0.1",
+      "description": "A tiny (118 bytes), secure URL-friendly unique string ID generator",
+      "license": "MIT",
+      "repository": {
+        "url": "git+https://github.com/ai/nanoid.git",
+        "type": "git"
+      },
+      "dist": {
+        "tarball": "https://registry.npmjs.org/nanoid/-/nanoid-6.0.1.tgz",
+        "attestations": {
+          "url": "https://registry.npmjs.org/-/npm/v1/attestations/nanoid@6.0.1",
+          "provenance": {
+            "predicateType": "https://slsa.dev/provenance/v1"
+          }
+        }
+      }
+    },
+    "6.0.2": {
+      "name": "nanoid",
+      "version": "6.0.2",
+      "description": "A tiny (117 bytes), secure URL-friendly unique string ID generator",
+      "license": "MIT",
+      "repository": {
+        "url": "git+https://github.com/ai/nanoid.git",
+        "type": "git"
+      },
+      "dist": {
+        "tarball": "https://registry.npmjs.org/nanoid/-/nanoid-6.0.2.tgz",
+        "attestations": {
+          "url": "https://registry.npmjs.org/-/npm/v1/attestations/nanoid@6.0.2",
+          "provenance": {
+            "predicateType": "https://slsa.dev/provenance/v1"
+          }
+        }
+      }
+    }
+  },
+  "time": {
+    "created": "2017-08-06T05:04:00.915Z",
+    "modified": "2026-10-05T21:23:00.355Z",
+    "5.1.6": "2025-09-22T09:45:52.703Z",
+    "5.1.16": "2026-06-24T18:37:08.221Z",
+    "6.0.0": "2026-07-12T15:11:38.825Z",
+    "6.0.1": "2026-08-03T10:59:07.795Z",
+    "6.0.2": "2026-10-05T21:23:00.134Z"
+  },
+  "repository": {
+    "url": "git+https://github.com/ai/nanoid.git",
+    "type": "git"
+  },
+  "license": "MIT"
+}

@@ -373,6 +373,8 @@ export const en = {
     generateImage: (name?: string) => (name ? `Generating an image: ${name}` : "Generating an image"),
     addImage: (name?: string) => (name ? `Adding the image ${name}` : "Adding an image…"),
     addImages: (n: number) => `Adding ${n} images`,
+    addPackage: (name?: string) => (name ? `Adding the package ${name}` : "Adding a package…"),
+    removePackage: (name?: string) => (name ? `Removing the package ${name}` : "Removing a package…"),
     skill: (name?: string) => (name ? `Following the skill ${name}` : "Following a skill…"),
     run: (what?: string) => (what ? `Running ${what}` : "Running a command…"),
     searchWeb: "Searching the web",
@@ -1102,6 +1104,61 @@ export const en = {
       newTokenTip: "Make a new token, for a site that needs a fresh one",
       newTokenConfirm: "Make a new token? Publish and deploy again so that the published site has it.",
     },
+  },
+  /** A website's packages, from npm's registry (Q491-Q540). */
+  packages: {
+    // The card of a package Spaka has doubts about, which the agent asked for (Q493, Q536).
+    header: "Package",
+    question: (name: string, version: string, description: string | undefined, doubts: string[]) =>
+      `The agent wants to add the package ${name} ${version} to the website${description ? `: ${description.replace(/\.$/, "")}` : ""}.\n\nSpaka has doubts about it: ${doubts.join("; ")}.`,
+    install: "Install it",
+    installHint: "Spaka installs it without running its install scripts.",
+    dontInstall: "Don't install it",
+    dontInstallHint: "The agent goes on without it.",
+    doubts: {
+      young: (days: number) => (days < 1 ? "it was first published today" : `it was first published ${days} days ago`),
+      fewDownloads: (n: number) =>
+        `it was downloaded ${n.toLocaleString("en-US")} ${n === 1 ? "time" : "times"} last week`,
+      similar: (to: string) => `its name is close to ${to}, a well-known package`,
+      noRepository: "it links to no source repository",
+    },
+    // After package.json was changed by hand (Q536, Q540).
+    installed: (name: string, version: string) => `Installed the package ${name} ${version} from package.json.`,
+    installedDespite: (name: string, version: string, doubts: string[]) =>
+      `Installed the package ${name} ${version} from package.json, although ${doubts.join(", ")}.`,
+    refused: (name: string, why: string) => `Took ${name} out of package.json: ${why}.`,
+    elsewhere: "it does not come from npm's registry, the only place Spaka installs packages from for now",
+    flawWhy: (id: string, summary: string, fixed?: string) =>
+      `it has a known flaw, ${summary} (${id})${fixed ? `, fixed in ${fixed}` : ""}`,
+    compilesWhy: "it compiles native code when it is installed, which Spaka never runs",
+    removed: (names: string[]) => `Removed ${names.join(", ")}, which package.json no longer lists.`,
+    failed: (why: string) => `Spaka could not install the packages of package.json: ${why}`,
+    // The known flaws published for an installed version (Q521, Q538).
+    flaw: (name: string, version: string, flaws: { id: string; summary: string }[], fixed?: string, via?: string) =>
+      `${name} ${version}${via ? `, which ${via} brings,` : ""} has ${flaws.length === 1 ? "a known flaw" : "known flaws"}: ${flaws.map((f) => `${f.summary} (${f.id})`).join("; ")}. ${fixed ? `${flaws.length === 1 ? "It is" : "They are"} fixed in ${fixed}.` : `No version fixes ${flaws.length === 1 ? "it" : "them all"} yet.`}`,
+    askUpdate: "Ask for the update",
+    askUpdateTip: "Send the agent a message asking it to update the package",
+    updateMessage: (direct: string, name: string, ids: string[], fixed: string | undefined) => {
+      const flaws = `${ids.length === 1 ? "the known flaw" : "the known flaws"} ${ids.join(", ")}`;
+      return name === direct
+        ? `Update the package ${name}${fixed ? ` to ${fixed} or later` : ""}, to be rid of ${flaws}.`
+        : `Update the package ${direct}, so that ${name}, which it brings, no longer has ${flaws}${fixed ? ` (fixed in ${name} ${fixed})` : ""}.`;
+    },
+    remove: "Remove it",
+    removeTip: (name: string) => `Take ${name} out of the website`,
+    removeConfirm: (name: string) => `Remove the package ${name}? A page or module that imports it stops working.`,
+    exportFlaw: (name: string, version: string, summary: string, id: string, fixed?: string) =>
+      `The package ${name} ${version} has a known flaw: ${summary} (${id})${fixed ? `, fixed in ${fixed}` : ""}.`,
+    exportUnchecked: "Spaka could not check the packages for known flaws: OSV, which lists them, could not be reached.",
+    // In the website's settings (Q520).
+    title: "Packages",
+    caption:
+      "From npm's registry, added by the agent or written in package.json. Spaka checks each before it installs it.",
+    none: "No package yet.",
+    notInstalled: "Not installed",
+    /** Where the website's own modules import it: its scripts, which visitors' browsers run, or its server modules. */
+    sides: { browser: "In the pages", server: "On the server", none: "Not imported yet" },
+    source: "npm",
   },
   skills: {
     title: "Skills",

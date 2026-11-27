@@ -78,6 +78,9 @@ export type AgentPart =
 
 export type TurnStatus = "working" | "done" | "stopped" | "failed";
 
+/** A notice's button (Q538): its label and tooltip, and the message it sends to the agent as the maker's. */
+export type NoticeAction = { label: string; tip: string; message: string };
+
 export type ConversationItem =
   | { kind: "maker"; id: string; text: string; at: number }
   | {
@@ -89,7 +92,7 @@ export type ConversationItem =
       error?: string;
       at: number;
     }
-  | { kind: "notice"; id: string; text: string; at: number };
+  | { kind: "notice"; id: string; text: string; at: number; action?: NoticeAction };
 
 export type ConversationEvent =
   | { type: "turn-start"; id: string; text: string; at: number }
@@ -97,7 +100,7 @@ export type ConversationEvent =
   | { type: "thinking"; text: string }
   | { type: "activity"; activity: Activity }
   | { type: "turn-end"; status: Exclude<TurnStatus, "working">; error?: string }
-  | { type: "notice"; id: string; text: string; at: number }
+  | { type: "notice"; id: string; text: string; at: number; action?: NoticeAction }
   /** The agent asks; its turn waits for the answer. */
   | { type: "question"; card: QuestionCard }
   /** The card of pages of a template's adaptation (Q302); settled as a question is. */
@@ -114,7 +117,17 @@ export function applyEvent(items: ConversationItem[], event: ConversationEvent):
       { kind: "maker", id: `${event.id}-m`, text: event.text, at: event.at },
       { kind: "agent", id: `${event.id}-a`, parts: [], status: "working", at: event.at },
     ];
-  if (event.type === "notice") return [...items, { kind: "notice", id: event.id, text: event.text, at: event.at }];
+  if (event.type === "notice")
+    return [
+      ...items,
+      {
+        kind: "notice",
+        id: event.id,
+        text: event.text,
+        at: event.at,
+        ...(event.action ? { action: event.action } : {}),
+      },
+    ];
 
   const last = items.at(-1);
   if (last?.kind !== "agent" || last.status !== "working") return items;
