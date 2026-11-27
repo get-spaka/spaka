@@ -224,10 +224,14 @@ Repris le 2026-11-28 (Q557) : sous Windows, aucun paquet n'avait de module. Vite
 ### 4. Les 37 templates passent aux paquets
 
 - Repris de la tranche 3 : `scripts/libraries.json` et `scripts/lib/` ne sont plus lus (`runtime/scripts.ts`, `head.ts`, `START_JS`), et `template:check` les refuse.
-- La vue d'un template (`templates/viewer.ts`) doit servir les modules de ses paquets : un template n'a pas de `node_modules`.
+- **Le template montré en grand montre ses images, plus le site qui tourne (Q541, Q544)** : l'image pleine longueur de chaque page, celle de bureau, avec un choix Bureau / Téléphone pour celle du téléphone, et la liste des pages comme avant. Les cartes gardent leur couverture et leur survol. La vue d'un template (`templates/viewer.ts`) et sa `WebContentsView` disparaissent : un template n'a pas de `node_modules`, et ses paquets ne s'installent qu'une fois un site fait à partir de lui.
+- **Les images des pages entrent dans le .zip du template (Q545)**, téléchargé quand le template est montré en grand.
+- **`template:check` accepte tout paquet npm sous les règles de Spaka (Q542, Q546)** : aucune faille, aucune compilation native, pas de zone grise ; une version exacte, une licence ouverte, jamais GSAP ; un lockfile et pas de `node_modules`. Les imports sont des noms listés dans `package.json` ou des chemins relatifs, jamais une adresse. La vérification demande le réseau.
+- **Les templates à paquets déclarent `"app": "0.2.0"` (Q543)**, et l'app reste en 0.2.0 : aucune app Spaka n'a encore été publiée.
+- Un site fait à partir d'un template installe ses paquets avant que l'agent ne le regarde.
 
-- Dans get-spaka/templates : chaque template remplace `libraries.json` par des paquets (Motion, Lenis, Splitting, Embla, OGL) et ses modules par des imports.
-- `FORMAT.md` est mis à jour, avec la version minimale de l'app relevée.
+- Dans get-spaka/templates : chaque template remplace `libraries.json` par des paquets (Motion, Lenis, Splitting, Embla, OGL) et ses modules par des imports, avec son lockfile.
+- `FORMAT.md` est mis à jour.
 - `template:shoot` et `templates-again.e2e.ts` vérifient que rien ne bouge (les images ne devraient pas changer).
 - Une release des templates, publiée avec une app qui connaît les paquets.
 
