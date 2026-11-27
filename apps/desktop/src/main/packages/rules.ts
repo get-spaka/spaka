@@ -152,16 +152,25 @@ function licenseOf(manifest: Manifest, doc: Packument): string | undefined {
 /** The services Spaka could not reach, named for the agent. */
 export class Unreachable extends Error {}
 
+/** How many times a service that says it was asked too much is asked again. */
+const RETRIES = 2;
+
 async function getJson(
   fetcher: typeof fetch,
   url: string,
   service: string,
 ): Promise<{ status: number; body: unknown }> {
   let response: Response;
-  try {
-    response = await fetcher(url, { headers: { accept: "application/json" } });
-  } catch {
-    throw new Unreachable(`Spaka could not reach ${service}: check the connection, then try again.`);
+  for (let attempt = 0; ; attempt++) {
+    try {
+      response = await fetcher(url, { headers: { accept: "application/json" } });
+    } catch {
+      throw new Unreachable(`Spaka could not reach ${service}: check the connection, then try again.`);
+    }
+    // Too many questions at once (npm's download counts take few a minute): asked again after the wait it says, twice at most.
+    if (response.status !== 429 || attempt >= RETRIES) break;
+    const wait = Number(response.headers.get("retry-after"));
+    await new Promise((r) => setTimeout(r, Math.min(Number.isFinite(wait) && wait > 0 ? wait * 1000 : 2000, 10_000)));
   }
   if (response.status === 404) return { status: 404, body: undefined };
   if (!response.ok) throw new Unreachable(`${service} answered with an error (${response.status}): try again later.`);

@@ -5,7 +5,7 @@ import { type LaunchedApp, launchApp, SLOW } from "./app.ts";
 import { previewDriver } from "./preview-driver.ts";
 
 // A site's own JavaScript and stylesheet (ADR 0011), with the recorded agent's
-// bakery: in visitor mode its libraries load and its modules start, on load,
+// bakery: in visitor mode its modules start, with the files they import, on load,
 // on what htmx brings and again after each new rendering; in edit mode none of
 // it runs and nothing moves (Q242); a changed script loads the page again, a
 // changed stylesheet restyles it in place. And what a script of the page can
@@ -18,7 +18,7 @@ describe("a site's scripts", () => {
     mkdirSync(join(path, file, ".."), { recursive: true });
     writeFileSync(join(path, file), text);
   };
-  const module = (version: number) => `
+  const module = (version: number) => `import "./lib/marker.js";
 export function start(root) {
   window.__version = ${version};
   if (root === document) window.__starts = (window.__starts || 0) + 1;
@@ -47,6 +47,7 @@ export function stop() {
     path = (await invoke("projects:current")).path;
     await invoke("preview:set-view", "page");
     write("fragments/more.liquid", `<p class="more">Fresh at seven</p>`);
+    // A file of its own the module imports, below scripts/: loaded by the import alone.
     write("scripts/lib/marker.js", "window.__lib = (window.__lib || 0) + 1;");
     write("scripts/site.js", module(1));
     write(
@@ -61,7 +62,7 @@ export function stop() {
     await launched?.close();
   });
 
-  test("in visitor mode, the default, the libraries load and the modules start (Q253)", async () => {
+  test("in visitor mode, the default, the modules start, with what they import (Q253)", async () => {
     await until(() => page("window.__starts >= 1"));
     expect(await moving()).toBe(true);
     expect(await page("window.__lib")).toBe(1);

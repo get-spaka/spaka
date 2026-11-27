@@ -4,13 +4,15 @@
 // its .zip's sha256 and size, its pictures), each template's cover and hover
 // sequence, and one .zip per template. The app ships a snapshot of the
 // catalogue and pictures, reads the latest one, and downloads a .zip when the
-// maker views a template large or chooses it. A template that needs a newer app
+// maker views a template large, which shows the pictures of its pages the .zip
+// holds (Q541, Q545), or chooses it. A template that needs a newer app
 // than an older one (Q368) keeps its earlier versions in the catalogue, with
 // the release holding their files, for those apps to take instead.
 import { createHash } from "node:crypto";
 import { mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { checkTemplate } from "./check";
+import { checkPackagesOnline } from "./check-packages";
 import { Manifest, olderVersion } from "./manifest";
 import { readTemplateFolder } from "./reader";
 import { writeZip } from "./zip";
@@ -62,23 +64,34 @@ export function templateFolders(root: string): string[] {
 
 /**
  * Builds a release of the templates in `root` into `out`, each checked as a
- * finished one first: a template with an error stops the release. The
- * `previous` release's catalogue gives the earlier versions to keep.
+ * finished one first, its packages online (Q546): a template with an error
+ * stops the release. The `previous` release's catalogue gives the earlier
+ * versions to keep.
  */
-export function buildRelease(root: string, out: string, release: string, previous?: Catalogue): Catalogue {
+export async function buildRelease(
+  root: string,
+  out: string,
+  release: string,
+  previous?: Catalogue,
+  { packages = checkPackagesOnline }: { packages?: typeof checkPackagesOnline } = {},
+): Promise<Catalogue> {
   mkdirSync(out, { recursive: true });
   const templates: CatalogueEntry[] = [];
   const problems: string[] = [];
   for (const dir of templateFolders(root)) {
     const files = readTemplateFolder(dir);
     const { template, errors } = checkTemplate(files, { finished: true });
+    errors.push(...(await packages(files)));
     if (!template || errors.length) {
       problems.push(`${dir}:\n${errors.map((e) => `  ✗ ${e}`).join("\n")}`);
       continue;
     }
     const { manifest, pictures } = template;
-    // Its pictures are attached apart: the app shows them before it downloads the template.
-    const zip = writeZip(new Map([...files].filter(([path]) => !path.startsWith("pictures/"))));
+    // Its cover and hover are attached apart: the app shows them before it
+    // downloads the template. The pictures of its pages are in it (Q545).
+    const zip = writeZip(
+      new Map([...files].filter(([path]) => !path.startsWith("pictures/") || path.startsWith("pictures/pages/"))),
+    );
     const file = `${manifest.id}-${manifest.version}.zip`;
     writeFileSync(join(out, file), zip);
     const entry: CatalogueEntry = {

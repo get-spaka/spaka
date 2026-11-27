@@ -1,36 +1,50 @@
 // `pnpm template:check <folder or .zip>`: a template's checks, for its author
-// (and for us, making the app's own); `pnpm template:image`, its images;
-// `pnpm template:release` and `pnpm template:snapshot`, Spaka's releases.
-// Bundled and run by scripts/template.mjs.
+// (and for us, making the app's own), its packages' online; `pnpm
+// template:install`, its packages and lockfile; `pnpm template:image`, its
+// images; `pnpm template:release` and `pnpm template:snapshot`, Spaka's
+// releases. Bundled and run by scripts/template.mjs.
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { IMAGE_ASPECTS, IMAGE_MODELS, type ImageAspect } from "../../shared/image-models";
 import { devKey } from "../dev-keys";
 import { generateImage, type ImageCredentials, splitImageModel } from "../images/generate";
 import { generateIntoMedia } from "../images/into-media";
 import { useFoundImage as addFoundImage, slug } from "../media/library";
 import { type FoundImage, type ImageFinder, ImageSearch, imagesAnswer, USER_AGENT } from "../media/search";
+import { pnpmFolders, pnpmInProject } from "../packages/pnpm";
+import { Unreachable } from "../packages/rules";
 import { checkTemplate } from "./check";
+import { checkPackagesOnline } from "./check-packages";
 import { TEMPLATES_RELEASES } from "./library";
 import { readTemplateFolder, readTemplateZip } from "./reader";
 import { CATALOGUE_FILE, type Catalogue, parseCatalogue } from "./release";
 
 export { releaseMain } from "./release-main";
 
-export function main(args: string[]): number {
+export async function main(args: string[]): Promise<number> {
   const finished = args.includes("--finished");
-  const target = args.find((a) => !a.startsWith("--"));
-  if (!target) {
-    console.error("Usage: pnpm template:check <template folder or .zip> [--finished]");
+  const targets = args.filter((a) => !a.startsWith("--"));
+  if (!targets.length) {
+    console.error("Usage: pnpm template:check <template folder or .zip>… [--finished]");
     return 2;
   }
+  // Several at once share what npm, OSV and deps.dev say of their packages.
+  let failed = false;
+  for (const target of targets) if ((await checkOne(target, finished)) !== 0) failed = true;
+  return failed ? 1 : 0;
+}
+
+async function checkOne(target: string, finished: boolean): Promise<number> {
   const path = resolve(target);
   let result: ReturnType<typeof checkTemplate>;
   try {
     const files = statSync(path).isDirectory() ? readTemplateFolder(path) : readTemplateZip(readFileSync(path));
     result = checkTemplate(files, { finished });
+    // Its packages as npm, OSV and deps.dev say (Q546): the check needs the network.
+    result.errors.push(...(await checkPackagesOnline(files)));
   } catch (error) {
-    console.error(`✗ ${error instanceof Error ? error.message : error}`);
+    const reason = error instanceof Unreachable ? `${error.message} Its packages could not be checked.` : error;
+    console.error(`✗ ${target}: ${reason instanceof Error ? reason.message : reason}`);
     return 1;
   }
   const { template, errors, warnings } = result;
@@ -41,9 +55,43 @@ export function main(args: string[]): number {
   for (const w of warnings) console.log(`  ! ${w}`);
   if (template && !errors.length)
     console.log(
-      `  ${template.blocks.length} blocks, ${template.libraries.length} libraries, ${template.credits.length} credited media files`,
+      `  ${template.blocks.length} blocks, ${template.packages.length} packages, ${template.credits.length} credited media files`,
     );
   return errors.length ? 1 : 0;
+}
+
+/**
+ * `pnpm template:install <template folder>`: its packages installed as Spaka
+ * installs a website's, with Spaka's pnpm and settings (ADR 0013), which
+ * writes the lockfile the template ships (Q546). Its node_modules serve its
+ * author only: a template never holds them. Spaka's pnpm and its store are
+ * kept in `dataDir`.
+ */
+export async function installMain(args: string[], dataDir: string): Promise<number> {
+  const target = args.find((a) => !a.startsWith("--"));
+  if (!target || !existsSync(join(resolve(target), "template.json"))) {
+    console.error("Usage: pnpm template:install <template folder>");
+    return 2;
+  }
+  const projectDir = resolve(target);
+  try {
+    const run = await pnpmInProject("install", [], {
+      projectDir,
+      folders: pnpmFolders(dataDir),
+      nodeBinDir: dirname(process.execPath),
+    });
+    for (const note of run.notes) console.log(`  ! ${note}`);
+    if (!run.ok) {
+      for (const e of run.report.errors) console.error(`✗ ${e.message}`);
+      if (!run.report.errors.length) console.error(`✗ pnpm stopped (${run.code}).`);
+      return 1;
+    }
+    console.log(`✓ ${join(projectDir, "pnpm-lock.yaml")}: run pnpm template:check on it.`);
+    return 0;
+  } catch (error) {
+    console.error(`✗ ${error instanceof Error ? error.message : error}`);
+    return 1;
+  }
 }
 
 /**

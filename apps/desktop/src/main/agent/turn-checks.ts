@@ -63,7 +63,7 @@ export class TurnChecks {
   private importsAfter(tool: string, input: unknown): string | undefined {
     if (tool === "Bash") return undefined;
     const rel = this.written(input);
-    if (!rel || !/^scripts\/.+\.m?js$/.test(rel) || rel.startsWith("scripts/lib/")) return undefined;
+    if (!rel || !/^scripts\/.+\.m?js$/.test(rel)) return undefined;
     const { notes } = packageImports(diskSource(this.root), [rel]);
     return notes.length ? notes.join("\n") : undefined;
   }

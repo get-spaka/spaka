@@ -177,6 +177,21 @@ test("a package npm's registry does not know, and services out of reach", async 
   await expect(readSignals("nanoid", undefined, { fetch: noOsv, now: NOW })).rejects.toThrow(/OSV/);
 });
 
+test("a service that says it was asked too much is asked again after the wait it gives, twice at most", async () => {
+  const { fetcher } = recorded();
+  const busy = (times: number) => {
+    let refused = 0;
+    return (async (url: string | URL, init?: RequestInit) =>
+      String(url).startsWith("https://api.npmjs.org/downloads/") && refused++ < times
+        ? new Response("", { status: 429, headers: { "retry-after": "0.01" } })
+        : fetcher(url, init)) as typeof fetch;
+  };
+  await expect(readSignals("nanoid", undefined, { fetch: busy(2), now: NOW })).resolves.toHaveProperty("signals");
+  await expect(readSignals("nanoid", undefined, { fetch: busy(3), now: NOW })).rejects.toThrow(
+    "npm's download counts answered with an error (429): try again later.",
+  );
+});
+
 test("the version chosen: within a range or a tag, never younger than seven days, nor deprecated", () => {
   const nanoid = fixture("nanoid.registry.json") as Packument;
   // 6.0.2 was published on 2026-10-05: three days later, 6.0.1 is the newest old enough.

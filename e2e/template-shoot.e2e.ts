@@ -1,4 +1,4 @@
-import { cpSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import {
@@ -119,11 +119,19 @@ describe.skipIf(!dir)("a template's pictures", () => {
       copy,
     );
     await invoke("projects:open", project.id);
+    // Its packages, which the app installs as the copy opens (ADR 0013): its pages import them.
+    const dependencies = Object.keys(
+      JSON.parse(files.get("package.json")?.toString("utf8") ?? "{}").dependencies ?? {},
+    ) as string[];
+    await until(
+      async () => dependencies.every((name) => existsSync(join(copy, "node_modules", name, "package.json"))),
+      240_000,
+    );
     origin = (await until(() =>
       // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
       launched.app.evaluate(() => (globalThis as any).spaka.preview.origin as string),
     )) as string;
-  }, 60_000 * SLOW);
+  }, 300_000 * SLOW);
   afterAll(async () => {
     await launched?.close();
   });

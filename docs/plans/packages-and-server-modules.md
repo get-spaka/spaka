@@ -235,6 +235,14 @@ Repris le 2026-11-28 (Q557) : sous Windows, aucun paquet n'avait de module. Vite
 - `template:shoot` et `templates-again.e2e.ts` vérifient que rien ne bouge (les images ne devraient pas changer).
 - Une release des templates, publiée avec une app qui connaît les paquets.
 
+Décidé en route (Q541 à Q546 dans `docs/v2.0-decisions.md`, et des choix techniques sans nouvelle question) :
+- **`scripts/lib/` devient un dossier comme un autre**, des fichiers du site que ses modules importent par un chemin relatif : aucun template ne s'en servait. Un site qui a encore `scripts/libraries.json` reçoit une note qui dit à l'agent comment passer aux paquets ; rien n'en est chargé.
+- **`pnpm template:install <dossier>`** installe les paquets d'un template avec le pnpm et les réglages de Spaka, et écrit le lockfile qu'il livre. Son `node_modules` ne sert qu'à l'auteur : `.gitignore` le laisse de côté, comme le `.ignore` que pnpm écrit.
+- **La vérification en ligne** est dans `templates/check-packages.ts`, appelée par `template:check` et par la release ; `checkTemplate` reste hors ligne (les versions exactes, le lockfile, les imports) pour les tests. Chaque version n'est jugée qu'une fois par passage, et `template:check` prend plusieurs dossiers d'un coup : les 37 templates partagent cinq paquets, et les comptes de téléchargement de npm répondent 429 au-delà de quelques questions par minute. Une réponse 429 est reposée après l'attente qu'elle demande, deux fois au plus, pour l'app aussi. `template:release --offline` saute cette vérification, pour les vérifications de Spaka seulement (`templates-download.e2e.ts`), jamais pour une release publiée.
+- **Les paquets d'un template s'installent avant que le site ne s'ouvre**, l'écran de départ restant sur son envoi en cours : ses pages se chargent avec eux, sans erreur d'import au premier chargement, et l'agent les trouve.
+- **La lecture des imports ne prend que les instructions `import` et `export`** : le `"lunch-from"` de Saucer passait pour un import.
+- **La migration** : les membres de `Motion` utilisés, importés par leur nom (`import { animate, inView } from "motion";`), sous un autre nom là où le module a déjà le sien (le `animate` de Covered devient `motionAnimate`) ; Lenis, Splitting et Embla par leur export par défaut ; OGL par `"ogl"` au lieu de son adresse jsDelivr. Les gardes sur les globales tombent (Chalk, Earshot, Taper, Transfer). Chaque template monte d'une version mineure.
+
 ### 5. Les modules serveur dans l'aperçu
 
 - Le process serveur (choix techniques ci-dessus), avec la balise `{% load %}`, `/_server/<nom>` pour `action` et `route`, et `export const cache`.

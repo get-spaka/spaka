@@ -1,5 +1,5 @@
 ---
-status: accepted (2026-11-27, Q490-Q509, Q512, Q520-Q522); replaces the libraries of ADR 0011, given by an address or copied into scripts/lib/
+status: accepted (2026-11-27, Q490-Q509, Q512, Q520-Q522, Q541-Q546); replaces the libraries of ADR 0011, given by an address or copied into scripts/lib/
 ---
 
 # Projects use npm packages, checked and installed by a pnpm of Spaka's own
@@ -29,5 +29,5 @@ Until then a site could only load a library from a CDN address pinned in `script
 - A first package needs the network, for pnpm and then for the package; later installs come from the store.
 - A flaw published later for an installed version gives a card when the site opens, and a warning at each export (Q521).
 - Packages from a private registry, its token kept in Spaka's Accounts, or from a git repository at a fixed commit, come last (Q502); the registry's rules do not apply to them.
-- The templates' format, `template:check` and the site-scripts skill change with the move to packages; a template that uses packages needs an app that knows them.
+- The templates' format, `template:check` and the site-scripts skill change with the move to packages; a template that uses packages needs an app that knows them (`"app": "0.2.0"`, Q543). A template ships its `package.json` at exact versions and its lockfile, never `node_modules`; its packages are checked online as no maker is there to answer: under the rules with no doubt left, under an open licence, never GSAP (Q542, Q546). They install only once a website is made from it, so the start screen shows a template through the pictures of its pages, which its `.zip` carries, rather than running it (Q541, Q544, Q545).
 - Rolldown runs as WebAssembly, called by Spaka's build host without Vite (Q557). The signed app's hardened runtime refuses a native library signed by anyone else, Smart App Control blocks Rolldown's unsigned native build on Windows 11, and the build host runs under Node's permissions, which refuse native code on every system. So Spaka's Rolldown is installed without its optional native programs, with its WebAssembly build. That build reads only paths that begin with `/`: on Windows each drive is opened for it as `/c`, `/d`…, and the targets of pnpm's junctions are handed to it in that form, which Vite, giving it `D:/…`, could not do. A package's module takes up to half a second to make instead of a tenth, once: it is kept (the packages plan, slice 3).

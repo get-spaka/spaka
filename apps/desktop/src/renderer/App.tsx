@@ -246,7 +246,6 @@ export function App() {
             sidebarOpen={sidebarDocked}
             onExpandSidebar={expandSidebar}
             othersWaiting={othersWaiting}
-            covered={settingsOpen || shortcutsOpen}
           />
         )}
         {siteShown && current && (
