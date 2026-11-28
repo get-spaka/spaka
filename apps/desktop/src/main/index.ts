@@ -1403,10 +1403,10 @@ async function main() {
     }
   };
   ipc.handle("export:last", (builder) => lastExport().folders[builder] ?? null);
-  ipc.handle("export:choices", () => {
+  ipc.handle("export:choices", async () => {
     if (!current) throw new Error("No project is open.");
     const last = lastExport().builder;
-    return { ...publishChoices(current.path, current.name), ...(last ? { last } : {}) };
+    return { ...(await publishChoices(current.path, current.name)), ...(last ? { last } : {}) };
   });
   ipc.handle("projects:set-form-service", (datasource, url) => {
     if (!current) throw new Error("No project is open.");
