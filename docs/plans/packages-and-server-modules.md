@@ -1,6 +1,6 @@
 # Spaka v2 : plan de construction des paquets et des modules serveur (Q490-Q535)
 
-## État (2026-11-27) : la sonde et les tranches 1 à 4 faites
+## État (2026-11-28) : la sonde et les tranches 1 à 5 faites
 
 | Tranche | Fait | Commits |
 |---|---|---|
@@ -9,7 +9,7 @@
 | 2. `add_package`, ses règles et la section Paquets | ✅ | 0cc63a3 |
 | 3. Les paquets dans le navigateur | ✅ | 7936aee ; sous Windows, Rolldown seul (Q557) ec86e33 |
 | 4. Les 37 templates passent aux paquets | ✅ | aed0742 ; get-spaka/templates 6fa8752 (branche `template/packages`) |
-| 5. Les modules serveur dans l'aperçu | | |
+| 5. Les modules serveur dans l'aperçu | ✅ | (ce commit) |
 | 6. Les secrets | | |
 | 7. Les exports statique, Node et Cloudflare | | |
 | 8. Le déploiement sur Cloudflare depuis Spaka | | |
@@ -267,6 +267,26 @@ Fait le 2026-11-27 :
 - Un nouveau skill, `server-modules`, avec la règle TypeScript, les trois fonctions, les secrets, le SQL et le cache. Un mot dans les instructions des deux agents.
 - Vérification e2e : un `load` qui appelle une API, une `action` avec son champ piège, une `route`, une migration, et une erreur qui arrive à l'agent.
 
+Décidé en route (des choix techniques, sans nouvelle question) :
+- **L'hôte est empaqueté avec les deux serveurs publiés** (`scripts/bundle-hosts.mjs` → `out/hosts/modules.mjs`, livré dans les ressources de l'app) : il est lisible sous `--permission` et dans le sandbox sans être écrit nulle part, et il réutilise le code du runtime (`moduleHost`, les migrations), que l'export Node reprendra.
+- **Le canal est celui d'IPC de Node** (`stdio: "ipc"`), qui marche sous `--permission` ; `console` est renvoyé par ce canal, et la sortie standard d'un module y est lue aussi.
+- **La base de l'aperçu** est `<userData>/server-db/<id>/data.sqlite`, à côté du dossier inscriptible `server-files/<id>/`. Elle a la table `records`, vide : dans l'aperçu, ce que les visiteurs envoient reste des fiches de test, que l'API `data` lit et que le SQL ne voit pas. Le skill le dit.
+- **Le process ne démarre qu'au premier `load`, `action` ou `route`** qui nomme un module existant : un site sans `server/` n'en lance jamais.
+- **Une erreur de `load` est une note de la page** (`load weather: … (server/weather.ts:12)`), comme une balise qui échoue ; une erreur d'`action` ou de `route`, ce que les modules affichent et une migration qui échoue sont des erreurs de la page dans `look_at_preview` (`server/book: …`, `server console: …`). Une migration qui échoue est redite à chaque regard jusqu'à ce qu'elle change.
+- **Un appel qui dure plus de 30 s** arrête le process (une boucle infinie le bloquerait tout entier), qui redémarre au suivant.
+- **L'aperçu ne limite pas le maker** : il ne passe pas d'adresse de visiteur, comme pour `/_data/`, et la limite par visiteur ne vaut qu'une fois publié.
+- **Le Node 26 du système n'a plus `--experimental-transform-types`** : les tests prennent l'Electron du dépôt (Node 24), comme l'app.
+
+Fait le 2026-11-28 :
+- **`runtime/server.ts`** : les types des modules, `moduleHost` (l'import paresseux, refait après un échec ; le cache par arguments, 500 entrées au plus ; les données rendues simples, une date en texte ISO), `durationMs` et `VisitorLimiter`.
+- **`runtime/runtime.ts`** : le rendu devient asynchrone, chaque rendu avec son état (fichier, notes, datasources lues) et son instance de Liquid (0,02 ms) ; la balise `{% load nom arg: valeur %}` ; `/_server/<nom>` (l'action par htmx, avec le champ piège et la limite par visiteur, son fragment `answer` ; la route sinon) ; l'API `data` (`list`, et `add` validé comme un formulaire). Tout ce qui rendait dans l'app, le builder et les tests attend maintenant le rendu.
+- **`runtime/hosts/modules.ts`** (les modules de `server/`, les migrations de `server/migrations/` dans la table `spaka_migrations`, une par transaction, arrêtées à la première qui échoue ; le SQL sur `node:sqlite`) et **`hosts/modules-main.ts`**, l'hôte, avec **`modules-protocol.ts`** pour les messages.
+- **`preview/server-process.ts`** : un process par site, lancé par `sandbox-exec` sur macOS avec un profil tiré de celui du shell Pi (`confinedProfile` dans `agent/pi/shell.ts` : lecture du projet, de l'hôte et du bundle de l'app, écriture dans les deux dossiers du site, aucun autre programme), sous `--permission` partout ; l'environnement ne tient que les secrets du site (vides jusqu'à la tranche 6) ; redémarré quand `server/`, `package.json` ou le lockfile changent.
+- **L'agent** : le skill `server-modules` (les trois fonctions, le contexte, la balise, le formulaire, la base et ses migrations, la règle TypeScript, les paquets, ce qu'un module ne peut pas faire) ; les instructions et le skill htmx-patterns en parlent.
+- **Vérifié** :
+  - les tests unitaires : 8 pour la balise, le cache, `/_server/` et l'API `data` ; 4 pour le process réel (TypeScript, migrations, permissions et sandbox, erreurs situées, `console`, redémarrage après un module bloqué) ;
+  - `e2e/server-modules.e2e.ts` : un `load` qui appelle une API locale, gardé en cache ; une réservation par `action` jusqu'à « complet », le robot ignoré ; un calendrier par `route` ; l'erreur d'écriture dans le projet et le `console.log` dans le regard de l'agent ; une migration qui échoue ; un module changé relancé.
+
 ### 6. Les secrets
 
 - Un magasin par site, chiffré par `safeStorage`, et une section Secrets dans les réglages du site.
@@ -277,7 +297,7 @@ Fait le 2026-11-27 :
 ### 7. Les exports statique, Node et Cloudflare
 
 - **Statique** : chaque `load` tourne à l'export (par le process serveur). `action` et `route` sont refusées, avec le message de l'export.
-- **Node** : le build SSR de Vite empaquette `server/` et ses paquets à côté de `server.mjs`. Le serveur applique les migrations à son démarrage, et le dossier inscriptible vit à côté de `data.sqlite`. L'export avertit pour un paquet qui ne s'empaquette pas.
+- **Node** : le Rolldown de Spaka (`platform: "node"`, comme pour le navigateur depuis Q557, plutôt que le build SSR de Vite) empaquette `server/` et ses paquets à côté de `server.mjs`. Le serveur applique les migrations à son démarrage, et le dossier inscriptible vit à côté de `data.sqlite`. L'export avertit pour un paquet qui ne s'empaquette pas.
 - **Cloudflare** : wrangler empaquette le Worker à l'export, avec les migrations D1 de `server/migrations/`, les secrets en `.env` pour `wrangler secret`, et l'avertissement pour le dossier inscriptible absent.
   - Wrangler tourne avec un préchargement qui pose `process.defaultApp = true` : sans lui, yargs prend Electron lancé comme Node pour une app empaquetée et lit le chemin du script comme une commande.
   - `WRANGLER_SEND_METRICS=false`, et `XDG_CONFIG_HOME` dans le dossier wrangler de Spaka, où vont ses journaux.

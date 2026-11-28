@@ -44,7 +44,31 @@ function deniedParents(dir: string): string[] {
 export function sandboxProfile({ projectDir, readable, skillsDir }: ShellPlace): string {
   const project = real(projectDir);
   const skills = skillsDir ? [real(skillsDir)] : [];
-  const readHere = [project, real(systemTmp), ...readable.map(real), ...skills];
+  return confinedProfile({
+    readable: [project, real(systemTmp), ...readable.map(real), ...skills],
+    writable: [project, real(systemTmp), "/private/tmp", "/private/var/folders"],
+    readOnly: skills,
+  });
+}
+
+export type Confinement = {
+  /** Folders it may read, which sit in a denied place (/Users, /Volumes) or not. */
+  readable: string[];
+  /** The only folders it may write in, besides the devices a program needs. */
+  writable: string[];
+  /** Folders inside the writable ones that stay read-only. */
+  readOnly?: string[];
+  /** When given, the only programs it may start. */
+  executables?: string[];
+};
+
+/**
+ * A sandbox-exec profile that lets a program read the system and the given
+ * folders, never the rest of /Users and /Volumes, and write only in the given
+ * folders. Later rules win over earlier ones.
+ */
+export function confinedProfile({ readable, writable, readOnly = [], executables }: Confinement): string {
+  const readHere = [...new Set(readable.map(real))];
   // Electron run as Node reads the metadata of each folder above its own, and
   // dies at start when it cannot (SIGTRAP): the app sits under /Users in a
   // checkout, or installed in ~/Applications. Their metadata only; listing
@@ -54,12 +78,18 @@ export function sandboxProfile({ projectDir, readable, skillsDir }: ShellPlace):
     "(version 1)",
     "(allow default)",
     "(deny file-write*)",
-    `(allow file-write* (subpath ${quote(project)}) (subpath ${quote(real(systemTmp))}) (subpath "/private/tmp") (subpath "/private/var/folders") (literal "/dev/null") (literal "/dev/zero") (regex #"^/dev/tty") (regex #"^/dev/fd/") (literal "/dev/dtracehelper"))`,
-    ...skills.map((dir) => `(deny file-write* (subpath ${quote(dir)}))`),
+    `(allow file-write* ${writable.map((dir) => `(subpath ${quote(real(dir))})`).join(" ")} (literal "/dev/null") (literal "/dev/zero") (regex #"^/dev/tty") (regex #"^/dev/fd/") (literal "/dev/dtracehelper"))`,
+    ...readOnly.map((dir) => `(deny file-write* (subpath ${quote(real(dir))}))`),
     '(deny file-read* (subpath "/Users") (subpath "/Volumes"))',
     `(allow file-read* (literal "/Users") ${readHere.map((dir) => `(subpath ${quote(dir)})`).join(" ")})`,
     ...(parents.length
       ? [`(allow file-read-metadata ${parents.map((dir) => `(literal ${quote(dir)})`).join(" ")})`]
+      : []),
+    ...(executables
+      ? [
+          "(deny process-exec)",
+          `(allow process-exec ${executables.map((f) => `(literal ${quote(real(f))})`).join(" ")})`,
+        ]
       : []),
   ].join("\n");
 }

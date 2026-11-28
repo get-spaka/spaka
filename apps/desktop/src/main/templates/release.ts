@@ -80,7 +80,7 @@ export async function buildRelease(
   const problems: string[] = [];
   for (const dir of templateFolders(root)) {
     const files = readTemplateFolder(dir);
-    const { template, errors } = checkTemplate(files, { finished: true });
+    const { template, errors } = await checkTemplate(files, { finished: true });
     errors.push(...(await packages(files)));
     if (!template || errors.length) {
       problems.push(`${dir}:\n${errors.map((e) => `  ✗ ${e}`).join("\n")}`);

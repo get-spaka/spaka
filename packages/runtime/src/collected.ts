@@ -153,12 +153,13 @@ export function sentAlert(text: string): string {
 
 /**
  * Adds the hidden trap field to every form that posts to /_data/<name>
- * (Q180), right after its opening tag. Visitors never see or reach it.
+ * (Q180), or to a server module's action at /_server/<name> (Q532), right
+ * after its opening tag. Visitors never see or reach it.
  */
 export function addTrapFields(html: string): string {
-  if (!html.includes(DATA_ROUTE)) return html;
+  if (!html.includes(DATA_ROUTE) && !html.includes("/_server/")) return html;
   return html.replace(/<form\b[^>]*>/gi, (tag) => {
-    if (!/\s(?:hx-post|action)\s*=\s*["']?\/_data\//i.test(tag)) return tag;
+    if (!/\s(?:hx-post|action)\s*=\s*["']?\/_(?:data|server)\//i.test(tag)) return tag;
     return `${tag}<div aria-hidden="true" style="position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden"><input type="text" name="${TRAP_FIELD}" tabindex="-1" autocomplete="off" value=""></div>`;
   });
 }

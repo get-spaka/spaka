@@ -200,14 +200,14 @@ export class TemplateLibrary {
    * its name and pictures (Q248); or why it cannot be one: what the check
    * calls an error. Its scripts are not run until then.
    */
-  read(path: string): TemplateImport {
+  async read(path: string): Promise<TemplateImport> {
     let files: TemplateFiles;
     try {
       files = statSync(path).isDirectory() ? readTemplateFolder(path) : readTemplateZip(readFileSync(path));
     } catch (error) {
       return { problems: [error instanceof Error ? error.message : String(error)] };
     }
-    const check = checkTemplate(files);
+    const check = await checkTemplate(files);
     if (check.errors.length || !check.template) return { problems: check.errors };
     const { manifest, pictures } = check.template;
     const known = this.get(manifest.id);

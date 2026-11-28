@@ -32,7 +32,7 @@ function ember() {
 const statuses = (root: string) => Object.fromEntries(readAdaptation(root)!.steps.map((s) => [s.route, s.status]));
 
 describe("an adaptation", () => {
-  test("starts with the copy: every page type to do, the guide kept beside it, not in the website", () => {
+  test("starts with the copy: every page type to do, the guide kept beside it, not in the website", async () => {
     const root = ember();
     const state = readAdaptation(root)!;
     expect(state).toMatchObject({ template: "ember", chosen: false });
@@ -45,7 +45,7 @@ describe("an adaptation", () => {
     expect(adaptationGuide(root)?.general).toContain("Ember");
   });
 
-  test("the card of pages: the home page adapted first, the others to do, those not kept removed, new ones last", () => {
+  test("the card of pages: the home page adapted first, the others to do, those not kept removed, new ones last", async () => {
     const root = ember();
     choosePages(root, ["/menu", "/events", "/visit", "/shop"], { "/menu": { name: "La carte", line: "Les plats." } }, [
       { route: "/shop", name: "Boutique", line: "Les bons cadeaux." },
@@ -73,7 +73,7 @@ describe("an adaptation", () => {
     });
   });
 
-  test("Continue: the page looked at is done, the next one adapted; a pick comes next; the last ends it", () => {
+  test("Continue: the page looked at is done, the next one adapted; a pick comes next; the last ends it", async () => {
     const root = ember();
     choosePages(root, ["/menu", "/events"], {}, []);
     // The home page's turn ends: the maker looks at it.
@@ -97,7 +97,7 @@ describe("an adaptation", () => {
     expect(readAdaptation(root)).toBeUndefined();
   });
 
-  test("a turn stopped or left by Spaka closing keeps its page being adapted; Continue takes it up again", () => {
+  test("a turn stopped or left by Spaka closing keeps its page being adapted; Continue takes it up again", async () => {
     const root = ember();
     choosePages(root, ["/menu"], {}, []);
     turnEnded(root, true);
@@ -107,7 +107,7 @@ describe("an adaptation", () => {
     expect(continueAdaptation(root)?.route).toBe("/menu");
   });
 
-  test("a first turn that never showed the card keeps every page type", () => {
+  test("a first turn that never showed the card keeps every page type", async () => {
     const root = ember();
     turnEnded(root, true);
     const state = readAdaptation(root)!;
@@ -116,7 +116,7 @@ describe("an adaptation", () => {
     expect(state.steps.filter((s) => s.status === "todo")).toHaveLength(ROUTES.length - 1);
   });
 
-  test("a page type taken off the list is removed: its pages are named until they are gone", () => {
+  test("a page type taken off the list is removed: its pages are named until they are gone", async () => {
     const root = ember();
     choosePages(root, ROUTES, {}, []);
     removeStep(root, "/wine");
@@ -129,10 +129,10 @@ describe("an adaptation", () => {
 });
 
 describe("the check for the template's texts during the adaptation (Q305)", () => {
-  test("the home page and what every page shares; not the pages to do, nor the records the home page only teases", () => {
+  test("the home page and what every page shares; not the pages to do, nor the records the home page only teases", async () => {
     const root = ember();
     choosePages(root, ROUTES, {}, []);
-    const scope = adaptationScope(root)!;
+    const scope = (await adaptationScope(root))!;
     const files = templateTextsLeft(root).map((l) => l.file);
     const inScope = files.filter(scope);
     expect(inScope).toContain("pages/index.liquid");
@@ -149,13 +149,13 @@ describe("the check for the template's texts during the adaptation (Q305)", () =
     turnEnded(root, true);
     pickNext(root, "/menu");
     continueAdaptation(root);
-    const now = adaptationScope(root)!;
+    const now = (await adaptationScope(root))!;
     expect(now("pages/menu.liquid")).toBe(true);
     expect(files.filter(now).some((f) => f.startsWith("data/menu/"))).toBe(true);
     expect(now("pages/visit.liquid")).toBe(false);
   });
 
-  test("outside an adaptation, every file", () => {
-    expect(adaptationScope(mkdtempSync(join(tmpdir(), "spaka-none-")))).toBeUndefined();
+  test("outside an adaptation, every file", async () => {
+    expect(await adaptationScope(mkdtempSync(join(tmpdir(), "spaka-none-")))).toBeUndefined();
   });
 });

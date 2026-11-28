@@ -110,6 +110,22 @@ export {
   siteAssets,
   specifierPackage,
 } from "./scripts.ts";
+export {
+  type ActionAnswer,
+  type DataApi,
+  durationMs,
+  MODULE_NAME,
+  type ModuleHostOptions,
+  type ModuleKind,
+  moduleHost,
+  plain,
+  SERVER_ROUTE,
+  type ServerContext,
+  type ServerHost,
+  type ServerModule,
+  type SqlApi,
+  VisitorLimiter,
+} from "./server.ts";
 export { memorySource, Overlay, type ProjectSource } from "./source.ts";
 export { MissingTable, RECORDS_SCHEMA, type SqlDatabase, SqlStore } from "./sql.ts";
 export { injectTrace, type Repair, repairTemplate, type Scan, scan } from "./template.ts";

@@ -36,10 +36,10 @@ export async function main(args: string[]): Promise<number> {
 
 async function checkOne(target: string, finished: boolean): Promise<number> {
   const path = resolve(target);
-  let result: ReturnType<typeof checkTemplate>;
+  let result: Awaited<ReturnType<typeof checkTemplate>>;
   try {
     const files = statSync(path).isDirectory() ? readTemplateFolder(path) : readTemplateZip(readFileSync(path));
-    result = checkTemplate(files, { finished });
+    result = await checkTemplate(files, { finished });
     // Its packages as npm, OSV and deps.dev say (Q546): the check needs the network.
     result.errors.push(...(await checkPackagesOnline(files)));
   } catch (error) {

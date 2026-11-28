@@ -7,7 +7,7 @@ import type { Block } from "./catalogue";
 
 const shown = new WeakMap<Block, string>();
 
-export function blockShown(block: Block): string {
+export async function blockShown(block: Block): Promise<string> {
   if (!block.data || !block.datasource) return block.source;
   const kept = shown.get(block);
   if (kept !== undefined) return kept;
@@ -24,7 +24,7 @@ export function blockShown(block: Block): string {
     if (collected) tests[`${name}/${file}`] = text;
     else files[`data/${name}/${file}`] = text;
   }
-  const html = new Runtime(memorySource(files), { testRecords: memorySource(tests) }).renderRoute("/").html;
+  const html = (await new Runtime(memorySource(files), { testRecords: memorySource(tests) }).renderRoute("/")).html;
   const body = /<body[^>]*>([\s\S]*)<\/body>/i.exec(html)?.[1]?.trim() ?? block.source;
   shown.set(block, body);
   return body;

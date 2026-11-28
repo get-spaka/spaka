@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import { type FSWatcher, watch } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { Overlay, previewHead, Runtime, tailwindStyle, themeStyle } from "@spaka/runtime";
+import { type DataApi, Overlay, previewHead, Runtime, tailwindStyle, themeStyle } from "@spaka/runtime";
 import { diskSource } from "@spaka/runtime/node";
 import { type BrowserWindow, shell, WebContentsView } from "electron";
 import type {
@@ -38,6 +38,7 @@ import {
   type StepDone,
 } from "./look-steps";
 import { type PackageModuleAt, PreviewServer, VENDOR_BASE } from "./server";
+import type { ServerProcess, ServerSaid } from "./server-process";
 import { isTestRecord, TestRecordStore, testRecordsSource } from "./test-records";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
@@ -51,7 +52,14 @@ type OpenSite = {
   overlay: Overlay;
   runtime: Runtime;
   watcher: FSWatcher | undefined;
+  /** Its server modules' process, when it has any (ADR 0014). */
+  server: ServerProcess | undefined;
+  /** What that process said: its errors and what modules printed, the last 50. */
+  said: ServerSaid[];
 };
+
+/** Files whose change starts the server process again: its modules, and its packages. */
+const SERVER_FILES = /^(server\/|package\.json$|pnpm-lock\.yaml$)/;
 
 export type PreviewOptions = {
   background: boolean;
@@ -65,8 +73,13 @@ export type PreviewOptions = {
       ...args: Parameters<PreviewInvokes[C]>
     ) => ReturnType<PreviewInvokes[C]> | Promise<ReturnType<PreviewInvokes[C]>>;
   }>;
+  /** The site's server process (ADR 0014), started only when a page or a form needs one of its modules. */
+  serverProcess?: (
+    project: ProjectInfo,
+    hooks: { data: () => DataApi; onSaid: (said: ServerSaid) => void },
+  ) => ServerProcess | undefined;
   /** A gallery block's template, for its thumbnail (Q92). */
-  block?: (id: string) => string | undefined;
+  block?: (id: string) => Promise<string | undefined>;
   /** A shipped font's file, from its path under /__spaka/fonts/, for a theme shown before it is written. */
   font?: (path: string) => string | undefined;
   /** The modules of the packages the site's scripts import (ADR 0013). */
@@ -168,10 +181,10 @@ export class Preview {
       background: options.background,
       onAction: (route, action) => options.onThumb?.(route, action),
       wantsRendering: () => this.refresh(true),
-      keyOf: (route) => {
+      keyOf: async (route) => {
         const site = this.site;
         if (!site?.runtime.resolve(route)) return undefined;
-        const result = site.runtime.renderRoute(route);
+        const result = await site.runtime.renderRoute(route);
         return result.status === 200 ? pictureKey(result.html, site.runtime.theme()) : undefined;
       },
       onPicture: (route, url) => options.onPicture?.(route, url),
@@ -203,7 +216,22 @@ export class Preview {
   async open(project: ProjectInfo) {
     this.close();
     const overlay = new Overlay(diskSource(project.path));
+    const said: ServerSaid[] = [];
+    const hear = (heard: ServerSaid) => {
+      said.push(heard);
+      if (said.length > 50) said.shift();
+    };
+    const server = this.options.serverProcess?.(project, { data: () => runtime.dataApi(), onSaid: hear });
     const runtime: Runtime = new Runtime(overlay, {
+      // Server modules (ADR 0014): a failed load is a note of the page; a failed action or route is said.
+      ...(server
+        ? {
+            server,
+            onServerError: ({ module, kind, message }) => {
+              if (kind !== "load") hear({ kind: "error", source: `server/${module}`, message, at: Date.now() });
+            },
+          }
+        : {}),
       markPageStyles: true,
       standIns: true,
       // Collected datasources show their test records; a form tried here adds one (Q172).
@@ -224,7 +252,7 @@ export class Preview {
           styles: runtime.styles(),
         }),
     });
-    const site: OpenSite = { project, root: project.path, overlay, runtime, watcher: undefined };
+    const site: OpenSite = { project, root: project.path, overlay, runtime, watcher: undefined, server, said };
     this.site = site;
     this.mode = "visitor";
     site.watcher = this.watch(site);
@@ -236,6 +264,7 @@ export class Preview {
 
   close() {
     this.site?.watcher?.close();
+    this.site?.server?.stop();
     this.site = undefined;
     this.route = null;
     this.writing = null;
@@ -544,6 +573,7 @@ export class Preview {
     const route = to ?? shown ?? this.route ?? site.runtime.routes()[0]!.route;
     if (!site.runtime.resolve(route)) return { route: shown, errors: [], notes: [`No page has the address ${route}.`] };
     const on = screen ?? (to === undefined && shown !== null ? view.currentScreen : "desktop");
+    const lookedAt = Date.now();
     // `at` is where the look ends: a last scroll to that part.
     const all: LookStep[] = at ? [...steps, { action: "scroll", target: at }] : steps;
     let done: StepDone[] = [];
@@ -562,7 +592,7 @@ export class Preview {
       new Promise<undefined>((resolve) => setTimeout(resolve, 45_000)),
     ]);
     const reached = view.current ?? route;
-    const result = site.runtime.resolve(reached) ? site.runtime.renderRoute(reached) : undefined;
+    const result = site.runtime.resolve(reached) ? await site.runtime.renderRoute(reached) : undefined;
     return {
       route: reached,
       screen: on,
@@ -571,7 +601,13 @@ export class Preview {
       steps: done,
       refused: view.takeRefused(),
       problems: problemsOf(measured, (path) => !!site.runtime.resolve(path)),
-      errors: view.errors.map((e) => (e.source ? `${e.message} (${e.source})` : e.message)),
+      errors: [
+        ...view.errors.map((e) => (e.source ? `${e.message} (${e.source})` : e.message)),
+        // What the site's server said while the page was looked at, and a migration that failed (ADR 0014).
+        ...site.said
+          .filter((s) => s.at >= lookedAt || s.source.startsWith("server/migrations/"))
+          .map((s) => (s.kind === "console" ? `server console: ${s.message}` : `${s.source}: ${s.message}`)),
+      ],
       notes: [
         ...new Set([
           ...(result
@@ -602,14 +638,18 @@ export class Preview {
     };
   }
 
+  /** Renders and sends, one push after the other: a render waits for the site's server modules (ADR 0014). */
   private push() {
-    const started = performance.now();
-    this.pushNow();
-    this.pushTimes.push(Math.round((performance.now() - started) * 10) / 10);
-    if (this.pushTimes.length > 500) this.pushTimes.shift();
+    this.pushing = this.pushing.then(async () => {
+      const started = performance.now();
+      await this.pushNow().catch(() => {});
+      this.pushTimes.push(Math.round((performance.now() - started) * 10) / 10);
+      if (this.pushTimes.length > 500) this.pushTimes.shift();
+    });
   }
+  private pushing: Promise<void> = Promise.resolve();
 
-  private pushNow() {
+  private async pushNow() {
     const site = this.site;
     const pending = this.pending;
     this.pending = undefined;
@@ -620,7 +660,8 @@ export class Preview {
     this.send({ type: "theme", css: themeStyle(theme), styles });
     this.grid.setTheme(themeStyle(theme), styles);
     this.agentView.setTheme(themeStyle(theme), styles);
-    this.pushAgent(site, pending.final);
+    await this.pushAgent(site, pending.final);
+    if (this.site !== site) return;
     // The site's scripts changed since the page loaded: it loads again, to run them anew (ADR 0011).
     if (pending.final && site.overlay.size === 0 && this.loadedScripts !== undefined) {
       const scripts = scriptsKey(site.runtime);
@@ -630,7 +671,8 @@ export class Preview {
         return;
       }
     }
-    this.pushGrid(site, pending.final);
+    await this.pushGrid(site, pending.final);
+    if (this.site !== site) return;
     // A file is complete: the pictures of the pages it changed are taken again (Q141).
     if (pending.final) this.grid.filesChanged();
     // A theme is the first thing the agent writes: the empty page in the
@@ -641,12 +683,14 @@ export class Preview {
     }
     const routes = site.runtime.routes();
     let result =
-      this.route !== null && site.runtime.resolve(this.route) ? site.runtime.renderRoute(this.route) : undefined;
+      this.route !== null && site.runtime.resolve(this.route) ? await site.runtime.renderRoute(this.route) : undefined;
     if (!result && routes.length === 0) {
       // No page yet: show the first shared part on its own.
       const part = site.runtime.source.list("parts")[0];
-      if (part) result = site.runtime.renderLoose(part);
+      if (part) result = await site.runtime.renderLoose(part);
     }
+    // The site was closed while it rendered.
+    if (this.site !== site) return;
     if (!result && routes[0] && this.route !== routes[0].route) {
       void this.navigate(routes[0].route);
       return;
@@ -668,22 +712,22 @@ export class Preview {
   }
 
   /** The page the agent looks at gets its rendering, kept in place with its state (Q324); new scripts load it again. */
-  private pushAgent(site: OpenSite, final: boolean) {
+  private async pushAgent(site: OpenSite, final: boolean) {
     const route = this.agentView.current;
     if (route === null || !site.runtime.resolve(route)) return;
     if (final && site.overlay.size === 0) this.agentView.scriptsChanged(scriptsKey(site.runtime));
-    const result = site.runtime.renderRoute(route);
-    if (result.status !== 200) return;
+    const result = await site.runtime.renderRoute(route);
+    if (result.status !== 200 || this.site !== site) return;
     if (site.overlay.size > 0 && !hasVisibleBody(result.html)) return;
     this.agentView.render(route, result.html, final && site.overlay.size === 0);
   }
 
   /** Each page on screen in the "All pages" view gets its rendering (Q130), by the same rules as the page. */
-  private pushGrid(site: OpenSite, final: boolean) {
+  private async pushGrid(site: OpenSite, final: boolean) {
     for (const route of this.grid.live()) {
       if (!site.runtime.resolve(route)) continue;
-      const result = site.runtime.renderRoute(route);
-      if (result.status !== 200) continue;
+      const result = await site.runtime.renderRoute(route);
+      if (result.status !== 200 || this.site !== site) continue;
       if (site.overlay.size > 0 && !hasVisibleBody(result.html)) continue;
       this.grid.render(route, result.html, final && site.overlay.size === 0);
     }
@@ -701,6 +745,10 @@ export class Preview {
         if (!isTestRecord(path) && path.split("/").some((part) => part.startsWith(".") || part === "node_modules"))
           return;
         this.options.onFileChanged?.(path);
+        if (SERVER_FILES.test(path) && site.server) {
+          site.said.length = 0;
+          site.server.restart();
+        }
         // A file the agent is still writing is shown from the overlay, not from the disk.
         if (site.overlay.has(path)) return;
         // A record a form just sent: the page shows the form's answer until the visitor moves on.

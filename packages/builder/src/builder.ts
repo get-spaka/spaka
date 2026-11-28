@@ -88,7 +88,7 @@ export interface Builder {
     formServices: boolean;
   };
   /** Whether this project can use it, and why not. */
-  check(project: BuildProject): { ok: true } | { ok: false; refusal: BuildRefusal };
+  check(project: BuildProject): Promise<{ ok: true } | { ok: false; refusal: BuildRefusal }>;
   build(project: BuildProject, options: BuildOptions): Promise<BuildResult>;
   /** The steps that put the export online, as data the app words. */
   guide(result: BuildResult): GuideStep[];

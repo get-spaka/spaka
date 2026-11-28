@@ -43,7 +43,7 @@ const files = {
 describe("a datasource", () => {
   const data = new Datasources(memorySource(files));
 
-  test("records in the definition's order, long text as HTML, values checked", () => {
+  test("records in the definition's order, long text as HTML, values checked", async () => {
     const posts = data.get("posts");
     expect(posts.definition?.label).toBe("Posts");
     expect(posts.records.map((r) => r.id)).toEqual(["second", "hello-world", "untitled"]);
@@ -68,7 +68,7 @@ describe("a datasource", () => {
     );
   });
 
-  test("a manual order without a sort", () => {
+  test("a manual order without a sort", async () => {
     const manual = new Datasources(
       memorySource({
         "data/team/_datasource.yaml": "fields:\n  - name: name\n    kind: text\norder: [zoe, adam]\n",
@@ -82,7 +82,7 @@ describe("a datasource", () => {
     expect(team.records.map((r) => r.id)).toEqual(["zoe", "adam", "bea"]);
   });
 
-  test("a record file split into its fields and its text", () => {
+  test("a record file split into its fields and its text", async () => {
     expect(splitRecord("---\na: 1\n---\nBody\n")).toEqual({ yaml: "a: 1\n", body: "Body\n" });
     expect(splitRecord("---\na: 1\nb: 2")).toBeUndefined();
     expect(recordOf("data/posts/hello.md")).toEqual({ datasource: "posts", id: "hello" });
@@ -93,8 +93,8 @@ describe("a datasource", () => {
 describe("in pages", () => {
   const runtime = new Runtime(memorySource(files));
 
-  test("a loop over data.posts, each element traced to its record", () => {
-    const result = runtime.renderRoute("/");
+  test("a loop over data.posts, each element traced to its record", async () => {
+    const result = await runtime.renderRoute("/");
     expect(result.html).toMatch(/<li data-spaka-src="pages\/index.liquid:[\d:]+" data-spaka-rec="posts\/second">/);
     expect(result.html.indexOf("Second")).toBeLessThan(result.html.indexOf("Hello world"));
     // The notes of the datasource reach the render, for the agent's look at the preview.
@@ -103,7 +103,7 @@ describe("in pages", () => {
     );
   });
 
-  test("a page per record, at its id, grouped under the datasource (Q147, Q164)", () => {
+  test("a page per record, at its id, grouped under the datasource (Q147, Q164)", async () => {
     const routes = runtime.routes();
     expect(routes.map((r) => r.route)).toEqual(["/", "/blog/second", "/blog/hello-world", "/blog/untitled"]);
     expect(routes[2]).toEqual({
@@ -113,39 +113,39 @@ describe("in pages", () => {
       group: "Posts",
       title: "Hello world",
     });
-    const result = runtime.renderRoute("/blog/hello-world");
+    const result = await runtime.renderRoute("/blog/hello-world");
     expect(result.status).toBe(200);
     expect(result.html).toContain("<h1>Hi</h1>");
     expect(result.html).toMatch(/<article data-spaka-src="[^"]+" data-spaka-rec="posts\/hello-world">/);
     expect(runtime.routeOf("data/posts/second.md")).toBe("/blog/second");
-    expect(runtime.renderRoute("/blog/nope").status).toBe(404);
+    expect((await runtime.renderRoute("/blog/nope")).status).toBe(404);
   });
 });
 
 describe("while the agent writes (Q161)", () => {
-  test("stand-ins for a datasource not written yet, then shaped by its definition, until a record is complete", () => {
+  test("stand-ins for a datasource not written yet, then shaped by its definition, until a record is complete", async () => {
     const overlay = new Overlay(memorySource({ "pages/index.liquid": files["pages/index.liquid"] }));
     const runtime = new Runtime(overlay, { standIns: true });
     overlay.set("theme.css", ":root{}");
     // Nothing written: three stand-ins, any field a short text.
-    let html = runtime.renderRoute("/").html;
+    let html = (await runtime.renderRoute("/")).html;
     expect(html.match(/<li /g)?.length).toBe(3);
     expect(html).toContain("Lorem ipsum dolor");
     expect(runtime.routes().map((r) => r.route)).toEqual(["/"]);
     // The definition written, a record started but its fields not closed: still stand-ins.
     overlay.set("data/posts/_datasource.yaml", definition);
     overlay.set("data/posts/hello-world.md", "---\ntitle: Hel");
-    html = runtime.renderRoute("/").html;
+    html = (await runtime.renderRoute("/")).html;
     expect(html.match(/<li /g)?.length).toBe(3);
     // Its fields closed, its text still coming: the real record, alone.
     overlay.set("data/posts/hello-world.md", "---\ntitle: Hello world\n---\nSome te");
-    html = runtime.renderRoute("/").html;
+    html = (await runtime.renderRoute("/")).html;
     expect(html.match(/<li /g)?.length).toBe(1);
     expect(html).toContain("Hello world");
     // Once the agent is done, a datasource that does not exist is empty, said in a note.
     for (const path of overlay.paths()) overlay.delete(path);
     const done = new Runtime(memorySource({ "pages/index.liquid": files["pages/index.liquid"] }), { standIns: true });
-    const result = done.renderRoute("/");
+    const result = await done.renderRoute("/");
     expect(result.html).not.toContain("<li ");
     expect(result.notes).toContainEqual({ file: "data", note: "no datasource named posts" });
   });
@@ -166,19 +166,19 @@ describe("media (Q155, Q157)", () => {
   };
   const runtime = new Runtime(memorySource(project));
 
-  test("an image's missing alt comes from the file beside it; an empty one is kept", () => {
-    const html = runtime.renderRoute("/").html;
+  test("an image's missing alt comes from the file beside it; an empty one is kept", async () => {
+    const html = (await runtime.renderRoute("/")).html;
     expect(html).toContain(`<img alt="A café&#39;s window"`);
     expect(html).toContain(`src="/media/logo.png" alt=""`);
   });
 
-  test("a /credits page for the images used whose licence asks for it, linked at the end of the footer", () => {
-    const html = runtime.renderRoute("/").html;
+  test("a /credits page for the images used whose licence asks for it, linked at the end of the footer", async () => {
+    const html = (await runtime.renderRoute("/")).html;
     expect(html).toMatch(
       />Bakery<\/p><p data-spaka-credits[^>]*><a href="\/credits"[^>]*>Image credits<\/a><\/p><\/footer>/,
     );
     expect(runtime.routes().at(-1)).toEqual({ route: "/credits", file: "media", generated: true });
-    const credits = runtime.renderRoute("/credits");
+    const credits = await runtime.renderRoute("/credits");
     expect(credits.status).toBe(200);
     expect(credits.html).toContain("Jane Doe");
     expect(credits.html).toContain("CC BY 4.0");
@@ -186,7 +186,7 @@ describe("media (Q155, Q157)", () => {
     expect(credits.html).not.toContain("logo.png");
   });
 
-  test("the credits link is added even when a stylesheet in the page names it", () => {
+  test("the credits link is added even when a stylesheet in the page names it", async () => {
     expect(addCreditsLink("<style>footer [data-spaka-credits] { opacity: 0.6 }</style><footer>x</footer>")).toMatch(
       /x<p data-spaka-credits[^>]*>.*<\/p><\/footer>$/,
     );
@@ -194,7 +194,7 @@ describe("media (Q155, Q157)", () => {
     expect(addCreditsLink(once)).toBe(once);
   });
 
-  test("no credits link added when the page already links to the credits, whoever wrote it (Q325)", () => {
+  test("no credits link added when the page already links to the credits, whoever wrote it (Q325)", async () => {
     for (const written of [
       `<a href="/credits">Crédits photos</a>`,
       `<a class="link" href='/credits/'>Credits</a>`,
@@ -210,10 +210,10 @@ describe("media (Q155, Q157)", () => {
         "pages/index.liquid": page(`<img src="/media/cafe.jpg"><footer><a href="/credits">Crédits</a></footer>`),
       }),
     );
-    expect(site.renderRoute("/").html.match(/href="\/credits"/g)).toHaveLength(1);
+    expect((await site.renderRoute("/")).html.match(/href="\/credits"/g)).toHaveLength(1);
   });
 
-  test("the link and the /credits page are in the site's language, English otherwise (Q325)", () => {
+  test("the link and the /credits page are in the site's language, English otherwise (Q325)", async () => {
     expect(addCreditsLink(`<html lang="fr"><body><footer>x</footer></body></html>`)).toContain(">Crédits photos</a>");
     expect(addCreditsLink(`<html class="a" lang="pt-BR"><footer>x</footer></html>`)).toContain(
       ">Créditos das imagens</a>",
@@ -229,20 +229,22 @@ describe("media (Q155, Q157)", () => {
         "pages/index.liquid": `<!doctype html>\n<html lang="fr">\n<head><title>T</title></head>\n<body><img src="/media/cafe.jpg"><footer>Boulangerie</footer></body>\n</html>`,
       }),
     );
-    expect(french.renderRoute("/").html).toMatch(/Boulangerie<p data-spaka-credits[^>]*><a [^>]*>Crédits photos<\/a>/);
-    const credits = french.renderRoute("/credits").html;
+    expect((await french.renderRoute("/")).html).toMatch(
+      /Boulangerie<p data-spaka-credits[^>]*><a [^>]*>Crédits photos<\/a>/,
+    );
+    const credits = (await french.renderRoute("/credits")).html;
     expect(credits).toContain(`<html lang="fr"`);
     expect(credits).toContain("<title>Crédits photos</title>");
     expect(credits).toContain("par Jane Doe");
     expect(credits).toContain("via Wikimedia Commons");
     expect(credits).toContain("← Accueil");
-    expect(runtime.renderRoute("/credits").html).toContain("by Jane Doe");
+    expect((await runtime.renderRoute("/credits")).html).toContain("by Jane Doe");
   });
 
-  test("no credits page nor link when no image needs one", () => {
+  test("no credits page nor link when no image needs one", async () => {
     const plain = new Runtime(memorySource({ ...project, "media/cafe.json": JSON.stringify({ alt: "x" }) }));
-    expect(plain.renderRoute("/").html).not.toContain("Image credits");
-    expect(plain.renderRoute("/credits").status).toBe(404);
+    expect((await plain.renderRoute("/")).html).not.toContain("Image credits");
+    expect((await plain.renderRoute("/credits")).status).toBe(404);
   });
 });
 
@@ -256,7 +258,7 @@ fields:
   - name: links
     kind: links
 `;
-  test("each link keeps its label and address; one lacking either is left out", () => {
+  test("each link keeps its label and address; one lacking either is left out", async () => {
     const data = new Datasources(
       memorySource({
         "data/navigation/_datasource.yaml": nav,
@@ -277,7 +279,7 @@ fields:
       ["odd", ["links is not a list of links, each with a label and an address"]],
     ]);
   });
-  test("a menu's links are looped over in a page, and stand-ins give them a shape", () => {
+  test("a menu's links are looped over in a page, and stand-ins give them a shape", async () => {
     const files = {
       "data/navigation/_datasource.yaml": nav,
       "pages/index.liquid": page(
@@ -287,13 +289,13 @@ fields:
     // While the agent writes, before any record: stand-ins.
     const overlay = new Overlay(memorySource(files));
     overlay.set("theme.css", ":root{}");
-    const shown = new Runtime(overlay, { standIns: true }).renderRoute("/").html;
+    const shown = (await new Runtime(overlay, { standIns: true }).renderRoute("/")).html;
     expect(shown).toContain(">First link</a>");
     expect(shown).toContain(">Second link</a>");
   });
 });
 
-test("an empty field is false in a template: no image for a record without one", () => {
+test("an empty field is false in a template: no image for a record without one", async () => {
   const runtime = new Runtime(
     memorySource({
       "data/team/_datasource.yaml": "fields:\n  - name: name\n    kind: text\n  - name: photo\n    kind: image\n",
@@ -305,7 +307,7 @@ test("an empty field is false in a template: no image for a record without one",
       ),
     }),
   );
-  const html = runtime.renderRoute("/").html;
+  const html = (await runtime.renderRoute("/")).html;
   expect(html).toContain(">Ana</i>");
   expect(html).toContain('src="/media/bo.jpg"');
   expect(html).not.toContain('src=""');
@@ -319,7 +321,7 @@ fields:
   - name: photos
     kind: images
 `;
-  test("each image is its address, in order; one in media/ is given its slash, an empty one left out", () => {
+  test("each image is its address, in order; one in media/ is given its slash, an empty one left out", async () => {
     const data = new Datasources(
       memorySource({
         "data/homes/_datasource.yaml": homes,
@@ -340,7 +342,7 @@ fields:
       ["odd", ["photos is not a list of images' addresses"]],
     ]);
   });
-  test("looped over in a page, with three grey stand-ins while the agent writes", () => {
+  test("looped over in a page, with three grey stand-ins while the agent writes", async () => {
     const files = {
       "data/homes/_datasource.yaml": homes,
       "pages/index.liquid": page(
@@ -349,10 +351,10 @@ fields:
     };
     const overlay = new Overlay(memorySource(files));
     overlay.set("theme.css", ":root{}");
-    const shown = new Runtime(overlay, { standIns: true }).renderRoute("/").html;
+    const shown = (await new Runtime(overlay, { standIns: true }).renderRoute("/")).html;
     expect(shown.match(/<img [^>]*src="data:image\/svg\+xml/g)?.length).toBe(9);
   });
-  test("a collected datasource has none: visitors cannot send files", () => {
+  test("a collected datasource has none: visitors cannot send files", async () => {
     const data = new Datasources(
       memorySource({
         "data/requests/_datasource.yaml":

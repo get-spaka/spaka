@@ -47,7 +47,7 @@ const contact = () =>
 describe("every builder", () => {
   test.each(BUILDERS.map((b) => [b.id, b] as const))("%s keeps the contract", async (id, builder) => {
     expect(builderById(id)).toBe(builder);
-    expect(builder.check(contact())).toEqual({ ok: true });
+    expect(await builder.check(contact())).toEqual({ ok: true });
     const result = await builder.build(contact(), { outDir: out, serverBundle: "// server", formServices: {} });
     expect(result.pages).toEqual(["/"]);
     for (const file of result.files) expect(existsSync(join(out, file))).toBe(true);
@@ -62,7 +62,7 @@ describe("every builder", () => {
 });
 
 describe("the static site", () => {
-  test("a form sends to its form service, as a plain form, or is said to send nothing", () => {
+  test("a form sends to its form service, as a plain form, or is said to send nothing", async () => {
     const warnings: string[] = [];
     const html = `${FORM("contact")}<div aria-hidden="true" style="position:absolute"><input type="text" name="_website" tabindex="-1" autocomplete="off" value=""></div>${FORM("other")}<form hx-post="/search">`;
     const rewritten = formsToServices(html, { contact: "https://formspree.io/f/abc" }, "pages/index.liquid", warnings);
@@ -82,12 +82,12 @@ describe("the static site", () => {
       "data/contact/_datasource.yaml": CONTACT,
     });
     const builder = builderById("static")!;
-    expect(builder.check(shows)).toEqual({
+    expect(await builder.check(shows)).toEqual({
       ok: false,
       refusal: { reason: "shows-collected", datasources: ["guestbook"] },
     });
     await expect(builder.build(shows, { outDir: out })).rejects.toThrow(/cannot show what visitors send/);
-    expect(builderById("node")!.check(shows)).toEqual({ ok: true });
+    expect(await builderById("node")!.check(shows)).toEqual({ ok: true });
   });
 
   test("writes the form service's address into the page", async () => {
@@ -213,7 +213,7 @@ describe("the Cloudflare export", () => {
     expect(existsSync(join(out, "public/assets/site.css"))).toBe(true);
   });
 
-  test("its compatibility date turns Node.js compatibility on: never before 2026-08-04", () => {
+  test("its compatibility date turns Node.js compatibility on: never before 2026-08-04", async () => {
     expect(compatibilityDate(new Date("2026-11-09T23:00:00Z"))).toBe("2026-11-09");
     // Never later than the runtime of the wrangler the export installs knows.
     expect(compatibilityDate(new Date("2026-11-19T08:00:00Z"))).toBe(NEWEST_COMPAT_DATE);
@@ -225,7 +225,7 @@ describe("the Cloudflare export", () => {
   });
 });
 
-test("names: lower case, letters, digits, dashes, starting with a letter", () => {
+test("names: lower case, letters, digits, dashes, starting with a letter", async () => {
   expect(slug("Chez Margot — Boulangerie")).toBe("chez-margot-boulangerie");
   expect(slug("Café")).toBe("cafe");
   expect(slug("2026 menu")).toBe("site-2026-menu");

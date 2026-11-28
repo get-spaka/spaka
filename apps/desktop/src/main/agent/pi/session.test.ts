@@ -191,7 +191,7 @@ test("the checks: a note after a tool joins its answer; what it left behind send
       tools: noTools,
       checks: checks({
         afterTool: (tool) => (tool === "Write" ? "Spaka could not use what you just wrote." : undefined),
-        beforeStop: (again) => {
+        beforeStop: async (again) => {
           stops.push(again);
           return again ? undefined : "You left sample records.";
         },

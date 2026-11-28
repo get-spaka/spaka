@@ -40,19 +40,19 @@ function readsData(source: string): string[] {
   return [...names];
 }
 
-test("the gallery holds blocks of every kind it knows of", () => {
+test("the gallery holds blocks of every kind it knows of", async () => {
   expect(blocks.length).toBeGreaterThanOrEqual(30);
   for (const b of blocks) expect(BLOCK_KINDS, b.id).toContain(b.kind);
 });
 
-test("each source's licence is kept beside the gallery", () => {
+test("each source's licence is kept beside the gallery", async () => {
   for (const origin of new Set(blocks.map((b) => b.origin))) {
     const licence = BLOCK_SOURCES[origin];
     if (licence) expect(existsSync(join(GALLERY, licence)), origin).toBe(true);
   }
 });
 
-test("the blocks over one collection give each field the same kind, since the site shares it", () => {
+test("the blocks over one collection give each field the same kind, since the site shares it", async () => {
   const kinds = new Map<string, { kind: string; block: string }>();
   for (const b of blocks) {
     if (b.data?.family !== "collection") continue;
@@ -67,7 +67,7 @@ test("the blocks over one collection give each field the same kind, since the si
 });
 
 describe.each(blocks.map((b) => [b.id, b] as const))("%s", (_id, b) => {
-  test("describes itself", () => {
+  test("describes itself", async () => {
     expect(b.id).toMatch(new RegExp(`^${b.kind}-[a-z0-9-]+$`));
     expect(b.tags.length).toBeGreaterThan(0);
     expect(b.mood.length).toBeGreaterThan(0);
@@ -76,7 +76,7 @@ describe.each(blocks.map((b) => [b.id, b] as const))("%s", (_id, b) => {
     expect(b.synonyms.length).toBeGreaterThanOrEqual(4);
   });
 
-  test("has one root element, closed at its end", () => {
+  test("has one root element, closed at its end", async () => {
     const root = /^\s*<(\w+)/.exec(b.source)?.[1];
     expect(root).toBe(b.kind === "header" ? "header" : b.kind === "footer" ? "footer" : "section");
     expect(b.source.trim().endsWith(`</${root}>`)).toBe(true);
@@ -84,21 +84,21 @@ describe.each(blocks.map((b) => [b.id, b] as const))("%s", (_id, b) => {
     if (b.detail) expect(sections(`<body>${b.detail}</body>`)).toHaveLength(1);
   });
 
-  test("uses the theme's colours only, with no script, style or remote address", () => {
+  test("uses the theme's colours only, with no script, style or remote address", async () => {
     for (const text of [b.source, b.detail ?? "", ...Object.values(b.datasource?.records ?? {})]) {
       expect(text).not.toMatch(/<script|<style|\sstyle=|https?:\/\//i);
       expect(FIXED_COLOUR.exec(text)?.[0]).toBeUndefined();
     }
   });
 
-  test("places nothing over the rest: no floating badge or sticker", () => {
+  test("places nothing over the rest: no floating badge or sticker", async () => {
     // An absolutely placed element is only ever a hidden decoration (a blurred shape, an icon in a placeholder).
     for (const text of [b.source, b.detail ?? ""])
       for (const tag of text.matchAll(/<[a-z][^>]*\bclass="[^"]*(?<![\w-])absolute\b[^"]*"[^>]*>/g))
         expect(tag[0], b.id).toMatch(/aria-hidden="true"/);
   });
 
-  test("holds Liquid only as a data block, over its own datasource", () => {
+  test("holds Liquid only as a data block, over its own datasource", async () => {
     if (!b.data) {
       expect(b.source).not.toMatch(/\{\{|\{%|<img/);
       expect(b.detail).toBeUndefined();
@@ -124,7 +124,7 @@ describe.each(blocks.map((b) => [b.id, b] as const))("%s", (_id, b) => {
     }
   });
 
-  test.runIf(!!b.data)("brings a definition and sample records that read", () => {
+  test.runIf(!!b.data)("brings a definition and sample records that read", async () => {
     const data = new Datasources(memorySource(dropped(b)));
     const ds = data.get(b.data!.name);
     expect(ds?.definition?.label).toBeTruthy();
@@ -138,7 +138,7 @@ describe.each(blocks.map((b) => [b.id, b] as const))("%s", (_id, b) => {
 
   test.runIf(!!b.datasource && isCollected(b.datasource.definition))(
     "a form: a collection posting to itself, its problems shown in the block, answered with its own fragment (Q194)",
-    () => {
+    async () => {
       const name = b.data!.name;
       expect(b.data!.family).toBe("collection");
       const ds = new Datasources(memorySource(dropped(b))).get(name)!;
@@ -165,7 +165,7 @@ describe.each(blocks.map((b) => [b.id, b] as const))("%s", (_id, b) => {
       if (definition.answer) {
         expect(Object.keys(b.fragments ?? {})).toContain(`${definition.answer}.liquid`);
         const record = Object.fromEntries(definition.fields.map((f) => [f.name, f.kind === "boolean" ? true : "Sam"]));
-        const answer = runtimeOf(dropped(b)).renderFragment(definition.answer, { record, params: {} });
+        const answer = await runtimeOf(dropped(b)).renderFragment(definition.answer, { record, params: {} });
         expect(answer.status).toBe(200);
         expect(answer.notes).toEqual([]);
       }
@@ -177,7 +177,7 @@ describe.each(blocks.map((b) => [b.id, b] as const))("%s", (_id, b) => {
     },
   );
 
-  test("renders with no note once dropped as the app drops it, in lorem ipsum, under its page's name", () => {
+  test("renders with no note once dropped as the app drops it, in lorem ipsum, under its page's name", async () => {
     const files: Record<string, string> = {
       "pages/services.liquid":
         "<!doctype html><html><head><title>Services</title></head><body>\n<section>Intro</section>\n</body></html>",
@@ -196,27 +196,27 @@ describe.each(blocks.map((b) => [b.id, b] as const))("%s", (_id, b) => {
     // Its records, in lorem ipsum (Q223), still read.
     if (drop.datasource) expect(new Datasources(memorySource(files)).get(drop.datasource)?.problems).toEqual([]);
     const runtime = runtimeOf(files);
-    const result = runtime.renderRoute("/services");
+    const result = await runtime.renderRoute("/services");
     expect(result.notes).toEqual([]);
     // A form no page shows the records of is read by no page: it posts to its datasource.
     if (readsData(b.source).length) expect(result.datasources).toContain(drop.datasource);
     if (drop.recordPage) {
       const first = Object.keys(files).find((f) => f.startsWith(`data/${drop.datasource}/`) && f.endsWith(".md"))!;
-      const page = runtime.renderRoute(`/${drop.datasource}/${first.split("/").at(-1)!.replace(/\.md$/, "")}`);
+      const page = await runtime.renderRoute(`/${drop.datasource}/${first.split("/").at(-1)!.replace(/\.md$/, "")}`);
       expect(page.notes).toEqual([]);
     }
   });
 
-  test("renders with no note once dropped as a part", () => {
+  test("renders with no note once dropped as a part", async () => {
     const runtime = runtimeOf(dropped(b));
-    const result = runtime.renderRoute("/");
+    const result = await runtime.renderRoute("/");
     expect(result.status).toBe(200);
     expect(result.notes).toEqual([]);
     // A sample without an image shows the block's placeholder, not an empty picture.
     expect(result.html).not.toMatch(/\b(?:src|href)=""/);
     if (b.data && b.detail) {
       const first = Object.keys(b.datasource!.records)[0]!.replace(/\.md$/, "");
-      const page = runtime.renderRoute(`/${b.data.name}/${first}`);
+      const page = await runtime.renderRoute(`/${b.data.name}/${first}`);
       expect(page.status).toBe(200);
       expect(page.notes).toEqual([]);
     }

@@ -6,19 +6,19 @@ import { injectTrace, repairTemplate } from "./template.ts";
 const engine = new Liquid();
 const render = (src: string, data: object = {}) => engine.parseAndRenderSync(src, data);
 
-test("cuts an unfinished Liquid output and closes open HTML", () => {
+test("cuts an unfinished Liquid output and closes open HTML", async () => {
   const r = repairTemplate("<main><h1>Hello {{ site.na");
   assert.equal(r.src, "<main><h1>Hello </h1></main>");
   assert.equal(r.cutReason, "unfinished {{ output");
 });
 
-test("cuts an unfinished Liquid tag", () => {
+test("cuts an unfinished Liquid tag", async () => {
   const r = repairTemplate("<ul>{% for p in products %}<li>{{ p.name }}</li>{% endfo");
   assert.equal(r.src, "<ul>{% for p in products %}<li>{{ p.name }}</li>{% endfor %}</ul>");
   assert.equal(render(r.src, { products: [{ name: "a" }, { name: "b" }] }), "<ul><li>a</li><li>b</li></ul>");
 });
 
-test("closes HTML opened inside an open loop before closing the loop", () => {
+test("closes HTML opened inside an open loop before closing the loop", async () => {
   const r = repairTemplate('<div class="grid">{% for p in products %}<div class="card"><h3>{{ p.name }}</h3><p>Fresh');
   assert.deepEqual(r.closers, ["</p>", "</div>", "{% endfor %}", "</div>"]);
   const html = render(r.src, { products: [{ name: "a" }, { name: "b" }] });
@@ -28,7 +28,7 @@ test("closes HTML opened inside an open loop before closing the loop", () => {
   );
 });
 
-test("cuts an unfinished start tag, even with Liquid and > inside it", () => {
+test("cuts an unfinished start tag, even with Liquid and > inside it", async () => {
   const r = repairTemplate('<section><a href="{{ url }}" class="{% if a > b %}x{% endif %} btn');
   assert.equal(r.src, "<section></section>");
   const done = repairTemplate('<a href="{{ url }}" class="{% if a > b %}x{% endif %} btn">Go</a>');
@@ -36,7 +36,7 @@ test("cuts an unfinished start tag, even with Liquid and > inside it", () => {
   assert.deepEqual(done.closers, []);
 });
 
-test("holds back a lone brace, a lone <, a half entity, a half end tag", () => {
+test("holds back a lone brace, a lone <, a half entity, a half end tag", async () => {
   assert.equal(repairTemplate("<p>Price {").src, "<p>Price </p>");
   assert.equal(repairTemplate("<p>Price <").src, "<p>Price </p>");
   assert.equal(repairTemplate("<p>Fish &am").src, "<p>Fish </p>");
@@ -44,20 +44,20 @@ test("holds back a lone brace, a lone <, a half entity, a half end tag", () => {
   assert.equal(repairTemplate("<p>a < b and {x}</p>").src, "<p>a < b and {x}</p>");
 });
 
-test("drops an unfinished script or style block, keeps a finished one", () => {
+test("drops an unfinished script or style block, keeps a finished one", async () => {
   assert.equal(repairTemplate("<div>a</div><script>let x = '<div>").src, "<div>a</div>");
   assert.equal(repairTemplate("<style>.a{color:red").src, "");
   const ok = "<script>if (a < b) { x() }</script><p>ok";
   assert.equal(repairTemplate(ok).src, `${ok}</p>`);
 });
 
-test("closes nested if / for / case in order", () => {
+test("closes nested if / for / case in order", async () => {
   const r = repairTemplate("{% if user %}<b>{% for x in xs %}{% case x %}{% when 1 %}one");
   assert.deepEqual(r.closers, ["{% endcase %}", "{% endfor %}", "</b>", "{% endif %}"]);
   assert.equal(render(r.src, { user: true, xs: [1, 2] }), "<b>one</b>");
 });
 
-test("every prefix of a real template parses and renders", () => {
+test("every prefix of a real template parses and renders", async () => {
   const full = `<!doctype html>
 <html lang="en">
 <head><title>{{ site.title | default: "Shop" }}</title><meta name="description" content="A & B"></head>
@@ -94,7 +94,7 @@ test("every prefix of a real template parses and renders", () => {
   }
 });
 
-test("injects the source of each element, and the record inside a loop", () => {
+test("injects the source of each element, and the record inside a loop", async () => {
   const src =
     '<main>\n  <ul>\n  {% for b in books %}\n    <li class="row">{{ b.title }}</li>\n  {% endfor %}\n  </ul>\n</main>';
   const traced = injectTrace(src, "pages/index.liquid");
@@ -115,12 +115,12 @@ test("injects the source of each element, and the record inside a loop", () => {
   );
 });
 
-test("a range loop carries no record attribute", () => {
+test("a range loop carries no record attribute", async () => {
   const traced = injectTrace("{% for i in (1..2) %}<i>{{ i }}</i>{% endfor %}", "p.liquid");
   assert.equal(render(traced), '<i data-spaka-src="p.liquid:1:21">1</i><i data-spaka-src="p.liquid:1:21">2</i>');
 });
 
-test("a record is traced through a shared part and into a fragment; each include is marked", () => {
+test("a record is traced through a shared part and into a fragment; each include is marked", async () => {
   const page = injectTrace(
     "<ul>{% for b in books %}{% render 'book', book: b %}{% endfor %}</ul>{%- render 'footer' -%}",
     "pages/index.liquid",
@@ -149,7 +149,7 @@ test("a record is traced through a shared part and into a fragment; each include
   );
 });
 
-test("inside a loop over a record's links, the trace names the record and which link (Q212)", () => {
+test("inside a loop over a record's links, the trace names the record and which link (Q212)", async () => {
   const src =
     '{% for item in data.navigation %}<li><a>{{ item.label }}</a>{% for link in item.links %}<a href="{{ link.href }}">{{ link.label }}</a>{% endfor %}</li>{% endfor %}';
   const traced = injectTrace(src, "parts/header.liquid");
@@ -169,7 +169,7 @@ test("inside a loop over a record's links, the trace names the record and which 
   assert.match(html, /data-spaka-rec="navigation\/services#1"[^>]*>Cakes</);
 });
 
-test("inside a loop over a record's images, the trace names which image, an offset or a reversed order counted (Q355)", () => {
+test("inside a loop over a record's images, the trace names which image, an offset or a reversed order counted (Q355)", async () => {
   const src =
     '{% for photo in record.photos %}<img src="{{ photo }}">{% endfor %}{% for photo in record.photos offset: 1 %}<i>{{ photo }}</i>{% endfor %}{% for photo in record.photos reversed %}<b>{{ photo }}</b>{% endfor %}{% for photo in record.photos offset: n %}<u>{{ photo }}</u>{% endfor %}';
   const traced = injectTrace(src, "pages/homes/[homes].liquid");

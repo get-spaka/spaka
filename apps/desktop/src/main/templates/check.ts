@@ -63,7 +63,7 @@ const TOTAL_LIMIT = 50 * 1024 * 1024;
  * Checks a template's files. `finished`: a template shipped or published,
  * which must also have its pictures.
  */
-export function checkTemplate(files: TemplateFiles, { finished = false } = {}): TemplateCheck {
+export async function checkTemplate(files: TemplateFiles, { finished = false } = {}): Promise<TemplateCheck> {
   const errors: string[] = [];
   const warnings: string[] = [];
   const read = readTemplate(files);
@@ -143,7 +143,7 @@ export function checkTemplate(files: TemplateFiles, { finished = false } = {}): 
   const runtime = new Runtime(source, { repair: false, trace: false, testRecords: tests });
   const routes = runtime.routes();
   for (const { route, file } of routes) {
-    const result = runtime.renderRoute(route);
+    const result = await runtime.renderRoute(route);
     if (result.status !== 200) errors.push(`${file} (${route}) does not render: status ${result.status}.`);
     for (const note of result.notes) errors.push(`${note.file} (${route}): ${note.note}`);
   }
@@ -156,7 +156,7 @@ export function checkTemplate(files: TemplateFiles, { finished = false } = {}): 
   for (const path of paths) {
     const name = /^fragments\/([\w-]+)\.liquid$/.exec(path)?.[1];
     if (!name) continue;
-    for (const note of runtime.renderFragment(name, { params: {} }).notes)
+    for (const note of (await runtime.renderFragment(name, { params: {} })).notes)
       warnings.push(`${note.file} (rendered with no record): ${note.note}`);
   }
 
@@ -323,7 +323,7 @@ export function checkTemplate(files: TemplateFiles, { finished = false } = {}): 
       },
       { repair: false, trace: false, testRecords: tests },
     );
-    for (const note of checking.renderRoute("/spaka-block-check").notes)
+    for (const note of (await checking.renderRoute("/spaka-block-check")).notes)
       errors.push(`${BLOCKS}/${b.kind}/${b.id}, dropped into a page: ${note.note}`);
   }
 

@@ -222,7 +222,9 @@ describe("the templates of a packaged app", { timeout: 60_000 }, () => {
     const dir = join(scratch(), "beacon");
     mkdirSync(dir);
     cpSync(join(BUILT_IN, "beacon"), dir, { recursive: true });
-    expect(library.read(dir)).toEqual({ problems: [expect.stringMatching(/already has a template named "beacon"/)] });
+    expect(await library.read(dir)).toEqual({
+      problems: [expect.stringMatching(/already has a template named "beacon"/)],
+    });
   });
 });
 
@@ -241,17 +243,17 @@ describe("earlier versions for older apps (Q368)", () => {
     };
   };
 
-  test("a template that uses the images field kind says it needs app 0.2.0", () => {
+  test("a template that uses the images field kind says it needs app 0.2.0", async () => {
     const files = readTemplateFolder(join(BUILT_IN, "aspect"));
     const { app: _, ...manifest } = aspect();
     files.set(MANIFEST, Buffer.from(JSON.stringify(manifest)));
-    expect(checkTemplate(files).errors).toContainEqual(
+    expect((await checkTemplate(files)).errors).toContainEqual(
       expect.stringMatching(
         /^data\/listings\/_datasource\.yaml: the images field kind needs Spaka 0\.2\.0 or later: add "app": "0\.2\.0"/,
       ),
     );
     files.set(MANIFEST, Buffer.from(JSON.stringify({ ...manifest, app: "0.2.0" })));
-    expect(checkTemplate(files).errors.filter((e) => /field kind/.test(e))).toEqual([]);
+    expect((await checkTemplate(files)).errors.filter((e) => /field kind/.test(e))).toEqual([]);
   });
 
   test("Aspect 1.1.0, which needs app 0.2.0, keeps Aspect 1.0.0 of v8, release after release", async () => {
@@ -268,7 +270,7 @@ describe("earlier versions for older apps (Q368)", () => {
     expect((await buildRelease(root, scratch(), "v11", v10, OFFLINE)).earlier).toEqual(v10.earlier);
   });
 
-  test("an earlier version is kept only while an app takes it", () => {
+  test("an earlier version is kept only while an app takes it", async () => {
     const v1 = (t: CatalogueEntry[], earlier: Catalogue["earlier"] = []): Catalogue => ({
       format: 1,
       release: "v1",
