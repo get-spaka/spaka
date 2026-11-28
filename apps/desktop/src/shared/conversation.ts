@@ -43,7 +43,9 @@ export type QuestionAnswer =
   | { kind: "words"; text: string }
   | { kind: "skipped" }
   /** The card of pages (Q302): the routes of the page types kept, new pages included. */
-  | { kind: "pages"; kept: string[] };
+  | { kind: "pages"; kept: string[] }
+  /** The card of a secret (Q559): the maker gave it. Its value never enters the conversation. */
+  | { kind: "secret" };
 
 /** Waiting for the maker; answered or skipped; or left when the turn ended (Stop, the app closed). */
 export type QuestionState = "waiting" | "answered" | "skipped" | "unanswered";
@@ -61,6 +63,19 @@ export type PageChoice = { route: string; name: string; line: string; checked: b
 /** The card of pages the first turn of an adaptation waits on (Q302). */
 export type PagesCard = { id: string; pages: PageChoice[]; state: QuestionState; answer?: QuestionAnswer };
 
+/**
+ * A secret the agent asks the maker for (Q501, Q559): its name, what it is
+ * for and where to find it. The value goes straight to Spaka's keeping.
+ */
+export type SecretCard = {
+  id: string;
+  name: string;
+  purpose: string;
+  where?: string;
+  state: QuestionState;
+  answer?: QuestionAnswer;
+};
+
 /** Handed in, approved with Build, replaced by a new one after the maker asked for changes, or left when the turn ended. */
 export type PlanState = "proposed" | "approved" | "replaced" | "unanswered";
 
@@ -74,6 +89,7 @@ export type AgentPart =
   | { kind: "thinking"; text: string }
   | { kind: "question"; card: QuestionCard }
   | { kind: "pages"; card: PagesCard }
+  | { kind: "secret"; card: SecretCard }
   | { kind: "plan"; card: PlanCard };
 
 export type TurnStatus = "working" | "done" | "stopped" | "failed";
@@ -105,6 +121,8 @@ export type ConversationEvent =
   | { type: "question"; card: QuestionCard }
   /** The card of pages of a template's adaptation (Q302); settled as a question is. */
   | { type: "pages"; card: PagesCard }
+  /** A secret Spaka asks the maker for, for the agent (Q559); settled as a question is. */
+  | { type: "secret"; card: SecretCard }
   | { type: "question-settled"; id: string; state: Exclude<QuestionState, "waiting">; answer?: QuestionAnswer }
   /** The agent hands in a plan; its turn waits for Build or the maker's changes. */
   | { type: "plan"; card: PlanCard }
@@ -145,23 +163,29 @@ export function applyEvent(items: ConversationItem[], event: ConversationEvent):
     else parts.push({ kind: "activity", activity: event.activity });
     return [...items.slice(0, -1), { ...last, parts }];
   }
-  if (event.type === "question" || event.type === "plan" || event.type === "pages") {
+  if (event.type === "question" || event.type === "plan" || event.type === "pages" || event.type === "secret") {
     parts.push(
       event.type === "question"
         ? { kind: "question", card: event.card }
         : event.type === "pages"
           ? { kind: "pages", card: event.card }
-          : { kind: "plan", card: event.card },
+          : event.type === "secret"
+            ? { kind: "secret", card: event.card }
+            : { kind: "plan", card: event.card },
     );
     return [...items.slice(0, -1), { ...last, parts }];
   }
   if (event.type === "question-settled") {
-    const at = parts.findIndex((p) => (p.kind === "question" || p.kind === "pages") && p.card.id === event.id);
+    const at = parts.findIndex(
+      (p) => (p.kind === "question" || p.kind === "pages" || p.kind === "secret") && p.card.id === event.id,
+    );
     const part = parts[at];
     if (part?.kind === "question")
       parts[at] = { kind: "question", card: { ...part.card, state: event.state, answer: event.answer } };
     else if (part?.kind === "pages")
       parts[at] = { kind: "pages", card: { ...part.card, state: event.state, answer: event.answer } };
+    else if (part?.kind === "secret")
+      parts[at] = { kind: "secret", card: { ...part.card, state: event.state, answer: event.answer } };
     else return items;
     return [...items.slice(0, -1), { ...last, parts }];
   }
@@ -179,6 +203,7 @@ export function applyEvent(items: ConversationItem[], event: ConversationEvent):
       return { ...p, activity: { ...p.activity, state: event.status !== "done" ? "failed" : "done" } };
     if (p.kind === "question" && p.card.state === "waiting") return { ...p, card: { ...p.card, state: "unanswered" } };
     if (p.kind === "pages" && p.card.state === "waiting") return { ...p, card: { ...p.card, state: "unanswered" } };
+    if (p.kind === "secret" && p.card.state === "waiting") return { ...p, card: { ...p.card, state: "unanswered" } };
     if (p.kind === "plan" && p.card.state === "proposed") return { ...p, card: { ...p.card, state: "unanswered" } };
     return p;
   });
@@ -192,11 +217,12 @@ export function isWorking(items: ConversationItem[]): boolean {
 }
 
 /** What the agent's turn waits for: a card of questions or of pages, or a plan to approve (Q283, Q286, Q302). */
-export function waitingFor(items: ConversationItem[]): QuestionCard | PagesCard | PlanCard | undefined {
+export function waitingFor(items: ConversationItem[]): QuestionCard | PagesCard | SecretCard | PlanCard | undefined {
   const last = items.at(-1);
   if (last?.kind !== "agent" || last.status !== "working") return undefined;
   for (const part of last.parts) {
-    if ((part.kind === "question" || part.kind === "pages") && part.card.state === "waiting") return part.card;
+    if ((part.kind === "question" || part.kind === "pages" || part.kind === "secret") && part.card.state === "waiting")
+      return part.card;
     if (part.kind === "plan" && part.card.state === "proposed") return part.card;
   }
   return undefined;
@@ -220,7 +246,7 @@ export function isWaiting(items: ConversationItem[]): boolean {
 }
 
 /** Whether a card the turn waits on is a plan, which the message box changes rather than answers (Q290). */
-export function isPlan(card: QuestionCard | PagesCard | PlanCard | undefined): card is PlanCard {
+export function isPlan(card: QuestionCard | PagesCard | SecretCard | PlanCard | undefined): card is PlanCard {
   return !!card && "text" in card;
 }
 
@@ -231,6 +257,7 @@ export function answerText(card: QuestionCard): string {
   if (card.state === "unanswered" || card.state === "waiting" || !answer) return "not answered";
   if (answer.kind === "words") return answer.text;
   if (answer.kind === "pages") return answer.kept.join(", ");
+  if (answer.kind === "secret") return "given";
   return card.questions
     .map((q) => {
       const a = answer.answers[q.question];

@@ -29,6 +29,7 @@ export const PAGES_TOOL = spakaToolName(PAGES_TOOL_NAME);
 export const GENERATE_IMAGE_TOOL = spakaToolName("generate_image");
 export const ADD_PACKAGE_TOOL = spakaToolName("add_package");
 export const REMOVE_PACKAGE_TOOL = spakaToolName("remove_package");
+export const ASK_SECRET_TOOL = spakaToolName("ask_secret");
 
 export type Look = (route?: string, options?: LookOptions) => Promise<Seen>;
 export type FindBlocks = (query: string, kind: string | undefined, limit: number) => Block[];
@@ -48,6 +49,11 @@ export type GenerateImage = (input: GenerateInput, signal?: AbortSignal) => Prom
 export type AddPackage = (name: string, version: string | undefined, signal?: AbortSignal) => Promise<string>;
 /** Takes a package out of the website (Q491). */
 export type RemovePackage = (name: string, signal?: AbortSignal) => Promise<string>;
+/** A secret the website's server modules need (Q501): asks the maker with a card, answers given or declined, never the value. */
+export type AskSecret = (
+  secret: { name: string; purpose: string; where?: string },
+  signal?: AbortSignal,
+) => Promise<string>;
 export type SpakaTools = {
   look: Look;
   findBlocks: FindBlocks;
@@ -59,6 +65,7 @@ export type SpakaTools = {
   generateImage?: GenerateImage;
   addPackage: AddPackage;
   removePackage: RemovePackage;
+  askSecret: AskSecret;
 };
 
 /** What a tool answers: text, and images the model looks at. */
@@ -148,6 +155,7 @@ export function spakaTools({
   generateImage,
   addPackage,
   removePackage,
+  askSecret,
 }: SpakaTools): SpakaToolDef[] {
   return [
     {
@@ -285,6 +293,39 @@ export function spakaTools({
       description: "Takes a package out of the website: out of package.json and its node_modules.",
       shape: { name: z.string().describe("The package's name, as package.json lists it") },
       run: async ({ name }: { name: string }, signal?: AbortSignal) => text(await removePackage(name.trim(), signal)),
+    },
+    {
+      name: "ask_secret",
+      description:
+        "Asks the maker for a secret the website's server modules need, such as a payment service's secret key or an e-mail service's key: a card shows its purpose and where to find it, with a masked field. Spaka keeps the value encrypted on the maker's computer, never in the project; you never see it and must never ask for it in the conversation. Answers whether the maker gave it. The modules then read it as env.<NAME>; reading one that is not set throws an error saying so. Ask only for what a module reads, once, when you write that module.",
+      shape: {
+        name: z.string().describe('Its name as modules read it: capitals, digits and underscores, e.g. "PAYMENT_KEY"'),
+        purpose: z
+          .string()
+          .describe(
+            "What it is and what it is for, in the maker's language, e.g. \"Stripe's secret key, to take payments for lessons\"",
+          ),
+        where_to_find: z
+          .string()
+          .optional()
+          .describe(
+            'Where the maker finds it, in their language, e.g. "In Stripe\'s dashboard: Developers › API keys › Secret key"',
+          ),
+      },
+      run: async (
+        { name, purpose, where_to_find }: { name: string; purpose: string; where_to_find?: string },
+        signal?: AbortSignal,
+      ) =>
+        text(
+          await askSecret(
+            {
+              name: name.trim(),
+              purpose: purpose.trim(),
+              ...(where_to_find?.trim() ? { where: where_to_find.trim() } : {}),
+            },
+            signal,
+          ),
+        ),
     },
     {
       name: PAGES_TOOL_NAME,

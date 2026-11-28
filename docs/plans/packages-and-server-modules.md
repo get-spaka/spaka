@@ -1,6 +1,6 @@
 # Spaka v2 : plan de construction des paquets et des modules serveur (Q490-Q535)
 
-## État (2026-11-28) : la sonde et les tranches 1 à 5 faites
+## État (2026-11-28) : la sonde et les tranches 1 à 6 faites
 
 | Tranche | Fait | Commits |
 |---|---|---|
@@ -10,7 +10,7 @@
 | 3. Les paquets dans le navigateur | ✅ | 7936aee ; sous Windows, Rolldown seul (Q557) ec86e33 |
 | 4. Les 37 templates passent aux paquets | ✅ | aed0742 ; get-spaka/templates 6fa8752 (branche `template/packages`) |
 | 5. Les modules serveur dans l'aperçu | ✅ | 57c1276 |
-| 6. Les secrets | | |
+| 6. Les secrets | ✅ | 3ea6df4 |
 | 7. Les exports statique, Node et Cloudflare | | |
 | 8. Le déploiement sur Cloudflare depuis Spaka | | |
 | 9. Le template de l'école de surf | | |
@@ -293,6 +293,19 @@ Fait le 2026-11-28 :
 - `ask_secret` : une carte avec un champ masqué. L'agent apprend seulement « fourni » ou « refusé ».
 - Le process serveur reçoit les secrets du site, et rien d'autre, dans son environnement. Un secret manquant donne une erreur claire.
 - Vérification : la valeur n'apparaît jamais dans la conversation, les fichiers, les journaux ni l'historique.
+
+Décidé en route (Q558 et Q559, sur des propositions visuelles, et des choix techniques sans nouvelle question) :
+- **La section Secrets ne réaffiche jamais une valeur** (Q558) : un secret se remplace ou se retire ; ceux que les modules lisent sans valeur sont « Missing », avec leur champ en place. Spaka les trouve en lisant `server/` (`env.NOM`, `env["NOM"]`, et les noms tirés de `env` par déstructuration).
+- **La carte d'`ask_secret` est une carte de question avec un champ masqué** (Q559). La valeur part par son propre canal (`secrets:provide`) ; la conversation n'en garde que « donné ». Des mots tapés dans la zone de message pendant qu'elle attend y restent : ils pourraient être la clé.
+- **Un secret lu sans valeur lève une erreur claire** dans le module (un `Proxy` sur `env`), qui arrive à l'agent avec les notes de la page.
+- **Le process serveur redémarre** quand un secret change, avec les nouvelles valeurs.
+- **`ask_secret` est refusé en mode plan**, comme `add_package`. Un secret déjà donné n'est pas redemandé : l'agent apprend qu'il existe.
+
+Fait le 2026-11-28 :
+- **`main/secrets/site-secrets.ts`** : un fichier `site-secrets.bin` chiffré par le coffre (`safeStorage`, ou le faux coffre des vérifications), par site : valeur, à quoi il sert, où le trouver, date ; et les secrets lus par les modules.
+- **L'agent** : `ask_secret(name, purpose, where_to_find)` pour Claude et le harness Pi ; la carte de Spaka (`agent.askSecret`) ; la réponse dit « donné » ou « pas donné », jamais la valeur ; le skill `server-modules` a une section Secrets.
+- **L'interface** : `SecretCard.tsx` et la section Secrets de `SiteSettings.tsx`.
+- **Vérifié** : les tests unitaires (le magasin, les secrets lus par les modules, la carte dans la conversation, l'erreur d'un secret manquant dans le vrai process) ; `e2e/secrets.e2e.ts` sur un enregistrement rejoué (`fixtures/secrets-recording.ts`) dont `ask_secret` tourne pour de vrai : l'erreur avant, la carte, les mots gardés dans la zone, « donné » pour l'agent, le module qui lit la clé ; le refus ; la section (manquant donné en place, remplacé, retiré) ; et la valeur absente de tout le dossier de données de Spaka et du projet (hors `site-secrets.bin`), comme de la conversation affichée.
 
 ### 7. Les exports statique, Node et Cloudflare
 

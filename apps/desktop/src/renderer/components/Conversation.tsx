@@ -43,6 +43,7 @@ import { ContentTab } from "./ContentTab";
 import { PagesCard } from "./PagesCard";
 import { PlanCard } from "./PlanCard";
 import { QuestionCard } from "./QuestionCard";
+import { SecretCard } from "./SecretCard";
 import { SignInPanel } from "./SignInPanel";
 import { ThemeTab } from "./ThemeTab";
 import { ExpandSidebarButton } from "./UpdateNote";
@@ -558,6 +559,7 @@ function Thinking({ parts }: { parts: AgentPart[] }) {
 function PartView({ part, streaming }: { part: Exclude<AgentPart, { kind: "activity" }>; streaming: boolean }) {
   if (part.kind === "question") return <QuestionCard card={part.card} />;
   if (part.kind === "pages") return <PagesCard card={part.card} />;
+  if (part.kind === "secret") return <SecretCard card={part.card} />;
   if (part.kind === "plan") return <PlanCard card={part.card} />;
   return <PartText part={part} streaming={streaming} />;
 }

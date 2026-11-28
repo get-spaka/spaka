@@ -13,14 +13,14 @@ const DAY = 86_400_000;
 export const PACKAGE = "nanoidd";
 export const FLAW = "GHSA-test-0001";
 
-type Line = { t: number; m: Record<string, unknown> };
+export type Line = { t: number; m: Record<string, unknown> };
 
 const event = (t: number, e: Record<string, unknown>): Line => ({
   t,
   m: { type: "stream_event", parent_tool_use_id: null, event: e },
 });
 
-function words(t: number, text: string): Line[] {
+export function words(t: number, text: string): Line[] {
   return [
     event(t, { type: "message_start", message: {} }),
     event(t + 10, { type: "content_block_start", index: 0, content_block: { type: "text", text: "" } }),
@@ -30,8 +30,12 @@ function words(t: number, text: string): Line[] {
 }
 
 function addPackage(t: number, id: string): Line[] {
-  const name = "mcp__spaka__add_package";
-  const input = { name: PACKAGE };
+  return spakaCall(t, id, "add_package", { name: PACKAGE });
+}
+
+/** A call of one of Spaka's tools, which the replay runs for real and answers with what it said. */
+export function spakaCall(t: number, id: string, tool: string, input: Record<string, unknown>): Line[] {
+  const name = `mcp__spaka__${tool}`;
   return [
     event(t, { type: "message_start", message: {} }),
     event(t + 10, { type: "content_block_start", index: 0, content_block: { type: "tool_use", id, name, input: {} } }),
@@ -61,13 +65,13 @@ function addPackage(t: number, id: string): Line[] {
   ];
 }
 
-const result = (t: number, text: string): Line => ({
+export const result = (t: number, text: string): Line => ({
   t,
   m: { type: "result", subtype: "success", is_error: false, result: text, duration_ms: t, total_cost_usd: 0 },
 });
 
 /** The bakery's first turn, its words and result left out. */
-function bakeryBuilt(): Line[] {
+export function bakeryBuilt(): Line[] {
   const bakery = readFileSync(join(import.meta.dirname, "bakery.jsonl"), "utf8")
     .split("\n")
     .filter(Boolean)

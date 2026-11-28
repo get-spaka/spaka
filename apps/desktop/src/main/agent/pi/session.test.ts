@@ -61,6 +61,7 @@ const noTools: SpakaTools = {
   choosePages: async () => "",
   addPackage: async () => "",
   removePackage: async () => "",
+  askSecret: async () => "",
 };
 
 function checks(over: Partial<Pick<TurnChecks, "afterTool" | "beforeStop">> = {}) {

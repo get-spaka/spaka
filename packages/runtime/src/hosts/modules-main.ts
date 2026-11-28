@@ -29,7 +29,13 @@ const secretNames = (() => {
     return [];
   }
 })();
-const env: Record<string, string | undefined> = Object.fromEntries(secretNames.map((n) => [n, process.env[n]]));
+const secrets: Record<string, string | undefined> = Object.fromEntries(secretNames.map((n) => [n, process.env[n]]));
+/** A secret's name: one the site has not been given is an error that says how to give it. */
+const SECRET = /^[A-Z][A-Z0-9_]*$/;
+const missing = (name: string) =>
+  new Error(
+    `the secret ${name} is not set: the agent asks the maker for it with ask_secret, or the maker gives it in the website's settings`,
+  );
 
 /** Where in the site's own files an error comes from: server/weather.ts:12. */
 function located(error: unknown): string {
@@ -85,7 +91,20 @@ const host = moduleHost({
       async () => (await import(pathToFileURL(file).href)) as ServerModule,
     ]),
   ),
-  context: () => ({ env: { ...env }, data, sql, files: filesDir }),
+  context: () => ({
+    env: new Proxy(
+      { ...secrets },
+      {
+        get: (target, name) => {
+          if (typeof name === "string" && SECRET.test(name) && !Object.hasOwn(target, name)) throw missing(name);
+          return Reflect.get(target, name);
+        },
+      },
+    ),
+    data,
+    sql,
+    files: filesDir,
+  }),
 });
 
 process.on("message", async (message: HostCall | DataAnswer) => {

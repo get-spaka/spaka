@@ -4,15 +4,23 @@
 // own skills and connectors, all kept in its folder; and which connectors it
 // also gets from the settings for every website; its packages (Q520). A click on its name, the
 // dialog's title, renames it, as a double-click on its row does.
-import { House } from "lucide-react";
+import { Eye, EyeOff, House } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { AgentStatus, ConnectorInfo, PackageInfo, ProjectInfo, SiteCheck, SkillInfo } from "../../shared/ipc";
+import type {
+  AgentStatus,
+  ConnectorInfo,
+  PackageInfo,
+  ProjectInfo,
+  SecretInfo,
+  SiteCheck,
+  SkillInfo,
+} from "../../shared/ipc";
 import { spaka } from "../lib/bridge";
 import { messageOf } from "../lib/errors";
 import { t } from "../lib/strings";
 import { ConnectorList, SkillList } from "../settings/lists";
 import { ModelRows } from "../settings/model";
-import { Group, Push, Row } from "../settings/ui";
+import { Group, ListBar, Push, Row } from "../settings/ui";
 import { RenameField } from "./RenameField";
 import { Tip } from "./ui/tip";
 
@@ -146,6 +154,8 @@ export function SiteSettings({
 
         <Packages projectId={project.id} />
 
+        <Secrets projectId={project.id} />
+
         <PublishedSite project={project} />
 
         <div className="flex justify-end">
@@ -215,6 +225,175 @@ function Packages({ projectId }: { projectId: string }) {
         ))
       )}
     </Group>
+  );
+}
+
+/**
+ * The website's secrets (Q558): never shown once given, only replaced or
+ * removed; those its server modules read without a value are missing, their
+ * field in place.
+ */
+function Secrets({ projectId }: { projectId: string }) {
+  const s = t.secrets;
+  const [list, setList] = useState<SecretInfo[]>([]);
+  const [editing, setEditing] = useState<string>();
+  const [adding, setAdding] = useState(false);
+  const [error, setError] = useState<string>();
+  useEffect(() => {
+    const load = () => void spaka.invoke("secrets:list").then(setList);
+    load();
+    return spaka.on("secrets:changed", (id) => {
+      if (id === projectId) load();
+    });
+  }, [projectId]);
+  const run = async (work: () => Promise<SecretInfo[]>) => {
+    setError(undefined);
+    try {
+      setList(await work());
+      return true;
+    } catch (e) {
+      setError(messageOf(e));
+      return false;
+    }
+  };
+  const save = async (name: string, value: string) => {
+    if (await run(() => spaka.invoke("secrets:set", name, value))) {
+      setEditing(undefined);
+      setAdding(false);
+    }
+  };
+  const remove = (name: string) => {
+    if (window.confirm(s.removeConfirm(name))) void run(() => spaka.invoke("secrets:remove", name));
+  };
+  const date = (at: string) => new Date(at).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return (
+    <Group
+      title={s.title}
+      caption={error ? <span className="text-destructive">{error}</span> : s.caption}
+      testid="site-secrets"
+      footer={<ListBar testid="secrets" addLabel={s.add} onAdd={() => setAdding(true)} />}
+    >
+      {list.length === 0 && !adding ? (
+        <p className="px-3 py-2.5 text-[13px] text-muted-foreground">{s.none}</p>
+      ) : (
+        list.map((secret) => (
+          <Row
+            key={secret.name}
+            label={
+              <span data-testid="secret" data-name={secret.name} data-set={secret.set ? "true" : "false"}>
+                <span className="font-mono text-[12.5px]">{secret.name}</span>
+              </span>
+            }
+            detail={
+              secret.set
+                ? [secret.purpose, secret.at && s.setOn(date(secret.at))].filter(Boolean).join(" · ") || undefined
+                : `${secret.readBy.length ? s.readBy(secret.readBy) : ""}, ${s.noValue}`.replace(/^, /, "")
+            }
+          >
+            {secret.set && editing !== secret.name ? (
+              <>
+                <span className="rounded-full bg-muted px-2 py-px text-[11px] text-success">{s.set}</span>
+                <Push testid="secret-replace" tip={s.replaceTip(secret.name)} onClick={() => setEditing(secret.name)}>
+                  {s.replace}
+                </Push>
+                <Push testid="secret-remove" tip={s.removeTip(secret.name)} onClick={() => remove(secret.name)}>
+                  {s.remove}
+                </Push>
+              </>
+            ) : (
+              <>
+                {!secret.set && (
+                  <span className="rounded-full bg-warning-muted px-2 py-px text-[11px] text-warning">{s.missing}</span>
+                )}
+                <SecretValue
+                  name={secret.name}
+                  onSave={(value) => void save(secret.name, value)}
+                  onCancel={secret.set ? () => setEditing(undefined) : undefined}
+                />
+              </>
+            )}
+          </Row>
+        ))
+      )}
+      {adding && <NewSecret onSave={(name, value) => void save(name, value)} onCancel={() => setAdding(false)} />}
+    </Group>
+  );
+}
+
+/** A masked field and its Save, for a secret's value: what is typed is shown only on demand. */
+function SecretValue({
+  name,
+  onSave,
+  onCancel,
+}: {
+  name: string;
+  onSave: (value: string) => void;
+  onCancel?: () => void;
+}) {
+  const s = t.secrets;
+  const [value, setValue] = useState("");
+  const [shown, setShown] = useState(false);
+  return (
+    <form
+      className="flex items-center gap-2"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (value.trim()) onSave(value);
+      }}
+    >
+      <span className="flex w-44 items-center rounded-md border border-input bg-card pr-1 focus-within:border-ring">
+        <input
+          type={shown ? "text" : "password"}
+          data-testid="secret-value-field"
+          aria-label={name}
+          placeholder={s.valuePlaceholder}
+          autoComplete="off"
+          spellCheck={false}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          className="min-w-0 flex-1 bg-transparent px-2 py-1 font-mono text-[12px] outline-none"
+        />
+        <Tip text={shown ? s.hide : s.show}>
+          <button
+            type="button"
+            aria-label={shown ? s.hide : s.show}
+            onClick={() => setShown((v) => !v)}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            {shown ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+          </button>
+        </Tip>
+      </span>
+      {onCancel && (
+        <Push tip={s.cancel} onClick={onCancel}>
+          {s.cancel}
+        </Push>
+      )}
+      <Push type="submit" primary testid="secret-save" tip={s.save} disabled={!value.trim()}>
+        {s.save}
+      </Push>
+    </form>
+  );
+}
+
+/** A secret added by hand: its name, then its value. */
+function NewSecret({ onSave, onCancel }: { onSave: (name: string, value: string) => void; onCancel: () => void }) {
+  const s = t.secrets;
+  const [name, setName] = useState("");
+  return (
+    <div className="flex min-h-11 flex-wrap items-center gap-2 px-3 py-2">
+      <input
+        data-testid="secret-name-field"
+        aria-label={s.namePlaceholder}
+        placeholder={s.namePlaceholder}
+        autoComplete="off"
+        spellCheck={false}
+        value={name}
+        onChange={(e) => setName(e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, "_"))}
+        className="min-w-0 flex-1 rounded-md border border-input bg-card px-2 py-1 font-mono text-[12px] outline-none focus:border-ring"
+      />
+      <SecretValue name={name || s.namePlaceholder} onSave={(value) => onSave(name, value)} onCancel={onCancel} />
+    </div>
   );
 }
 
