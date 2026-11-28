@@ -112,7 +112,7 @@ import { exportWarnings, flawNotices, greyAnswer, greyCard, syncNotices } from "
 import { PackageModules } from "./packages/modules";
 import { Packages } from "./packages/packages";
 import { pnpmFolders } from "./packages/pnpm";
-import { ensureVite } from "./packages/vite";
+import { ensureRolldown } from "./packages/rolldown";
 import { Preview } from "./preview/preview";
 import { testRecordFile } from "./preview/test-records";
 import { isEffort, Projects, readProjectFile } from "./projects";
@@ -465,18 +465,18 @@ async function main() {
     ...(env.packagesFixture ? { fetch: fixtureFetch(env.packagesFixture) } : {}),
   });
   // The packages in the browser (ADR 0013): a module for each package the scripts
-  // import, made by Spaka's Vite, kept for every website.
+  // import, made by Spaka's Rolldown, kept for every website.
   const packageModules = new PackageModules({
     cacheDir: join(userData, "package-modules"),
-    tools: () => ensureVite({ folders: pnpmFolders(userData), nodeBinDir: launcher.binDir }),
+    tools: () => ensureRolldown({ folders: pnpmFolders(userData), nodeBinDir: launcher.binDir }),
   });
   const importsOf = (path: string) => siteAssets(diskSource(path)).assets.packages ?? [];
-  /** A website's modules made ahead, so that its pages wait for none; Spaka's Vite installed with its first package. */
+  /** A website's modules made ahead, so that its pages wait for none; Spaka's Rolldown installed with its first package. */
   const makeModules = (path: string) => {
     const imports = importsOf(path);
     if (imports.length) void packageModules.modules(path, imports).catch(() => {});
     else if (packages.list(path).length)
-      void ensureVite({ folders: pnpmFolders(userData), nodeBinDir: launcher.binDir }).catch(() => {});
+      void ensureRolldown({ folders: pnpmFolders(userData), nodeBinDir: launcher.binDir }).catch(() => {});
   };
   const agentEnv = () => {
     const base = cleanEnv();

@@ -10,11 +10,11 @@ import { previewDriver } from "./preview-driver.ts";
 // real: the packages the site-scripts skill lists, written into package.json
 // as a maker would, installed by Spaka's pnpm under its rules (npm's
 // registry, OSV, the downloads), imported by the site's modules by their
-// names, and made into modules by Spaka's Vite, run under Node's permissions.
+// names, and made into modules by Spaka's Rolldown, run under Node's permissions.
 // Each does its work in the preview's visitor mode with no error, as does the
 // skill's own example module; then the static export, served by a plain file
 // server with every other address refused, runs them the same. Downloads
-// Spaka's pnpm, its Vite and the packages: skipped without the network.
+// Spaka's pnpm, its Rolldown and the packages: skipped without the network.
 const SKILL = readFileSync(join(__dirname, "../apps/desktop/skills/site-scripts/SKILL.md"), "utf8");
 const listed = [...SKILL.matchAll(/^\| `([a-z][\w.-]*)` \| /gm)].map((m) => m[1]!);
 const reveal = /```js\n\/\/ scripts\/reveal\.js\n([\s\S]*?)```/.exec(SKILL)![1]!;

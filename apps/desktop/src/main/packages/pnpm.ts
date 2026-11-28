@@ -152,7 +152,7 @@ export function pnpmEnv(
 /**
  * The settings of every pnpm call, as the probe ran them. Spaka's own tools
  * (`tools`) install as their shipped lockfile says, without the optional
- * packages: the native programs of Vite's own, which Spaka never runs.
+ * packages: the native programs of Rolldown's own, which Spaka never runs.
  */
 export function pnpmFlags(projectDir: string, folders: PnpmFolders, { tools = false } = {}): string[] {
   const settings: Record<string, string | number | boolean> = {

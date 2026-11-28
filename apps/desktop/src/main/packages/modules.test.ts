@@ -6,11 +6,15 @@ import { diskSource } from "@spaka/runtime/node";
 import { expect, test } from "vitest";
 import { PackageModules } from "./modules";
 
-// The build host run with the repository's own Vite, outside Node's
-// permissions (its rolldown is native): rules.real.test.ts and the e2e
-// check Spaka's own Vite, confined.
+// The build host run with the repository's own Rolldown, outside Node's
+// permissions (it is native): rules.real.test.ts and the e2e check Spaka's
+// own Rolldown, confined, as WebAssembly.
 const DESKTOP = join(import.meta.dirname, "../../..");
-const tools = { dir: DESKTOP, host: join(import.meta.dirname, "build-host.mjs") };
+const tools = {
+  dir: DESKTOP,
+  host: join(import.meta.dirname, "build-host.mjs"),
+  preload: join(import.meta.dirname, "wasi-drives.mjs"),
+};
 
 function write(root: string, files: Record<string, string>) {
   for (const [path, text] of Object.entries(files)) {
@@ -103,24 +107,26 @@ test("one module per specifier, its licence notice at its head, what the import 
   expect(weights.get("slides")).toBeGreaterThan(100);
 }, 30_000);
 
-test("a specifier Vite cannot make is an error, said in one line, and never kept", async () => {
+test("a specifier Rolldown cannot make is an error, said in one line, and never kept", async () => {
   const root = site();
   const modules = new PackageModules({ cacheDir: join(root, ".cache"), tools: async () => tools, confined: false });
   const missing = { specifier: "slides/nothing", name: "slides", version: "2.1.0", url: "/x.js" };
   const made = await modules.modules(root, [missing]);
-  expect(made.get("slides/nothing")).toEqual({ error: expect.stringContaining('"./nothing" is not exported') });
+  expect(made.get("slides/nothing")).toEqual({
+    error: expect.stringContaining("Package subpath './nothing' is not defined by \"exports\""),
+  });
   const unresolved = await modules.modules(root, [{ ...missing, specifier: "nowhere", name: "nowhere" }]);
   expect(unresolved.get("nowhere")).toEqual({ error: "Cannot resolve entry module nowhere." });
   expect(() => readdirSync(join(root, ".cache"))).not.toThrow();
   expect(readdirSync(join(root, ".cache"))).toEqual([]);
-  // Spaka's Vite not installed: every module says why.
+  // Spaka's Rolldown not installed: every module says why.
   const offline = new PackageModules({
     cacheDir: join(root, ".cache2"),
     tools: async () => {
-      throw new Error("Spaka could not install its Vite 8.3.8: no network.");
+      throw new Error("Spaka could not install its Rolldown 1.2.19: no network.");
     },
   });
   expect((await offline.modules(root, [missing])).get("slides/nothing")).toEqual({
-    error: "Spaka could not install its Vite 8.3.8: no network.",
+    error: "Spaka could not install its Rolldown 1.2.19: no network.",
   });
 }, 30_000);

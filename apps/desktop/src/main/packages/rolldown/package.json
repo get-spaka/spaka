@@ -1,0 +1,9 @@
+{
+  "name": "spaka-rolldown",
+  "private": true,
+  "description": "Spaka's Rolldown, installed by Spaka's pnpm in the app's tools folder (packages/rolldown.ts). Its lockfile is made with Spaka's pnpm and its flags, so that no version is younger than a week.",
+  "dependencies": {
+    "@rolldown/binding-wasm32-wasi": "1.2.19",
+    "rolldown": "1.2.19"
+  }
+}

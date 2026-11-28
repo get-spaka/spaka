@@ -38,7 +38,7 @@ export const PACKAGES_BASE = "/assets/packages";
 /**
  * A package a site's scripts import by its name (ADR 0013), as the page's
  * import map points to it: one ES module for each name or path inside a
- * package that the scripts import, made by Spaka's Vite from the installed
+ * package that the scripts import, made by Spaka's Rolldown from the installed
  * version.
  */
 export type PackageImport = {

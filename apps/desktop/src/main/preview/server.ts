@@ -42,7 +42,7 @@ const STATIC_TYPES: Record<string, string> = {
 
 export type Site = { root: string; runtime: Runtime };
 
-/** The module of a package at an address of the site's import map, made by Spaka's Vite (ADR 0013). */
+/** The module of a package at an address of the site's import map, made by Spaka's Rolldown (ADR 0013). */
 export type PackageModuleAt = (
   root: string,
   packages: PackageImport[],

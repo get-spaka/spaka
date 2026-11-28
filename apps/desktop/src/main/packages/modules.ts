@@ -1,6 +1,6 @@
 // The packages in the browser (ADR 0013, packages plan, slice 3): one ES
 // module for each package, or path inside one, that a website's scripts
-// import, made by Spaka's Vite in its build host (build-host.mjs) from the
+// import, made by Spaka's Rolldown in its build host (build-host.mjs) from the
 // version installed, with the licence notices of what it bundles at its head.
 // The page's import map points to them, in the preview and once exported.
 // They are kept in the app's data folder for every website, by what they are
@@ -10,10 +10,11 @@ import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative } from "node:path";
+import { pathToFileURL } from "node:url";
 import { gzipSync } from "node:zlib";
 import type { PackageImport } from "@spaka/runtime";
 import { readLockfile } from "./lockfile";
-import { TOOLS_KEY, type ViteTools } from "./vite";
+import { type RolldownTools, TOOLS_KEY } from "./rolldown";
 
 /** A package whose code a module bundles, as its notice names it. */
 export type Bundled = { name: string; version: string; license?: string };
@@ -32,8 +33,8 @@ type HostResult =
 export type ModulesOptions = {
   /** Where the modules are kept, for every website. */
   cacheDir: string;
-  /** Spaka's Vite, installed if need be. */
-  tools: () => Promise<ViteTools>;
+  /** Spaka's Rolldown, installed if need be. */
+  tools: () => Promise<RolldownTools>;
   /**
    * Whether the build host runs under Node's permissions: always, but for
    * the unit tests, which run it with the repository's own Vite.
@@ -155,7 +156,7 @@ export class PackageModules {
     toMake: { entry: PackageImport; key: string; external: string[] }[],
   ): Promise<Map<string, ModuleResult>> {
     const failed = (error: string) => new Map(toMake.map(({ entry }) => [entry.specifier, { error }]));
-    let tools: ViteTools;
+    let tools: RolldownTools;
     try {
       tools = await this.o.tools();
     } catch (error) {
@@ -200,22 +201,24 @@ export class PackageModules {
 
 /** Runs the build host once: the request on stdin, its answer on stdout. */
 function runHost(
-  tools: ViteTools,
+  tools: RolldownTools,
   request: { root: string; modules: { specifier: string; external: string[] }[] },
   confined: boolean,
   timeoutMs: number,
 ): Promise<HostResult[]> {
-  // Reading only: no writing, no other program, no native code (rolldown runs as WebAssembly).
+  // Reading only: no writing, no other program, no native code (Rolldown runs as WebAssembly);
+  // what reads Windows' drives for it loaded first, in each of its threads (Q557).
   const permissions = confined ? ["--permission", "--allow-fs-read=*", "--allow-wasi", "--allow-worker"] : [];
+  const preload = [`--import=${pathToFileURL(tools.preload).href}`];
   const env: Record<string, string> = {
     ELECTRON_RUN_AS_NODE: "1",
     NAPI_RS_FORCE_WASI: confined ? "error" : "false",
-    SPAKA_VITE_DIR: tools.dir,
+    SPAKA_ROLLDOWN_DIR: tools.dir,
   };
   for (const [name, value] of Object.entries(process.env))
     if (/^(systemroot|windir|temp|tmp|tmpdir)$/i.test(name) && value) env[name] = value;
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, ["--no-warnings", ...permissions, tools.host], {
+    const child = spawn(process.execPath, ["--no-warnings", ...permissions, ...preload, tools.host], {
       cwd: tools.dir,
       env,
       stdio: ["pipe", "pipe", "pipe"],
@@ -240,7 +243,7 @@ function runHost(
         resolve(JSON.parse(out) as HostResult[]);
       } catch {
         const last = err.trim().split("\n").filter(Boolean).slice(-3).join(" ");
-        reject(new Error(`Spaka's Vite stopped (${code ?? "killed"})${last ? `: ${last}` : ""}`));
+        reject(new Error(`Spaka's Rolldown stopped (${code ?? "killed"})${last ? `: ${last}` : ""}`));
       }
     });
     child.stdin.end(JSON.stringify(request));
@@ -253,9 +256,10 @@ type BundledPackage = Bundled & { dir: string };
 function bundledBy(projectDir: string, moduleIds: string[]): BundledPackage[] {
   const bundled = new Map<string, BundledPackage>();
   const roots = new Map<string, BundledPackage | undefined>();
-  // Rolldown names the files by their real paths, through pnpm's links, and on
-  // Windows by their long names: the native realpath gives those (C:\Users\RUNNER~1
-  // is C:\Users\runneradmin), where the other kept the short one and found no package.
+  // The project's folder and each file taken by their real paths, through pnpm's
+  // links, and on Windows by their long names, as the native realpath gives them
+  // (C:\Users\RUNNER~1 is C:\Users\runneradmin): a file named one way and the
+  // folder the other would seem outside the project, its package not found.
   let root = projectDir;
   try {
     root = realpathSync.native(projectDir);
@@ -279,8 +283,12 @@ function bundledBy(projectDir: string, moduleIds: string[]): BundledPackage[] {
     roots.set(dir, found);
     return found;
   };
-  for (const id of moduleIds) {
-    if (!isAbsolute(id) || !existsSync(id)) continue;
+  for (const named of moduleIds) {
+    if (!isAbsolute(named) || !existsSync(named)) continue;
+    let id = named;
+    try {
+      id = realpathSync.native(named);
+    } catch {}
     const of = packageAt(dirname(id));
     if (of) bundled.set(`${of.name}@${of.version}`, of);
   }

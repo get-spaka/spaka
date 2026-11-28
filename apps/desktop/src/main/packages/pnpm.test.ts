@@ -147,7 +147,7 @@ test("every call carries Spaka's folders and settings, as the probe ran them", (
   );
   expect(flags).toContain("--config.frozen-lockfile=false");
   expect(flags.some((f) => f.startsWith("--config.optional="))).toBe(false);
-  // Spaka's own tools, its Vite: as its shipped lockfile says, without Vite's native programs.
+  // Spaka's own tools, its Rolldown: as its shipped lockfile says, without Rolldown's native programs.
   const tools = pnpmFlags("/data/tools/vite", pnpmFolders("/data", "darwin"), { tools: true });
   expect(tools).toEqual(expect.arrayContaining(["--config.frozen-lockfile=true", "--config.optional=false"]));
 });

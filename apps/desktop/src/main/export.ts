@@ -44,7 +44,7 @@ export type ExportOptions = {
   formServices?: Record<string, string>;
   /** The website's management token, made when a builder first needs it (Q191). */
   managementToken: () => string;
-  /** The modules of the packages the site's scripts import, made by Spaka's Vite (ADR 0013). */
+  /** The modules of the packages the site's scripts import, made by Spaka's Rolldown (ADR 0013). */
   packageModules?: BuildOptions["packageModules"];
 };
 
