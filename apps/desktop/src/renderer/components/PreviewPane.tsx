@@ -28,6 +28,7 @@ import type {
   ProjectInfo,
   Rect,
 } from "../../shared/ipc";
+import { workingPillStyle } from "../../shared/working-pill";
 import { useCommands } from "../hooks/useCommand";
 import { useComments } from "../hooks/useMain";
 import { spaka } from "../lib/bridge";
@@ -38,7 +39,7 @@ import { stillToAdapt, useAdaptation } from "./AdaptationBar";
 import { ExportDialog } from "./ExportDialog";
 import { HistoryButtons, HistoryList } from "./HistoryPanel";
 import { PagesGrid, pageName } from "./PagesGrid";
-import { Button } from "./ui/button";
+import { Button, pressedClass } from "./ui/button";
 import { NativeSelect } from "./ui/native-select";
 import { Tip, TipOverPage } from "./ui/tip";
 
@@ -145,6 +146,8 @@ export function PreviewPane({
   const [picture, setPicture] = useState<{ url: string; at: NonNullable<typeof placed.current> } | null>(null);
   const openPublish = async () => {
     const url = await spaka.invoke("preview:snapshot").catch(() => null);
+    // The native views gone before the dialog is drawn: the "All pages" live thumbnail stayed over it while it faded in.
+    await spaka.invoke("preview:cover").catch(() => {});
     setPicture(url && placed.current ? { url, at: placed.current } : null);
     setExporting(true);
   };
@@ -551,7 +554,7 @@ export function PreviewPane({
                   key={view}
                   variant="ghost"
                   size="icon-sm"
-                  className={cn("h-6 w-8", state.view === view && "bg-foreground/10 text-foreground")}
+                  className={cn("h-6 w-8 text-muted-foreground", state.view === view && pressedClass)}
                   tip={tip}
                   command={command}
                   aria-pressed={state.view === view}
@@ -581,7 +584,7 @@ export function PreviewPane({
                     key={mode}
                     variant="ghost"
                     size="icon-sm"
-                    className={cn("h-6 w-8", state.mode === mode && "bg-foreground/10 text-foreground")}
+                    className={cn("h-6 w-8 text-muted-foreground", state.mode === mode && pressedClass)}
                     tip={tip}
                     command={`mode-${mode}`}
                     aria-pressed={state.mode === mode}
@@ -609,7 +612,7 @@ export function PreviewPane({
                     key={w}
                     variant="ghost"
                     size="icon-sm"
-                    className={cn("h-6 w-8", width === w && "bg-foreground/10 text-foreground")}
+                    className={cn("h-6 w-8 text-muted-foreground", width === w && pressedClass)}
                     tip={tip}
                     command={`screen-${w}`}
                     aria-pressed={width === w}
@@ -623,7 +626,7 @@ export function PreviewPane({
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  className={cn("h-6 w-8", !!deviceOf(width) && landscape && "bg-foreground/10 text-foreground")}
+                  className={cn("h-6 w-8 text-muted-foreground", !!deviceOf(width) && landscape && pressedClass)}
                   tip={!deviceOf(width) ? t.preview.noLandscape : landscape ? t.preview.portrait : t.preview.landscape}
                   disabled={!deviceOf(width)}
                   aria-pressed={!!deviceOf(width) && landscape}
@@ -651,7 +654,7 @@ export function PreviewPane({
             <Button
               variant="ghost"
               size="icon-sm"
-              className={cn("no-drag h-7 w-8", previewOnly && "bg-foreground/10 text-foreground")}
+              className={cn("no-drag h-7 w-8 text-muted-foreground", previewOnly && pressedClass)}
               tip={previewOnly ? t.preview.backToConversation : t.preview.previewOnly}
               command="preview-only"
               aria-pressed={previewOnly}
@@ -750,8 +753,9 @@ export function PreviewPane({
             <>
               <h2 className="text-base font-medium">{project ? t.preview.emptyTitle : t.preview.noProjectTitle}</h2>
               <p className="max-w-80 text-sm text-muted-foreground">
-                {project ? t.preview.emptyText : t.preview.noProjectText}
+                {project ? (working ? t.preview.emptyWorking : t.preview.emptyText) : t.preview.noProjectText}
               </p>
+              {project && working && !waiting && state.routes.length === 0 && <EmptyWorking />}
             </>
           )}
           {zoom && (
@@ -915,5 +919,36 @@ function ZoomPicture({ zoom, onDone }: { zoom: Zoom; onDone: () => void }) {
         />
       )}
     </div>
+  );
+}
+
+/**
+ * The website has no page yet while the agent works (a new one, its first
+ * minute): the pill the editor draws in a page is drawn here, over the empty
+ * view, in the same place and the same look, with Stop (Q549).
+ */
+function EmptyWorking() {
+  return (
+    <>
+      {/* Placed by transform alone, as the page's pill is: its rise ends on translate(-50%), which a translate of Tailwind's would add to (Q549). */}
+      <style>{`.preview-working { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; }\n${workingPillStyle(".preview-working")}`}</style>
+      <div role="status" data-testid="preview-working" className="preview-working">
+        <span className="bars" aria-hidden>
+          <i />
+          <i />
+          <i />
+          <i />
+        </span>
+        <b>{t.editor.working}</b>
+        <Tip text={t.editor.stopTip}>
+          <button type="button" onClick={() => void spaka.invoke("conversation:stop")}>
+            <svg viewBox="0 0 10 10" aria-hidden>
+              <rect width="10" height="10" rx="2" fill="currentColor" />
+            </svg>
+            <span>{t.editor.stop}</span>
+          </button>
+        </Tip>
+      </div>
+    </>
   );
 }

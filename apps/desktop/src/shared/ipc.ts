@@ -182,6 +182,31 @@ export type PublishInfo = {
 };
 /** One step of putting an export online, worded by the app under its builder's id and its own. */
 export type GuideStep = { id: string; command?: string };
+/** A page the Publish dialog opens: a hosting service's, or its help on domain names. */
+export type ExportLink =
+  | "netlify"
+  | "cloudflare"
+  | "github"
+  | "netlify-domain"
+  | "cloudflare-domain"
+  | "github-domain"
+  | "worker-domain";
+
+/** One of a website's packages, as its settings list it (Q520). */
+export type PackageInfo = {
+  name: string;
+  /** As package.json asks for it: the exact version Spaka wrote, or a range written by hand. */
+  specifier: string;
+  /** The version installed; none until it is. */
+  version?: string;
+  license?: string;
+  /** Where it comes from: npm's registry, until private registries and git repositories (Q502). */
+  source: "npm";
+  /** Where the site's own modules import it: scripts/ for the browser, server/ for its server (Q508). */
+  sides: ("browser" | "server")[];
+  /** What visitors' browsers download of it, compressed, once its modules are made (ADR 0013). */
+  weight?: number;
+};
 export type ExportResult = {
   folder: string;
   /** "static", "node", "cloudflare". */
@@ -390,7 +415,7 @@ export type EditAction =
    */
   | { type: "image"; file: string; at: number; src: string; record?: string; from?: string }
   /**
-   * An image written in the template set in its frame (Q490), for some
+   * An image written in the template set in its frame (Q547), for some
    * screens: how it sits there, or null for as the template's classes have it.
    */
   | { type: "image-frame"; file: string; at: number; frame: Frame | null; formats: Format[] }
@@ -421,7 +446,7 @@ export type EditInfo = {
    * record's field (Q159). `list`: it is one of a record's list of images,
    * which holds `count` images when the record was named (Q355, Q356).
    * `frame`: it is written in the template for this place alone, so the maker
-   * can set it in its frame (Q490): the frame each screen has now.
+   * can set it in its frame (Q547): the frame each screen has now.
    */
   image?: { field?: string; list?: { count?: number }; frame?: Frames };
 };
@@ -631,13 +656,14 @@ export type TemplateSummary = {
   imported: boolean;
 };
 
-/** A template shown large in the start screen (Q249): the page shown and the pages to go to. */
-export type TemplateViewState = {
-  id: string | null;
-  route: string | null;
-  title: string;
-  pages: { route: string; name: string }[];
-  loading: boolean;
+/** A page of a template shown large in the start screen (Q541, Q544): its name, and which of its pictures there are. */
+export type TemplatePageShot = {
+  route: string;
+  name: string;
+  /** Its pictures' name in pictures/pages/: "home", "menu", "blog-first-post". */
+  page: string;
+  desktop: boolean;
+  phone: boolean;
 };
 
 /** A template read from a folder or a .zip, waiting for the maker to add it (Q248); or why it cannot be one. */
@@ -678,6 +704,12 @@ export type Invokes = {
   "preview:reload": () => void;
   /** A picture of the page shown, as a data URL, for under the publish dialog (Q392); null when none shows. */
   "preview:snapshot": () => string | null;
+  /**
+   * The native views hidden at once, before a dialog shows over the preview: the
+   * page and the "All pages" live thumbnail, which would otherwise stay on top
+   * for the frames the interface takes to say so itself.
+   */
+  "preview:cover": () => void;
   "preview:set-mode": (mode: PreviewMode) => void;
   /** The tour's step in the page (Q332): its veil, or its bubble on the page; null takes them away. */
   "tour:page": (tour: PageTour | null) => void;
@@ -759,9 +791,13 @@ export type Invokes = {
   "export:run": (folder: string, builder: string) => ExportResult;
   "projects:set-form-service": (datasource: string, url: string) => ProjectInfo;
   "export:reveal": (folder: string) => void;
-  /** Opens one of the hosting services the export guide names. */
-  "export:open-host": (host: "netlify" | "cloudflare" | "github") => void;
+  /** Opens one of the hosting services the export guide names, or its help on domain names. */
+  "export:open-host": (host: ExportLink) => void;
   "projects:set-site-url": (url: string) => ProjectInfo;
+  /** The open website's packages (Q520). */
+  "packages:list": () => PackageInfo[];
+  /** Takes one of the open website's packages out, then lists them again (Q520). */
+  "packages:remove": (name: string) => PackageInfo[];
   /** The skills the open project's agent gets, from every origin. */
   "skills:list": () => SkillInfo[];
   /** Asks the maker for a skill's folder. Null when they cancel. */
@@ -787,9 +823,13 @@ export type Invokes = {
   "templates:list": () => TemplateSummary[];
   /** A template's cover or its animated hover sequence, as a data URL. */
   "templates:picture": (id: string, which: "cover" | "hover") => string | null;
-  /** Shows a template large, at a page of it; null hides it (Q249). */
-  /** Shows a template large, downloaded first if it has to be (Q247); why it cannot be, in words the maker reads. */
-  "templates:view": (id: string | null, route?: string) => string | undefined;
+  /**
+   * The pages of a template shown large, with their pictures (Q541, Q544),
+   * downloaded first if it has to be (Q247, Q545); why it cannot be, in words the maker reads.
+   */
+  "templates:pages": (id: string) => { pages: TemplatePageShot[] } | { problem: string };
+  /** A page's picture at desktop or phone width, as a data URL; null when it has none. */
+  "templates:page-picture": (id: string, page: string, device: "desktop" | "phone") => string | null;
   /** Asks for a template folder or .zip and reads it, to be added once the maker has seen it (Q236, Q248); null if none was chosen. */
   "templates:import": () => TemplateImport | null;
   /** Adds an imported template the maker has seen; its summary. */
@@ -875,8 +915,6 @@ export type Sends = {
   ) => void;
   /** Shows a gallery block large over the preview while the pointer rests on it (Q109); null hides it. */
   "gallery:peek": (id: string | null) => void;
-  /** Where the template shown large sits in the window, in CSS pixels; null to hide it. */
-  "templates:bounds": (rect: Rect | null) => void;
 };
 
 /** One-way messages from the main process to the interface. */
@@ -885,7 +923,6 @@ export type Events = {
   /** A project was opened, or null when none is open any more. */
   "project:opened": (project: ProjectInfo | null) => void;
   "preview:state": (state: PreviewState) => void;
-  "templates:view-state": (state: TemplateViewState) => void;
   /** The latest catalogue of Spaka's templates was read, and it changed the list (Q250). */
   "templates:changed": () => void;
   /** The pointer is over a page's thumbnail, or left it (Q132). */
@@ -904,6 +941,8 @@ export type Events = {
   "conversation:prefill": (text: string) => void;
   /** A file under data/ or media/ changed: the Content tab reads again. */
   "content:changed": () => void;
+  /** A website's packages changed: added, removed or installed from package.json. */
+  "packages:changed": (projectId: string) => void;
   /** "Replace…" in the preview: the media picker opens, and answers with media:picked (Q159). */
   "media:pick-request": (request: { id: number }) => void;
   "conversation:event": (message: { projectId: string; event: ConversationEvent }) => void;
@@ -957,6 +996,7 @@ export const channels = {
     "preview:navigate",
     "preview:reload",
     "preview:snapshot",
+    "preview:cover",
     "preview:set-mode",
     "tour:page",
     "tour:seen",
@@ -1000,6 +1040,8 @@ export const channels = {
     "export:reveal",
     "export:open-host",
     "projects:set-site-url",
+    "packages:list",
+    "packages:remove",
     "skills:list",
     "skills:choose-folder",
     "skills:add",
@@ -1016,7 +1058,8 @@ export const channels = {
     "editing:apply",
     "templates:list",
     "templates:picture",
-    "templates:view",
+    "templates:pages",
+    "templates:page-picture",
     "templates:import",
     "templates:accept-import",
     "gallery:list",
@@ -1053,21 +1096,11 @@ export const channels = {
     "media:delete",
     "media:rename",
   ],
-  send: [
-    "app:ready",
-    "preview:bounds",
-    "window:min-width",
-    "preview:grid",
-    "gallery:peek",
-    "templates:bounds",
-    "tip:show",
-    "tip:hide",
-  ],
+  send: ["app:ready", "preview:bounds", "window:min-width", "preview:grid", "gallery:peek", "tip:show", "tip:hide"],
   events: [
     "projects:changed",
     "project:opened",
     "preview:state",
-    "templates:view-state",
     "templates:changed",
     "preview:hover",
     "preview:picture",
@@ -1077,6 +1110,7 @@ export const channels = {
     "preview:placed",
     "conversation:prefill",
     "content:changed",
+    "packages:changed",
     "media:pick-request",
     "conversation:event",
     "adaptation:changed",
@@ -1123,7 +1157,7 @@ export type ToPreview =
   /** The theme or the site's stylesheets changed: replace them in place (styles: what Tailwind compiles). */
   | { type: "theme"; css: string; styles?: string }
   /** How the page answers the pointer (Q99), and whether editing waits for the agent (Q91). */
-  /** `sideways`: the page is on a phone or a tablet turned on its side, as wide as a larger screen (Q490). */
+  /** `sideways`: the page is on a phone or a tablet turned on its side, as wide as a larger screen (Q547). */
   | { type: "editor"; mode: PreviewMode; paused: boolean; sideways?: boolean }
   /** The maker's comments, all pages included, so the page can show its own. */
   | { type: "comments"; comments: PageComment[] }

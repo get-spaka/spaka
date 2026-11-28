@@ -14,7 +14,7 @@
 
 Sur une image sélectionnée, la barre ne proposait que « Replace… ». Quand l'image n'a pas les proportions de son cadre, rien ne permettait de choisir ce qu'on en voit sans passer par l'agent.
 
-## Ce qui est fait (Q490)
+## Ce qui est fait (Q547)
 
 Le bouton « Adjust the image » ouvre un panneau sous l'image :
 

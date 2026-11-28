@@ -42,6 +42,7 @@ export async function buildStatic(options: {
   readFile?: (path: string) => Buffer;
   images?: ImageCopies;
   formServices?: Record<string, string>;
+  packageModules?: BuildOptions["packageModules"];
 }): Promise<BuildResult> {
   const project: BuildProject = {
     name: "",
@@ -64,7 +65,7 @@ export async function buildStatic(options: {
     );
   for (const f of fragments)
     out.write(f.rel, formsToServices(withSrcset(f.html, copies), options.formServices ?? {}, f.file, warnings));
-  await writeAssets(project, out, [html]);
+  await writeAssets(project, out, [html], options, warnings);
   return {
     files: out.files,
     pages: pages.map((p) => p.route),
@@ -84,9 +85,10 @@ export const staticBuilder: Builder = {
     const checked = this.check(project);
     if (!checked.ok)
       throw new Error(
-        `A static site cannot show what visitors send (${checked.refusal.datasources.join(", ")}): choose the Node or Cloudflare export.`,
+        `A static site cannot show what visitors send (${checked.refusal.datasources.join(", ")}): publish it on a server or on Cloudflare instead.`,
       );
     return buildStatic({ ...project, ...options });
   },
-  guide: () => [{ id: "upload" }, { id: "forms" }],
+  // Put online at a hosting service by dragging the folder onto its page (Q553).
+  guide: () => [{ id: "open" }, { id: "drop" }, { id: "keep" }, { id: "update" }, { id: "forms" }],
 };

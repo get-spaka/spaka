@@ -19,6 +19,7 @@ import {
   recordFile,
   recordOf,
   recordTitle,
+  siteAssets,
   TEST_RECORDS_DIR,
   titleField,
   titleOf,
@@ -45,6 +46,7 @@ import {
   type ContentDatasource,
   type ContentRecord,
   type ContentRecordSummary,
+  type ExportLink,
   type HistoryEntry,
   type MediaFound,
   type MediaItem,
@@ -105,6 +107,12 @@ import { FileTap } from "./live/tap";
 import { addFoundImages, libraryFiles, mediaKind, usesLabel, usesOf, usingFiles } from "./media/library";
 import { FixtureImages, type ImageFinder, ImageSearch, imagesAnswer } from "./media/search";
 import { buildMenu } from "./menu";
+import { fixtureFetch } from "./packages/fixture-fetch";
+import { exportWarnings, flawNotices, greyAnswer, greyCard, syncNotices } from "./packages/maker";
+import { PackageModules } from "./packages/modules";
+import { Packages } from "./packages/packages";
+import { pnpmFolders } from "./packages/pnpm";
+import { ensureRolldown } from "./packages/rolldown";
 import { Preview } from "./preview/preview";
 import { testRecordFile } from "./preview/test-records";
 import { isEffort, Projects, readProjectFile } from "./projects";
@@ -129,9 +137,9 @@ import {
   removeStep,
   turnEnded,
 } from "./templates/adaptation";
+import { pagePicture, shownPages } from "./templates/large";
 import { TEMPLATES_RELEASES, TemplateLibrary } from "./templates/library";
 import { pagesAnswered, readPagesCard } from "./templates/pages-card";
-import { TemplateViewer } from "./templates/viewer";
 import { Fonts } from "./theme/fonts";
 import { readTheme, type ThemeValues, themeColors, writeTheme } from "./theme/theme-file";
 import { TipOverlay } from "./tip-overlay";
@@ -363,12 +371,16 @@ async function main() {
       return block && blockShown(block);
     },
     font: (path) => fonts.path(path),
+    // The modules of the packages the site's scripts import (ADR 0013).
+    packageModule: (root, imports, url) => packageModules.served(root, imports, url),
     background: env.background,
     onState: (state) => ipc.emit("preview:state", state),
     // The Content tab reads again when a datasource or a media file changes,
     // or a template, which decides which page shows a list (Q210, Q211).
     onFileChanged: (path) => {
       blocks.changed(path);
+      // package.json changed by hand is installed by the rules (Q491); the agent's changes are checked as it makes them (Q536).
+      if (path === "package.json") packagesChanged();
       if (!/^(data|media|pages|parts|\.spaka\/test-records)\//.test(path)) return;
       clearTimeout(contentTimer);
       contentTimer = setTimeout(() => ipc.emit("content:changed"), 80);
@@ -432,12 +444,6 @@ async function main() {
     join(app.getPath("userData"), "templates"),
   );
   void templates.refresh().then((changed) => changed && ipc.emit("templates:changed"));
-  const templateViewer = new TemplateViewer(win, {
-    background: env.background,
-    onState: (state) => ipc.emit("templates:view-state", state),
-    font: (path) => fonts.path(path),
-  });
-  await templateViewer.start();
   /** For automated checks: what a dialog would have answered. */
   const checks: { importPath?: string } = {};
 
@@ -446,6 +452,26 @@ async function main() {
   const userData = app.getPath("userData");
   const binary = agentBinary();
   const launcher = nodeLauncher(userData);
+  // A website's packages (ADR 0013): Spaka's own pnpm, and its rules on public signals (Q500).
+  const packages = new Packages({
+    folders: pnpmFolders(userData),
+    nodeBinDir: launcher.binDir,
+    ...(env.packagesFixture ? { fetch: fixtureFetch(env.packagesFixture) } : {}),
+  });
+  // The packages in the browser (ADR 0013): a module for each package the scripts
+  // import, made by Spaka's Rolldown, kept for every website.
+  const packageModules = new PackageModules({
+    cacheDir: join(userData, "package-modules"),
+    tools: () => ensureRolldown({ folders: pnpmFolders(userData), nodeBinDir: launcher.binDir }),
+  });
+  const importsOf = (path: string) => siteAssets(diskSource(path)).assets.packages ?? [];
+  /** A website's modules made ahead, so that its pages wait for none; Spaka's Rolldown installed with its first package. */
+  const makeModules = (path: string) => {
+    const imports = importsOf(path);
+    if (imports.length) void packageModules.modules(path, imports).catch(() => {});
+    else if (packages.list(path).length)
+      void ensureRolldown({ folders: pnpmFolders(userData), nodeBinDir: launcher.binDir }).catch(() => {});
+  };
   const agentEnv = () => {
     const base = cleanEnv();
     return {
@@ -456,6 +482,9 @@ async function main() {
       // Back to the project folder after each shell command: a cd the agent
       // leaves behind would send its next relative paths astray (Q220).
       CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR: "1",
+      // Claude's Glob reads ignore files, as its Grep does: the project's
+      // .ignore then keeps the installed packages out of both (ADR 0013).
+      CLAUDE_CODE_GLOB_NO_IGNORE: "false",
       // The card of pages waits for the maker as long as they take (Q302): a day.
       MCP_TOOL_TIMEOUT: String(24 * 3600 * 1000),
     };
@@ -518,10 +547,31 @@ async function main() {
     };
   // What Spaka gives a project's agent, whichever layer runs it (ADR 0012): its tools and its checks.
   const kitFor = (project: { id: string; path: string; model?: string }): AgentKit => {
-    const checks = new TurnChecks(project.path);
+    const checks = new TurnChecks(project.path, () => packages.putBackAfterAgent(project.path));
     return {
       checks,
       tools: {
+        // Packages, judged by Spaka's rules, the maker asked in the grey zone (Q491, Q493, Q536).
+        addPackage: async (name, version, signal) => {
+          const answer = await packages.add(
+            project.path,
+            name,
+            version,
+            async (grey, asking) => {
+              const card = greyCard(grey);
+              return greyAnswer(card, await agent.askQuestions(project.id, [card], asking));
+            },
+            signal,
+          );
+          ipc.emit("packages:changed", project.id);
+          makeModules(project.path);
+          return answer;
+        },
+        removePackage: async (name, signal) => {
+          const { text } = await packages.remove(project.path, name, signal);
+          ipc.emit("packages:changed", project.id);
+          return text;
+        },
         ...(imageModelOf(project) ? { generateImage: generateFor(project) } : {}),
         look: (route, options) => preview.look(route, options),
         findBlocks: findBlocksIn(project.path),
@@ -663,6 +713,8 @@ async function main() {
         stats.track("error", { type: errorType(event.error, t.errors) });
       // The agent's next look starts from a fresh page (Q324).
       if (event.type === "turn-end" && projectId === current?.id) preview.endTurn();
+      // What package.json lists once the agent is done: changed by hand meanwhile, it is installed now (Q491).
+      if (event.type === "turn-end" && projectId === current?.id) void syncPackages(current);
     },
     emitStatus: (status) => ipc.emit("agent:status", status),
     // A replayed agent asks no model for a website's name: a check may give it one.
@@ -849,6 +901,44 @@ async function main() {
       }
     }
   };
+  /**
+   * A package.json changed by hand, or at a website's opening: what it lists
+   * installed by the rules, those refused taken out, each change in a notice
+   * (Q491, Q536, Q540). The agent's own changes wait for its turn's end.
+   */
+  const syncPackages = async (project: { id: string; path: string }) => {
+    try {
+      const report = await packages.sync(project.path);
+      makeModules(project.path);
+      if (!report) return;
+      for (const text of syncNotices(report)) agent.notice(project.id, text);
+      ipc.emit("packages:changed", project.id);
+      // The import map's versions may have changed: the page loads again if they did.
+      if (project.id === current?.id) preview.refresh(true);
+    } catch (error) {
+      agent.notice(project.id, t.packages.failed((error as Error).message));
+    }
+  };
+  let packagesTimer: NodeJS.Timeout | undefined;
+  const packagesChanged = () => {
+    clearTimeout(packagesTimer);
+    packagesTimer = setTimeout(() => {
+      if (current && !agent.isWorking(current.id)) void syncPackages(current);
+    }, 300);
+  };
+  /** At a website's opening: its packages installed, then their known flaws, each told once (Q521, Q538). */
+  const packagesAtOpen = async (project: { id: string; path: string }) => {
+    await syncPackages(project);
+    let notices: ReturnType<typeof flawNotices>;
+    try {
+      notices = flawNotices(await packages.flaws(project.path));
+    } catch {
+      // OSV out of reach: the flaws are looked for again at the next opening, and before each export.
+      return;
+    }
+    const told = new Set(agent.conversation(project.id).flatMap((item) => (item.kind === "notice" ? [item.text] : [])));
+    for (const { text, action } of notices) if (!told.has(text)) agent.notice(project.id, text, action);
+  };
   const opened = async (opening: ProjectInfo) => {
     // A record being written in the Content tab gets its version first (Q162).
     editor.leaveRecord();
@@ -856,7 +946,6 @@ async function main() {
     const replacement = claudeReplacement(opening.model);
     const project = replacement ? projects.update(opening.id, { model: replacement }) : opening;
     current = project;
-    templateViewer.close();
     watchSkills(project);
     agent.open(project);
     if (replacement)
@@ -876,6 +965,7 @@ async function main() {
     ipc.emit("project:opened", project);
     ipc.emit("projects:changed", projects.list());
     emitAdaptation(project.id);
+    void packagesAtOpen(project);
     return project;
   };
   const changed = (project: ProjectInfo) => {
@@ -983,6 +1073,12 @@ async function main() {
   ipc.handle("preview:navigate", (route) => preview.navigate(route, true));
   ipc.handle("preview:reload", () => preview.reload());
   ipc.handle("preview:snapshot", () => preview.snapshot());
+  // As the interface does once the dialog is drawn (preview:bounds and preview:grid with null), but before it is.
+  ipc.handle("preview:cover", () => {
+    preview.setBounds(null);
+    preview.setGrid(null);
+    peek.setArea(null);
+  });
   // The interface measures in its own pixels, drawn larger or smaller by the text size.
   const scaled = <R extends Rect | null>(r: R): R => {
     const zoom = win.webContents.getZoomFactor();
@@ -1016,22 +1112,22 @@ async function main() {
   });
   ipc.handle("templates:list", () => templates.list());
   ipc.handle("templates:picture", (id, which) => templates.picture(id, which === "hover" ? "hover" : "cover"));
-  ipc.handle("templates:view", async (id, route) => {
-    if (!id || current) {
-      templateViewer.close();
-      return;
-    }
-    // Downloaded first if it has to be (Q247); the panel says why it cannot be shown.
-    let dir: string;
+  // A template shown large: the pictures of its pages, which its .zip holds,
+  // downloaded first if it has to be (Q247, Q541, Q545); the panel says why it cannot be shown.
+  ipc.handle("templates:pages", async (id) => {
     try {
-      dir = await templates.dir(id);
+      return { pages: shownPages(await templates.dir(String(id))) };
     } catch (error) {
-      templateViewer.close();
-      return error instanceof Error ? error.message : String(error);
+      return { problem: error instanceof Error ? error.message : String(error) };
     }
-    await templateViewer.show(id, dir, typeof route === "string" && route.startsWith("/") ? route : "/");
   });
-  ipc.on("templates:bounds", (rect) => templateViewer.setBounds(scaled(rect)));
+  ipc.handle("templates:page-picture", async (id, page, device) => {
+    try {
+      return pagePicture(await templates.dir(String(id)), String(page), device === "phone" ? "phone" : "desktop");
+    } catch {
+      return null;
+    }
+  });
   ipc.handle("templates:import", async () => {
     // Checks name the folder to import instead of a dialog, which would take the focus.
     if (env.background) return checks.importPath ? templates.read(checks.importPath) : null;
@@ -1165,6 +1261,9 @@ async function main() {
       // whose card of pages and adaptation stand for the plan (Q312).
       const mode = settings?.mode === "plan" && !dir ? ("plan" as const) : undefined;
       const copied = dir ? copyTemplate(dir, created.path) : undefined;
+      // The template's packages installed before the website opens (packages plan, slice 4): its
+      // pages load with them, and the agent finds them. The start screen says it is sending meanwhile.
+      if (copied && existsSync(join(created.path, "package.json"))) await syncPackages(created);
       const manifest = copied?.manifest;
       const template = manifest && { id: manifest.id, version: manifest.version };
       stats.track("site_created", { template: manifest?.id ?? "none" });
@@ -1318,9 +1417,19 @@ async function main() {
     if (!current) throw new Error("No project is open.");
     if (agent.isWorking(current.id)) throw new Error("The agent is working: export once it is done.");
     const formServices = readProjectFile(current.path)?.formServices;
+    // The packages' known flaws, said with each export (Q521).
+    const flawWarnings = await packages.flaws(current.path).then(exportWarnings, () => [t.packages.exportUnchecked]);
+    const exported = current;
     const result = await exportProject(current.path, folder, {
       builder,
       name: current.name,
+      packageModules: async (imports) =>
+        new Map(
+          [...(await packageModules.modules(exported.path, imports))].map(([specifier, made]) => [
+            specifier,
+            "module" in made ? { code: made.module.code } : made,
+          ]),
+        ),
       hostsDir: app.isPackaged ? join(process.resourcesPath, "hosts") : join(here, "../hosts"),
       ...(formServices ? { formServices } : {}),
       managementToken: () => tokens.ensure(current!.id),
@@ -1333,7 +1442,22 @@ async function main() {
       lastExportFile()!,
       JSON.stringify({ builder, folders: { ...lastExport().folders, [builder]: result.folder } }),
     );
-    return result;
+    return { ...result, warnings: [...result.warnings, ...flawWarnings] };
+  });
+  // The open website's packages, in its settings (Q520), with what visitors download of those made.
+  const packagesWithWeights = (path: string) => {
+    const weights = packageModules.weights(path, importsOf(path));
+    return packages.list(path).map((p) => (weights.has(p.name) ? { ...p, weight: weights.get(p.name)! } : p));
+  };
+  ipc.handle("packages:list", () => (current ? packagesWithWeights(current.path) : []));
+  ipc.handle("packages:remove", async (name) => {
+    if (!current) throw new Error("No project is open.");
+    if (agent.isWorking(current.id)) throw new Error(t.editing.busy);
+    const project = current;
+    const removed = await packages.remove(project.path, name);
+    if (!removed.ok) throw new Error(removed.text);
+    ipc.emit("packages:changed", project.id);
+    return packagesWithWeights(project.path);
   });
   ipc.handle("export:reveal", (folder) => {
     if (!env.background && existsSync(folder)) shell.showItemInFolder(folder);
@@ -1342,7 +1466,11 @@ async function main() {
     netlify: "https://app.netlify.com/drop",
     cloudflare: "https://developers.cloudflare.com/pages/get-started/direct-upload/",
     github: "https://docs.github.com/en/pages/getting-started-with-github-pages/creating-a-github-pages-site",
-  } as const;
+    "netlify-domain": "https://docs.netlify.com/manage/domains/configure-domains/configure-external-dns/",
+    "cloudflare-domain": "https://developers.cloudflare.com/pages/configuration/custom-domains/",
+    "github-domain": "https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site",
+    "worker-domain": "https://developers.cloudflare.com/workers/configuration/routing/custom-domains/",
+  } as const satisfies Record<ExportLink, string>;
   ipc.handle("export:open-host", (host) => {
     const url = hosts[host];
     if (url && !env.background) void shell.openExternal(url);
@@ -1926,7 +2054,6 @@ async function main() {
         images,
         editor,
         templates,
-        templateViewer,
         checks,
         replayed,
         kitFor,

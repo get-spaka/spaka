@@ -118,6 +118,14 @@ _Avoid_: Asset, upload
 The author, licence and source of a media file taken from an open collection, kept with the file and listed on the site when its licence asks for it.
 _Avoid_: Attribution, copyright notice
 
+**Package**:
+Code published by others that a project uses, in its pages or on its server, added by the agent through Spaka, which checks it first, and installed into the project.
+_Avoid_: Dependency, npm module, plugin
+
+**Server module**:
+A file of a project's own code that runs on the server rather than in the visitor's browser: it gives data to pages and fragments, answers forms, and answers other services' calls such as a payment confirmation. The pages' HTML stays in their templates.
+_Avoid_: Handler, endpoint, backend, serverless function
+
 **Theme**:
 The set of named design values (colours, fonts, radii, spacing…) that gives a project its look. A small core of values exists in every project, so palettes and blocks carry over from one project to another; beyond that core a project may declare as many values as it needs. Every styling choice in a project draws from the theme, so changing it restyles the whole project.
 _Avoid_: Design system, style, skin
@@ -199,16 +207,24 @@ The program that turns a project's files into served pages, fragments and form h
 _Avoid_: Server, backend, engine
 
 **Builder**:
-Packages a project for one kind of hosting.
-_Avoid_: Exporter, adapter, deployer
+Packages a project for one kind of hosting: into a folder the maker deploys, which every builder can make, or, where the app can reach that hosting itself, straight onto it.
+_Avoid_: Exporter, adapter, deployer, destination
 
 **Published site**:
-A project once a builder's output has been deployed by the maker, at the address the maker gives the app. A published site keeps the records visitors send.
+A project once a builder's output has been deployed, by the maker from an exported folder or by the app to a host the maker has connected, at an address the app knows. A published site keeps the records visitors send.
 _Avoid_: Production, live site, deployment
+
+**Secret**:
+A value the maker gives the app for one project's server modules, such as a key to a payment or e-mail service. The app keeps it and hands it to the server; it is never written in the project's files and the agent never sees it.
+_Avoid_: Environment variable, credential, API key (when meaning any of them)
 
 **Management token**:
 The secret the app generates for a published site, which lets the app, and nothing else, read, approve and delete the records that site has collected.
 _Avoid_: API key, password, admin token
+
+**Hosting service**:
+A third party that puts a builder's output online for the maker: Netlify, Cloudflare, a platform that runs Docker, or the maker's own server.
+_Avoid_: Host (the runtime's hosts are its Node and Worker servers), provider
 
 **Form service**:
 A third-party service that receives the forms of a static export, which cannot store them itself.

@@ -169,29 +169,46 @@ describe("exporting the website", () => {
     expect(diff.differing).toBeLessThan(0.01);
   });
 
-  test("Publish: three ways, the last one chosen again; the static one exports again into its last folder and shows the hosts", async () => {
+  test("Publish: the simple way, chosen again, and the advanced ones folded; it exports again into its last folder, then shows its steps and the domain name's", async () => {
     const w = launched.window;
     await w.getByTestId("export-open").click();
     await w.getByTestId("export-dialog").waitFor();
     await until(async () => !(await main((u) => u.preview.view.getVisible())));
-    await until(async () => (await w.getByTestId("publish-choice").count()) === 3);
-    expect(
-      await w
+    const ways = () =>
+      w
         .getByTestId("publish-choice")
-        .evaluateAll((els) => els.map((e) => [e.getAttribute("data-id"), e.getAttribute("aria-pressed")])),
-    ).toEqual([
+        .evaluateAll((els) => els.map((e) => [e.getAttribute("data-id"), e.getAttribute("aria-pressed")]));
+    // The simple way alone, the ones that need a terminal folded under the other ways, Cloudflare first (Q553).
+    await until(async () => (await w.getByTestId("publish-choice").count()) === 1);
+    expect(await ways()).toEqual([["static", "true"]]);
+    expect(await w.getByTestId("publish-advanced").getAttribute("aria-expanded")).toBe("false");
+    await w.getByTestId("publish-advanced").click();
+    expect(await ways()).toEqual([
       ["static", "true"],
-      ["node", "false"],
       ["cloudflare", "false"],
+      ["node", "false"],
     ]);
+    await w.getByTestId("publish-advanced").click();
+    expect(await w.getByTestId("publish-choice").count()).toBe(1);
     // The way it was exported last time is chosen again.
     expect(await w.getByTestId("export-choose").isDisabled()).toBe(false);
     await w.locator('[data-testid="publish-choice"][data-id="static"]').click();
     await w.getByTestId("export-again").click();
-    await expect(w.getByTestId("export-result").textContent()).resolves.toContain("Exported 2 pages");
+    await expect(w.getByTestId("export-result").textContent()).resolves.toContain("Saved 2 pages");
     expect(await w.getByTestId("guide-step").evaluateAll((els) => els.map((e) => e.getAttribute("data-id")))).toEqual([
-      "upload",
+      "open",
+      "drop",
+      "keep",
+      "update",
     ]);
+    // One hosting service's steps, the others folded; then a domain name of one's own (Q553, Q555).
+    expect(await w.getByTestId("open-host").count()).toBe(1);
+    expect(await w.getByTestId("other-hosts").getAttribute("open")).toBeNull();
+    expect(await w.getByTestId("publish-domain").getAttribute("data-builder")).toBe("static");
+    await w.getByTestId("publish-domain").locator("summary").click();
+    expect(await w.getByTestId("domain-step").count()).toBe(3);
+    await launched.capture("export-dialog-steps");
+    await w.getByTestId("domain-step").last().scrollIntoViewIfNeeded();
     await launched.capture("export-dialog");
     // The site's address is given in the website's settings now (Q183).
     expect(await w.getByTestId("export-site-url").count()).toBe(0);

@@ -1,0 +1,88 @@
+{
+  "name": "lodash",
+  "dist-tags": {
+    "latest": "4.18.1"
+  },
+  "versions": {
+    "4.17.20": {
+      "name": "lodash",
+      "version": "4.17.20",
+      "description": "Lodash modular utilities.",
+      "license": "MIT",
+      "repository": {
+        "url": "git+https://github.com/lodash/lodash.git",
+        "type": "git"
+      },
+      "dist": {
+        "tarball": "https://registry.npmjs.org/lodash/-/lodash-4.17.20.tgz"
+      }
+    },
+    "4.17.21": {
+      "name": "lodash",
+      "version": "4.17.21",
+      "description": "Lodash modular utilities.",
+      "license": "MIT",
+      "repository": {
+        "url": "git+https://github.com/lodash/lodash.git",
+        "type": "git"
+      },
+      "dist": {
+        "tarball": "https://registry.npmjs.org/lodash/-/lodash-4.17.21.tgz"
+      }
+    },
+    "4.17.23": {
+      "name": "lodash",
+      "version": "4.17.23",
+      "description": "Lodash modular utilities.",
+      "license": "MIT",
+      "repository": {
+        "url": "git+https://github.com/lodash/lodash.git",
+        "type": "git"
+      },
+      "dist": {
+        "tarball": "https://registry.npmjs.org/lodash/-/lodash-4.17.23.tgz"
+      }
+    },
+    "4.18.0": {
+      "name": "lodash",
+      "version": "4.18.0",
+      "description": "Lodash modular utilities.",
+      "license": "MIT",
+      "repository": {
+        "url": "git+https://github.com/lodash/lodash.git",
+        "type": "git"
+      },
+      "deprecated": "Bad release. Please use lodash@4.17.21 instead.",
+      "dist": {
+        "tarball": "https://registry.npmjs.org/lodash/-/lodash-4.18.0.tgz"
+      }
+    },
+    "4.18.1": {
+      "name": "lodash",
+      "version": "4.18.1",
+      "description": "Lodash modular utilities.",
+      "license": "MIT",
+      "repository": {
+        "url": "git+https://github.com/lodash/lodash.git",
+        "type": "git"
+      },
+      "dist": {
+        "tarball": "https://registry.npmjs.org/lodash/-/lodash-4.18.1.tgz"
+      }
+    }
+  },
+  "time": {
+    "created": "2012-04-23T16:37:11.912Z",
+    "modified": "2026-11-27T05:11:56.117Z",
+    "4.17.20": "2020-08-13T16:53:54.152Z",
+    "4.17.21": "2021-02-20T15:42:16.891Z",
+    "4.17.23": "2026-01-21T17:29:52.831Z",
+    "4.18.0": "2026-03-31T18:18:42.717Z",
+    "4.18.1": "2026-04-01T21:01:20.458Z"
+  },
+  "repository": {
+    "url": "git+https://github.com/lodash/lodash.git",
+    "type": "git"
+  },
+  "license": "MIT"
+}

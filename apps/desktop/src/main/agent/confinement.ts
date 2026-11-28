@@ -100,7 +100,8 @@ export function confinement({ projectDir, readable, skillsDir, platform = proces
         // canUseTool, which refuses all but the agent's questions (ADR 0007).
         // Reading the web, granted rather than asked for (Q257): the maker is never asked (ADR 0007).
         allow: ["WebSearch", "WebFetch"],
-        deny: skills.map((dir) => `Edit(${ruleDir(dir, platform)}/**)`),
+        // Nor in the installed packages, which Spaka alone writes (ADR 0013): it may read them.
+        deny: [...skills, `${projectDir}/node_modules`].map((dir) => `Edit(${ruleDir(dir, platform)}/**)`),
       },
       // Native Windows has no sandbox for the binary's shell (ADR 0007): auto mode is its guard there.
       sandbox: SANDBOX_HOLDS.includes(platform) ? sandboxFor(projectDir, readable, skills) : { enabled: false },
@@ -160,20 +161,32 @@ export function agentBinary(): string {
  * Node. Returns the folder to put first on the agent's PATH, and the folders
  * the sandbox must let it read.
  */
-export function nodeLauncher(dataDir: string, platform = process.platform): { binDir: string; readable: string[] } {
+export function nodeLauncher(
+  dataDir: string,
+  platform = process.platform,
+  executable = process.execPath,
+): { binDir: string; readable: string[] } {
   const binDir = join(dataDir, "bin");
   mkdirSync(binDir, { recursive: true });
+  // The executable's real path: macOS's sandbox refuses to run one through a
+  // symbolic link that sits in a denied place, as pnpm's links in a checkout do.
+  const app = realOrSame(executable);
   const launcher = join(binDir, "node");
   // A shell script for bash, Git Bash's included on Windows.
-  writeFileSync(launcher, `#!/bin/sh\nELECTRON_RUN_AS_NODE=1 exec ${JSON.stringify(process.execPath)} "$@"\n`);
+  writeFileSync(launcher, `#!/bin/sh\nELECTRON_RUN_AS_NODE=1 exec ${JSON.stringify(app)} "$@"\n`);
   chmodSync(launcher, 0o755);
   // And, on Windows, for what runs `node` through cmd (npx and the like).
   if (platform === "win32")
-    writeFileSync(join(binDir, "node.cmd"), `@echo off\r\nset ELECTRON_RUN_AS_NODE=1\r\n"${process.execPath}" %*\r\n`);
+    writeFileSync(join(binDir, "node.cmd"), `@echo off\r\nset ELECTRON_RUN_AS_NODE=1\r\n"${app}" %*\r\n`);
   // The whole app bundle (Electron loads its frameworks from there).
-  const bundle =
-    process.platform === "darwin"
-      ? process.execPath.replace(/\/Contents\/MacOS\/[^/]+$/, "")
-      : dirname(process.execPath);
+  const bundle = platform === "darwin" ? app.replace(/\/Contents\/MacOS\/[^/]+$/, "") : dirname(app);
   return { binDir, readable: [binDir, bundle] };
+}
+
+function realOrSame(path: string): string {
+  try {
+    return realpathSync(path);
+  } catch {
+    return path;
+  }
 }

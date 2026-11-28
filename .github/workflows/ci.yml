@@ -67,6 +67,12 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Electron fetches its program the first time it is asked for: asked by two
+      # test files at once, it was written twice into one folder, and one of them
+      # ran it half written. Fetched once here, before the tests.
+      - name: Fetch Electron's program
+        shell: bash
+        run: pnpm --filter @spaka/desktop exec node -e "require('electron')"
       - run: pnpm exec vitest run --bail 1
       - name: Package the app, unsigned
         if: runner.os != 'Linux'

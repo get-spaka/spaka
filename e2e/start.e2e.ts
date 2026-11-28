@@ -2,14 +2,15 @@ import { cpSync, existsSync, mkdtempSync, readdirSync, readFileSync, renameSync,
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { type LaunchedApp, launchApp, runsDir, SLOW } from "./app.ts";
+import { type LaunchedApp, launchApp, SLOW } from "./app.ts";
 
 // The start screen (Q245, Q249, Q263, Q264): with no website open, the sidebar
 // and one large panel of templates. Chips filter them, originals first with
 // a badge; a thumbnail moves on hover, a click chooses it, View shows it large
-// and moving, its pages to go to; an imported template is shown, then added.
-// The first message creates the website from the chosen template, and the
-// window takes its usual layout.
+// through the pictures of its pages, at desktop or phone width (Q541, Q544);
+// an imported template is shown, then added. The first message creates the
+// website from the chosen template, its packages installed before the agent
+// starts, and the window takes its usual layout.
 describe("the start screen", () => {
   let launched: LaunchedApp;
   const main = <T>(code: string): Promise<T> =>
@@ -18,8 +19,6 @@ describe("the start screen", () => {
       (_electron, code) => eval(code),
       code,
     ) as Promise<T>;
-  const viewer = <T>(js: string): Promise<T> =>
-    main<T>(`globalThis.spaka.templateViewer.view.webContents.executeJavaScript(${JSON.stringify(js)})`);
   const until = async <T>(read: () => Promise<T>, timeout = 15_000): Promise<T> => {
     timeout *= SLOW;
     const started = Date.now();
@@ -162,44 +161,43 @@ describe("the start screen", () => {
     await expect(active()).resolves.toEqual({ templates: true, box: false });
   });
 
-  test("View shows a template large, real and moving, its pages to go to", async () => {
+  test("View shows a template large: the picture of each page, at desktop or phone width (Q541, Q544)", async () => {
     const w = launched.window;
     const card = w.locator('[data-testid="template-card"][data-template="reel"]');
     await card.hover();
     await card.getByTestId("template-view").click();
     await w.getByTestId("template-large").waitFor();
-    // The native view lies over the frame, its page the template's home, in visitor mode.
-    await until(() => main<boolean>("globalThis.spaka.templateViewer.view.getVisible()"));
-    await until(() => w.locator('[data-testid="template-frame"][data-route="/"]').count());
-    const frame = await w.getByTestId("template-frame").boundingBox();
-    const bounds = await main<{ width: number; height: number }>("globalThis.spaka.templateViewer.view.getBounds()");
-    expect(Math.abs(bounds.width - frame!.width)).toBeLessThan(2);
-    expect(Math.abs(bounds.height - frame!.height)).toBeLessThan(2);
-    await until(() => viewer<boolean>("document.documentElement.hasAttribute('data-spaka-moving')"));
-    await expect(viewer<string>("document.title")).resolves.toMatch(/Halfvolt/);
-    // Its pages, from the select and from its own links.
+    // Its home page, whole, as template:shoot took it at desktop width: no site running.
+    const picture = w.getByTestId("template-picture");
+    const shown = () =>
+      picture.evaluate((img: HTMLImageElement) => ({ page: img.dataset.page, width: img.naturalWidth }));
+    await until(async () => (await shown()).width > 0);
+    await expect(shown()).resolves.toEqual({ page: "home", width: 1200 });
+    await expect(w.getByTestId("template-frame").getAttribute("data-device")).resolves.toBe("desktop");
+    // Its pages, from the select: its own and one record's page.
     const pages = await w
       .getByTestId("template-page")
       .evaluate((el: HTMLSelectElement) => [...el.options].map((o) => o.value));
-    expect(pages).toEqual(expect.arrayContaining(["/", "/work", "/studio", "/contact"]));
+    expect(pages).toEqual(expect.arrayContaining(["/", "/work", "/studio", "/contact", "/work/maasveer"]));
     await w.getByTestId("template-page").selectOption("/studio");
-    await until(() => w.locator('[data-testid="template-frame"][data-route="/studio"]').count());
-    await until(() => viewer<boolean>("location.pathname === '/studio'"));
-    await viewer("document.querySelector('a[href=\"/contact\"]').click(), true");
-    await until(() => w.locator('[data-testid="template-frame"][data-route="/contact"]').count());
+    await until(async () => (await shown()).page === "studio" && (await shown()).width > 0);
+    // At phone width: its picture of that page, 390 pixels at twice the density (less for a page so tall
+    // that WebP's largest height holds it only narrower).
+    await w.getByTestId("template-device-phone").click();
+    await until(async () => {
+      const { width } = await shown();
+      return width > 300 && width <= 780;
+    });
+    await expect(w.getByTestId("template-device-phone").getAttribute("aria-pressed")).resolves.toBe("true");
+    await expect(w.getByTestId("template-frame").getAttribute("data-device")).resolves.toBe("phone");
+    await expect(shown()).resolves.toMatchObject({ page: "studio" });
     await launched.capture("start-view");
-    // The template itself, as the native view draws it over the frame.
-    await new Promise((r) => setTimeout(r, 1500));
-    const png = await main<string>(
-      "globalThis.spaka.templateViewer.view.webContents.capturePage().then((i) => i.toPNG().toString('base64'))",
-    );
-    writeFileSync(join(runsDir, "start-view-page.png"), Buffer.from(png, "base64"));
-    // Chosen from here, then back to the grid: the view is hidden.
+    // Chosen from here, then back to the grid.
     await w.getByTestId("template-choose").click();
     await expect(w.getByTestId("chosen-template").textContent()).resolves.toBe("Starting from Reel");
     await w.getByTestId("template-back").click();
     await w.getByTestId("template-card").first().waitFor();
-    await until(async () => !(await main<boolean>("globalThis.spaka.templateViewer.view.getVisible()")));
+    await expect(w.getByTestId("template-large").count()).resolves.toBe(0);
   });
 
   test("an imported template is shown before it is added, then listed and chosen", async () => {
@@ -249,13 +247,19 @@ describe("the start screen", () => {
     for (const path of [
       "pages/work.liquid",
       "parts/header.liquid",
-      "scripts/libraries.json",
+      "package.json",
+      "pnpm-lock.yaml",
       ".spaka/skills/reel-design/SKILL.md",
       ".spaka/template-texts.json",
     ])
       expect(existsSync(join(project.path, path)), path).toBe(true);
     expect(existsSync(join(project.path, "template.json"))).toBe(false);
     expect(existsSync(join(project.path, "TEMPLATE.md"))).toBe(false);
+    // Its packages installed before the website opened: its pages load with them, and the agent finds them.
+    const dependencies = Object.keys(JSON.parse(readFileSync(join(project.path, "package.json"), "utf8")).dependencies);
+    expect(dependencies).toEqual(expect.arrayContaining(["motion", "ogl"]));
+    for (const name of dependencies)
+      expect(existsSync(join(project.path, "node_modules", name, "package.json")), name).toBe(true);
     // The preview shows the template's site at once, its pages among them.
     const routes = await main<string[]>("globalThis.spaka.preview.state().routes.map((r) => r.route)");
     expect(routes).toEqual(expect.arrayContaining(["/", "/work", "/studio", "/contact"]));
@@ -278,7 +282,6 @@ describe("the start screen", () => {
     const listed = [...(received.at(-1) ?? "").matchAll(/^ {2}- (\/[a-z-]*) \(/gm)].map((m) => m[1]);
     expect(listed[0]).toBe("/");
     expect(listed).toEqual(expect.arrayContaining(["/work", "/studio", "/contact"]));
-    await expect(main<boolean>("globalThis.spaka.templateViewer.view.getVisible()")).resolves.toBe(false);
     await launched.capture("start-sent");
   });
 

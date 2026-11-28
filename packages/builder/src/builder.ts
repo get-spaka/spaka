@@ -2,7 +2,7 @@
 // BUILDERS, asks each whether the project can use it, builds with the one the
 // maker picks and shows its guide. A new destination (a hosting of Spaka's
 // own, for one) is one more file in builders/ and one more line in BUILDERS.
-import type { ProjectSource } from "@spaka/runtime";
+import type { PackageImport, ProjectSource } from "@spaka/runtime";
 
 /** The project being exported. */
 export type BuildProject = {
@@ -40,8 +40,19 @@ export type BuildOptions = {
    * into the export's .env (Q191), which git and the Docker image leave out.
    */
   managementToken?: string;
+  /**
+   * The .env of the export this one replaces, read before it is cleared: what
+   * the maker wrote into it (a domain name, Q556) is kept.
+   */
+  earlierEnv?: string;
   /** The day of the export, for the Worker's compatibility date. */
   today?: Date;
+  /**
+   * The modules of the packages the site's scripts import (ADR 0013), made by
+   * the app's Vite: each one's code by its specifier, or why it could not be
+   * made. Without it, an export that needs them says so.
+   */
+  packageModules?: (packages: PackageImport[]) => Promise<Map<string, { code: string } | { error: string }>>;
 };
 
 export type BuildResult = {

@@ -18,18 +18,22 @@ import {
   earlierOf,
   parseCatalogue,
 } from "./release";
+import { readZip } from "./zip";
 
 const BUILT_IN = join(import.meta.dirname, "../../../templates");
 const scratch = () => mkdtempSync(join(tmpdir(), "spaka-release-"));
 const RELEASES = "https://releases.example/spaka-templates/releases";
 const APP = "0.2.0";
 
+/** Its packages' online check (check-packages.ts), as if npm and OSV found nothing to say. */
+const OFFLINE = { packages: async () => [] };
+
 /** A release of Beacon and Reel, built as the public repository's CI builds one. */
-function release(tag = "v1"): { out: string; catalogue: Catalogue } {
+async function release(tag = "v1"): Promise<{ out: string; catalogue: Catalogue }> {
   const root = scratch();
   for (const id of ["beacon", "reel"]) cpSync(join(BUILT_IN, id), join(root, id), { recursive: true });
   const out = scratch();
-  return { out, catalogue: buildRelease(root, out, tag) };
+  return { out, catalogue: await buildRelease(root, out, tag, undefined, OFFLINE) };
 }
 
 /** The releases' server: `latest` answers with `latest`'s catalogue; offline, it throws. */
@@ -66,8 +70,8 @@ function snapshotOf(out: string, catalogue: Catalogue): string {
 
 // A release checks and zips whole templates: longer than a test's usual time on a slow runner.
 describe("a release", { timeout: 60_000 }, () => {
-  test("each template checked, as a .zip with its sha256 and size, its pictures beside it, in the catalogue", () => {
-    const { out, catalogue } = release("v3");
+  test("each template checked, as a .zip with its sha256 and size, its pictures beside it, in the catalogue", async () => {
+    const { out, catalogue } = await release("v3");
     expect(catalogue.release).toBe("v3");
     expect(catalogue.templates.map((t) => t.id)).toEqual(["beacon", "reel"]);
     const reel = catalogue.templates.find((t) => t.id === "reel")!;
@@ -82,22 +86,39 @@ describe("a release", { timeout: 60_000 }, () => {
     expect(parseCatalogue(readFileSync(join(out, CATALOGUE_FILE), "utf8"))).toEqual(catalogue);
   });
 
-  test("built twice from the same sources, the same files", () => {
-    const a = release().catalogue;
-    const b = release().catalogue;
+  test("the pictures of its pages are in its .zip, its cover and hover beside it (Q545)", async () => {
+    const { out, catalogue } = await release();
+    const reel = catalogue.templates.find((t) => t.id === "reel")!;
+    const inZip = [...readZip(readFileSync(join(out, reel.zip.file))).keys()];
+    expect(inZip).toContain("pictures/pages/home-desktop.webp");
+    expect(inZip).toContain("pictures/pages/home-phone.webp");
+    expect(inZip).not.toContain("pictures/cover.webp");
+    expect(inZip).not.toContain("pictures/hover.webp");
+  });
+
+  test("a template whose packages npm or OSV refuse stops the release (Q546)", async () => {
+    const root = scratch();
+    cpSync(join(BUILT_IN, "beacon"), join(root, "beacon"), { recursive: true });
+    const refused = { packages: async () => ["package.json: motion 14.9.0 is refused: a known flaw."] };
+    await expect(buildRelease(root, scratch(), "v1", undefined, refused)).rejects.toThrow(/motion 14\.9\.0 is refused/);
+  });
+
+  test("built twice from the same sources, the same files", async () => {
+    const a = (await release()).catalogue;
+    const b = (await release()).catalogue;
     expect(b.templates.map((t) => t.zip.sha256)).toEqual(a.templates.map((t) => t.zip.sha256));
   });
 
-  test("a template with an error stops the release", () => {
+  test("a template with an error stops the release", async () => {
     const root = scratch();
     cpSync(join(BUILT_IN, "beacon"), join(root, "beacon"), { recursive: true });
     writeFileSync(join(root, "beacon/template.json"), "{}");
-    expect(() => buildRelease(root, scratch(), "v1")).toThrow(/not ready/);
+    await expect(buildRelease(root, scratch(), "v1", undefined, OFFLINE)).rejects.toThrow(/not ready/);
   });
 
-  test("a catalogue of another format, or an entry it cannot trust, is not read", () => {
+  test("a catalogue of another format, or an entry it cannot trust, is not read", async () => {
     expect(parseCatalogue(JSON.stringify({ format: 2, release: "v1", templates: [] }))).toBeUndefined();
-    const { catalogue } = release();
+    const { catalogue } = await release();
     const [beacon, reel] = catalogue.templates;
     const read = parseCatalogue(
       JSON.stringify({
@@ -115,7 +136,7 @@ describe("a release", { timeout: 60_000 }, () => {
 
 describe("the templates of a packaged app", { timeout: 60_000 }, () => {
   test("listed from the catalogue shipped, their pictures with it, offline", async () => {
-    const { out, catalogue } = release();
+    const { out, catalogue } = await release();
     const { fetch, asked, state } = server({ v1: out }, "v1");
     state.offline = true;
     const library = new TemplateLibrary(
@@ -131,7 +152,7 @@ describe("the templates of a packaged app", { timeout: 60_000 }, () => {
   });
 
   test("a template downloaded once, checked, then read from the cache", async () => {
-    const { out, catalogue } = release();
+    const { out, catalogue } = await release();
     const { fetch, asked } = server({ v1: out }, "v1");
     const cache = scratch();
     const library = new TemplateLibrary(
@@ -150,7 +171,7 @@ describe("the templates of a packaged app", { timeout: 60_000 }, () => {
   });
 
   test("a download that did not arrive whole is refused", async () => {
-    const { out, catalogue } = release();
+    const { out, catalogue } = await release();
     const { fetch, state } = server({ v1: out }, "v1");
     state.broken = catalogue.templates[0]!.zip.file;
     const cache = scratch();
@@ -163,14 +184,14 @@ describe("the templates of a packaged app", { timeout: 60_000 }, () => {
   });
 
   test("the latest release read at the start replaces the shipped one, and is kept for the next start", async () => {
-    const v1 = release("v1");
+    const v1 = await release("v1");
     // v2 adds a version of Beacon.
     const root = scratch();
     cpSync(join(BUILT_IN, "beacon"), join(root, "beacon"), { recursive: true });
     const manifest = JSON.parse(readFileSync(join(root, "beacon/template.json"), "utf8"));
     writeFileSync(join(root, "beacon/template.json"), JSON.stringify({ ...manifest, version: "9.0.0" }));
     const v2out = scratch();
-    buildRelease(root, v2out, "v2");
+    await buildRelease(root, v2out, "v2", undefined, OFFLINE);
     const { fetch, asked, state } = server({ v1: v1.out, v2: v2out }, "v2");
     const cache = scratch();
     const snapshot = snapshotOf(v1.out, v1.catalogue);
@@ -191,8 +212,8 @@ describe("the templates of a packaged app", { timeout: 60_000 }, () => {
     expect(await next.picture("beacon", "cover")).toMatch(/^data:image\/webp/);
   });
 
-  test("an imported template named as one of the catalogue's is refused", () => {
-    const { out, catalogue } = release();
+  test("an imported template named as one of the catalogue's is refused", async () => {
+    const { out, catalogue } = await release();
     const { fetch } = server({ v1: out }, "v1");
     const library = new TemplateLibrary(
       { releases: RELEASES, snapshot: snapshotOf(out, catalogue), cache: scratch(), fetch, app: APP },
@@ -233,18 +254,18 @@ describe("earlier versions for older apps (Q368)", () => {
     expect(checkTemplate(files).errors.filter((e) => /field kind/.test(e))).toEqual([]);
   });
 
-  test("Aspect 1.1.0, which needs app 0.2.0, keeps Aspect 1.0.0 of v8, release after release", () => {
+  test("Aspect 1.1.0, which needs app 0.2.0, keeps Aspect 1.0.0 of v8, release after release", async () => {
     const root = scratch();
     cpSync(join(BUILT_IN, "aspect"), join(root, "aspect"), { recursive: true });
     writeFileSync(join(root, "aspect", MANIFEST), JSON.stringify({ ...aspect(), version: "1.1.0", app: "0.2.0" }));
     const v8: Catalogue = { format: 1, release: "v8", templates: [entry("aspect", "1.0.0")], earlier: [] };
     const v10out = scratch();
-    const v10 = buildRelease(root, v10out, "v10", v8);
+    const v10 = await buildRelease(root, v10out, "v10", v8, OFFLINE);
     expect(v10.templates.map((t) => `${t.id}@${t.version} app ${t.app}`)).toEqual(["aspect@1.1.0 app 0.2.0"]);
     expect(v10.earlier).toEqual([{ ...entry("aspect", "1.0.0"), release: "v8" }]);
     expect(parseCatalogue(readFileSync(join(v10out, CATALOGUE_FILE), "utf8"))).toEqual(v10);
     // The release after, from v10's catalogue, has it still, from v8.
-    expect(buildRelease(root, scratch(), "v11", v10).earlier).toEqual(v10.earlier);
+    expect((await buildRelease(root, scratch(), "v11", v10, OFFLINE)).earlier).toEqual(v10.earlier);
   });
 
   test("an earlier version is kept only while an app takes it", () => {
@@ -271,8 +292,8 @@ describe("earlier versions for older apps (Q368)", () => {
     expect(earlierOf([entry("aspect", "1.2.0", "0.3.0")], undefined)).toEqual([]);
   });
 
-  test("a catalogue before Q368 is read with no earlier versions; one with an unsafe release is not trusted", () => {
-    const { catalogue } = release();
+  test("a catalogue before Q368 is read with no earlier versions; one with an unsafe release is not trusted", async () => {
+    const { catalogue } = await release();
     const { earlier: _, ...old } = catalogue;
     expect(parseCatalogue(JSON.stringify(old))?.earlier).toEqual([]);
     const read = parseCatalogue(

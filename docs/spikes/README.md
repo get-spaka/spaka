@@ -5,8 +5,10 @@ Each spike was throwaway code, run apart from the app, that ended with a report 
 - [Spike 1: live generation](live-generation.md)
 - [Spike 2: desktop shell](desktop-shell.md)
 - [Spike 3: other agents and harnesses](harnesses.md)
+- [Spike 4: agents over ACP](acp.md), the code kept on a branch of its own
 - [The agent's look at pages](looks.md), a probe of 2026-11-15
 - [The agent's questions](questions.md), a probe for the agent asking the maker
+- [pnpm, Vite, wrangler and Node under permissions](packages.md), the probe of 2026-11-27 for packages and server modules
 
 ## Spike 1: live generation
 
@@ -94,6 +96,16 @@ Asked by Matt on 2026-11-14, after the templates; it reopens "Codex only after a
 - **Subscriptions:** a Claude subscription stays on the Agent SDK. ChatGPT Plus works through Sign in with ChatGPT in Pi (tried with Matt's plan, but slow: Sol complete at 92 s), and an app like Spaka needs OpenAI's acceptance. Google offers apps no subscription route; an AI Studio key may drive both Google agents. Otherwise, the maker's API key.
 
 Matt's decision (Q268): two adapters behind one interface, Claude through the Agent SDK and a harness of Spaka's own on Pi's libraries ([ADR 0012](../adr/0012-a-second-agent-layer-of-spakas-own-on-pi.md)).
+
+## Spike 4: agents over ACP
+
+Asked by Matt on 2026-11-26, after reading why Spaka does not use the ACP registry: spike 3 and ADR 0012 said that ACP carries a tool call only whole, which the protocol does not say.
+
+**Question.** How would an agent of the ACP registry work inside Spaka: does the live preview follow it, how is it installed, signed in, confined, given Spaka's instructions and tools?
+
+**What gets built** (Q485-Q488). An adapter inside the app, on the branch `spike/acp-adapter`, not merged: an `AcpSession` behind the same interface as Claude's and Pi's, with Claude, Pi, Codex and Antigravity installed from pinned registry entries or found on the maker's PATH, run under Spaka's sandbox, and measured on spike 1's first request as `measure.e2e.ts` measures Claude.
+
+**Outcome.** Run on 2026-11-26, see the [report](acp.md). ACP carries a file while it is written when the agent's adapter sends it: Pi over ACP, its adapter patched, matches Pi in Spaka's own harness; Codex, Antigravity and Claude send each file whole, Claude's preview no longer following it as through Spaka's own adapter. ADR 0012 and spike 3's report are corrected. Matt then asked for the best way per provider, benchmarked the same day: Spaka's Agent SDK adapter for Claude, the Pi harness (or Pi over ACP, patched) for OpenAI, the Pi harness on Vertex AI for Gemini, the only way a Gemini call streams; Claude's ACP adapter and Codex can be patched to stream, Antigravity could not. Whether to build an ACP adapter stays open.
 
 ## What the spikes need from Matt
 

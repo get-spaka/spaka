@@ -14,6 +14,7 @@ import {
   type ConversationItem,
   type Grounded,
   isPlan,
+  isQuiet,
   isWaiting,
   isWorking,
   waitingFor,
@@ -407,6 +408,7 @@ export function MessageBox({
 
 function Messages({ items }: { items: ConversationItem[] }) {
   const style = useAppSettings().outputStyle;
+  const working = isWorking(items);
   const scroller = useRef<HTMLDivElement>(null);
   const pinned = useRef(true);
   // Follows the agent as it writes, unless the maker scrolled up to read.
@@ -435,19 +437,28 @@ function Messages({ items }: { items: ConversationItem[] }) {
           );
         if (item.kind === "notice")
           return (
-            <p key={item.id} data-testid="notice" className="text-center text-xs text-muted-foreground">
-              {item.text}
-            </p>
+            <div key={item.id} data-testid="notice" className="text-center text-xs text-muted-foreground">
+              <p>{item.text}</p>
+              {/* A button that asks the agent, as the maker's message (Q538). */}
+              {item.action && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-1.5"
+                  disabled={working}
+                  onClick={() => void spaka.invoke("conversation:send", item.action!.message)}
+                  tip={item.action.tip}
+                  data-testid="notice-action"
+                >
+                  {item.action.label}
+                </Button>
+              )}
+            </div>
           );
         return (
           <div key={item.id} data-testid="agent-message" data-status={item.status} className="space-y-1.5 text-sm">
             <AgentParts parts={item.parts} working={item.status === "working"} style={style} />
-            {item.status === "working" && item.parts.length === 0 && (
-              <p className="flex items-center gap-2 text-muted-foreground">
-                <Loader2 className="size-3.5 animate-spin" />
-                {t.conversation.working}
-              </p>
-            )}
+            {item.status === "working" && <Thinking parts={item.parts} />}
             {item.status === "stopped" && <p className="text-xs text-muted-foreground">{t.conversation.stopped}</p>}
             {item.status === "failed" && item.error && (
               <p data-testid="agent-error" className="text-xs text-destructive">
@@ -496,6 +507,51 @@ function AgentParts({ parts, working, style }: { parts: AgentPart[]; working: bo
     if (steps.length === 1) return <ActivityLine key={steps[0]!.id} activity={steps[0]!} />;
     return <Steps key={steps[0]!.id} activities={steps} />;
   });
+}
+
+/** How long the parts stay still before the agent counts as thinking: words arriving change them sooner. */
+const STILL_MS = 1200;
+/** From when the seconds show. */
+const SECONDS_FROM_MS = 5000;
+
+/**
+ * While the agent works and nothing else moves (no step under way, no words
+ * arriving), the pill's bars, "Thinking…" and, from 5 seconds on, the seconds
+ * of that stretch (Q548). At the turn's start it shows at once.
+ */
+function Thinking({ parts }: { parts: AgentPart[] }) {
+  const [since, setSince] = useState(() => Date.now());
+  const [now, setNow] = useState(() => Date.now());
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a change of the parts is what restarts the stretch
+  useEffect(() => {
+    const at = Date.now();
+    setSince(at);
+    setNow(at);
+  }, [parts]);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(timer);
+  }, []);
+  const still = now - since;
+  if (!isQuiet(parts) || (parts.length > 0 && still < STILL_MS)) return null;
+  return (
+    <p
+      data-testid="agent-thinking"
+      role="status"
+      className="flex items-center gap-2.5 text-[13px] text-muted-foreground"
+    >
+      <span className="thinking-bars" aria-hidden>
+        <i />
+        <i />
+        <i />
+        <i />
+      </span>
+      <span className="font-medium text-foreground">{t.conversation.thinkingNow}</span>
+      {still >= SECONDS_FROM_MS && (
+        <span className="tabular-nums">{t.conversation.seconds(Math.floor(still / 1000))}</span>
+      )}
+    </p>
+  );
 }
 
 /** The agent's words, its thinking, or a card of its questions or of its plan. */

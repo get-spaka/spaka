@@ -54,6 +54,22 @@ test("the file tools reach the project, and Read the skills too; nothing else", 
   await expect(call("Read", { file_path: "out/secret.txt" })).rejects.toThrow(/outside the project/);
 });
 
+test("the installed packages are read, never written: Write, Edit and Append refuse node_modules (ADR 0013)", async () => {
+  const { call } = tools("gemini");
+  mkdirSync(join(root, "node_modules/motion"), { recursive: true });
+  writeFileSync(join(root, "node_modules/motion/README.md"), "# Motion\n");
+  expect(await call("Read", { file_path: "node_modules/motion/README.md" })).toMatch(/# Motion/);
+  for (const [name, input] of [
+    ["Write", { file_path: "node_modules/motion/README.md", content: "x" }],
+    ["Edit", { file_path: "node_modules/motion/README.md", old_string: "Motion", new_string: "x" }],
+    ["Append", { file_path: join(root, "node_modules/new.js"), content: "x" }],
+  ] as const)
+    await expect(call(name, input)).rejects.toThrow(/is in node_modules, where Spaka installs the website's packages/);
+  expect(readFileSync(join(root, "node_modules/motion/README.md"), "utf8")).toBe("# Motion\n");
+  // A file merely named like it is the maker's.
+  expect(await call("Write", { file_path: "pages/node_modules.liquid", content: "x" })).toMatch(/^Wrote/);
+});
+
 test("Edit replaces a text found once; Glob and Grep search the project", async () => {
   const { call } = tools();
   writeFileSync(join(root, "pages/index.liquid"), "<p>A</p>\n<p>A</p>\n<p>B</p>\n");
@@ -120,6 +136,8 @@ test("reads run together; a reply that changes the project runs in order", () =>
       useImage: async () => "",
       useBlocks: () => "",
       choosePages: async () => "",
+      addPackage: async () => "",
+      removePackage: async () => "",
     }),
   );
   expect(Object.fromEntries(spaka.map((t) => [t.name, t.executionMode]))).toMatchObject({
@@ -137,6 +155,8 @@ test("Spaka's tools keep their short names for the model, and the SDK's names fo
     useImage: async () => "",
     useBlocks: () => "",
     choosePages: async () => "",
+    addPackage: async () => "",
+    removePackage: async () => "",
   });
   const harness = piSpakaTools(defs);
   expect(harness.map((t) => t.name)).toEqual([
@@ -144,6 +164,8 @@ test("Spaka's tools keep their short names for the model, and the SDK's names fo
     "use_block",
     "find_images",
     "use_image",
+    "add_package",
+    "remove_package",
     "choose_pages",
     "look_at_preview",
   ]);
@@ -246,6 +268,8 @@ test("generate_image is among Spaka's tools only with an account that generates 
     useImage: async () => "",
     useBlocks: () => "",
     choosePages: async () => "",
+    addPackage: async () => "",
+    removePackage: async () => "",
   };
   expect(spakaTools(base).map((d) => d.name)).not.toContain("generate_image");
   const asked: unknown[] = [];

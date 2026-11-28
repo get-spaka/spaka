@@ -476,7 +476,10 @@ test("the agent gets Spaka's skills only, read-only, and starts again when they 
   expect(options.skills).toEqual(["spaka:spaka-help"]);
   expect(options.plugins).toEqual([{ type: "local", path: join(assembled, "spaka"), skipMcpDiscovery: true }]);
   expect(options.additionalDirectories).toContain(assembled);
-  expect(options.settings.permissions.deny).toEqual([`Edit(${ruleDir(assembled)}/**)`]);
+  expect(options.settings.permissions.deny).toEqual([
+    `Edit(${ruleDir(assembled)}/**)`,
+    `Edit(${ruleDir(`${dir}/node_modules`)}/**)`,
+  ]);
   if (process.platform === "darwin") expect(options.settings.sandbox.filesystem.denyWrite).toEqual([assembled]);
   let ended = turnEnd();
   s.send("First");
@@ -736,6 +739,30 @@ test("in plan mode the hooks that grant what the agent asks for stand aside", as
   await s.setMode("build");
   expect(await hook()).toEqual(granted);
 });
+
+test.runIf(process.platform === "darwin")(
+  "a shell command the sandbox confines is granted, a loop over files included; one outside it is refused (Q221)",
+  async () => {
+    const loop = { command: 'for f in data/navigation/*; do echo "== $f"; cat "$f"; done' };
+    const outside = { command: "ls ~", dangerouslyDisableSandbox: true };
+    const { s, fake, turnEnd } = session([
+      [
+        init(),
+        { type: "ask", name: "Bash", input: loop },
+        { type: "ask", name: "Bash", input: outside },
+        writeTurn(dir).at(-1)!,
+      ],
+    ]);
+    s.start();
+    const ended = turnEnd();
+    s.send("Hi");
+    await ended;
+    expect(fake.runs[0]!.calls.slice(0, 2)).toEqual([
+      { permission: { behavior: "allow", updatedInput: loop } },
+      { permission: { behavior: "deny", message: DENY_MESSAGE } },
+    ]);
+  },
+);
 
 test("a mode chosen while the agent works takes effect when its turn ends (Q436)", async () => {
   const { s, fake, items, turnEnd } = session([askTurn()]);

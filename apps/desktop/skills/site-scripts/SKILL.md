@@ -1,6 +1,6 @@
 ---
 name: site-scripts
-description: How to give a Spaka site its own JavaScript and stylesheet — scripts/*.js modules with start(root) and stop(root), styles/*.css, the libraries Spaka has checked (Motion, Lenis, Splitting, Embla, OGL) and how to add another — for reveals on scroll, smooth scrolling, sliders, split text, WebGL backgrounds. Use before writing any script or stylesheet for a site.
+description: How to give a Spaka site its own JavaScript and stylesheet — scripts/*.js modules with start(root) and stop(root), styles/*.css, and the packages they import by name, added with add_package (Motion, Lenis, Splitting, Embla, OGL and others) — for reveals on scroll, smooth scrolling, sliders, split text, WebGL backgrounds. Use before writing any script or stylesheet for a site.
 ---
 
 # A site's own scripts and stylesheet
@@ -10,8 +10,7 @@ How much a site moves follows its character, from still to orchestrated: the web
 Pages never hold `<script>`, `<style>` or `<link>` tags. Spaka loads, for every page:
 
 - `styles/*.css`, the site's stylesheet, compiled with Tailwind's: `@apply`, Tailwind's functions and the theme's variables (`var(--color-primary)`, `var(--radius-box)`) work there. To restyle one of daisyUI's components (`.btn`, `.card`…), write the rule in `@layer components`: it comes after daisyUI's, and Tailwind's classes on an element still win over it. Set the properties themselves (`border-radius`, `padding-inline`), not daisyUI's own variables such as `--btn-p`, which daisyUI may change in any release;
-- the libraries listed in `scripts/libraries.json`, from their address, then those in `scripts/lib/*.js`, in name order;
-- `scripts/*.js`, the site's modules, which Spaka imports and starts.
+- `scripts/*.js`, the site's modules, which Spaka imports and starts. They import packages by their name (below).
 
 ## Rules that keep the site editable
 
@@ -21,12 +20,14 @@ The maker edits the page in Spaka's preview with no script running and no animat
 2. **Texts stay in the templates.** A script animates the elements that are there; it never writes the site's texts, which the maker edits in place.
 3. **Respect reduced motion.** Leave out movement when `matchMedia("(prefers-reduced-motion: reduce)").matches`, and wrap CSS animations in `@media (prefers-reduced-motion: no-preference)`.
 4. **No colors of its own.** Colors, fonts and corners come from the theme's variables, so the Theme tab keeps restyling the whole site.
-5. **Nothing from outside but the libraries:** no tracking, no fetching another site's data, no keys.
+5. **Nothing from outside:** no tracking, no fetching another site's data, no keys, no script from another server. What the site uses comes from its packages.
 
 ## A module
 
 ```js
 // scripts/reveal.js
+import { animate, inView } from "motion";
+
 const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /** The elements matching `selector` in what is starting: the root itself included. */
@@ -43,8 +44,8 @@ export function start(root) {
     el.style.opacity = "0";
     el.style.transform = "translateY(24px)";
     stops.push(
-      Motion.inView(el, () => {
-        Motion.animate(el, { opacity: [0, 1], y: [24, 0] }, { duration: 0.8, ease: [0.22, 1, 0.36, 1] });
+      inView(el, () => {
+        animate(el, { opacity: [0, 1], y: [24, 0] }, { duration: 0.8, ease: [0.22, 1, 0.36, 1] });
       }),
       () => {
         el.style.opacity = "";
@@ -62,29 +63,35 @@ export function stop() {
 
 - Move with Motion's own `x`, `y`, `scale` and `rotate` (`y: [24, 0]`), or with keyframes of the same functions (`transform: ["translateY(24px)", "translateY(0px)"]`): never to `transform: "none"`, which Motion turns into a transform that shrinks the element to nothing.
 - `start(root)` is called with `document` once the page has loaded, then with each element htmx brings in. That element may itself be the one to start, hence `within`.
-- `stop(root)` undoes what `start` set up: observers, listeners, library instances (`lenis.destroy()`, `embla.destroy()`), styles it set, elements it moved or added. In the preview, after each change of a file, Spaka calls `stop(document)` on the page as `start` left it, puts the new rendering in its place, then calls `start(document)` again on the same elements. So `start` must work a second time:
+- `stop(root)` undoes what `start` set up: observers, listeners, the instances it made (`lenis.destroy()`, `embla.destroy()`), styles it set, elements it moved or added. In the preview, after each change of a file, Spaka calls `stop(document)` on the page as `start` left it, puts the new rendering in its place, then calls `start(document)` again on the same elements. So `start` must work a second time:
   - Give every animated value where it starts from: `opacity: [0, 1]`, never `opacity: 1`. Motion remembers the last value it set on an element and would see nothing to animate, leaving it hidden.
   - Leave what `start` needs again: stop a WebGL loop and clear the canvas, but keep its context (no `WEBGL_lose_context`), since the same canvas starts again.
 - Mark what a script acts on with a `data-` attribute (`data-reveal`, `data-split`, `data-carousel`) rather than a class: the maker's classes stay theirs.
 - One module per effect, named after it: `scripts/reveal.js`, `scripts/smooth-scroll.js`, `scripts/carousel.js`.
 
-## Libraries Spaka has checked
+## Packages
 
-Put the ones you use in `scripts/libraries.json`, exactly as below: their addresses pin a version, and their licences allow a website builder.
+A module imports a package of npm's registry by its name, never by an address:
 
-```json
-[
-  { "name": "motion", "url": "https://cdn.jsdelivr.net/npm/motion@14.9.0/dist/motion.min.js", "licence": "MIT" }
-]
+```js
+import EmblaCarousel from "embla-carousel";
 ```
 
-| Library | `url` | Licence | What for | In a module |
-|---|---|---|---|---|
-| Motion | `https://cdn.jsdelivr.net/npm/motion@14.9.0/dist/motion.min.js` | MIT | animations, reveals on scroll, scroll-linked movement, staggers | `Motion.animate`, `Motion.inView`, `Motion.scroll`, `Motion.stagger` |
-| Lenis | `https://cdn.jsdelivr.net/npm/lenis@1.3.27/dist/lenis.min.js` | MIT | smooth scrolling | `new Lenis({ autoRaf: true })`, then `lenis.destroy()` in `stop` |
-| Splitting | `https://cdn.jsdelivr.net/npm/splitting@1.1.0/dist/splitting.min.js` | MIT | a heading split into words or letters, to animate them one by one | `Splitting({ target: el, by: "chars" })` |
-| Embla Carousel | `https://cdn.jsdelivr.net/npm/embla-carousel@8.6.0/embla-carousel.umd.js` | MIT | sliders and carousels, by touch and by buttons | `EmblaCarousel(viewport, { loop: true })`, then `.destroy()` |
-| OGL | imported in the module: `import { Renderer, Camera, Program, Mesh, Triangle } from "https://cdn.jsdelivr.net/npm/ogl@1.0.11/+esm"` | Unlicense | a light WebGL background, a shader | create the renderer on a `<canvas data-shader aria-hidden="true">`; stop its loop in `stop` |
+1. **Add it with `add_package` first.** Spaka checks it, installs it into the website's `node_modules` and writes it into `package.json`. Never write `package.json`'s dependencies, never run npm or pnpm: Spaka undoes it. A script that imports a package not installed is told to you as you write it.
+2. **Import it by its name, or a path inside it:** `import { OrbitControls } from "three/addons/controls/OrbitControls.js"`. Spaka makes one module of each name or path for visitors' browsers, with its licence notice, and the page's import map points the name to it. A path and its package share one copy: the addons use the page's `three`.
+3. **The whole package comes with it.** Its module holds everything the name exports, whatever you import from it: prefer a small package, and look at what each weighs for visitors in the website's settings.
+4. **What a browser runs.** A package written for Node, one that reads files or starts programs, does nothing in a page. A package's stylesheet is not imported: copy the rules the site needs into `styles/site.css`, with the package's name and licence in a comment. Read them in the package's files (`node_modules/lenis/dist/lenis.css`), and never write in `node_modules`.
+5. **An open licence** (MIT, BSD, ISC, Apache-2.0, Unlicense): `add_package` says each package's. **Never GSAP**: its licence forbids tools that compete with Webflow, which Spaka is.
+
+### Packages that suit a site
+
+| Package | What for | In a module |
+|---|---|---|
+| `motion` | animations, reveals on scroll, scroll-linked movement, staggers | `import { animate, inView, scroll, stagger } from "motion"` |
+| `lenis` | smooth scrolling | `import Lenis from "lenis"`; `new Lenis({ autoRaf: true })`, then `lenis.destroy()` in `stop` |
+| `splitting` | a heading split into words or letters, to animate them one by one | `import Splitting from "splitting"`; `Splitting({ target: el, by: "chars" })` |
+| `embla-carousel` | sliders and carousels, by touch and by buttons | `import EmblaCarousel from "embla-carousel"`; `EmblaCarousel(viewport, { loop: true })`, then `.destroy()` |
+| `ogl` | a light WebGL background, a shader | `import { Renderer, Camera, Program, Mesh, Triangle } from "ogl"`; the renderer on a `<canvas data-shader aria-hidden="true">`, its loop stopped in `stop` |
 
 Lenis and Splitting need a few rules of CSS, from their own stylesheets: copy them into `styles/site.css`.
 
@@ -99,11 +106,9 @@ html.lenis, html.lenis body { height: auto; }
 
 Splitting sets `--word-index` and `--char-index` on each piece: enough to stagger them with CSS, `transition-delay: calc(var(--char-index) * 20ms)`.
 
-**Never GSAP**: its licence forbids tools that compete with Webflow, which Spaka is.
+### A site's older libraries
 
-### Another library
-
-Only under an open licence (MIT, BSD, ISC, Apache-2.0, Unlicense), with its version pinned in the address, from `cdn.jsdelivr.net` or `unpkg.com`, its licence written in its entry. A library given by its address is loaded from there on every visit: visitors' browsers reach that server. A library's own file can also be copied into `scripts/lib/`, which keeps the site independent of that server; write its licence's name at the top of the file.
+A site made before packages may still list libraries in `scripts/libraries.json`, its modules using their globals (`Motion.animate`). Spaka no longer loads them: add each with `add_package`, import what the modules use by its name (`import { animate } from "motion";`, then `animate(…)` for `Motion.animate(…)`), and remove the file.
 
 ## Movement without a script
 
@@ -131,7 +136,7 @@ A keyframe's `from` alone is enough: the element ends as the stylesheet has it, 
 
 ## Checking
 
-The preview's visitor mode is where the page moves; the maker opens their site in it. An error in a module, or a library that does not load, is reported among the page's errors, which `look_at_preview` shows you: look once after writing a script.
+The preview's visitor mode is where the page moves; the maker opens their site in it. An error in a module, or a package whose module Spaka could not make, is reported among the page's errors, which `look_at_preview` shows you: look once after writing a script.
 
 A look sees the page as a visitor does, once it has settled, and its `steps` act on it first, as a visitor would. To see what a script does, do what starts it:
 

@@ -53,6 +53,12 @@ describe("every builder", () => {
     for (const file of result.files) expect(existsSync(join(out, file))).toBe(true);
     expect(builder.guide(result).length).toBeGreaterThan(0);
   });
+
+  test("the static one is put online by dragging its folder onto a hosting service's page", async () => {
+    const builder = builderById("static")!;
+    const result = await builder.build(contact(), { outDir: out, formServices: {} });
+    expect(builder.guide(result).map((s) => s.id)).toEqual(["open", "drop", "keep", "update", "forms"]);
+  });
 });
 
 describe("the static site", () => {
@@ -111,13 +117,57 @@ describe("the Node export", () => {
     const docker = readFileSync(join(out, "Dockerfile"), "utf8");
     expect(docker).toContain("FROM node:24-slim");
     expect(docker).toContain("VOLUME /data");
-    expect(readFileSync(join(out, "README.md"), "utf8")).toContain("--env-file .env chez-margot");
+    const readme = readFileSync(join(out, "README.md"), "utf8");
+    expect(readme).toContain("--env-file .env chez-margot");
+    // Docker first, and how to use a domain name of one's own (Q554, Q555).
+    expect(readme.indexOf("## With Docker")).toBeLessThan(readme.indexOf("## Try it on this machine"));
+    // The website behind Caddy, the domain name from .env (Q556).
+    const compose = readFileSync(join(out, "compose.yaml"), "utf8");
+    expect(compose).toContain("SPAKA_DOMAIN: ${SPAKA_DOMAIN:-:80}");
+    expect(compose).toContain('SPAKA_PROXY: "1"');
+    expect(compose).not.toContain("3000:3000");
+    expect(readFileSync(join(out, "Caddyfile"), "utf8")).toContain("{$SPAKA_DOMAIN} {\n\treverse_proxy site:3000");
+    expect(readFileSync(join(out, ".env"), "utf8")).toMatch(/^SPAKA_DOMAIN=$/m);
+    expect(readme).toContain("## Your own domain name");
     // The token is in .env, which git and the Docker image leave out (Q191).
     expect(readFileSync(join(out, ".env"), "utf8")).toMatch(/^SPAKA_TOKEN=the-token$/m);
     expect(readFileSync(join(out, ".dockerignore"), "utf8")).toContain(".env");
     expect(readFileSync(join(out, ".gitignore"), "utf8")).toContain(".env");
-    expect(builderById("node")!.guide(result)[0]).toEqual({ id: "try", command: "node server.mjs" });
+    expect(
+      builderById("node")!
+        .guide(result)
+        .map((s) => s.id),
+    ).toEqual(["docker", "server", "address"]);
+    expect(builderById("node")!.guide(result)[0]!.command).toBe("docker compose up -d --build");
     await expect(builderById("node")!.build(contact(), { outDir: out })).rejects.toThrow(/server\.mjs/);
+  });
+});
+
+describe("the export's .env", () => {
+  const env = () => readFileSync(join(out, ".env"), "utf8");
+  const build = (managementToken: string, earlierEnv?: string) =>
+    builderById("node")!.build(contact(), { outDir: out, serverBundle: "// the server", managementToken, earlierEnv });
+
+  test("keeps what the maker wrote into the earlier one, with the token of today (Q556)", async () => {
+    await build("first-token");
+    const edited = `${env().replace(/^SPAKA_DOMAIN=$/m, "SPAKA_DOMAIN=example.com, www.example.com")}PORT=8080\n`;
+    await build("second-token", edited);
+    expect(env().match(/^SPAKA_TOKEN=.*$/gm)).toEqual(["SPAKA_TOKEN=second-token"]);
+    expect(env().match(/^SPAKA_DOMAIN=.*$/gm)).toEqual(["SPAKA_DOMAIN=example.com, www.example.com"]);
+    expect(env()).toMatch(/^PORT=8080$/m);
+    // Exported again and again, it does not grow.
+    const once = env();
+    await build("second-token", once);
+    expect(env()).toBe(once);
+  });
+
+  test("gains the domain name's line when an earlier one has none", async () => {
+    await build(
+      "the-token",
+      "# The website's management token, with which Spaka reads what visitors send. Keep it private.\nSPAKA_TOKEN=old\n",
+    );
+    expect(env()).toMatch(/^SPAKA_TOKEN=the-token$/m);
+    expect(env()).toMatch(/^SPAKA_DOMAIN=$/m);
   });
 });
 
@@ -186,11 +236,9 @@ describe("a site's scripts and stylesheet (ADR 0011)", () => {
   const animated = () =>
     project({
       "pages/index.liquid": `<html><head><title>Home</title></head><body><h1 class="headline">Hi</h1></body></html>`,
-      "scripts/libraries.json": JSON.stringify([
-        { name: "lenis", url: "https://unpkg.com/lenis@1.3.4/dist/lenis.min.js" },
-      ]),
-      "scripts/lib/split.js": "window.split = 1;",
-      "scripts/reveal.js": "export function start(root) {}",
+      // A file the module imports, below scripts/: copied, never loaded by the head.
+      "scripts/lib/split.js": "export const split = (s) => s.split('');",
+      "scripts/reveal.js": 'import { split } from "./lib/split.js";\nexport function start(root) {}',
       "styles/site.css": ".headline { @apply text-primary; letter-spacing: -0.04em; }",
       // A picture the stylesheet refers to (Kindly's seal, Commons' edges): served as it is.
       "styles/edges/wave.svg": "<svg/>",
@@ -201,9 +249,9 @@ describe("a site's scripts and stylesheet (ADR 0011)", () => {
   test("the static site loads them, its stylesheet compiled into site.css with Tailwind's", async () => {
     await builderById("static")!.build(animated(), { outDir: out, formServices: {} });
     const page = readFileSync(join(out, "index.html"), "utf8");
-    expect(page).toContain('<script src="https://unpkg.com/lenis@1.3.4/dist/lenis.min.js"></script>');
-    expect(page).toContain('<script src="/scripts/lib/split.js"></script>');
+    expect(page).not.toContain('<script src="/scripts/lib/split.js"');
     expect(page).toContain('<script src="/assets/spaka-start.js" data-modules="/scripts/reveal.js" defer></script>');
+    expect(existsSync(join(out, "scripts/lib/split.js"))).toBe(true);
     expect(readFileSync(join(out, "assets/spaka-start.js"), "utf8")).toContain("__spakaStart");
     expect(readFileSync(join(out, "scripts/reveal.js"), "utf8")).toContain("export function start");
     const css = readFileSync(join(out, "assets/site.css"), "utf8");
@@ -222,6 +270,60 @@ describe("a site's scripts and stylesheet (ADR 0011)", () => {
     expect(existsSync(join(out, "public/assets/spaka-start.js"))).toBe(true);
     expect(existsSync(join(out, "public/scripts/reveal.js"))).toBe(true);
     expect(existsSync(join(out, "public/styles/edges/wave.svg"))).toBe(true);
+  });
+
+  // The packages its scripts import (ADR 0013): their modules, made by the app, written where the import map points.
+  const withPackages = () =>
+    project({
+      "pages/index.liquid": '<h1 data-carousel class="text-primary">Chez Margot</h1>',
+      "scripts/carousel.js":
+        'import EmblaCarousel from "embla-carousel";\nimport gone from "gone";\nexport function start() {}',
+      "node_modules/embla-carousel/package.json": JSON.stringify({ name: "embla-carousel", version: "8.6.0" }),
+      "node_modules/gone/package.json": JSON.stringify({ name: "gone", version: "1.0.0" }),
+      "package.json": JSON.stringify({ dependencies: { "embla-carousel": "8.6.0", gone: "1.0.0" } }),
+      "pnpm-lock.yaml": "lockfileVersion: '9.0'\n",
+    });
+  const made = async (imports: { specifier: string }[]) =>
+    new Map(
+      imports.map((p) => [
+        p.specifier,
+        p.specifier === "gone"
+          ? { error: "Vite could not resolve it" }
+          : { code: `/*! ${p.specifier} */export default 1;` },
+      ]),
+    );
+
+  test("the static site gets its packages' modules and the import map; package.json and the lockfile stay out", async () => {
+    const result = await builderById("static")!.build(withPackages(), {
+      outDir: out,
+      formServices: {},
+      packageModules: made,
+    });
+    expect(readFileSync(join(out, "assets/packages/embla-carousel@8.6.0.js"), "utf8")).toBe(
+      "/*! embla-carousel */export default 1;",
+    );
+    expect(readFileSync(join(out, "index.html"), "utf8")).toContain(
+      '<script type="importmap">{"imports":{"embla-carousel":"/assets/packages/embla-carousel@8.6.0.js","gone":"/assets/packages/gone@1.0.0.js"}}</script>',
+    );
+    expect(result.warnings).toContain(
+      "The package gone 1.0.0 has no module in the export (Vite could not resolve it): the pages whose scripts import it will not run them.",
+    );
+    expect(existsSync(join(out, "assets/packages/gone@1.0.0.js"))).toBe(false);
+    for (const file of ["package.json", "pnpm-lock.yaml", "node_modules"])
+      expect(existsSync(join(out, file))).toBe(false);
+  });
+
+  test("a published site gets them in public/, its import map in site.json; without the app's modules, a warning", async () => {
+    await builderById("node")!.build(withPackages(), { outDir: out, serverBundle: "// server", packageModules: made });
+    expect(existsSync(join(out, "public/assets/packages/embla-carousel@8.6.0.js"))).toBe(true);
+    const site = JSON.parse(readFileSync(join(out, "site.json"), "utf8"));
+    expect(site.assets.packages.map((p: { url: string }) => p.url)).toEqual([
+      "/assets/packages/embla-carousel@8.6.0.js",
+      "/assets/packages/gone@1.0.0.js",
+    ]);
+    expect(existsSync(join(out, "public/package.json"))).toBe(false);
+    const again = await builderById("static")!.build(withPackages(), { outDir: join(out, "again"), formServices: {} });
+    expect(again.warnings.filter((w) => w.startsWith("The package"))).toHaveLength(2);
   });
 
   test("a site without them gets no start script", async () => {

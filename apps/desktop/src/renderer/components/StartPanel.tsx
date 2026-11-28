@@ -1,23 +1,35 @@
 // The start screen (Q245, Q249): with no website open, the window has the
 // sidebar and this one large panel. The templates to start from, filtered by
 // category chips, their thumbnails moving on hover; a click chooses one, View
-// shows it large, real and moving, its pages to go to; Import a template adds
+// shows it large, the pictures of its pages at desktop or phone width
+// (Q541, Q544); Import a template adds
 // a folder or a .zip. The message box stays at the bottom center and says
 // which template the website starts from. Starting from scratch folds the
 // templates away: the message box rises to the middle, taller. Starting from a
 // template stays so when its template is cleared, and nothing is sent until one
 // is chosen. The first message creates the website, and the window takes its
 // usual layout.
-import { ArrowLeft, Check, CircleDashed, Eye, LayoutTemplate, PenLine, Upload, X } from "lucide-react";
-import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  ArrowLeft,
+  Check,
+  CircleDashed,
+  Eye,
+  LayoutTemplate,
+  Monitor,
+  PenLine,
+  Smartphone,
+  Upload,
+  X,
+} from "lucide-react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
   type AgentStatus,
   accountReady,
   TEMPLATE_CATEGORIES,
   type TemplateCategory,
   type TemplateImport,
+  type TemplatePageShot,
   type TemplateSummary,
-  type TemplateViewState,
 } from "../../shared/ipc";
 import { spaka } from "../lib/bridge";
 import { t } from "../lib/strings";
@@ -29,22 +41,17 @@ import { Button } from "./ui/button";
 import { NativeSelect } from "./ui/native-select";
 import { Tip } from "./ui/tip";
 
-const NO_VIEW: TemplateViewState = { id: null, route: null, title: "", pages: [], loading: false };
-
 export function StartPanel({
   status,
   sidebarOpen,
   onExpandSidebar,
   othersWaiting,
-  covered,
 }: {
   status: AgentStatus;
   sidebarOpen: boolean;
   onExpandSidebar: () => void;
   /** Another website waits for the maker's answer: a dot on the button that shows the sidebar. */
   othersWaiting?: boolean;
-  /** Something is over the window (the settings): the template shown large is hidden. */
-  covered: boolean;
 }) {
   const [templates, setTemplates] = useState<TemplateSummary[]>();
   const [category, setCategory] = useState<TemplateCategory>();
@@ -57,7 +64,6 @@ export function StartPanel({
   };
   const [viewing, setViewing] = useState<string>();
   const [importing, setImporting] = useState<TemplateImport>();
-  const viewState = useTemplateView();
   const load = () => spaka.invoke("templates:list").then(setTemplates);
   // biome-ignore lint/correctness/useExhaustiveDependencies: loaded once, then again when the latest catalogue changes it
   useEffect(() => {
@@ -95,15 +101,7 @@ export function StartPanel({
       .catch(() => setSending(false));
   };
 
-  // The template shown large, downloaded first if it has to be; why it cannot be shown.
-  const [viewProblem, setViewProblem] = useState<string>();
-  const view = (id: string | undefined) => {
-    setViewing(id);
-    setViewProblem(undefined);
-    void spaka.invoke("templates:view", id ?? null).then((problem) => problem && setViewProblem(problem));
-  };
-  // Leaving the start screen hides the template shown large.
-  useEffect(() => () => void spaka.invoke("templates:view", null), []);
+  const view = (id: string | undefined) => setViewing(id);
 
   const runImport = async () => {
     const answer = await spaka.invoke("templates:import");
@@ -208,13 +206,10 @@ export function StartPanel({
       >
         {viewed ? (
           <TemplateLarge
+            key={viewed.id}
             template={viewed}
-            state={viewState.id === viewed.id ? viewState : NO_VIEW}
             chosen={chosen === viewed.id}
             active={zone === "templates"}
-            hidden={covered || !!importing}
-            problem={viewProblem}
-            onRetry={() => view(viewed.id)}
             onBack={() => view(undefined)}
             onChoose={() => {
               choose(viewed.id);
@@ -540,61 +535,51 @@ function TemplateCard({
   );
 }
 
-/** A template shown large (Q249): real and moving, in a native view over the frame below its bar. */
+/**
+ * A template shown large (Q249, Q541, Q544): the picture of one of its pages,
+ * whole, at desktop or phone width, its pages to go to. Its .zip, which holds
+ * the pictures, is downloaded first if it has to be (Q545).
+ */
 function TemplateLarge({
   template,
-  state,
   chosen,
   active,
-  hidden,
-  problem,
-  onRetry,
   onBack,
   onChoose,
 }: {
   template: TemplateSummary;
-  state: TemplateViewState;
   chosen: boolean;
   /** The templates are the zone the maker is in: the preview's border is thicker. */
   active: boolean;
-  hidden: boolean;
-  /** Why it cannot be shown: it could not be downloaded. */
-  problem: string | undefined;
-  onRetry: () => void;
   onBack: () => void;
   onChoose: () => void;
 }) {
-  const frame = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    const element = frame.current;
-    if (!element || hidden) {
-      spaka.send("templates:bounds", null);
-      return;
-    }
-    const send = () => {
-      const r = element.getBoundingClientRect();
-      spaka.send("templates:bounds", {
-        x: Math.round(r.x),
-        y: Math.round(r.y),
-        width: Math.round(r.width),
-        height: Math.round(r.height),
-      });
-    };
-    send();
-    const observer = new ResizeObserver(send);
-    observer.observe(element);
-    window.addEventListener("resize", send);
+  const [pages, setPages] = useState<TemplatePageShot[]>();
+  // Why it cannot be shown: it could not be downloaded.
+  const [problem, setProblem] = useState<string>();
+  const [tries, setTries] = useState(0);
+  const [route, setRoute] = useState("/");
+  const [device, setDevice] = useState<"desktop" | "phone">("desktop");
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Try again asks once more
+  useEffect(() => {
+    let live = true;
+    setProblem(undefined);
+    void spaka.invoke("templates:pages", template.id).then((answer) => {
+      if (!live) return;
+      if ("problem" in answer) setProblem(answer.problem);
+      else setPages(answer.pages);
+    });
     return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", send);
-      spaka.send("templates:bounds", null);
+      live = false;
     };
-  }, [hidden]);
+  }, [template.id, tries]);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => event.key === "Escape" && onBack();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onBack]);
+  const page = pages?.find((p) => p.route === route) ?? pages?.[0];
+  const picture = usePagePicture(template.id, page?.[device] ? page.page : undefined, device);
 
   return (
     <div data-testid="template-large" data-template={template.id} className="flex min-h-0 flex-1 flex-col p-3">
@@ -605,23 +590,41 @@ function TemplateLarge({
           {t.start.back}
         </Button>
         <span className="truncate text-sm font-medium">{template.name}</span>
-        {state.pages.length > 1 && (
+        {pages && pages.length > 1 && (
           <NativeSelect
             aria-label={t.start.page}
             data-testid="template-page"
             size="xs"
             className="hover:bg-accent"
-            value={state.pages.some((p) => p.route === state.route) ? (state.route ?? "/") : ""}
-            onChange={(event) => void spaka.invoke("templates:view", template.id, event.target.value)}
+            value={page?.route ?? "/"}
+            onChange={(event) => setRoute(event.target.value)}
           >
-            {!state.pages.some((p) => p.route === state.route) && <option value="">{state.title}</option>}
-            {state.pages.map((p) => (
+            {pages.map((p) => (
               <option key={p.route} value={p.route}>
                 {p.name}
               </option>
             ))}
           </NativeSelect>
         )}
+        <fieldset aria-label={t.start.device} className="flex items-center rounded-md border p-0.5">
+          {(["desktop", "phone"] as const).map((d) => (
+            <Tip key={d} text={d === "desktop" ? t.start.desktopTip : t.start.phoneTip}>
+              <button
+                type="button"
+                aria-pressed={device === d}
+                data-testid={`template-device-${d}`}
+                onClick={() => setDevice(d)}
+                className={cn(
+                  "flex h-6 items-center gap-1 rounded px-2 text-xs text-muted-foreground hover:text-foreground",
+                  device === d && "bg-accent text-foreground",
+                )}
+              >
+                {d === "desktop" ? <Monitor className="size-3.5" /> : <Smartphone className="size-3.5" />}
+                {d === "desktop" ? t.start.desktop : t.start.phone}
+              </button>
+            </Tip>
+          ))}
+        </fieldset>
         <div className="ml-auto" />
         {/* no tip: its label says what it does, then that the template is chosen */}
         <Button
@@ -637,26 +640,39 @@ function TemplateLarge({
         </Button>
       </div>
       <div
-        ref={frame}
         data-testid="template-frame"
-        data-native-view
-        data-route={state.route ?? undefined}
-        className={cn(
-          "flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-lg border bg-muted",
-          active && "ring-2 ring-primary",
-        )}
+        data-route={page?.route}
+        data-device={device}
+        className={cn("min-h-0 flex-1 overflow-y-auto rounded-lg border bg-muted", active && "ring-2 ring-primary")}
       >
-        {/* Under the template's own view: seen while it downloads, or when it cannot be shown. */}
         {problem ? (
-          <div data-testid="template-problem" role="alert" className="max-w-sm space-y-3 text-center text-sm">
-            <p>{problem}</p>
-            <Button size="sm" variant="outline" tip={t.start.tryAgainTip} onClick={onRetry}>
-              {t.start.tryAgain}
-            </Button>
+          <div className="flex h-full items-center justify-center">
+            <div data-testid="template-problem" role="alert" className="max-w-sm space-y-3 text-center text-sm">
+              <p>{problem}</p>
+              <Button size="sm" variant="outline" tip={t.start.tryAgainTip} onClick={() => setTries((n) => n + 1)}>
+                {t.start.tryAgain}
+              </Button>
+            </div>
           </div>
+        ) : !pages ? (
+          <p className="flex h-full items-center justify-center text-sm text-muted-foreground">
+            {t.start.downloading(template.name)}
+          </p>
+        ) : page && !page[device] ? (
+          <p className="flex h-full items-center justify-center text-sm text-muted-foreground">{t.start.noPicture}</p>
         ) : (
-          state.id !== template.id && (
-            <p className="text-sm text-muted-foreground">{t.start.downloading(template.name)}</p>
+          picture && (
+            <img
+              key={`${page?.page}-${device}`}
+              src={picture}
+              alt={page?.name ?? template.name}
+              data-testid="template-picture"
+              data-page={page?.page}
+              className={cn(
+                "mx-auto block",
+                device === "desktop" ? "w-full max-w-[1200px]" : "my-4 w-[390px] rounded-md shadow-sm",
+              )}
+            />
           )
         )}
       </div>
@@ -758,8 +774,25 @@ function usePicture(id: string, which: "cover" | "hover", wanted: boolean) {
   return url;
 }
 
-function useTemplateView() {
-  const [state, setState] = useState<TemplateViewState>(NO_VIEW);
-  useEffect(() => spaka.on("templates:view-state", setState), []);
-  return state;
+const pagePictures = new Map<string, Promise<string | null>>();
+
+/** A page's picture at a width, asked for once, kept for the session. */
+function usePagePicture(id: string, page: string | undefined, device: "desktop" | "phone") {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    setUrl(null);
+    if (!page) return;
+    let live = true;
+    const key = `${id}/${page}/${device}`;
+    if (!pagePictures.has(key))
+      pagePictures.set(
+        key,
+        spaka.invoke("templates:page-picture", id, page, device).catch(() => null),
+      );
+    void pagePictures.get(key)!.then((u) => live && setUrl(u));
+    return () => {
+      live = false;
+    };
+  }, [id, page, device]);
+  return url;
 }

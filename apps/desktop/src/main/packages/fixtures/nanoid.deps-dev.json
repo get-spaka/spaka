@@ -1,0 +1,51 @@
+{
+  "versionKey": { "system": "NPM", "name": "nanoid", "version": "6.0.2" },
+  "publishedAt": "2026-10-05T21:23:00Z",
+  "isDefault": true,
+  "isDeprecated": false,
+  "deprecatedReason": "",
+  "licenses": ["MIT"],
+  "advisoryKeys": [],
+  "links": [
+    { "label": "HOMEPAGE", "url": "https://github.com/ai/nanoid#readme" },
+    { "label": "ISSUE_TRACKER", "url": "https://github.com/ai/nanoid/issues" },
+    { "label": "ATTESTATION", "url": "https://registry.npmjs.org/-/npm/v1/attestations/nanoid@6.0.2" },
+    { "label": "ORIGIN", "url": "https://registry.npmjs.org/nanoid/6.0.2" },
+    { "label": "SOURCE_REPO", "url": "git+https://github.com/ai/nanoid.git" }
+  ],
+  "slsaProvenances": [
+    {
+      "sourceRepository": "https://github.com/ai/nanoid",
+      "commit": "3167e108865702c0539d8e552365ed840ac9d8d9",
+      "url": "https://registry.npmjs.org/-/npm/v1/attestations/nanoid@6.0.2",
+      "verified": true
+    }
+  ],
+  "attestations": [
+    {
+      "type": "https://slsa.dev/provenance/v1",
+      "url": "https://registry.npmjs.org/-/npm/v1/attestations/nanoid@6.0.2",
+      "verified": true,
+      "sourceRepository": "https://github.com/ai/nanoid",
+      "commit": "3167e108865702c0539d8e552365ed840ac9d8d9"
+    }
+  ],
+  "registries": ["https://registry.npmjs.org/"],
+  "relatedProjects": [
+    {
+      "projectKey": { "id": "github.com/ai/nanoid" },
+      "relationProvenance": "UNVERIFIED_METADATA",
+      "relationType": "ISSUE_TRACKER"
+    },
+    {
+      "projectKey": { "id": "github.com/ai/nanoid" },
+      "relationProvenance": "UNVERIFIED_METADATA",
+      "relationType": "SOURCE_REPO"
+    },
+    {
+      "projectKey": { "id": "github.com/ai/nanoid" },
+      "relationProvenance": "SLSA_ATTESTATION",
+      "relationType": "SOURCE_REPO"
+    }
+  ]
+}

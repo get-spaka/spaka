@@ -123,7 +123,8 @@ export const en = {
     startOverDone: "Started over: the agent no longer remembers the conversation above.",
     emptyTitle: "What are we building?",
     emptyText: "Describe your website in a few words. Spaka builds it while you watch.",
-    working: "Working…",
+    thinkingNow: "Thinking…",
+    seconds: (n: number) => `${n} s`,
     stopped: "Stopped.",
     model: "Model",
     effort: "Effort",
@@ -290,6 +291,12 @@ export const en = {
     clear: "Remove this template",
     placeholder: (name: string) => `Describe your website: ${name} is rewritten for it…`,
     home: "Home",
+    desktop: "Desktop",
+    phone: "Phone",
+    device: "Width",
+    desktopTip: "See the page as it shows on a computer",
+    phoneTip: "See the page as it shows on a phone",
+    noPicture: "This page has no picture at this width.",
     downloading: (name: string) => `Downloading ${name}…`,
     tryAgain: "Try again",
     tryAgainTip: "Download the template again",
@@ -388,6 +395,8 @@ export const en = {
     generateImage: (name?: string) => (name ? `Generating an image: ${name}` : "Generating an image"),
     addImage: (name?: string) => (name ? `Adding the image ${name}` : "Adding an image…"),
     addImages: (n: number) => `Adding ${n} images`,
+    addPackage: (name?: string) => (name ? `Adding the package ${name}` : "Adding a package…"),
+    removePackage: (name?: string) => (name ? `Removing the package ${name}` : "Removing a package…"),
     skill: (name?: string) => (name ? `Following the skill ${name}` : "Following a skill…"),
     run: (what?: string) => (what ? `Running ${what}` : "Running a command…"),
     searchWeb: "Searching the web",
@@ -456,13 +465,14 @@ export const en = {
     askAbout: (route: string) => `On the page ${route}: `,
     emptyTitle: "Your website appears here",
     emptyText: "As soon as the agent starts writing, you see the page take shape.",
+    emptyWorking: "The agent is building your first page. It shows here as soon as it is written.",
     noProjectTitle: "Start a new website",
     noProjectText: "Describe it in the conversation, or open a folder you already have.",
     reload: "Reload the page",
     pages: "Pages",
     loading: "Loading…",
     publish: "Publish",
-    publishTip: "Export this website or put it online",
+    publishTip: "Put this website online, at a hosting service",
     editMode: "Edit the page: click to select, double-click a text to change it",
     visitorMode: "See the page as a visitor: links, buttons and forms work",
     commentMode: "Comment: click an element to tell the agent what to change",
@@ -1094,7 +1104,7 @@ export const en = {
     published: {
       title: "Published site",
       caption:
-        "Once a Node or Cloudflare export is online, give its address here: the Content tab then lists what visitors send. Publish writes the website's management token into the exported folder, so the site has it once deployed.",
+        "Once a website published on a server (Docker or Node.js) or on Cloudflare is online, give its address here: the Content tab then lists what visitors send. Publish writes the website's management token into the folder, so the website has it once online.",
       address: "Address",
       addressPlaceholder: "https://www.example.com",
       save: "Save",
@@ -1104,7 +1114,7 @@ export const en = {
       checking: "Checking…",
       ok: "The site answers with this website's token.",
       token: "Management token",
-      tokenDetail: "Publish writes it into the exported folder's .env, as SPAKA_TOKEN.",
+      tokenDetail: "Publish writes it into the folder's .env, as SPAKA_TOKEN.",
       show: "Show",
       showTip: "Show the token",
       hide: "Hide",
@@ -1116,6 +1126,63 @@ export const en = {
       newTokenTip: "Make a new token, for a site that needs a fresh one",
       newTokenConfirm: "Make a new token? Publish and deploy again so that the published site has it.",
     },
+  },
+  /** A website's packages, from npm's registry (Q491-Q540). */
+  packages: {
+    // The card of a package Spaka has doubts about, which the agent asked for (Q493, Q536).
+    header: "Package",
+    question: (name: string, version: string, description: string | undefined, doubts: string[]) =>
+      `The agent wants to add the package ${name} ${version} to the website${description ? `: ${description.replace(/\.$/, "")}` : ""}.\n\nSpaka has doubts about it: ${doubts.join("; ")}.`,
+    install: "Install it",
+    installHint: "Spaka installs it without running its install scripts.",
+    dontInstall: "Don't install it",
+    dontInstallHint: "The agent goes on without it.",
+    doubts: {
+      young: (days: number) => (days < 1 ? "it was first published today" : `it was first published ${days} days ago`),
+      fewDownloads: (n: number) =>
+        `it was downloaded ${n.toLocaleString("en-US")} ${n === 1 ? "time" : "times"} last week`,
+      similar: (to: string) => `its name is close to ${to}, a well-known package`,
+      noRepository: "it links to no source repository",
+    },
+    // After package.json was changed by hand (Q536, Q540).
+    installed: (name: string, version: string) => `Installed the package ${name} ${version} from package.json.`,
+    installedDespite: (name: string, version: string, doubts: string[]) =>
+      `Installed the package ${name} ${version} from package.json, although ${doubts.join(", ")}.`,
+    refused: (name: string, why: string) => `Took ${name} out of package.json: ${why}.`,
+    elsewhere: "it does not come from npm's registry, the only place Spaka installs packages from for now",
+    flawWhy: (id: string, summary: string, fixed?: string) =>
+      `it has a known flaw, ${summary} (${id})${fixed ? `, fixed in ${fixed}` : ""}`,
+    compilesWhy: "it compiles native code when it is installed, which Spaka never runs",
+    removed: (names: string[]) => `Removed ${names.join(", ")}, which package.json no longer lists.`,
+    failed: (why: string) => `Spaka could not install the packages of package.json: ${why}`,
+    // The known flaws published for an installed version (Q521, Q538).
+    flaw: (name: string, version: string, flaws: { id: string; summary: string }[], fixed?: string, via?: string) =>
+      `${name} ${version}${via ? `, which ${via} brings,` : ""} has ${flaws.length === 1 ? "a known flaw" : "known flaws"}: ${flaws.map((f) => `${f.summary} (${f.id})`).join("; ")}. ${fixed ? `${flaws.length === 1 ? "It is" : "They are"} fixed in ${fixed}.` : `No version fixes ${flaws.length === 1 ? "it" : "them all"} yet.`}`,
+    askUpdate: "Ask for the update",
+    askUpdateTip: "Send the agent a message asking it to update the package",
+    updateMessage: (direct: string, name: string, ids: string[], fixed: string | undefined) => {
+      const flaws = `${ids.length === 1 ? "the known flaw" : "the known flaws"} ${ids.join(", ")}`;
+      return name === direct
+        ? `Update the package ${name}${fixed ? ` to ${fixed} or later` : ""}, to be rid of ${flaws}.`
+        : `Update the package ${direct}, so that ${name}, which it brings, no longer has ${flaws}${fixed ? ` (fixed in ${name} ${fixed})` : ""}.`;
+    },
+    remove: "Remove it",
+    removeTip: (name: string) => `Take ${name} out of the website`,
+    removeConfirm: (name: string) => `Remove the package ${name}? A page or module that imports it stops working.`,
+    exportFlaw: (name: string, version: string, summary: string, id: string, fixed?: string) =>
+      `The package ${name} ${version} has a known flaw: ${summary} (${id})${fixed ? `, fixed in ${fixed}` : ""}.`,
+    exportUnchecked: "Spaka could not check the packages for known flaws: OSV, which lists them, could not be reached.",
+    // In the website's settings (Q520).
+    title: "Packages",
+    caption:
+      "From npm's registry, added by the agent or written in package.json. Spaka checks each before it installs it.",
+    none: "No package yet.",
+    notInstalled: "Not installed",
+    /** Where the website's own modules import it: its scripts, which visitors' browsers run, or its server modules. */
+    sides: { browser: "In the pages", server: "On the server", none: "Not imported yet" },
+    source: "npm",
+    /** What visitors' browsers download of it, compressed, once its module is made (Q520). */
+    weight: (size: string) => `${size} for visitors`,
   },
   skills: {
     title: "Skills",
@@ -1195,63 +1262,72 @@ export const en = {
   },
   export: {
     title: "Publish your website",
-    intro: "Choose how to put it online. Spaka writes it into a folder, then shows the steps that follow.",
+    intro: "Spaka prepares your website; a hosting service puts it online. Spaka shows you the steps.",
     closeTip: "Close and go back to the preview",
     step1: "1. Choose how",
     pickTip: "Publish the website this way",
     refusedTip: "This way cannot publish this website",
+    recommended: "Recommended",
+    advanced: "Other ways to publish (advanced)",
+    advancedShowTip: "Show the ways that keep what visitors send. They need a terminal",
+    advancedHideTip: "Hide the other ways",
     builders: {
       static: {
-        name: "Static files",
-        line: "Plain files that any web host serves, several for free. Forms send to a form service; what visitors send cannot be shown on a page.",
+        name: "With a hosting service",
+        line: "No technical knowledge needed: you drag a folder onto a web page. Free for a small website.",
       },
       node: {
-        name: "Node.js server",
-        line: "For a server of your own or a platform that runs Docker. Keeps what visitors send, and lets you read it here.",
+        name: "On a server (Docker or Node.js)",
+        line: "For a server of your own, or a hosting service that runs Docker. Keeps what visitors send, and lets you read it here. Needs a server you can connect to, and a terminal.",
       },
       cloudflare: {
-        name: "Cloudflare Worker",
-        line: "On Cloudflare, free for a small site. Keeps what visitors send, and lets you read it here. Needs a Cloudflare account and Node.js.",
+        name: "On Cloudflare",
+        line: "Free for a small website. Keeps what visitors send, and lets you read it here. Needs a Cloudflare account, Node.js and a terminal.",
       },
     } as Record<string, { name: string; line: string }>,
     refused: (names: string) =>
-      `Not for this website: a page shows what visitors send (${names}). Choose a server instead.`,
+      `Not for this website: a page shows what visitors send (${names}). That needs a server, which takes some technical knowledge: see the other ways below, or ask someone at ease with a terminal.`,
     forms: {
       title: "Where the forms send",
       intro:
-        "A static site cannot keep what visitors send: give each form the address of a form service (Formspree, Basin, Getform…), which e-mails or lists what is sent.",
+        "A website published this way cannot keep what visitors send: give each form the address of a form service (Formspree, Basin, Getform…), which e-mails or lists what is sent.",
       label: (name: string) => `The ${name} form`,
       save: "Save",
       saveTip: "Save this form's address",
       saved: "Saved",
     },
-    step2: "2. Export the website into a folder",
+    step2: "2. Save the website into a folder",
     choose: "Choose a folder…",
     chooseTip: "Choose the folder to write the website into",
-    again: "Export again",
+    again: "Save again",
     againTip: "Write the website again into the same folder",
-    running: "Exporting…",
-    agentWorking: "The agent is working. You can export once it is done.",
-    done: (pages: number) => `Exported ${pages} ${pages === 1 ? "page" : "pages"} into:`,
+    running: "Saving…",
+    agentWorking: "The agent is working. You can publish once it is done.",
+    done: (pages: number) => `Saved ${pages} ${pages === 1 ? "page" : "pages"} into:`,
     reveal: `Show in ${FILE_MANAGER}`,
     step3: "3. Put it online",
-    inFolder: "In a terminal, in the exported folder:",
+    inFolder: "In a terminal, in the folder:",
     guideFile: "README.md, in the folder, has these steps and more.",
     copy: "Copy",
     copyTip: "Copy the command, to paste it in a terminal",
     copied: "Copied",
     hostTip: "Open its page in your browser",
+    openNetlify: "Open Netlify Drop",
+    showFolder: "Show the folder",
     guides: {
       static: {
-        upload: "Each of these hosts the folder for free. Pick one and follow its steps.",
-        forms: "The forms send to the form services' addresses given above. Export again after changing one.",
+        open: "Open Netlify Drop, a free hosting service's page, in your browser.",
+        drop: "Drag the folder Spaka just wrote onto that page. A moment later, your website is online.",
+        keep: "Create a free Netlify account when the page offers it: without one, the website is taken down shortly after. Netlify gives it an address ending in .netlify.app.",
+        update:
+          "To change the website later: publish it again here, into the same folder, then drag the folder onto the bottom of your website's Deploys page in Netlify.",
+        forms: "The forms send to the form services' addresses given above. Save again after changing one.",
       },
       node: {
-        try: "Try it on this computer, then open http://localhost:3000:",
         docker:
-          "With Docker, what visitors send kept in a volume. The website's management token is in the folder's .env, kept out of the image:",
+          "With Docker, on your server. Write your domain name into the folder's .env (SPAKA_DOMAIN=example.com), copy the folder to the server, then run this there. It starts the website and Caddy, which sets HTTPS up by itself:",
         server:
-          "Or on a server of your own: copy the folder, .env included (it holds the website's management token), and run server.mjs as a service behind a reverse proxy such as Caddy for HTTPS. Keep the data folder: it holds what visitors sent.",
+          "Without Docker: copy the folder to the server, .env included (it holds the website's management token), and run server.mjs with Node.js as a service, behind a reverse proxy such as Caddy for HTTPS. Keep the data folder: it holds what visitors sent. A hosting service that runs Docker takes the folder's Dockerfile.",
         address:
           "Once it is online, give its address in the website's settings: the Content tab then lists what visitors send.",
       },
@@ -1259,24 +1335,56 @@ export const en = {
         install: "Install wrangler, Cloudflare's tool:",
         login: "Sign in to Cloudflare:",
         deploy:
-          "Deploy. It also gives the Worker the website's management token, from the folder's .env. The first deploy creates the database: export into this same folder next time.",
+          "Deploy. It also gives the Worker the website's management token, from the folder's .env. The first deploy creates the database: publish into this same folder next time.",
         migrate: "Create the database's table:",
         address:
           "Once it is online, give its address in the website's settings: the Content tab then lists what visitors send.",
       },
     } as Record<string, Record<string, string>>,
+    others: {
+      title: "Other hosting services",
+      any: "Any other web host works too: upload what the folder contains with the tool it gives you.",
+    },
     hosts: {
-      netlify: {
-        name: "Netlify Drop",
-        how: "The quickest: drag the exported folder onto the page. Sign up to keep the site online.",
-      },
       cloudflare: {
         name: "Cloudflare Pages",
-        how: "Create a project with “Upload assets”, then drop the exported folder.",
+        how: "Create a project with “Upload assets”, then drop the folder.",
       },
       github: {
         name: "GitHub Pages",
-        how: "Put the exported files in a repository and turn on Pages in its settings.",
+        how: "Put the folder's files in a repository and turn on Pages in its settings.",
+      },
+    },
+    domain: {
+      title: "4. Use your own domain name (optional)",
+      intro:
+        "A domain name, such as example.com, is bought from a registrar (OVH, Gandi, Namecheap…). Its DNS settings, on the registrar's website, say where the name leads. A change there takes from a few minutes to a few hours to show.",
+      steps: {
+        static: [
+          "In Netlify, open your website, then “Domain management”, and add your domain name.",
+          "Netlify then shows the DNS records to create. On your registrar's website, in the domain's DNS settings, create them: usually a CNAME record for www that points to your website's .netlify.app address, and one more record for the name without www, with the value Netlify shows.",
+          "Wait until Netlify says the domain name is ready. It turns HTTPS on by itself.",
+        ],
+        node: [
+          "On your registrar's website, in the domain's DNS settings, create an A record for your domain name, and one for www, that point to your server's IP address (and AAAA records if it has an IPv6 address).",
+          "Write the domain name into the folder's .env, as SPAKA_DOMAIN=example.com, www.example.com, and run the Docker command again: Caddy then gets the HTTPS certificate by itself. Without Docker, give the name to your reverse proxy.",
+          "On a hosting service that runs Docker, add the domain name in its settings instead: it shows the record to create, usually a CNAME.",
+          "Give the new address in the website's settings here.",
+        ],
+        cloudflare: [
+          "Cloudflare has to manage the domain name: add it to your Cloudflare account, then, on your registrar's website, replace the domain's name servers with the two Cloudflare gives you.",
+          "In Cloudflare, open the Worker, then its settings, and add a custom domain. Cloudflare creates the DNS record and the HTTPS certificate by itself.",
+          "Give the new address in the website's settings here.",
+        ],
+      } as Record<string, string[]>,
+      help: {
+        static: "Netlify's help on domain names",
+        cloudflare: "Cloudflare's help on domain names",
+      } as Record<string, string>,
+      others: "With another hosting service:",
+      otherHelp: {
+        cloudflare: "Cloudflare Pages' help",
+        github: "GitHub Pages' help",
       },
     },
   },

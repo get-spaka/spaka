@@ -2,16 +2,15 @@
 // imported ones, listed originals first; an import read, shown, then added.
 // Of a released template's versions, the newest the app's version opens (Q368).
 import { createHash } from "node:crypto";
-import { cpSync, existsSync, mkdtempSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Runtime } from "@spaka/runtime";
 import { describe, expect, test } from "vitest";
+import { pagePicture, shownPages } from "./large";
 import { TemplateLibrary } from "./library";
 import { MANIFEST } from "./manifest";
-import { readTemplateFolder, textSource } from "./reader";
+import { readTemplateFolder } from "./reader";
 import { CATALOGUE_FILE, type Catalogue, type CatalogueEntry } from "./release";
-import { pagesOf } from "./viewer";
 import { writeZip } from "./zip";
 
 const BUILT_IN = join(import.meta.dirname, "../../../templates");
@@ -159,25 +158,34 @@ describe("the version of a template an app takes (Q368)", () => {
   });
 });
 
-describe("a template shown large", () => {
-  test("its pages to go to: each page, and one record's page of each page per record", () => {
-    const runtime = new Runtime(
-      textSource(
-        new Map(
-          Object.entries({
-            "pages/index.liquid": "<html><body>Home</body></html>",
-            "pages/work.liquid": "<html><body>Work</body></html>",
-            "pages/work/[cases].liquid": "<html><body>{{ record.title }}</body></html>",
-            "data/cases/_datasource.yaml": "label: Cases\nfields:\n  title: { type: text }\n",
-            "data/cases/first.md": "---\ntitle: First case\n---\n",
-            "data/cases/second.md": "---\ntitle: Second case\n---\n",
-          }).map(([p, s]) => [p, Buffer.from(s)]),
-        ),
-      ),
-    );
-    const pages = pagesOf(runtime);
-    expect(pages[0]).toEqual({ route: "/", name: "Home" });
-    expect(pages).toContainEqual({ route: "/work", name: "Work" });
-    expect(pages.filter((p) => p.route.startsWith("/work/"))).toHaveLength(1);
+describe("a template shown large (Q541, Q544)", () => {
+  test("its pages with their pictures: each page, one record's page of each page per record, none without a picture", () => {
+    const dir = scratch();
+    const files: Record<string, string> = {
+      "pages/index.liquid": "<html><body>Home</body></html>",
+      "pages/work.liquid": "<html><body>Work</body></html>",
+      "pages/about-us.liquid": "<html><body>About</body></html>",
+      "pages/work/[cases].liquid": "<html><body>{{ record.title }}</body></html>",
+      "data/cases/_datasource.yaml": "label: Cases\nfields:\n  title: { type: text }\n",
+      "data/cases/first.md": "---\ntitle: First case\n---\n",
+      "data/cases/second.md": "---\ntitle: Second case\n---\n",
+      "pictures/pages/home-desktop.webp": "RIFF",
+      "pictures/pages/home-phone.webp": "RIFF",
+      "pictures/pages/work-desktop.webp": "RIFF",
+      "pictures/pages/work-first-desktop.webp": "RIFF",
+      "pictures/pages/work-first-phone.webp": "RIFF",
+    };
+    for (const [path, text] of Object.entries(files)) {
+      mkdirSync(join(dir, path, ".."), { recursive: true });
+      writeFileSync(join(dir, path), text);
+    }
+    expect(shownPages(dir)).toEqual([
+      { route: "/", name: "Home", page: "home", desktop: true, phone: true },
+      { route: "/work", name: "Work", page: "work", desktop: true, phone: false },
+      { route: "/work/first", name: "First case", page: "work-first", desktop: true, phone: true },
+    ]);
+    expect(pagePicture(dir, "home", "phone")).toBe(`data:image/webp;base64,${Buffer.from("RIFF").toString("base64")}`);
+    expect(pagePicture(dir, "work", "phone")).toBeNull();
+    expect(pagePicture(dir, "../home", "phone")).toBeNull();
   });
 });

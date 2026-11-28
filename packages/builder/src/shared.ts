@@ -155,6 +155,8 @@ export function isStatic(path: string, files: Set<string>) {
   if (/^(pages|parts|fragments|data|blocks)\//.test(path) || path === "theme.css" || path.endsWith(".liquid"))
     return false;
   if (/^styles\/.+\.css$/i.test(path)) return false;
+  // What pnpm reads and installs, never served as it is (ADR 0013).
+  if (path === "package.json" || path === "pnpm-lock.yaml" || path.split("/").includes("node_modules")) return false;
   if (
     /^media\/.+\.json$/i.test(path) &&
     [...files].some((f) => f !== path && f.startsWith("media/") && infoFile(f) === path)
@@ -165,11 +167,29 @@ export function isStatic(path: string, files: Set<string>) {
 
 /**
  * What every site serves as it is: the stylesheet compiled from the classes
- * the given HTML and templates use, htmx, the theme and the project's own
- * files (images, icons…).
+ * the given HTML and templates use, htmx, the theme, the modules of the
+ * packages its scripts import, and the project's own files (images, icons…).
  */
-export async function writeAssets(project: BuildProject, out: Output, texts: string[]) {
+export async function writeAssets(
+  project: BuildProject,
+  out: Output,
+  texts: string[],
+  options: Pick<BuildOptions, "packageModules">,
+  warnings: string[],
+) {
   const { assets } = siteAssets(project.source);
+  const packages = assets.packages ?? [];
+  if (packages.length) {
+    const made = options.packageModules ? await options.packageModules(packages) : new Map();
+    for (const entry of packages) {
+      const result = made.get(entry.specifier);
+      if (result && "code" in result) out.write(entry.url.slice(1), result.code);
+      else
+        warnings.push(
+          `The package ${entry.specifier} ${entry.version} has no module in the export${result ? ` (${result.error})` : ""}: the pages whose scripts import it will not run them.`,
+        );
+    }
+  }
   const styles = assets.styles.map((p) => project.source.read(p) ?? "").join("\n");
   out.write(`${ASSETS}/site.css`, await siteStylesheet(candidates(texts.join("\n")), styles));
   out.write(`${ASSETS}/htmx.js`, readFileSync(resolveFrom.resolve("htmx.org/dist/htmx.min.js")));
@@ -203,13 +223,31 @@ export function templateTexts(project: BuildProject): string[] {
   );
 }
 
-/** The export's .env: the website's management token (Q191), read by the server or sent by wrangler at deploy. */
-export function writeEnv(out: Output, token: string | undefined) {
-  if (!token) return;
-  out.write(
-    ".env",
-    `# The website's management token, with which Spaka reads what visitors send. Keep it private.\nSPAKA_TOKEN=${token}\n`,
-  );
+const ENV_HEADER = "# The website's management token, with which Spaka reads what visitors send. Keep it private.";
+
+/**
+ * The export's .env: the website's management token (Q191), read by the
+ * server or sent by wrangler at deploy, then what the maker wrote into the
+ * .env of the export this one replaces (Q556), and each of the variables
+ * given that it does not set yet, with the lines that explain it.
+ */
+export function writeEnv(
+  out: Output,
+  token: string | undefined,
+  earlier?: string,
+  variables: { name: string; lines: string }[] = [],
+) {
+  const kept = (earlier ?? "")
+    .split(/\r?\n/)
+    .filter((line) => line !== ENV_HEADER && !/^\s*SPAKA_TOKEN\s*=/.test(line))
+    .join("\n")
+    .trim();
+  const parts = [
+    ...(token ? [`${ENV_HEADER}\nSPAKA_TOKEN=${token}`] : []),
+    ...(kept ? [kept] : []),
+    ...variables.filter((v) => !new RegExp(`^\\s*${v.name}\\s*=`, "m").test(kept)).map((v) => v.lines),
+  ];
+  if (parts.length) out.write(".env", `${parts.join("\n\n")}\n`);
 }
 
 /** A name for what an export creates: lower case, letters, digits and dashes. */
@@ -264,7 +302,7 @@ export async function writePublishedSite(project: BuildProject, options: BuildOp
   const html = [...pages, ...fragments].map((p) => p.html).join("\n");
   const pub = out.under("public");
   const copies = await writeImageCopies(html, project, options.images, pub, warnings);
-  await writeAssets(project, pub, [html, ...templateTexts(project)]);
+  await writeAssets(project, pub, [html, ...templateTexts(project)], options, warnings);
   out.write(
     "site.json",
     JSON.stringify({

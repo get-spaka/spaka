@@ -1,7 +1,12 @@
 // What Spaka tells the agent while it works, whichever agent it is (ADR
 // 0012): after a tool call, that a datasource file it wrote does not read
 // (Q170); before it stops, the sample records, lorem ipsum and template texts
-// it left behind (Q217, Q218, Q223, Q246) and the pages taken off the website (Q307), once.
+// it left behind (Q217, Q218, Q223, Q246) and the pages taken off the website (Q307), once;
+// package.json's dependencies, which only add_package and remove_package change (Q536);
+// and a script importing a package that is not installed (ADR 0013).
+import { isAbsolute, relative } from "node:path";
+import { packageImports } from "@spaka/runtime";
+import { diskSource } from "@spaka/runtime/node";
 import { loremLeft, loremLeftNote, nameRecords, samplesLeftNote, unchangedSamples } from "../editing/use-blocks";
 import {
   forgetTemplateTexts,
@@ -21,7 +26,14 @@ export class TurnChecks {
   /** Whether it was told of the template's texts left in this turn (Q246). */
   private templateTold = false;
 
-  constructor(private readonly root: string) {}
+  /**
+   * `putBackPackages`: after the agent wrote package.json, its dependencies
+   * put back as installed, and what it is told then.
+   */
+  constructor(
+    private readonly root: string,
+    private readonly putBackPackages?: () => string | undefined,
+  ) {}
 
   /** What use_block wrote. */
   placed(samples: Iterable<string>, files: Iterable<string>) {
@@ -32,7 +44,34 @@ export class TurnChecks {
   /** After a tool call (canonical name and input): a note for the agent, with the tool's answer. */
   afterTool(tool: string, input: unknown): string | undefined {
     if (tool !== "Write" && tool !== "Edit" && tool !== "Append" && tool !== "Bash") return undefined;
-    return dataProblemsAfter(this.root, tool, input);
+    const notes = [
+      dataProblemsAfter(this.root, tool, input),
+      this.packagesAfter(tool, input),
+      this.importsAfter(tool, input),
+    ].filter(Boolean);
+    return notes.length ? notes.join("\n\n") : undefined;
+  }
+
+  /** The project path a file tool wrote, if it is one. */
+  private written(input: unknown): string | undefined {
+    const path = (input as { file_path?: unknown } | undefined)?.file_path;
+    if (typeof path !== "string") return undefined;
+    return (isAbsolute(path) ? relative(this.root, path) : path).split("\\").join("/");
+  }
+
+  /** A script it wrote imports a package not installed, or a name that is none (ADR 0013). */
+  private importsAfter(tool: string, input: unknown): string | undefined {
+    if (tool === "Bash") return undefined;
+    const rel = this.written(input);
+    if (!rel || !/^scripts\/.+\.m?js$/.test(rel)) return undefined;
+    const { notes } = packageImports(diskSource(this.root), [rel]);
+    return notes.length ? notes.join("\n") : undefined;
+  }
+
+  private packagesAfter(tool: string, input: unknown): string | undefined {
+    if (!this.putBackPackages) return undefined;
+    if (tool !== "Bash" && this.written(input) !== "package.json") return undefined;
+    return this.putBackPackages();
   }
 
   /**

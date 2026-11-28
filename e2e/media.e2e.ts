@@ -14,7 +14,7 @@ const FIXTURE = join(import.meta.dirname, "fixtures/images");
 // file deleted and brought back; the credits page. In the preview: a
 // record's title edited in place, "Replace…" on an image written in the
 // template and on a record's image, a file dropped onto an image, an image
-// set in its frame (Q490).
+// set in its frame (Q547).
 describe("the media library", () => {
   let launched: LaunchedApp;
   let path: string;
@@ -215,7 +215,7 @@ describe("the media library", () => {
     await until(async () => (await items()).includes("media/shop-front-2.jpg"));
   });
 
-  test("an image written in the template is set in its frame, shown as it is set (Q490)", async () => {
+  test("an image written in the template is set in its frame, shown as it is set (Q547)", async () => {
     const file = () => readFileSync(join(path, "pages/blog.liquid"), "utf8");
     const hero = (read: string) => page(`(() => { const el = document.querySelector('img.hero'); return ${read}; })()`);
     const control = (testid: string, read: string) =>

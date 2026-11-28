@@ -42,7 +42,8 @@ describe("Spaka's templates, downloaded", () => {
 
   beforeAll(async () => {
     const out = mkdtempSync(join(tmpdir(), "spaka-release-"));
-    const built = spawnSync("node", ["apps/desktop/scripts/template.mjs", "release", out, "v1"], {
+    // Its packages are not checked online here: template:check and the release's CI do it.
+    const built = spawnSync("node", ["apps/desktop/scripts/template.mjs", "release", out, "v1", "--offline"], {
       cwd: join(import.meta.dirname, ".."),
       stdio: ["ignore", "pipe", "inherit"],
     });
@@ -99,14 +100,14 @@ describe("Spaka's templates, downloaded", () => {
     await launched.capture("templates-offline");
     offline = false;
     await w.getByTestId("template-problem").getByRole("button").click();
-    await until(() => w.locator('[data-testid="template-frame"][data-route="/"]').count());
-    await until(() => main<boolean>("globalThis.spaka.templateViewer.view.getVisible()"));
+    // The pictures of its pages, from its .zip (Q545).
+    await until(() => w.locator('[data-testid="template-picture"][data-page="home"]').count());
     expect(zips().filter((u) => u.endsWith(`reel-${version("reel")}.zip`))).toHaveLength(2);
     // Kept: viewed again, it is not downloaded again.
     await w.getByTestId("template-back").click();
     await card.hover();
     await card.getByTestId("template-view").click();
-    await until(() => w.locator('[data-testid="template-frame"][data-route="/"]').count());
+    await until(() => w.locator('[data-testid="template-picture"][data-page="home"]').count());
     expect(zips().filter((u) => u.endsWith(`reel-${version("reel")}.zip`))).toHaveLength(2);
     await w.getByTestId("template-back").click();
   });

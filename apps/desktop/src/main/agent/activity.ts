@@ -8,10 +8,12 @@ import type { ConversationEvent, Grounded } from "../../shared/conversation";
 import { en } from "../../shared/strings/en";
 import { CARD_TOOLS } from "./questions";
 import {
+  ADD_PACKAGE_TOOL,
   FIND_BLOCKS_TOOL,
   FIND_IMAGES_TOOL,
   GENERATE_IMAGE_TOOL,
   LOOK_TOOL,
+  REMOVE_PACKAGE_TOOL,
   USE_BLOCK_TOOL,
   USE_IMAGE_TOOL,
 } from "./spaka-tools";
@@ -134,6 +136,10 @@ export function activityLabel(name: string, input: Record<string, unknown>, proj
       return en.activity.findImages;
     case GENERATE_IMAGE_TOOL:
       return en.activity.generateImage(typeof input.name === "string" && input.name ? input.name : undefined);
+    case ADD_PACKAGE_TOOL:
+      return en.activity.addPackage(typeof input.name === "string" && input.name ? input.name : undefined);
+    case REMOVE_PACKAGE_TOOL:
+      return en.activity.removePackage(typeof input.name === "string" && input.name ? input.name : undefined);
     case USE_IMAGE_TOOL: {
       const images: { name?: unknown }[] = Array.isArray(input.images) ? input.images : [];
       if (images.length > 1) return en.activity.addImages(images.length);

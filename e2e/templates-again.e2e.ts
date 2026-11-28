@@ -1,4 +1,4 @@
-import { mkdirSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { shotPages } from "../apps/desktop/src/main/templates/pictures.ts";
@@ -21,6 +21,12 @@ const folders = process.env.SPAKA_TEMPLATE_SHOOT
       .filter((e) => e.isDirectory() && readdirSync(join(TEMPLATES, e.name)).includes("template.json"))
       .map((e) => join(TEMPLATES, e.name))
       .filter((dir) => only === "all" || basename(dir) === only);
+/** Whether the packages its package.json lists are installed in the copy. */
+const installed = (copy: string, files: Map<string, Buffer>) =>
+  Object.keys(JSON.parse(files.get("package.json")?.toString("utf8") ?? "{}").dependencies ?? {}).every((name) =>
+    existsSync(join(copy, "node_modules", name, "package.json")),
+  );
+
 const DEVICES = [
   { name: "desktop", width: 1440, height: 900, mobile: false },
   { name: "phone", width: 390, height: 844, mobile: true },
@@ -90,6 +96,8 @@ describe("Spaka's templates, rendered again in the preview", () => {
       const project = await main<{ id: string }>("spaka.projects.openFolder(arg)", copy);
       await invoke("projects:open", project.id);
       await until(() => main<string>("spaka.preview.origin"));
+      // Its packages, which the app installs as the copy opens (ADR 0013): its pages import them.
+      await until(async () => installed(copy, files), 240_000);
       const problems: string[] = [];
       for (const device of DEVICES) {
         await main(

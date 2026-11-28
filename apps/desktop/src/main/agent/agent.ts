@@ -8,9 +8,11 @@ import { join } from "node:path";
 import type { ModelInfo } from "@anthropic-ai/claude-agent-sdk";
 import { clampThinkingLevel } from "@earendil-works/pi-ai";
 import {
+  type AgentQuestion,
   applyEvent,
   type ConversationEvent,
   type ConversationItem,
+  type NoticeAction,
   type PageChoice,
   type QuestionAnswer,
   waitingFor,
@@ -76,9 +78,12 @@ export class Agent {
   private authState: AuthState | undefined;
   /** The models Claude offers, as the binary last listed them. */
   private claudeModels: ModelChoice[] = [];
-  /** The cards of pages a turn waits on, whichever agent shows them (Q302), and each project's. */
-  private readonly pagesWaits = new Waits<{ answer: QuestionAnswer; note?: string }>();
-  private readonly pagesCards = new Map<string, Set<string>>();
+  /**
+   * The cards of Spaka's own a turn waits on, whichever agent shows them, and
+   * each project's: the pages of an adaptation (Q302), a package in the grey zone (Q536).
+   */
+  private readonly spakaWaits = new Waits<{ answer: QuestionAnswer; note?: string }>();
+  private readonly spakaCards = new Map<string, Set<string>>();
 
   constructor(private readonly o: AgentOptions) {
     try {
@@ -176,9 +181,15 @@ export class Agent {
     }
   }
 
-  /** A line in the conversation from Spaka itself. */
-  notice(projectId: string, text: string) {
-    this.record(projectId, { type: "notice", id: `${Date.now().toString(36)}-n`, text, at: Date.now() });
+  /** A line in the conversation from Spaka itself, with a button that sends a message to the agent (Q538). */
+  notice(projectId: string, text: string, action?: NoticeAction) {
+    this.record(projectId, {
+      type: "notice",
+      id: `${Date.now().toString(36)}-n${Math.random().toString(36).slice(2, 6)}`,
+      text,
+      at: Date.now(),
+      ...(action ? { action } : {}),
+    });
   }
 
   /** Skills or connectors may have changed: an idle agent starts again with them, a working one at its next message. */
@@ -216,17 +227,40 @@ export class Agent {
    * Shows the card of pages of a template's adaptation in the turn under way
    * and waits for the maker's answer, or for the turn to end (Q302).
    */
-  async askPages(
+  askPages(
     projectId: string,
     pages: PageChoice[],
     signal?: AbortSignal,
   ): Promise<{ answer: QuestionAnswer; note?: string } | undefined> {
-    const id = `${Date.now().toString(36)}-p${Math.random().toString(36).slice(2, 6)}`;
-    const cards = this.pagesCards.get(projectId) ?? new Set<string>();
+    return this.askCard(projectId, "p", (id) => ({ type: "pages", card: { id, pages, state: "waiting" } }), signal);
+  }
+
+  /** Shows questions of Spaka's own in the turn under way, as the agent's are shown, and waits for the answer (Q536). */
+  askQuestions(
+    projectId: string,
+    questions: AgentQuestion[],
+    signal?: AbortSignal,
+  ): Promise<{ answer: QuestionAnswer; note?: string } | undefined> {
+    return this.askCard(
+      projectId,
+      "q",
+      (id) => ({ type: "question", card: { id, questions, state: "waiting" } }),
+      signal,
+    );
+  }
+
+  private async askCard(
+    projectId: string,
+    kind: string,
+    event: (id: string) => ConversationEvent,
+    signal?: AbortSignal,
+  ): Promise<{ answer: QuestionAnswer; note?: string } | undefined> {
+    const id = `${Date.now().toString(36)}-${kind}${Math.random().toString(36).slice(2, 6)}`;
+    const cards = this.spakaCards.get(projectId) ?? new Set<string>();
     cards.add(id);
-    this.pagesCards.set(projectId, cards);
-    this.record(projectId, { type: "pages", card: { id, pages, state: "waiting" } });
-    const got = await this.pagesWaits.wait(id, signal);
+    this.spakaCards.set(projectId, cards);
+    this.record(projectId, event(id));
+    const got = await this.spakaWaits.wait(id, signal);
     cards.delete(id);
     if (got)
       this.record(projectId, {
@@ -238,14 +272,14 @@ export class Agent {
     return got;
   }
 
-  /** The cards of pages of a project no longer wait: its turn ended or stopped. */
-  private endPages(projectId: string) {
-    for (const id of this.pagesCards.get(projectId) ?? []) this.pagesWaits.settle(id, undefined);
+  /** Spaka's cards of a project no longer wait: its turn ended or stopped. */
+  private endCards(projectId: string) {
+    for (const id of this.spakaCards.get(projectId) ?? []) this.spakaWaits.settle(id, undefined);
   }
 
   /** The maker's answer to a card of questions or of pages; `note` says what they changed by hand meanwhile (Q294). */
   answer(projectId: string, cardId: string, answer: QuestionAnswer, note?: string) {
-    if (this.pagesWaits.settle(cardId, { answer, ...(note ? { note } : {}) })) return;
+    if (this.spakaWaits.settle(cardId, { answer, ...(note ? { note } : {}) })) return;
     this.sessions.get(projectId)?.answer(cardId, answer, note);
   }
 
@@ -255,7 +289,7 @@ export class Agent {
   }
 
   async stop(projectId: string) {
-    this.endPages(projectId);
+    this.endCards(projectId);
     await this.sessions.get(projectId)?.stop();
   }
 
@@ -431,7 +465,7 @@ export class Agent {
   }
 
   private record(projectId: string, event: ConversationEvent) {
-    if (event.type === "turn-end") this.endPages(projectId);
+    if (event.type === "turn-end") this.endCards(projectId);
     const items = applyEvent(this.conversation(projectId), event);
     this.logs.set(projectId, items);
     // Kept at the start and the end of each turn, not on every word.
