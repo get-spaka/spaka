@@ -47,7 +47,11 @@ describe("the Node and Cloudflare exports, run", () => {
     // On Windows a package's command is a .cmd, which only a shell runs.
     const child = spawn(command, args, {
       cwd,
-      env: { ...process.env, ...env },
+      // Not the author's own SPAKA_* (a token set for a site of theirs): the export's .env gives the server its own.
+      env: {
+        ...Object.fromEntries(Object.entries(process.env).filter(([name]) => !name.startsWith("SPAKA_"))),
+        ...env,
+      },
       stdio: ["ignore", "pipe", "pipe"],
       shell: WINDOWS && command.endsWith(".cmd"),
     });
