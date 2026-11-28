@@ -253,10 +253,12 @@ type BundledPackage = Bundled & { dir: string };
 function bundledBy(projectDir: string, moduleIds: string[]): BundledPackage[] {
   const bundled = new Map<string, BundledPackage>();
   const roots = new Map<string, BundledPackage | undefined>();
-  // Rolldown names the files by their real paths, through pnpm's links.
+  // Rolldown names the files by their real paths, through pnpm's links, and on
+  // Windows by their long names: the native realpath gives those (C:\Users\RUNNER~1
+  // is C:\Users\runneradmin), where the other kept the short one and found no package.
   let root = projectDir;
   try {
-    root = realpathSync(projectDir);
+    root = realpathSync.native(projectDir);
   } catch {}
   const packageAt = (dir: string): BundledPackage | undefined => {
     if (roots.has(dir)) return roots.get(dir);
