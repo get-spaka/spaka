@@ -457,6 +457,9 @@ async function main() {
       // Back to the project folder after each shell command: a cd the agent
       // leaves behind would send its next relative paths astray (Q220).
       CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR: "1",
+      // Claude's Glob reads ignore files, as its Grep does: the project's
+      // .ignore then keeps the installed packages out of both (ADR 0013).
+      CLAUDE_CODE_GLOB_NO_IGNORE: "false",
       // The card of pages waits for the maker as long as they take (Q302): a day.
       MCP_TOOL_TIMEOUT: String(24 * 3600 * 1000),
     };

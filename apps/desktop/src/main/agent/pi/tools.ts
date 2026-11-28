@@ -108,6 +108,13 @@ const slashed = (path: string) => path.split(sep).join("/");
 const outside = (path: string) =>
   new Error(`${path} is outside the project. Spaka's agent reads and writes the project's files only.`);
 
+/** Whether a place in the project is among its installed packages, which Spaka alone writes (ADR 0013). */
+const inPackages = (abs: string, root: string) => relative(real(root), abs).split(sep).includes("node_modules");
+const packagesRefused = (shown: string) =>
+  new Error(
+    `${shown} is in node_modules, where Spaka installs the website's packages: their files are not changed by hand.`,
+  );
+
 const IMAGES: Record<string, string> = {
   ".png": "image/png",
   ".jpg": "image/jpeg",
@@ -171,6 +178,13 @@ export function piFileTools({ root, readable, family, shell, search, summarize }
   const noteRead = (abs: string) => {
     const at = stamp(abs);
     if (at !== undefined) known.set(abs, at);
+  };
+  /** Where a file the agent writes lands: in the project, outside its installed packages. */
+  const writable = (path: string) => {
+    const at = place(path, root, project);
+    if (!at) throw outside(path);
+    if (inPackages(at.abs, root)) throw packagesRefused(at.shown);
+    return at;
   };
   const readFirst = (at: { abs: string; shown: string }) => {
     if (!existsSync(at.abs)) return;
@@ -246,8 +260,7 @@ export function piFileTools({ root, readable, family, shell, search, summarize }
         "Writes a file of the project with the content given, creating its folders. A file already there is replaced: read it first.",
       parameters: fileSchema({ file_path: PATH, content: str("The whole file") }, ["file_path", "content"]),
       async execute(_id, { file_path, content }: { file_path: string; content: string }) {
-        const at = place(file_path, root, project);
-        if (!at) throw outside(file_path);
+        const at = writable(file_path);
         readFirst(at);
         mkdirSync(dirname(at.abs), { recursive: true });
         writeFileSync(at.abs, content);
@@ -278,8 +291,7 @@ export function piFileTools({ root, readable, family, shell, search, summarize }
           replace_all,
         }: { file_path: string; old_string: string; new_string: string; replace_all?: boolean },
       ) {
-        const at = place(file_path, root, project);
-        if (!at) throw outside(file_path);
+        const at = writable(file_path);
         if (!existsSync(at.abs)) throw new Error(`${at.shown} does not exist: use Write to create it.`);
         readFirst(at);
         if (!old_string) throw new Error("old_string is empty: give the text to replace.");
@@ -419,8 +431,7 @@ export function piFileTools({ root, readable, family, shell, search, summarize }
         "Adds content at the end of a file of the project, creating it if needed: the next part of a long file whose first part you wrote with Write (see Writing long files).",
       parameters: fileSchema({ file_path: PATH, content: str("The next part of the file") }, ["file_path", "content"]),
       async execute(_id, { file_path, content }: { file_path: string; content: string }) {
-        const at = place(file_path, root, project);
-        if (!at) throw outside(file_path);
+        const at = writable(file_path);
         readFirst(at);
         mkdirSync(dirname(at.abs), { recursive: true });
         appendFileSync(at.abs, content);
