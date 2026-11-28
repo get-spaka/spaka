@@ -984,6 +984,12 @@ async function main() {
   ipc.handle("preview:navigate", (route) => preview.navigate(route, true));
   ipc.handle("preview:reload", () => preview.reload());
   ipc.handle("preview:snapshot", () => preview.snapshot());
+  // As the interface does once the dialog is drawn (preview:bounds and preview:grid with null), but before it is.
+  ipc.handle("preview:cover", () => {
+    preview.setBounds(null);
+    preview.setGrid(null);
+    peek.setArea(null);
+  });
   // The interface measures in its own pixels, drawn larger or smaller by the text size.
   const scaled = <R extends Rect | null>(r: R): R => {
     const zoom = win.webContents.getZoomFactor();

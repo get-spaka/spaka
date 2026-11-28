@@ -91,9 +91,30 @@ describe("the Node and Cloudflare exports, run", () => {
   test("a static export is refused: a page shows what visitors send", async () => {
     // Never published, and the simple way refused: none is chosen, and the advanced ones show (Q553).
     const w = launched.window;
+    // The native views are hidden before the dialog is drawn: the "All pages" live thumbnail stayed over it while it faded in.
+    await launched.app.evaluate(() => {
+      // biome-ignore lint/suspicious/noExplicitAny: the main process's objects, set for checks
+      const u = (globalThis as any).spaka;
+      const g = globalThis as { gridHiddenAt?: number };
+      const setGrid = u.preview.setGrid.bind(u.preview);
+      u.preview.setGrid = (cells: unknown, screen: unknown) => {
+        if (cells === null) g.gridHiddenAt ??= Date.now();
+        return setGrid(cells, screen);
+      };
+    });
+    await w.evaluate(() => {
+      const g = window as { dialogAt?: number };
+      new MutationObserver(() => {
+        if (!g.dialogAt && document.querySelector('[data-testid="publish-choice"]')) g.dialogAt = Date.now();
+      }).observe(document.body, { subtree: true, childList: true });
+    });
     await w.getByTestId("export-open").click();
     await until(async () => (await w.getByTestId("publish-choice").count()) === 3);
     expect(await w.getByTestId("publish-advanced").getAttribute("aria-expanded")).toBe("true");
+    const hiddenAt = await launched.app.evaluate(() => (globalThis as { gridHiddenAt?: number }).gridHiddenAt);
+    const dialogAt = await w.evaluate(() => (window as { dialogAt?: number }).dialogAt);
+    expect(hiddenAt).toBeDefined();
+    expect(hiddenAt!).toBeLessThanOrEqual(dialogAt!);
     expect(
       await w.getByTestId("publish-choice").evaluateAll((els) => els.map((e) => e.getAttribute("aria-pressed"))),
     ).toEqual(["false", "false", "false"]);

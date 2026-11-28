@@ -146,6 +146,8 @@ export function PreviewPane({
   const [picture, setPicture] = useState<{ url: string; at: NonNullable<typeof placed.current> } | null>(null);
   const openPublish = async () => {
     const url = await spaka.invoke("preview:snapshot").catch(() => null);
+    // The native views gone before the dialog is drawn: the "All pages" live thumbnail stayed over it while it faded in.
+    await spaka.invoke("preview:cover").catch(() => {});
     setPicture(url && placed.current ? { url, at: placed.current } : null);
     setExporting(true);
   };
