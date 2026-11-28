@@ -51,7 +51,7 @@ export async function buildStatic(options: {
     readFile: options.readFile ?? (() => Buffer.alloc(0)),
   };
   const out = new Output(options.outDir);
-  const { pages, fragments, warnings } = renderSite(project.source);
+  const { pages, fragments, warnings } = await renderSite(project.source);
   for (const f of fragments)
     if (f.params) warnings.push(`${f.file} reads its parameters: a static site serves it once, without them.`);
   const all = [...pages, ...fragments];
@@ -77,12 +77,12 @@ export async function buildStatic(options: {
 export const staticBuilder: Builder = {
   id: "static",
   needs: { managementToken: false, formServices: true },
-  check(project) {
-    const datasources = shownCollected(project);
+  async check(project) {
+    const datasources = await shownCollected(project);
     return datasources.length ? { ok: false, refusal: { reason: "shows-collected", datasources } } : { ok: true };
   },
   async build(project: BuildProject, options: BuildOptions) {
-    const checked = this.check(project);
+    const checked = await this.check(project);
     if (!checked.ok)
       throw new Error(
         `A static site cannot show what visitors send (${checked.refusal.datasources.join(", ")}): publish it on a server or on Cloudflare instead.`,

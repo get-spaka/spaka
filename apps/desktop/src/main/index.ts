@@ -64,7 +64,7 @@ import { en as t } from "../shared/strings/en";
 import { Agent, projectNameFrom } from "./agent/agent";
 import { AgentAuth } from "./agent/auth";
 import { claudeModelName, claudeReplacement } from "./agent/claude-models";
-import { agentBinary, cleanEnv, nodeLauncher, withPathFirst } from "./agent/confinement";
+import { agentBinary, appBundle, cleanEnv, nodeLauncher, withPathFirst } from "./agent/confinement";
 import { findGitBash, GIT_FOR_WINDOWS_URL, gitBashEnv } from "./agent/git-bash";
 import { instructionsFor } from "./agent/instructions";
 import { namingModelFor } from "./agent/naming";
@@ -114,6 +114,7 @@ import { Packages } from "./packages/packages";
 import { pnpmFolders } from "./packages/pnpm";
 import { ensureRolldown } from "./packages/rolldown";
 import { Preview } from "./preview/preview";
+import { ServerProcess } from "./preview/server-process";
 import { testRecordFile } from "./preview/test-records";
 import { isEffort, Projects, readProjectFile } from "./projects";
 import {
@@ -366,9 +367,20 @@ async function main() {
   const fonts = new Fonts(app.isPackaged ? join(process.resourcesPath, "fonts") : join(here, "../../fonts"));
   let contentTimer: NodeJS.Timeout | undefined;
   const preview: Preview = new Preview(win, {
-    block: (id) => {
+    // A site's server modules run in a process of their own (ADR 0014), their files and database in Spaka's data.
+    serverProcess: (project, { data, onSaid }) =>
+      new ServerProcess({
+        root: project.path,
+        filesDir: join(app.getPath("userData"), "server-files", project.id),
+        dbFile: join(app.getPath("userData"), "server-db", project.id, "data.sqlite"),
+        hostFile: join(app.isPackaged ? join(process.resourcesPath, "hosts") : join(here, "../hosts"), "modules.mjs"),
+        readable: [appBundle()],
+        data,
+        onSaid,
+      }),
+    block: async (id) => {
       const block = blocks.get(id);
-      return block && blockShown(block);
+      return block ? blockShown(block) : undefined;
     },
     font: (path) => fonts.path(path),
     // The modules of the packages the site's scripts import (ADR 0013).
@@ -1391,10 +1403,10 @@ async function main() {
     }
   };
   ipc.handle("export:last", (builder) => lastExport().folders[builder] ?? null);
-  ipc.handle("export:choices", () => {
+  ipc.handle("export:choices", async () => {
     if (!current) throw new Error("No project is open.");
     const last = lastExport().builder;
-    return { ...publishChoices(current.path, current.name), ...(last ? { last } : {}) };
+    return { ...(await publishChoices(current.path, current.name)), ...(last ? { last } : {}) };
   });
   ipc.handle("projects:set-form-service", (datasource, url) => {
     if (!current) throw new Error("No project is open.");
@@ -1543,11 +1555,11 @@ async function main() {
     preview.agentView.close();
   });
   ipc.handle("gallery:list", () => blocks.list().map(described));
-  ipc.handle("gallery:thumbnail", (id) => {
+  ipc.handle("gallery:thumbnail", async (id) => {
     const block = blocks.get(id);
     const theme = preview.runtime?.theme();
     if (!block || theme === undefined) throw new Error("No such block, or no project open.");
-    return thumbnails.get(id, blockShown(block), theme);
+    return thumbnails.get(id, await blockShown(block), theme);
   });
   // The Theme tab (Q93): values shown while a gesture lasts, written at its end.
   const themed = (values: Record<string, string>, base?: string) => {
@@ -1627,17 +1639,17 @@ async function main() {
       })
       .sort((a, b) => (b.submitted ?? "").localeCompare(a.submitted ?? ""));
   };
-  ipc.handle("content:list", () => {
+  ipc.handle("content:list", async () => {
     if (!current) return [];
     const data = contentSource();
-    const use = datasourceUse();
+    const use = await datasourceUse();
     return data.names().map((name): ContentDatasource => ({ ...contentDatasource(name, data), ...use(name) }));
   });
   /**
    * Which pages show each datasource (Q210, Q211), each page rendered once;
    * a section list is one named after a page (home-faq), listed under it.
    */
-  const datasourceUse = () => {
+  const datasourceUse = async () => {
     const runtime = preview.runtime;
     const shownBy = new Map<string, Set<string>>();
     const pages = new Map<string, string>();
@@ -1646,7 +1658,7 @@ async function main() {
       pages.set(route.file, route.route);
     }
     for (const [file, route] of pages)
-      for (const name of runtime?.renderPage(file, route).datasources ?? [])
+      for (const name of (await runtime?.renderPage(file, route))?.datasources ?? [])
         shownBy.set(name, new Set([...(shownBy.get(name) ?? []), route]));
     const byKey = [...pages].map(([file, route]) => ({ file, route, key: pageKey(file) }));
     return (name: string): Pick<ContentDatasource, "usedBy" | "section"> => {
@@ -1657,8 +1669,8 @@ async function main() {
       };
     };
   };
-  ipc.handle("content:delete-datasource", (name) => {
-    const use = datasourceUse()(name);
+  ipc.handle("content:delete-datasource", async (name) => {
+    const use = (await datasourceUse())(name);
     if (!use.section || use.usedBy.length) throw new Error("Only a section list no page shows can be deleted.");
     const label = contentSource().definition(name).definition?.label ?? titleOf(name);
     return editor.deleteDatasource(name, label);

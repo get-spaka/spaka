@@ -71,7 +71,7 @@ function post(path: string, fields: Record<string, string>) {
 const NOW = new Date("2026-11-12T09:31:04Z");
 
 describe("collected datasources (Q171-Q189)", () => {
-  test("a definition says collected, review, answer and its messages; an image field is refused", () => {
+  test("a definition says collected, review, answer and its messages; an image field is refused", async () => {
     const data = new Datasources(site());
     const { definition } = data.definition("guestbook");
     expect(definition).toMatchObject({ collected: true, review: true, answer: "thanks" });
@@ -81,7 +81,7 @@ describe("collected datasources (Q171-Q189)", () => {
     expect(contact.problem).toMatch(/image field photo/);
   });
 
-  test("what a visitor sent is read against the definition, in the site's words", () => {
+  test("what a visitor sent is read against the definition, in the site's words", async () => {
     const definition = new Datasources(site()).definition("guestbook").definition!;
     const values = (o: Record<string, string>) => new Map(Object.entries(o).map(([k, v]) => [k, [v]]));
     expect(readSubmission(definition, values({ name: "Claire", message: "Hi", email: "c@x.fr" }))).toEqual({
@@ -97,7 +97,7 @@ describe("collected datasources (Q171-Q189)", () => {
     });
   });
 
-  test("a record's id is when it was sent and four random characters", () => {
+  test("a record's id is when it was sent and four random characters", async () => {
     expect(submissionId(NOW, () => 0.64)).toBe("2026-11-12-0931-a3d7");
   });
 
@@ -108,13 +108,13 @@ describe("collected datasources (Q171-Q189)", () => {
     expect(await fingerprint("203.0.113.7", "other")).not.toBe(a);
   });
 
-  test("forms posting to /_data/ get the hidden trap field, others do not", () => {
+  test("forms posting to /_data/ get the hidden trap field, others do not", async () => {
     const html = addTrapFields('<form hx-post="/_data/x" class="f"><input></form><form action="/search"></form>');
     expect(html).toContain(`<form hx-post="/_data/x" class="f"><div aria-hidden="true"`);
     expect(html.match(new RegExp(`name="${TRAP_FIELD}"`, "g"))).toHaveLength(1);
   });
 
-  test("a visitor's text is never read as HTML or Markdown", () => {
+  test("a visitor's text is never read as HTML or Markdown", async () => {
     expect(paragraphs("Hello <b>you</b>\n\n**two**\nlines")).toBe(
       "<p>Hello &#60;b&#62;you&#60;/b&#62;</p><p>**two**<br>lines</p>",
     );
@@ -212,7 +212,7 @@ describe("the preview's test records (Q172)", () => {
 
   test("are read from their files, newest first, those waiting for review left out, escaped", async () => {
     const r = new Runtime(site(), { repair: false, trace: false, testRecords: tests });
-    const html = r.renderRoute("/").html;
+    const html = (await r.renderRoute("/")).html;
     expect(html).toContain(
       "<article>Claire|<p>Gluten-free?</p></article><article>Older|<p>&#60;i&#62;y&#60;/i&#62;</p>",
     );

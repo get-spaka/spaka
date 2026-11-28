@@ -43,7 +43,7 @@ const block = (id: string) => (id === faq.id ? faq : id === events.id ? events :
 let root: string;
 afterEach(() => rmSync(root, { recursive: true, force: true }));
 
-test("written into the project, its samples noted; those the agent rewrites or deletes are forgotten (Q217)", () => {
+test("written into the project, its samples noted; those the agent rewrites or deletes are forgotten (Q217)", async () => {
   root = mkdtempSync(join(tmpdir(), "use-blocks-"));
   const { text, samples } = useBlocks(
     root,
@@ -69,7 +69,7 @@ test("written into the project, its samples noted; those the agent rewrites or d
   expect(samplesLeftNote(["data/a.md"])).toContain("data/a.md");
 });
 
-test("a sample the agent rewrote is renamed after its title, its order and links following; one left as written is not (Q218)", () => {
+test("a sample the agent rewrote is renamed after its title, its order and links following; one left as written is not (Q218)", async () => {
   root = mkdtempSync(join(tmpdir(), "use-blocks-"));
   useBlocks(
     root,
@@ -102,7 +102,7 @@ test("a sample the agent rewrote is renamed after its title, its order and links
   expect(nameRecords(root)).toEqual([]);
 });
 
-test("a refusal is answered, nothing written", () => {
+test("a refusal is answered, nothing written", async () => {
   root = mkdtempSync(join(tmpdir(), "use-blocks-"));
   const { text, samples } = useBlocks(
     root,
@@ -167,14 +167,14 @@ test("a site from the real gallery: two pages placed, a collection shared, each 
   ]);
   const runtime = new Runtime(diskSource(root));
   for (const route of ["/", "/services"]) {
-    const result = runtime.renderRoute(route);
+    const result = await runtime.renderRoute(route);
     expect(result.status).toBe(200);
     expect(result.notes).toEqual([]);
   }
   expect(unchangedSamples(root).length).toBeGreaterThan(4);
 });
 
-test("the parts and record pages it wrote are named while they hold lorem ipsum, and no longer once rewritten (Q223)", () => {
+test("the parts and record pages it wrote are named while they hold lorem ipsum, and no longer once rewritten (Q223)", async () => {
   root = mkdtempSync(join(tmpdir(), "use-blocks-"));
   const { files } = useBlocks(
     root,

@@ -245,7 +245,7 @@ export class PiSession implements AgentRunner {
       finishTurn: async ({ message }) => {
         // The checks before stopping: what it left behind sends it back to work, once (Q217-Q246).
         if (message.stopReason !== "stop" || this.stopping || !this.working) return;
-        const notes = kit.checks.beforeStop(this.sentBack);
+        const notes = await kit.checks.beforeStop(this.sentBack);
         if (!notes) return;
         this.sentBack = true;
         loop.followUp({ role: "user", content: notes, timestamp: Date.now() });

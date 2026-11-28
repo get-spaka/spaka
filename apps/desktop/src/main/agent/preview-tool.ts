@@ -88,7 +88,7 @@ export function claudeExtras({ tools, checks }: AgentKit) {
         {
           hooks: [
             async (input: { stop_hook_active?: boolean }) => {
-              const notes = checks.beforeStop(!!input.stop_hook_active);
+              const notes = await checks.beforeStop(!!input.stop_hook_active);
               return notes ? { decision: "block" as const, reason: notes } : { continue: true };
             },
           ],

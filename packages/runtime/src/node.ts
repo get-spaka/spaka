@@ -38,3 +38,13 @@ export function diskSource(root: string): ProjectSource {
     },
   };
 }
+
+export {
+  applyMigrations,
+  MIGRATIONS_TABLE,
+  type Migration,
+  migrationsIn,
+  moduleFiles,
+  sqlApi,
+} from "./hosts/modules.ts";
+export * from "./hosts/modules-protocol.ts";

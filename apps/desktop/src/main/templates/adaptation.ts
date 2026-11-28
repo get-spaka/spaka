@@ -209,14 +209,14 @@ export function removalsLeft(root: string, state = readAdaptation(root)): { step
  * to do use keeps the template's texts. Undefined outside an adaptation:
  * every file.
  */
-export function adaptationScope(root: string): ((file: string) => boolean) | undefined {
+export async function adaptationScope(root: string): Promise<((file: string) => boolean) | undefined> {
   const state = readAdaptation(root);
   if (!state) return undefined;
   const active = new Set(
     state.steps.filter((s) => s.status === "doing" || s.status === "ready" || s.status === "done").map((s) => s.route),
   );
   active.add(HOME);
-  const users = fileUsers(root);
+  const users = await fileUsers(root);
   const types = pageTypes(pageFiles(root)).map((t) => t.route);
   return (file) => {
     const type = pageTypeOf(file);
@@ -235,7 +235,7 @@ export function adaptationScope(root: string): ((file: string) => boolean) | und
 }
 
 /** For each part, record and fragment of the website: the page types that show it. */
-function fileUsers(root: string): Map<string, Set<string>> {
+async function fileUsers(root: string): Promise<Map<string, Set<string>>> {
   const users = new Map<string, Set<string>>();
   const add = (file: string, route: string) => {
     const set = users.get(file) ?? new Set<string>();
@@ -278,7 +278,7 @@ function fileUsers(root: string): Map<string, Set<string>> {
     for (const r of routes)
       if (type.files.includes(r.file))
         try {
-          for (const name of runtime!.renderRoute(r.route).datasources ?? []) datasources.add(name);
+          for (const name of (await runtime!.renderRoute(r.route)).datasources ?? []) datasources.add(name);
         } catch {}
     for (const name of datasources) {
       for (const record of listDir(root, `data/${name}`)) add(`data/${name}/${record}`, type.route);

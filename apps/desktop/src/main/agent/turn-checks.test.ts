@@ -10,7 +10,7 @@ afterEach(() => {
   dir = undefined;
 });
 
-test("after a call that wrote a datasource file that does not read, the agent is told, whichever tool wrote it", () => {
+test("after a call that wrote a datasource file that does not read, the agent is told, whichever tool wrote it", async () => {
   dir = mkdtempSync(join(tmpdir(), "spaka-checks-"));
   mkdirSync(join(dir, "data/events"), { recursive: true });
   writeFileSync(join(dir, "data/events/_datasource.yaml"), "label: Events\nfields:\n  - name: title\n    kind: text\n");
@@ -22,14 +22,14 @@ test("after a call that wrote a datasource file that does not read, the agent is
   expect(checks.afterTool("Write", { file_path: join(dir, "pages/index.liquid") })).toBeUndefined();
 });
 
-test("an agent that left nothing behind may stop", () => {
+test("an agent that left nothing behind may stop", async () => {
   dir = mkdtempSync(join(tmpdir(), "spaka-checks-"));
   const checks = new TurnChecks(dir);
-  expect(checks.beforeStop(false)).toBeUndefined();
-  expect(checks.beforeStop(true)).toBeUndefined();
+  expect(await checks.beforeStop(false)).toBeUndefined();
+  expect(await checks.beforeStop(true)).toBeUndefined();
 });
 
-test("after the agent wrote package.json, or ran a command, its dependencies are put back (Q536)", () => {
+test("after the agent wrote package.json, or ran a command, its dependencies are put back (Q536)", async () => {
   dir = mkdtempSync(join(tmpdir(), "spaka-checks-"));
   const asked: string[] = [];
   const checks = new TurnChecks(dir, () => {
@@ -44,7 +44,7 @@ test("after the agent wrote package.json, or ran a command, its dependencies are
   expect(asked).toHaveLength(4);
 });
 
-test("a script it wrote that imports a package not installed is told at once (ADR 0013)", () => {
+test("a script it wrote that imports a package not installed is told at once (ADR 0013)", async () => {
   dir = mkdtempSync(join(tmpdir(), "spaka-checks-"));
   mkdirSync(join(dir, "scripts"), { recursive: true });
   mkdirSync(join(dir, "node_modules/motion"), { recursive: true });

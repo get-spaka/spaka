@@ -51,12 +51,12 @@ export class Output {
 export type RenderedFile = { rel: string; html: string; file: string; datasources: string[] };
 
 /** Every page (a record's page and the credits page among them) and every fragment, rendered once. */
-export function renderSite(source: ProjectSource) {
+export async function renderSite(source: ProjectSource) {
   const runtime = new Runtime(source, { repair: false, trace: false });
   const warnings: string[] = [];
   const pages: (RenderedFile & { route: string })[] = [];
   for (const { route, file } of runtime.routes()) {
-    const result = runtime.renderRoute(route);
+    const result = await runtime.renderRoute(route);
     if (result.status !== 200) {
       warnings.push(`${file} was not exported: ${result.notes.map((n) => n.note).join("; ")}`);
       continue;
@@ -74,7 +74,7 @@ export function renderSite(source: ProjectSource) {
   for (const file of source.list("fragments")) {
     const name = /^fragments\/([\w-]+)\.liquid$/.exec(file)?.[1];
     if (!name) continue;
-    const result = runtime.renderFragment(name, { params: {} });
+    const result = await runtime.renderFragment(name, { params: {} });
     if (result.status !== 200) {
       warnings.push(`${file} was not exported: ${result.notes.map((n) => n.note).join("; ")}`);
       continue;
@@ -102,8 +102,8 @@ export function formsIn(html: string): string[] {
 }
 
 /** What a project's pages do with what visitors send: the collected datasources they show, and those they have a form for. */
-export function collectedUse(project: BuildProject): { shown: string[]; forms: string[] } {
-  const { runtime, pages, fragments } = renderSite(project.source);
+export async function collectedUse(project: BuildProject): Promise<{ shown: string[]; forms: string[] }> {
+  const { runtime, pages, fragments } = await renderSite(project.source);
   const collected = (name: string) => !!runtime.data.definition(name).definition?.collected;
   const all = [...pages, ...fragments];
   const shown = new Set(all.flatMap((p) => p.datasources).filter(collected));
@@ -112,8 +112,8 @@ export function collectedUse(project: BuildProject): { shown: string[]; forms: s
 }
 
 /** The collected datasources (Q171) a rendered page or fragment shows. */
-export function shownCollected(project: BuildProject): string[] {
-  return collectedUse(project).shown;
+export async function shownCollected(project: BuildProject): Promise<string[]> {
+  return (await collectedUse(project)).shown;
 }
 
 /** The WebP copies of the images the pages show, written beside them; their widths by image. */
@@ -298,7 +298,7 @@ async function tailwind(classes: string[], styles = ""): Promise<string> {
  */
 export async function writePublishedSite(project: BuildProject, options: BuildOptions, out: Output, server: string) {
   if (!options.serverBundle) throw new Error(`This export needs the app's ${server}, which was not given.`);
-  const { pages, fragments, warnings } = renderSite(project.source);
+  const { pages, fragments, warnings } = await renderSite(project.source);
   const html = [...pages, ...fragments].map((p) => p.html).join("\n");
   const pub = out.under("public");
   const copies = await writeImageCopies(html, project, options.images, pub, warnings);

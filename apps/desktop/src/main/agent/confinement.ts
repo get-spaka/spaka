@@ -178,9 +178,12 @@ export function nodeLauncher(
   // And, on Windows, for what runs `node` through cmd (npx and the like).
   if (platform === "win32")
     writeFileSync(join(binDir, "node.cmd"), `@echo off\r\nset ELECTRON_RUN_AS_NODE=1\r\n"${app}" %*\r\n`);
-  // The whole app bundle (Electron loads its frameworks from there).
-  const bundle = platform === "darwin" ? app.replace(/\/Contents\/MacOS\/[^/]+$/, "") : dirname(app);
-  return { binDir, readable: [binDir, bundle] };
+  return { binDir, readable: [binDir, appBundle(app, platform)] };
+}
+
+/** The whole app bundle of Spaka's executable, which Electron loads its frameworks from. */
+export function appBundle(executable = realOrSame(process.execPath), platform = process.platform): string {
+  return platform === "darwin" ? executable.replace(/\/Contents\/MacOS\/[^/]+$/, "") : dirname(executable);
 }
 
 function realOrSame(path: string): string {

@@ -39,7 +39,7 @@ export type GridOptions = {
   /** The live view loaded: it needs a rendering. */
   wantsRendering: () => void;
   /** What a page's picture shows, as a short key: its rendering and its theme. Undefined: no such page. */
-  keyOf: (route: string) => string | undefined;
+  keyOf: (route: string) => Promise<string | undefined>;
   /** A page's picture, new or taken again, as a data URL. */
   onPicture: (route: string, url: string) => void;
 };
@@ -284,7 +284,7 @@ export class PageGrid {
     for (const route of routes) {
       // A page half written is not pictured: it is live, or gets its picture when it is finished.
       if (route === this.writing) continue;
-      const key = this.o.keyOf(route);
+      const key = await this.o.keyOf(route);
       const full = key === undefined ? undefined : `${key}:${this.screen.width}x${this.screen.height}`;
       const url =
         full === undefined || this.pictures.get(route)?.key === full

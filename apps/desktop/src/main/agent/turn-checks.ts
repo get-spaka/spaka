@@ -78,7 +78,7 @@ export class TurnChecks {
    * The agent is about to stop: what sends it back to work, if anything.
    * `again`: it was already sent back once in this turn, and may now stop.
    */
-  beforeStop(again: boolean): string | undefined {
+  async beforeStop(again: boolean): Promise<string | undefined> {
     // The samples it rewrote, named after their titles (Q218).
     nameRecords(this.root);
     const left = again ? [] : unchangedSamples(this.root).filter((path) => this.placedSamples.has(path));
@@ -87,7 +87,7 @@ export class TurnChecks {
     this.placedFiles.clear();
     // The template's texts, named once; those it keeps after that are kept on
     // purpose (Q246). During an adaptation, only in what is adapted (Q305).
-    const fromTemplate = templateTextsLeft(this.root, adaptationScope(this.root));
+    const fromTemplate = templateTextsLeft(this.root, await adaptationScope(this.root));
     const tellTemplate = !again && fromTemplate.length > 0;
     if (!tellTemplate) forgetTemplateTexts(this.root, this.templateTold ? fromTemplate.flatMap((l) => l.texts) : []);
     this.templateTold = tellTemplate;

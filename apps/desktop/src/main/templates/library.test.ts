@@ -30,7 +30,7 @@ function outsideTemplate(id: string): string {
 }
 
 describe("the templates to start from", () => {
-  test("every template, by name (Q396)", () => {
+  test("every template, by name (Q396)", async () => {
     const list = new TemplateLibrary({ folder: BUILT_IN }, scratch()).list();
     const names = list.map((t) => t.name);
     expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
@@ -49,7 +49,7 @@ describe("the templates to start from", () => {
   test("an import is read and shown first, then added, listed as imported", async () => {
     const imported = scratch();
     const library = new TemplateLibrary({ folder: BUILT_IN }, imported);
-    const answer = library.read(outsideTemplate("lighthouse"));
+    const answer = await library.read(outsideTemplate("lighthouse"));
     if (!("token" in answer)) throw new Error(answer.problems.join("\n"));
     expect(answer.template).toMatchObject({ id: "lighthouse", name: "Lighthouse", imported: true });
     expect(answer.cover).toMatch(/^data:image\/webp/);
@@ -62,11 +62,11 @@ describe("the templates to start from", () => {
     expect(() => library.accept(answer.token)).toThrow(/import it again/);
   });
 
-  test("an import refused: not a template, or named as one of Spaka's", () => {
+  test("an import refused: not a template, or named as one of Spaka's", async () => {
     const library = new TemplateLibrary({ folder: BUILT_IN }, scratch());
     const empty = scratch();
-    expect(library.read(empty)).toEqual({ problems: [expect.stringMatching(/template\.json/)] });
-    expect(library.read(join(BUILT_IN, "beacon"))).toEqual({
+    expect(await library.read(empty)).toEqual({ problems: [expect.stringMatching(/template\.json/)] });
+    expect(await library.read(join(BUILT_IN, "beacon"))).toEqual({
       problems: [expect.stringMatching(/already has a template named "beacon"/)],
     });
   });
@@ -159,7 +159,7 @@ describe("the version of a template an app takes (Q368)", () => {
 });
 
 describe("a template shown large (Q541, Q544)", () => {
-  test("its pages with their pictures: each page, one record's page of each page per record, none without a picture", () => {
+  test("its pages with their pictures: each page, one record's page of each page per record, none without a picture", async () => {
     const dir = scratch();
     const files: Record<string, string> = {
       "pages/index.liquid": "<html><body>Home</body></html>",

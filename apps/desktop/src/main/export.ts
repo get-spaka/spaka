@@ -58,14 +58,16 @@ function buildProject(projectDir: string, name: string): BuildProject {
 }
 
 /** The ways of exporting, as the Publish dialog lists them (Q181), and the forms that need a form service. */
-export function publishChoices(projectDir: string, name: string): PublishInfo {
+export async function publishChoices(projectDir: string, name: string): Promise<PublishInfo> {
   const project = buildProject(projectDir, name);
-  const use = collectedUse(project);
+  const use = await collectedUse(project);
   return {
-    choices: BUILDERS.map((b) => {
-      const checked = b.check(project);
-      return { id: b.id, needs: { ...b.needs }, ...(checked.ok ? {} : { refused: checked.refusal.datasources }) };
-    }),
+    choices: await Promise.all(
+      BUILDERS.map(async (b) => {
+        const checked = await b.check(project);
+        return { id: b.id, needs: { ...b.needs }, ...(checked.ok ? {} : { refused: checked.refusal.datasources }) };
+      }),
+    ),
     forms: use.forms,
   };
 }
@@ -74,7 +76,7 @@ export async function exportProject(projectDir: string, chosen: string, options:
   const builder = builderById(options.builder);
   if (!builder) throw new Error(`There is no ${options.builder} export.`);
   const project = buildProject(projectDir, options.name);
-  const checked = builder.check(project);
+  const checked = await builder.check(project);
   if (!checked.ok)
     throw new Error(
       `A static site cannot show what visitors send (${checked.refusal.datasources.join(", ")}): publish it on a server or on Cloudflare instead.`,

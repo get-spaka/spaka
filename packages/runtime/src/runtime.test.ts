@@ -18,7 +18,7 @@ const project = memorySource({
 describe("routes", () => {
   const runtime = new Runtime(project);
 
-  test("follow where the page files are", () => {
+  test("follow where the page files are", async () => {
     expect(runtime.routes()).toEqual([
       { route: "/", file: "pages/index.liquid" },
       { route: "/blog", file: "pages/blog/index.liquid" },
@@ -32,9 +32,9 @@ describe("routes", () => {
 });
 
 describe("rendering", () => {
-  test("a page with its shared part, traced, with the runtime's head", () => {
+  test("a page with its shared part, traced, with the runtime's head", async () => {
     const runtime = new Runtime(project, { head: () => `<meta name="x" data-spaka-runtime>` });
-    const result = runtime.renderRoute("/");
+    const result = await runtime.renderRoute("/");
     expect(result.status).toBe(200);
     expect(result.file).toBe("pages/index.liquid");
     expect(result.html).toContain(`<head><meta name="x" data-spaka-runtime><title>Home</title>`);
@@ -46,48 +46,48 @@ describe("rendering", () => {
     expect(result.notes).toEqual([]);
   });
 
-  test("without tracing or repair, for an export", () => {
+  test("without tracing or repair, for an export", async () => {
     const runtime = new Runtime(project, { trace: false, repair: false });
-    expect(runtime.renderRoute("/menu").html).toContain("<main><h1>Menu</h1></main>");
-    expect(runtime.renderRoute("/menu").html).not.toContain("data-spaka-src");
+    expect((await runtime.renderRoute("/menu")).html).toContain("<main><h1>Menu</h1></main>");
+    expect((await runtime.renderRoute("/menu")).html).not.toContain("data-spaka-src");
   });
 
-  test("a missing shared part renders as nothing, with a note", () => {
+  test("a missing shared part renders as nothing, with a note", async () => {
     const runtime = new Runtime(memorySource({ "pages/index.liquid": "{% render 'footer' %}<p>x</p>" }));
-    const result = runtime.renderRoute("/");
+    const result = await runtime.renderRoute("/");
     expect(result.status).toBe(200);
     expect(result.html).toContain("<p");
     expect(result.notes).toEqual([{ file: "parts/footer.liquid", note: "missing: rendered as nothing" }]);
   });
 
-  test("a page still being written is cut and closed", () => {
+  test("a page still being written is cut and closed", async () => {
     const source = new Overlay(project);
     source.set("pages/index.liquid", `<main><section class="hero"><h1>Bread baked at da`);
-    const result = new Runtime(source).renderRoute("/");
+    const result = await await new Runtime(source).renderRoute("/");
     expect(result.status).toBe(200);
     expect(result.html).toMatch(/<h1 [^>]*>Bread baked at da<\/h1><\/section><\/main>/);
     expect(result.notes[0]?.note).toMatch(/^repaired/);
   });
 
-  test("a render error is reported, not thrown", () => {
+  test("a render error is reported, not thrown", async () => {
     const runtime = new Runtime(memorySource({ "pages/index.liquid": "{% nosuchtag %}" }));
-    const result = runtime.renderRoute("/");
+    const result = await runtime.renderRoute("/");
     expect(result.status).toBe(500);
     expect(result.notes[0]?.note).toMatch(/render error/);
   });
 
-  test("fragments and the theme", () => {
+  test("fragments and the theme", async () => {
     const runtime = new Runtime(project, { trace: false });
-    expect(runtime.renderFragment("news", { params: { n: "3" } }).html).toBe("<li>3</li>");
-    expect(runtime.renderFragment("nope").status).toBe(404);
+    expect((await runtime.renderFragment("news", { params: { n: "3" } })).html).toBe("<li>3</li>");
+    expect((await runtime.renderFragment("nope")).status).toBe(404);
     expect(runtime.theme()).toContain("#c2410c");
   });
 
-  test("a shared part shown on its own while no page exists yet", () => {
+  test("a shared part shown on its own while no page exists yet", async () => {
     const runtime = new Runtime(memorySource({ "parts/header.liquid": "<header>H</header>" }), {
       head: () => "<i></i>",
     });
-    const result = runtime.renderLoose("parts/header.liquid");
+    const result = await runtime.renderLoose("parts/header.liquid");
     expect(result.html).toMatch(/^<!doctype html><html><head><i><\/i><\/head><body><header/);
   });
 });
@@ -121,7 +121,7 @@ describe("answering web requests", () => {
 });
 
 describe("the overlay", () => {
-  test("files being written take the place of the disk's, and new ones are listed", () => {
+  test("files being written take the place of the disk's, and new ones are listed", async () => {
     const source = new Overlay(project);
     source.set("pages/about.liquid", "<h1>About</h1>");
     source.set("pages/index.liquid", "<h1>New home</h1>");
@@ -132,7 +132,7 @@ describe("the overlay", () => {
   });
 });
 
-test("a record page says which records of its datasource were left out (Q166)", () => {
+test("a record page says which records of its datasource were left out (Q166)", async () => {
   const rt = new Runtime(
     memorySource({
       "pages/blog/[posts].liquid": page("<h1>{{ record.title }}</h1>"),
@@ -142,11 +142,11 @@ test("a record page says which records of its datasource were left out (Q166)", 
     }),
   );
   expect(rt.routes().map((r) => r.route)).toEqual(["/blog/opening"]);
-  const notes = rt.renderRoute("/blog/opening").notes.map((n) => `${n.file}: ${n.note}`);
+  const notes = (await rt.renderRoute("/blog/opening")).notes.map((n) => `${n.file}: ${n.note}`);
   expect(notes).toEqual([expect.stringMatching(/^data\/posts\/noel\.md: left out: /)]);
 });
 
-test("Liquid asking data whether it is an iterator is not a datasource looked for", () => {
+test("Liquid asking data whether it is an iterator is not a datasource looked for", async () => {
   const rt = new Runtime(
     memorySource({
       "pages/index.liquid": page(
@@ -159,5 +159,5 @@ test("Liquid asking data whether it is an iterator is not a datasource looked fo
     }),
     { repair: false, trace: false },
   );
-  expect(rt.renderRoute("/").notes).toEqual([]);
+  expect((await rt.renderRoute("/")).notes).toEqual([]);
 });

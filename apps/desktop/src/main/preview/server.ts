@@ -63,7 +63,7 @@ export class PreviewServer {
    */
   constructor(
     private readonly site: () => Site | undefined,
-    private readonly block: (id: string) => string | undefined = () => undefined,
+    private readonly block: (id: string) => Promise<string | undefined> = async () => undefined,
     private readonly font: (path: string) => string | undefined = () => undefined,
     private readonly packageModule?: PackageModuleAt,
   ) {}
@@ -128,7 +128,7 @@ export class PreviewServer {
 
     const block = /^\/__spaka\/block\/([a-z0-9-]+)$/.exec(url.pathname);
     if (block) {
-      const source = this.block(block[1]!);
+      const source = await this.block(block[1]!);
       if (source === undefined) return notFound(res);
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
       res.end(site.runtime.decorate(`<!doctype html><html><head><title></title></head><body>${source}</body></html>`));

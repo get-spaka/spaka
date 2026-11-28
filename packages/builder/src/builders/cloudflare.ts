@@ -113,7 +113,7 @@ export const cloudflareBuilder: Builder = {
   id: "cloudflare",
   server: "worker.mjs",
   needs: { managementToken: true, formServices: false },
-  check: () => ({ ok: true }),
+  check: async () => ({ ok: true }),
   async build(project, options) {
     const out = new Output(options.outDir);
     const name = slug(project.name);
