@@ -1,5 +1,6 @@
 // The template commands (Q232): `pnpm template:check <folder or .zip>` runs a
-// template's checks; `pnpm template:shoot <folder>` photographs its pages in
+// template's checks, online for its packages; `pnpm template:install <folder>`
+// installs its packages with Spaka's pnpm and writes its lockfile; `pnpm template:shoot <folder>` photographs its pages in
 // the app, offscreen, into its pictures/ and a review sheet, and renders each
 // page again as after an edit, checking nothing is left hidden; `pnpm
 // template:image` finds images and adds them with their credits, or generates
@@ -57,18 +58,24 @@ const templates = join(desktop, "templates");
 
 if (command === "check") {
   const { main } = await cli();
-  process.exit(main(args));
+  process.exit(await main(args));
+} else if (command === "install") {
+  const { installMain } = await cli();
+  process.exit(await installMain(args, join(root, "e2e/.runs/template-install")));
 } else if (command === "image") {
   const { imageMain } = await cli();
   process.exit(await imageMain(args, join(root, "e2e/.runs/template-images")));
 } else if (command === "release") {
-  const [out, tag, previous] = args;
+  const flags = args.filter((a) => a.startsWith("--"));
+  const [out, tag, previous] = args.filter((a) => !a.startsWith("--"));
   if (!out || !tag) {
-    console.error("Usage: pnpm template:release <out folder> <tag> [previous catalogue.json: path or address]");
+    console.error(
+      "Usage: pnpm template:release <out folder> <tag> [previous catalogue.json: path or address] [--offline]",
+    );
     process.exit(2);
   }
   const { releaseMain } = await cli();
-  process.exit(await releaseMain([templates, resolve(out), tag, ...(previous ? [previous] : [])]));
+  process.exit(await releaseMain([templates, resolve(out), tag, ...(previous ? [previous] : []), ...flags]));
 } else if (command === "snapshot") {
   const { snapshotMain } = await cli();
   process.exit(await snapshotMain(join(desktop, "templates-catalogue"), process.env.SPAKA_TEMPLATES_URL));
@@ -107,7 +114,7 @@ if (command === "check") {
   );
 } else {
   console.error(
-    "Usage: pnpm template:check <folder or .zip> | template:shoot <folder> | template:image find|use|generate … | template:release <out> <tag> [previous] | template:snapshot | template:release-script",
+    "Usage: pnpm template:check <folder or .zip> | template:install <folder> | template:shoot <folder> | template:image find|use|generate … | template:release <out> <tag> [previous] | template:snapshot | template:release-script",
   );
   process.exit(2);
 }

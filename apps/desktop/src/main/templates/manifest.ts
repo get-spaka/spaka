@@ -1,9 +1,9 @@
 // A template's manifest, template.json (Q240): what the start screen shows of
 // it and what the catalogue lists. What the project's own files already say
-// is not repeated here: its libraries' licences are in scripts/libraries.json
-// and at the top of scripts/lib/ files, its images' credits beside each image
-// in media/, its pictures in pictures/ (made by template:shoot); the reader
-// gathers them.
+// is not repeated here: its packages are in package.json, with their
+// licences in node_modules once installed, its images' credits beside each
+// image in media/, its pictures in pictures/ (made by template:shoot); the
+// reader gathers them.
 import { z } from "zod";
 import { TEMPLATE_CATEGORIES } from "../../shared/ipc";
 

@@ -1,11 +1,12 @@
 {
   "id": "atelier",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "name": "Atelier",
   "description": "A calm studio site for the checks: a large type hero whose sections rise into view, and an about page.",
   "category": "portfolio",
   "original": false,
   "tags": ["studio", "craft"],
   "author": { "name": "Spaka" },
-  "licence": "MIT"
+  "licence": "MIT",
+  "app": "0.2.0"
 }

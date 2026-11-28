@@ -10,15 +10,26 @@ import { join, resolve } from "node:path";
 import { buildRelease, type Catalogue, parseCatalogue } from "./release";
 
 export async function releaseMain(args: string[]): Promise<number> {
-  const [root, out, tag, from] = args;
+  // --offline: the packages not checked online, for Spaka's own checks of a release; never for one published.
+  const offline = args.includes("--offline");
+  const [root, out, tag, from] = args.filter((a) => !a.startsWith("--"));
   if (!root || !out || !tag) {
-    console.error("Usage: release <templates folder> <out folder> <tag> [previous catalogue.json: path or address]");
+    console.error(
+      "Usage: release <templates folder> <out folder> <tag> [previous catalogue.json: path or address] [--offline]",
+    );
     return 2;
   }
   try {
     const previous = from ? await readPrevious(from) : undefined;
     if (!from) console.warn("! No previous catalogue: no earlier version is kept for older apps.");
-    const catalogue = buildRelease(resolve(root), resolve(out), tag, previous);
+    if (offline) console.warn("! --offline: the templates' packages are not checked online.");
+    const catalogue = await buildRelease(
+      resolve(root),
+      resolve(out),
+      tag,
+      previous,
+      offline ? { packages: async () => [] } : {},
+    );
     for (const t of catalogue.templates)
       console.log(`✓ ${t.name} (${t.id} ${t.version}): ${t.zip.file}, ${(t.zip.size / 1e6).toFixed(1)} MB`);
     for (const t of catalogue.earlier)

@@ -69,7 +69,12 @@ const isTree = (value: Tree | string | undefined): value is Tree => typeof value
 export function readLockfile(projectDir: string): Locked {
   const file = join(projectDir, "pnpm-lock.yaml");
   if (!existsSync(file)) return { direct: [], installed: [] };
-  const tree = readYamlMaps(readFileSync(file, "utf8"));
+  return lockfileOf(readFileSync(file, "utf8"));
+}
+
+/** What a lockfile says pnpm installs: the project's own packages, and every package with what brings it. */
+export function lockfileOf(text: string): Locked {
+  const tree = readYamlMaps(text);
   const importers = tree.importers;
   const project = isTree(importers) ? importers["."] : undefined;
   const direct: Direct[] = [];

@@ -4,20 +4,11 @@
 // never load them: Spaka puts them in the head, an import map points each
 // package to its module, and the start script calls the modules when a page
 // loads and when htmx brings new content. In the preview, the page stays
-// still until the preview says it is in visitor mode (Q242). Libraries in
-// scripts/lib/ or by their address in scripts/libraries.json are still
-// loaded until the templates have moved to packages (packages plan, slice 4).
+// still until the preview says it is in visitor mode (Q242).
 import type { ProjectSource } from "./source.ts";
-
-/** A library loaded from its address on every visit (Q241). */
-export type AddressedLibrary = { name: string; url: string; licence?: string };
 
 /** What a site brings beside its templates, as the head loads it. */
 export type SiteAssets = {
-  /** Loaded from their addresses, first. */
-  libraries: AddressedLibrary[];
-  /** scripts/lib/*.js, as project paths, in name order. */
-  lib: string[];
   /** scripts/*.js, the site's modules, in name order. */
   modules: string[];
   /** styles/*.css, as project paths, in name order. */
@@ -30,7 +21,7 @@ export type SiteAssets = {
   packages?: PackageImport[];
 };
 
-export const NO_ASSETS: SiteAssets = { libraries: [], lib: [], modules: [], styles: [], packages: [] };
+export const NO_ASSETS: SiteAssets = { modules: [], styles: [], packages: [] };
 
 /** Where the preview and an export serve the modules of the packages a site's scripts import (ADR 0013). */
 export const PACKAGES_BASE = "/assets/packages";
@@ -57,19 +48,31 @@ const PACKAGE_SPECIFIER = /^((?:@[a-z0-9][a-z0-9._~-]*\/)?[a-z0-9][a-z0-9._~-]*)
 const PACKAGE_PATH = /^(?!.*(?:^|\/)\.\.?(?:\/|$))[A-Za-z0-9._~@+-]+(?:\/[A-Za-z0-9._~@+-]+)*$/;
 
 /**
- * What a script imports by a name rather than by a path or an address:
- * `import … from "x"`, `import "x"`, `export … from "x"` and `import("x")`,
- * comments left out.
+ * Every specifier a script imports: `import … from "x"`, `import "x"`,
+ * `export … from "x"` and `import("x")`, comments left out, a word "from"
+ * elsewhere in the code ("lunch-from") never taken for one.
  */
-export function importedSpecifiers(code: string): string[] {
+export function moduleSpecifiers(code: string): string[] {
   const bare = code.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
   const found = new Set<string>();
-  for (const match of bare.matchAll(/(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)(["'])([^"'\n]+)\1/g)) {
-    const specifier = match[2] ?? "";
-    if (/^[./]/.test(specifier) || /^[a-z][a-z0-9+.-]*:/i.test(specifier)) continue;
-    found.add(specifier);
-  }
+  const statements = /(?:^|[;}])\s*(?:import|export)\s*(?:[\w$*{}\s,]+?\s*\bfrom\s*)?(["'])([^"'\n]+)\1/g;
+  const dynamic = /\bimport\s*\(\s*(["'])([^"'\n]+)\1\s*[,)]/g;
+  for (const match of [...bare.matchAll(statements), ...bare.matchAll(dynamic)]) found.add(match[2] ?? "");
   return [...found];
+}
+
+/** What a script imports by a name rather than by a path or an address. */
+export function importedSpecifiers(code: string): string[] {
+  return moduleSpecifiers(code).filter((s) => !/^[./]/.test(s) && !/^[a-z][a-z0-9+.-]*:/i.test(s));
+}
+
+/** The package a bare specifier names, and the path inside it; nothing when it names none. */
+export function specifierPackage(specifier: string): { name: string; path?: string } | undefined {
+  const parsed = PACKAGE_SPECIFIER.exec(specifier);
+  const name = parsed?.[1];
+  const path = parsed?.[2];
+  if (!name || (path !== undefined && !PACKAGE_PATH.test(path))) return undefined;
+  return path === undefined ? { name } : { name, path };
 }
 
 /** Where a package's module is served: its name and version, then the path inside it, ending in .js. */
@@ -100,16 +103,15 @@ export function packageImports(
   const byName = new Map<string, PackageImport>();
   const missing = new Set<string>();
   for (const path of scripts) {
-    if (!/\.m?js$/.test(path) || path.startsWith("scripts/lib/")) continue;
+    if (!/\.m?js$/.test(path)) continue;
     for (const specifier of importedSpecifiers(source.read(path) ?? "")) {
       if (byName.has(specifier)) continue;
-      const parsed = PACKAGE_SPECIFIER.exec(specifier);
-      const name = parsed?.[1];
-      const inside = parsed?.[2];
-      if (!name || (inside !== undefined && !PACKAGE_PATH.test(inside))) {
+      const named = specifierPackage(specifier);
+      if (!named) {
         notes.push(`${path}: "${specifier}" is not the name of a package, nor a path inside one.`);
         continue;
       }
+      const { name, path: inside } = named;
       const version = installedVersion(source, name);
       if (!version) {
         if (!missing.has(name))
@@ -123,32 +125,22 @@ export function packageImports(
   return { packages: [...byName.values()].sort((a, b) => a.specifier.localeCompare(b.specifier)), notes };
 }
 
-/** The site's scripts and stylesheets, read from its files; a malformed libraries.json is a note. */
+/**
+ * The site's scripts and stylesheets, read from its files. The libraries a
+ * site made before packages lists by their address in scripts/libraries.json
+ * are no longer loaded: a note says so.
+ */
 export function siteAssets(source: ProjectSource): { assets: SiteAssets; notes: string[] } {
-  const notes: string[] = [];
-  const libraries: AddressedLibrary[] = [];
-  const listed = source.read("scripts/libraries.json");
-  if (listed !== undefined) {
-    try {
-      const parsed: unknown = JSON.parse(listed);
-      const items = Array.isArray(parsed) ? parsed : [];
-      if (!Array.isArray(parsed)) notes.push("scripts/libraries.json: a list of { name, url } is expected");
-      for (const item of items) {
-        const { name, url, licence } = (item ?? {}) as Record<string, unknown>;
-        if (typeof name === "string" && typeof url === "string" && /^https:\/\/[^\s"'<>]+$/.test(url))
-          libraries.push({ name, url, ...(typeof licence === "string" ? { licence } : {}) });
-        else notes.push(`scripts/libraries.json: ${JSON.stringify(item)} needs a name and an https address`);
-      }
-    } catch (error) {
-      notes.push(`scripts/libraries.json: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  }
   const scripts = source.list("scripts");
+  const notes =
+    source.read("scripts/libraries.json") !== undefined
+      ? [
+          "scripts/libraries.json: no longer loaded. Add each library with add_package, import it by its name in the modules, then remove the file.",
+        ]
+      : [];
   const { packages, notes: imports } = packageImports(source, scripts);
   return {
     assets: {
-      libraries,
-      lib: scripts.filter((p) => /^scripts\/lib\/[^/]+\.js$/.test(p)),
       modules: scripts.filter((p) => /^scripts\/[^/]+\.m?js$/.test(p)),
       styles: source.list("styles").filter((p) => /^styles\/[^/]+\.css$/.test(p)),
       packages,
@@ -157,36 +149,22 @@ export function siteAssets(source: ProjectSource): { assets: SiteAssets; notes: 
   };
 }
 
-/** Whether a site has anything that moves by script. */
-export function hasScripts(assets: SiteAssets): boolean {
-  return assets.libraries.length + assets.lib.length + assets.modules.length > 0;
-}
-
 /**
- * The head's script tags. First the import map, which points the packages the
- * scripts import to their modules (ADR 0013). Once published: the libraries,
- * then Spaka's start script with the modules it imports. In the preview
- * (`wait`): the start script alone, which loads the libraries and the
+ * The head's script tags: the import map, which points the packages the
+ * scripts import to their modules (ADR 0013), then Spaka's start script with
+ * the modules it imports. In the preview (`wait`), the start script loads the
  * modules only once told the page is in visitor mode, so that no script of
  * the site runs while it is edited (Q242, ADR 0011).
  */
 export function scriptTags(assets: SiteAssets, startSrc: string, { wait }: { wait: boolean }) {
-  if (!hasScripts(assets)) return [];
+  if (!assets.modules.length) return [];
   const map = importMap(assets.packages ?? []);
-  const libraries = [...assets.libraries.map((l) => l.url), ...assets.lib.map((p) => `/${p}`)];
   const modules = escapeAttr(assets.modules.map((p) => `/${p}`).join(" "));
-  if (wait)
-    return [
-      ...(map ? [`<script type="importmap" data-spaka-runtime>${map}</script>`] : []),
-      `<script src="${escapeAttr(startSrc)}" data-libraries="${escapeAttr(libraries.join(" "))}" data-modules="${modules}" data-wait defer data-spaka-runtime></script>`,
-    ];
-  const tags = [
-    ...(map ? [`<script type="importmap">${map}</script>`] : []),
-    ...libraries.map((src) => `<script src="${escapeAttr(src)}"></script>`),
+  const runtime = wait ? " data-spaka-runtime" : "";
+  return [
+    ...(map ? [`<script type="importmap"${runtime}>${map}</script>`] : []),
+    `<script src="${escapeAttr(startSrc)}" data-modules="${modules}"${wait ? " data-wait" : ""} defer${runtime}></script>`,
   ];
-  if (assets.modules.length)
-    tags.push(`<script src="${escapeAttr(startSrc)}" data-modules="${modules}" defer></script>`);
-  return tags;
 }
 
 /**
@@ -211,15 +189,6 @@ export const START_JS = `(() => {
     console.error("[spaka] " + message + (error ? ": " + (error.message || error) : ""));
   const list = (name) => (me && me.dataset[name] || "").split(" ").filter(Boolean);
   const paths = list("modules");
-  // In the preview, the libraries too wait for visitor mode, loaded one after the other.
-  const libraries = list("libraries");
-  const script = (src) => new Promise((done) => {
-    const el = document.createElement("script");
-    el.src = src;
-    el.onload = () => done();
-    el.onerror = () => { report("could not load " + src); done(); };
-    document.head.append(el);
-  });
   let modules = [];
   let started = false;
   const each = async (fn, root) => {
@@ -235,7 +204,6 @@ export const START_JS = `(() => {
   const go = async () => {
     if (started) return;
     started = true;
-    for (const src of libraries) await script(src);
     modules = await load();
     await each("start", document);
   };

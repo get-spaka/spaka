@@ -1,4 +1,4 @@
-import { writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { type LaunchedApp, runsDir, SLOW } from "./app.ts";
 
@@ -87,6 +87,8 @@ export function previewDriver(app: () => LaunchedApp) {
       const late = new Promise<undefined>((r) => setTimeout(() => r(undefined), 10_000));
       return ((await Promise.race([shot, late])) as { data: string } | undefined)?.data;
     });
+    // The folder made here too, as the window's pictures make it: a shard may begin with this check.
+    mkdirSync(runsDir, { recursive: true });
     if (png) writeFileSync(join(runsDir, `${name}.png`), Buffer.from(png, "base64"));
     else console.warn(`no picture ${name}: the preview did not give one in 10 seconds`);
   };

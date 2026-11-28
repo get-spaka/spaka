@@ -4,14 +4,7 @@
 // template is made; what a new project copies of them is projectFiles().
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
-import {
-  type AddressedLibrary,
-  type Credit,
-  type Generation,
-  infoFile,
-  memorySource,
-  siteAssets,
-} from "@spaka/runtime";
+import { type Credit, type Generation, infoFile, memorySource } from "@spaka/runtime";
 import { type Block, filesTree, readBlocks } from "../gallery/catalogue";
 import { MANIFEST, Manifest } from "./manifest";
 import { readZip, safePath, ZIP_LIMITS } from "./zip";
@@ -29,11 +22,14 @@ export type Template = {
   manifest: Manifest;
   files: TemplateFiles;
   blocks: Block[];
-  libraries: AddressedLibrary[];
+  /** The packages its package.json lists, as it writes their versions (ADR 0013). */
+  packages: TemplatePackage[];
   /** Each media file with its credit, or how it was generated (Q432). */
   credits: { path: string; credit?: Credit; generated?: Generation }[];
   pictures: TemplatePictures;
 };
+
+export type TemplatePackage = { name: string; version: string };
 
 export const PICTURES = "pictures";
 export const BLOCKS = "blocks";
@@ -53,6 +49,8 @@ export const TEMPLATE_ENTRIES = new Set([
   "fonts",
   "scripts",
   "styles",
+  "package.json",
+  "pnpm-lock.yaml",
   "blocks",
   "pictures",
   ".spaka",
@@ -147,7 +145,6 @@ export function readTemplate(files: TemplateFiles): { template: Template } | { p
   for (const path of files.keys())
     if (!safePath(path)) return { problems: [`Not a path a template may hold: ${path}`] };
 
-  const source = textSource(files);
   const media = [...files.keys()].filter((p) => p.startsWith("media/") && !isInfoFile(p, files));
   const credits = media.map((path) => {
     const info = files.get(infoFile(path))?.toString("utf8");
@@ -167,11 +164,27 @@ export function readTemplate(files: TemplateFiles): { template: Template } | { p
       manifest: parsed.data,
       files,
       blocks: readBlocks(filesTree(files, `${BLOCKS}/`)).blocks,
-      libraries: siteAssets(source).assets.libraries,
+      packages: templatePackages(files),
       credits,
       pictures: picturesOf(files),
     },
   };
+}
+
+/** The dependencies its package.json lists; none when it has no package.json, or one that is not JSON (checkTemplate says so). */
+export function templatePackages(files: TemplateFiles): TemplatePackage[] {
+  const text = files.get("package.json")?.toString("utf8");
+  if (text === undefined) return [];
+  try {
+    const dependencies: unknown = JSON.parse(text).dependencies;
+    if (!dependencies || typeof dependencies !== "object") return [];
+    return Object.entries(dependencies)
+      .filter((e): e is [string, string] => typeof e[1] === "string")
+      .map(([name, version]) => ({ name, version }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  } catch {
+    return [];
+  }
 }
 
 /** media/cafe.json beside media/cafe.jpg. */

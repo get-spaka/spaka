@@ -108,7 +108,7 @@ Splitting sets `--word-index` and `--char-index` on each piece: enough to stagge
 
 ### A site's older libraries
 
-A site made from a template may still list libraries in `scripts/libraries.json`, or keep their files in `scripts/lib/`, and its modules use their globals (`Motion.animate`). Spaka still loads them: leave them as they are, and add what is new as packages.
+A site made before packages may still list libraries in `scripts/libraries.json`, its modules using their globals (`Motion.animate`). Spaka no longer loads them: add each with `add_package`, import what the modules use by its name (`import { animate } from "motion";`, then `animate(…)` for `Motion.animate(…)`), and remove the file.
 
 ## Movement without a script
 

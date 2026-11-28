@@ -236,11 +236,9 @@ describe("a site's scripts and stylesheet (ADR 0011)", () => {
   const animated = () =>
     project({
       "pages/index.liquid": `<html><head><title>Home</title></head><body><h1 class="headline">Hi</h1></body></html>`,
-      "scripts/libraries.json": JSON.stringify([
-        { name: "lenis", url: "https://unpkg.com/lenis@1.3.4/dist/lenis.min.js" },
-      ]),
-      "scripts/lib/split.js": "window.split = 1;",
-      "scripts/reveal.js": "export function start(root) {}",
+      // A file the module imports, below scripts/: copied, never loaded by the head.
+      "scripts/lib/split.js": "export const split = (s) => s.split('');",
+      "scripts/reveal.js": 'import { split } from "./lib/split.js";\nexport function start(root) {}',
       "styles/site.css": ".headline { @apply text-primary; letter-spacing: -0.04em; }",
       // A picture the stylesheet refers to (Kindly's seal, Commons' edges): served as it is.
       "styles/edges/wave.svg": "<svg/>",
@@ -251,9 +249,9 @@ describe("a site's scripts and stylesheet (ADR 0011)", () => {
   test("the static site loads them, its stylesheet compiled into site.css with Tailwind's", async () => {
     await builderById("static")!.build(animated(), { outDir: out, formServices: {} });
     const page = readFileSync(join(out, "index.html"), "utf8");
-    expect(page).toContain('<script src="https://unpkg.com/lenis@1.3.4/dist/lenis.min.js"></script>');
-    expect(page).toContain('<script src="/scripts/lib/split.js"></script>');
+    expect(page).not.toContain('<script src="/scripts/lib/split.js"');
     expect(page).toContain('<script src="/assets/spaka-start.js" data-modules="/scripts/reveal.js" defer></script>');
+    expect(existsSync(join(out, "scripts/lib/split.js"))).toBe(true);
     expect(readFileSync(join(out, "assets/spaka-start.js"), "utf8")).toContain("__spakaStart");
     expect(readFileSync(join(out, "scripts/reveal.js"), "utf8")).toContain("export function start");
     const css = readFileSync(join(out, "assets/site.css"), "utf8");

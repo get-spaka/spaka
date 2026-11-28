@@ -137,9 +137,9 @@ import {
   removeStep,
   turnEnded,
 } from "./templates/adaptation";
+import { pagePicture, shownPages } from "./templates/large";
 import { TEMPLATES_RELEASES, TemplateLibrary } from "./templates/library";
 import { pagesAnswered, readPagesCard } from "./templates/pages-card";
-import { TemplateViewer } from "./templates/viewer";
 import { Fonts } from "./theme/fonts";
 import { readTheme, type ThemeValues, themeColors, writeTheme } from "./theme/theme-file";
 import { TipOverlay } from "./tip-overlay";
@@ -444,12 +444,6 @@ async function main() {
     join(app.getPath("userData"), "templates"),
   );
   void templates.refresh().then((changed) => changed && ipc.emit("templates:changed"));
-  const templateViewer = new TemplateViewer(win, {
-    background: env.background,
-    onState: (state) => ipc.emit("templates:view-state", state),
-    font: (path) => fonts.path(path),
-  });
-  await templateViewer.start();
   /** For automated checks: what a dialog would have answered. */
   const checks: { importPath?: string } = {};
 
@@ -952,7 +946,6 @@ async function main() {
     const replacement = claudeReplacement(opening.model);
     const project = replacement ? projects.update(opening.id, { model: replacement }) : opening;
     current = project;
-    templateViewer.close();
     watchSkills(project);
     agent.open(project);
     if (replacement)
@@ -1119,22 +1112,22 @@ async function main() {
   });
   ipc.handle("templates:list", () => templates.list());
   ipc.handle("templates:picture", (id, which) => templates.picture(id, which === "hover" ? "hover" : "cover"));
-  ipc.handle("templates:view", async (id, route) => {
-    if (!id || current) {
-      templateViewer.close();
-      return;
-    }
-    // Downloaded first if it has to be (Q247); the panel says why it cannot be shown.
-    let dir: string;
+  // A template shown large: the pictures of its pages, which its .zip holds,
+  // downloaded first if it has to be (Q247, Q541, Q545); the panel says why it cannot be shown.
+  ipc.handle("templates:pages", async (id) => {
     try {
-      dir = await templates.dir(id);
+      return { pages: shownPages(await templates.dir(String(id))) };
     } catch (error) {
-      templateViewer.close();
-      return error instanceof Error ? error.message : String(error);
+      return { problem: error instanceof Error ? error.message : String(error) };
     }
-    await templateViewer.show(id, dir, typeof route === "string" && route.startsWith("/") ? route : "/");
   });
-  ipc.on("templates:bounds", (rect) => templateViewer.setBounds(scaled(rect)));
+  ipc.handle("templates:page-picture", async (id, page, device) => {
+    try {
+      return pagePicture(await templates.dir(String(id)), String(page), device === "phone" ? "phone" : "desktop");
+    } catch {
+      return null;
+    }
+  });
   ipc.handle("templates:import", async () => {
     // Checks name the folder to import instead of a dialog, which would take the focus.
     if (env.background) return checks.importPath ? templates.read(checks.importPath) : null;
@@ -1268,6 +1261,9 @@ async function main() {
       // whose card of pages and adaptation stand for the plan (Q312).
       const mode = settings?.mode === "plan" && !dir ? ("plan" as const) : undefined;
       const copied = dir ? copyTemplate(dir, created.path) : undefined;
+      // The template's packages installed before the website opens (packages plan, slice 4): its
+      // pages load with them, and the agent finds them. The start screen says it is sending meanwhile.
+      if (copied && existsSync(join(created.path, "package.json"))) await syncPackages(created);
       const manifest = copied?.manifest;
       const template = manifest && { id: manifest.id, version: manifest.version };
       stats.track("site_created", { template: manifest?.id ?? "none" });
@@ -2058,7 +2054,6 @@ async function main() {
         images,
         editor,
         templates,
-        templateViewer,
         checks,
         replayed,
         kitFor,

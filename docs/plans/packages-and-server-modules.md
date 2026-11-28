@@ -1,6 +1,6 @@
 # Spaka v2 : plan de construction des paquets et des modules serveur (Q490-Q535)
 
-## État (2026-11-27) : la sonde et les tranches 1 à 3 faites
+## État (2026-11-27) : la sonde et les tranches 1 à 4 faites
 
 | Tranche | Fait | Commits |
 |---|---|---|
@@ -8,7 +8,7 @@
 | 1. Le pnpm de Spaka et le `node_modules` du projet | ✅ | 999d123 |
 | 2. `add_package`, ses règles et la section Paquets | ✅ | 0cc63a3 |
 | 3. Les paquets dans le navigateur | ✅ | 7936aee ; sous Windows, Rolldown seul (Q557) ec86e33 |
-| 4. Les 37 templates passent aux paquets | | |
+| 4. Les 37 templates passent aux paquets | ✅ | aed0742 ; get-spaka/templates 6fa8752 (branche `template/packages`) |
 | 5. Les modules serveur dans l'aperçu | | |
 | 6. Les secrets | | |
 | 7. Les exports statique, Node et Cloudflare | | |
@@ -224,12 +224,40 @@ Repris le 2026-11-28 (Q557) : sous Windows, aucun paquet n'avait de module. Vite
 ### 4. Les 37 templates passent aux paquets
 
 - Repris de la tranche 3 : `scripts/libraries.json` et `scripts/lib/` ne sont plus lus (`runtime/scripts.ts`, `head.ts`, `START_JS`), et `template:check` les refuse.
-- La vue d'un template (`templates/viewer.ts`) doit servir les modules de ses paquets : un template n'a pas de `node_modules`.
+- **Le template montré en grand montre ses images, plus le site qui tourne (Q541, Q544)** : l'image pleine longueur de chaque page, celle de bureau, avec un choix Bureau / Téléphone pour celle du téléphone, et la liste des pages comme avant. Les cartes gardent leur couverture et leur survol. La vue d'un template (`templates/viewer.ts`) et sa `WebContentsView` disparaissent : un template n'a pas de `node_modules`, et ses paquets ne s'installent qu'une fois un site fait à partir de lui.
+- **Les images des pages entrent dans le .zip du template (Q545)**, téléchargé quand le template est montré en grand.
+- **`template:check` accepte tout paquet npm sous les règles de Spaka (Q542, Q546)** : aucune faille, aucune compilation native, pas de zone grise ; une version exacte, une licence ouverte, jamais GSAP ; un lockfile et pas de `node_modules`. Les imports sont des noms listés dans `package.json` ou des chemins relatifs, jamais une adresse. La vérification demande le réseau.
+- **Les templates à paquets déclarent `"app": "0.2.0"` (Q543)**, et l'app reste en 0.2.0 : aucune app Spaka n'a encore été publiée.
+- Un site fait à partir d'un template installe ses paquets avant que l'agent ne le regarde.
 
-- Dans get-spaka/templates : chaque template remplace `libraries.json` par des paquets (Motion, Lenis, Splitting, Embla, OGL) et ses modules par des imports.
-- `FORMAT.md` est mis à jour, avec la version minimale de l'app relevée.
+- Dans get-spaka/templates : chaque template remplace `libraries.json` par des paquets (Motion, Lenis, Splitting, Embla, OGL) et ses modules par des imports, avec son lockfile.
+- `FORMAT.md` est mis à jour.
 - `template:shoot` et `templates-again.e2e.ts` vérifient que rien ne bouge (les images ne devraient pas changer).
 - Une release des templates, publiée avec une app qui connaît les paquets.
+
+Décidé en route (Q541 à Q546 dans `docs/v2.0-decisions.md`, et des choix techniques sans nouvelle question) :
+- **`scripts/lib/` devient un dossier comme un autre**, des fichiers du site que ses modules importent par un chemin relatif : aucun template ne s'en servait. Un site qui a encore `scripts/libraries.json` reçoit une note qui dit à l'agent comment passer aux paquets ; rien n'en est chargé.
+- **`pnpm template:install <dossier>`** installe les paquets d'un template avec le pnpm et les réglages de Spaka, et écrit le lockfile qu'il livre. Son `node_modules` ne sert qu'à l'auteur : `.gitignore` le laisse de côté, comme le `.ignore` que pnpm écrit.
+- **La vérification en ligne** est dans `templates/check-packages.ts`, appelée par `template:check` et par la release ; `checkTemplate` reste hors ligne (les versions exactes, le lockfile, les imports) pour les tests. Chaque version n'est jugée qu'une fois par passage, et `template:check` prend plusieurs dossiers d'un coup : les 37 templates partagent cinq paquets, et les comptes de téléchargement de npm répondent 429 au-delà de quelques questions par minute. Une réponse 429 est reposée après l'attente qu'elle demande, deux fois au plus, pour l'app aussi. `template:release --offline` saute cette vérification, pour les vérifications de Spaka seulement (`templates-download.e2e.ts`), jamais pour une release publiée.
+- **Les paquets d'un template s'installent avant que le site ne s'ouvre**, l'écran de départ restant sur son envoi en cours : ses pages se chargent avec eux, sans erreur d'import au premier chargement, et l'agent les trouve.
+- **La lecture des imports ne prend que les instructions `import` et `export`** : le `"lunch-from"` de Saucer passait pour un import.
+- **La migration** : les membres de `Motion` utilisés, importés par leur nom (`import { animate, inView } from "motion";`), sous un autre nom là où le module a déjà le sien (le `animate` de Covered devient `motionAnimate`) ; Lenis, Splitting et Embla par leur export par défaut ; OGL par `"ogl"` au lieu de son adresse jsDelivr. Les gardes sur les globales tombent (Chalk, Earshot, Taper, Transfer). Chaque template monte d'une version mineure.
+
+Fait le 2026-11-27 :
+- **`runtime/scripts.ts`** : `moduleSpecifiers` lit les imports des instructions `import` et `export` (et `import()`), `specifierPackage` en tire le paquet et son chemin. Sans module, aucune balise ; sinon l'import map, puis le script de démarrage, qui ne charge plus de librairie.
+- **`templates/check.ts`** : la section des paquets. `package.json` n'a que `name`, `private`, `type` et `dependencies`, en versions exactes, sans GSAP ; le lockfile, au format 9, correspond à `package.json` (`lockfileOf`) ; les modules n'importent que ce qu'il liste, et jamais une adresse ; un template à paquets déclare `"app": "0.2.0"`.
+- **`templates/check-packages.ts`** : chaque paquet jugé comme `add_package` le juge (`readSignals`, `judge`), une question au créateur devenant une erreur ; une licence ouverte, seule ou parmi les choix d'une expression SPDX ; puis OSV pour ce que le lockfile amène, en nommant le paquet qui l'amène.
+- **`pnpm template:install <dossier>`** et **`template:check`** sur plusieurs dossiers (`templates/cli.ts`) ; la release (`release.ts`, `scripts/release.mjs` dans get-spaka/templates) vérifie en ligne et met `pictures/pages/` dans le .zip.
+- **L'écran de départ** : `templates/large.ts` donne les pages montrées et l'image de chacune (`templates:pages`, `templates:page-picture`), `StartPanel.tsx` les montre avec le choix Bureau / Téléphone ; `templates/viewer.ts` et ses canaux disparaissent.
+- **Dans get-spaka/templates** (branche `template/packages`, 6fa8752) : 36 templates passent aux paquets (Ruled n'a pas de script), mêmes versions qu'avant (motion 14.9.0, lenis 1.3.27, splitting 1.1.0, embla-carousel 8.6.0, ogl 1.0.11) ; `FORMAT.md`, le README, `.gitignore`.
+- **Vérifié** :
+  - `pnpm template:check apps/desktop/templates/*/ --finished` : 37 templates, aucune erreur, aucun avertissement, les paquets vérifiés en ligne en 17 s ; sur une copie avec `lodash 4.17.20` et `left-pad 1.3.0`, les quatre failles de lodash et l'abandon de left-pad ;
+  - une release à blanc avec le `release.mjs` refait : les 37 en 24 s, des .zip jusqu'à 21 Mo ;
+  - `templates-again.e2e.ts` : les 37 copiés passent la vérification d'après modification, avec leurs paquets installés ;
+  - `template:shoot` d'Ember (quatre paquets, OGL compris) et d'Overhead (Embla) : les 14 images des pages d'Overhead identiques au pixel près ; celles d'Ember ne diffèrent que par le parallaxe lié au défilement (jusqu'à 4 % des pixels) et une étiquette de formulaire sur deux lignes au lieu de trois. Les images en place sont gardées ;
+  - `start.e2e.ts`, `templates-download.e2e.ts`, `scripts.e2e.ts`, `browser-packages.e2e.ts` ;
+  - les tests unitaires : la vérification en ligne sur des réponses écrites, le 429 reposé, les règles de `package.json`, du lockfile et des imports, les images des pages dans le .zip, une release arrêtée par un paquet refusé, les pages montrées en grand.
+- **Pas encore** : la release des templates (v17), qui attend une app qui connaît les paquets.
 
 ### 5. Les modules serveur dans l'aperçu
 

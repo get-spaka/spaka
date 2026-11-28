@@ -837,11 +837,9 @@ function dataNotes(runtime: Runtime): string[] {
 
 /** The site's scripts, what they are and what they hold, and its packages: what a page that runs them depends on. */
 function scriptsKey(runtime: Runtime): string {
-  const { libraries, lib, modules, packages } = runtime.assets();
-  const hash = createHash("sha256")
-    .update(JSON.stringify(libraries))
-    .update(JSON.stringify(packages ?? []));
-  for (const path of [...lib, ...modules])
+  const { modules, packages } = runtime.assets();
+  const hash = createHash("sha256").update(JSON.stringify(packages ?? []));
+  for (const path of modules)
     hash
       .update(path)
       .update("\0")

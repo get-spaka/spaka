@@ -656,13 +656,14 @@ export type TemplateSummary = {
   imported: boolean;
 };
 
-/** A template shown large in the start screen (Q249): the page shown and the pages to go to. */
-export type TemplateViewState = {
-  id: string | null;
-  route: string | null;
-  title: string;
-  pages: { route: string; name: string }[];
-  loading: boolean;
+/** A page of a template shown large in the start screen (Q541, Q544): its name, and which of its pictures there are. */
+export type TemplatePageShot = {
+  route: string;
+  name: string;
+  /** Its pictures' name in pictures/pages/: "home", "menu", "blog-first-post". */
+  page: string;
+  desktop: boolean;
+  phone: boolean;
 };
 
 /** A template read from a folder or a .zip, waiting for the maker to add it (Q248); or why it cannot be one. */
@@ -822,9 +823,13 @@ export type Invokes = {
   "templates:list": () => TemplateSummary[];
   /** A template's cover or its animated hover sequence, as a data URL. */
   "templates:picture": (id: string, which: "cover" | "hover") => string | null;
-  /** Shows a template large, at a page of it; null hides it (Q249). */
-  /** Shows a template large, downloaded first if it has to be (Q247); why it cannot be, in words the maker reads. */
-  "templates:view": (id: string | null, route?: string) => string | undefined;
+  /**
+   * The pages of a template shown large, with their pictures (Q541, Q544),
+   * downloaded first if it has to be (Q247, Q545); why it cannot be, in words the maker reads.
+   */
+  "templates:pages": (id: string) => { pages: TemplatePageShot[] } | { problem: string };
+  /** A page's picture at desktop or phone width, as a data URL; null when it has none. */
+  "templates:page-picture": (id: string, page: string, device: "desktop" | "phone") => string | null;
   /** Asks for a template folder or .zip and reads it, to be added once the maker has seen it (Q236, Q248); null if none was chosen. */
   "templates:import": () => TemplateImport | null;
   /** Adds an imported template the maker has seen; its summary. */
@@ -910,8 +915,6 @@ export type Sends = {
   ) => void;
   /** Shows a gallery block large over the preview while the pointer rests on it (Q109); null hides it. */
   "gallery:peek": (id: string | null) => void;
-  /** Where the template shown large sits in the window, in CSS pixels; null to hide it. */
-  "templates:bounds": (rect: Rect | null) => void;
 };
 
 /** One-way messages from the main process to the interface. */
@@ -920,7 +923,6 @@ export type Events = {
   /** A project was opened, or null when none is open any more. */
   "project:opened": (project: ProjectInfo | null) => void;
   "preview:state": (state: PreviewState) => void;
-  "templates:view-state": (state: TemplateViewState) => void;
   /** The latest catalogue of Spaka's templates was read, and it changed the list (Q250). */
   "templates:changed": () => void;
   /** The pointer is over a page's thumbnail, or left it (Q132). */
@@ -1056,7 +1058,8 @@ export const channels = {
     "editing:apply",
     "templates:list",
     "templates:picture",
-    "templates:view",
+    "templates:pages",
+    "templates:page-picture",
     "templates:import",
     "templates:accept-import",
     "gallery:list",
@@ -1093,21 +1096,11 @@ export const channels = {
     "media:delete",
     "media:rename",
   ],
-  send: [
-    "app:ready",
-    "preview:bounds",
-    "window:min-width",
-    "preview:grid",
-    "gallery:peek",
-    "templates:bounds",
-    "tip:show",
-    "tip:hide",
-  ],
+  send: ["app:ready", "preview:bounds", "window:min-width", "preview:grid", "gallery:peek", "tip:show", "tip:hide"],
   events: [
     "projects:changed",
     "project:opened",
     "preview:state",
-    "templates:view-state",
     "templates:changed",
     "preview:hover",
     "preview:picture",

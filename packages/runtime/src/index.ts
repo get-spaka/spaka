@@ -96,10 +96,9 @@ export {
   type RuntimeOptions,
 } from "./runtime.ts";
 export {
-  type AddressedLibrary,
-  hasScripts,
   importedSpecifiers,
   importMap,
+  moduleSpecifiers,
   NO_ASSETS,
   PACKAGES_BASE,
   type PackageImport,
@@ -109,6 +108,7 @@ export {
   START_JS,
   STILL_CSS,
   siteAssets,
+  specifierPackage,
 } from "./scripts.ts";
 export { memorySource, Overlay, type ProjectSource } from "./source.ts";
 export { MissingTable, RECORDS_SCHEMA, type SqlDatabase, SqlStore } from "./sql.ts";

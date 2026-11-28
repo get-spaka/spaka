@@ -19,7 +19,35 @@ const MANIFEST = {
   tags: ["studio", "ceramics"],
   author: { name: "Spaka", url: "https://spaka.app" },
   licence: "MIT",
+  app: "0.2.0",
 };
+
+/** A lockfile as Spaka's pnpm writes it for Motion alone. */
+const lockfile = (packages: Record<string, string> = { motion: "14.9.0" }) => `lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+${Object.entries(packages)
+  .map(([name, version]) => `      ${name}:\n        specifier: ${version}\n        version: ${version}\n`)
+  .join("")}
+packages:
+
+${Object.entries(packages)
+  .map(([name, version]) => `  ${name}@${version}:\n    resolution: {integrity: sha512-x}\n`)
+  .join("\n")}
+snapshots:
+
+${Object.entries(packages)
+  .map(([name, version]) => `  ${name}@${version}: {}\n`)
+  .join("\n")}`;
+const packageJson = (dependencies: Record<string, unknown> = { motion: "14.9.0" }, more: object = {}) =>
+  JSON.stringify({ private: true, type: "module", dependencies, ...more });
 
 const page = (title: string, body: string) =>
   `<!doctype html><html lang="en"><head><title>${title}</title></head><body>
@@ -52,14 +80,14 @@ function good(): Record<string, string | Buffer> {
         sourceUrl: "https://commons.wikimedia.org/",
       },
     }),
-    "scripts/libraries.json": JSON.stringify([
-      { name: "motion", url: "https://cdn.jsdelivr.net/npm/motion@14.9.0/dist/motion.min.js", licence: "MIT" },
-    ]),
-    "scripts/reveal.js": `const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+    "package.json": packageJson(),
+    "pnpm-lock.yaml": lockfile(),
+    "scripts/reveal.js": `import { animate, inView } from "motion";
+const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 let stops = [];
 export function start(root) {
   if (reduced()) return;
-  for (const el of document.querySelectorAll("[data-reveal]")) stops.push(Motion.inView(el, () => Motion.animate(el, { opacity: [0, 1] })));
+  for (const el of document.querySelectorAll("[data-reveal]")) stops.push(inView(el, () => animate(el, { opacity: [0, 1] })));
 }
 export function stop() { for (const s of stops) s(); stops = []; }
 `,
@@ -139,13 +167,13 @@ describe("a good template", () => {
     expect(result.warnings).toEqual([]);
   });
 
-  test("is read with its blocks, libraries, credits and pictures", () => {
+  test("is read with its blocks, packages, credits and pictures", () => {
     const read = readTemplate(files());
     if (!("template" in read)) throw new Error(read.problems.join("; "));
     const { template } = read;
     expect(template.manifest.name).toBe("Atelier");
     expect(template.blocks.map((b) => b.id)).toEqual(["hero-atelier"]);
-    expect(template.libraries.map((l) => `${l.name} ${l.licence}`)).toEqual(["motion MIT"]);
+    expect(template.packages).toEqual([{ name: "motion", version: "14.9.0" }]);
     expect(template.credits).toEqual([
       { path: "media/studio.jpg", credit: expect.objectContaining({ license: "CC BY 4.0", author: "Sam" }) },
     ]);
@@ -165,6 +193,9 @@ describe("a good template", () => {
     expect(copied).toContain("blocks/hero/hero-atelier/block.liquid");
     expect(copied).toContain(".spaka/skills/atelier-design/SKILL.md");
     expect(copied).toContain("media/studio.json");
+    // Its packages, installed when the website opens.
+    expect(copied).toContain("package.json");
+    expect(copied).toContain("pnpm-lock.yaml");
     for (const left of ["template.json", "TEMPLATE.md", "pictures/cover.webp", "README.md", "notes.txt"])
       expect(copied).not.toContain(left);
   });
@@ -298,7 +329,7 @@ describe("its checks", () => {
     expect(fixedColors(`:root { --edge: red; }`)).toEqual(["--edge: red"]);
   });
 
-  test("nothing taken from another site but the libraries", () => {
+  test("nothing taken from another site", () => {
     expect(errorsOf({ "pages/about.liquid": page("About", '<img src="https://example.com/a.jpg" alt="">') })).toMatch(
       /taken from another site/,
     );
@@ -321,10 +352,15 @@ describe("its checks", () => {
         date: "2026-11-21T09:00:00.000Z",
       },
     };
-    expect(errorsOf({ "media/studio.json": JSON.stringify(generated) })).toMatch(
+    expect(
+      errorsOf({
+        "template.json": JSON.stringify({ ...MANIFEST, app: undefined }),
+        "media/studio.json": JSON.stringify(generated),
+      }),
+    ).toMatch(
       /media\/studio\.jpg is generated: it needs Spaka 0\.2\.0 or later: add "app": "0\.2\.0" to template\.json/,
     );
-    const manifest = JSON.stringify({ ...MANIFEST, app: "0.2.0" });
+    const manifest = JSON.stringify(MANIFEST);
     expect(errorsOf({ "template.json": manifest, "media/studio.json": JSON.stringify(generated) })).toBe("");
     expect(
       errorsOf({
@@ -349,35 +385,71 @@ describe("its checks", () => {
     );
   });
 
-  test("its libraries pinned, from a server that keeps them, under an open licence, never GSAP", () => {
-    const libraries = (entry: object) => ({ "scripts/libraries.json": JSON.stringify([entry]) });
-    expect(
-      errorsOf(
-        libraries({ name: "motion", url: "https://cdn.jsdelivr.net/npm/motion/dist/motion.min.js", licence: "MIT" }),
-      ),
-    ).toMatch(/with its version/);
-    expect(errorsOf(libraries({ name: "x", url: "https://example.com/x@1.0.0/x.js", licence: "MIT" }))).toMatch(
-      /cdn\.jsdelivr\.net or unpkg\.com/,
+  test("its packages at their exact versions, with the lockfile pnpm wrote, never GSAP, for Spaka 0.2.0 (Q542, Q543, Q546)", () => {
+    expect(errorsOf({ "package.json": packageJson({ motion: "^14.9.0" }) })).toMatch(
+      /package\.json: motion: its exact version, such as 1\.2\.3, not "\^14\.9\.0"/,
     );
-    expect(errorsOf(libraries({ name: "x", url: "https://unpkg.com/x@1.0.0/x.js" }))).toMatch(/has no licence/);
-    expect(errorsOf(libraries({ name: "x", url: "https://unpkg.com/x@1.0.0/x.js", licence: "GPL-3.0" }))).toMatch(
-      /not an open licence/,
+    expect(errorsOf({ "package.json": packageJson({ motion: "latest" }) })).toMatch(/its exact version/);
+    expect(errorsOf({ "package.json": packageJson({ motion: "15.0.0-beta.1" }) })).toMatch(/its exact version/);
+    expect(errorsOf({ "package.json": packageJson({ motion: "14.9.0", gsap: "3.12.5" }) })).toMatch(/never GSAP/);
+    expect(errorsOf({ "package.json": packageJson({ motion: "14.9.0", "@gsap/react": "2.1.2" }) })).toMatch(
+      /never GSAP/,
     );
-    expect(
-      errorsOf(
-        libraries({ name: "gsap", url: "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js", licence: "MIT" }),
-      ),
-    ).toMatch(/never GSAP/);
-    expect(errorsOf({ "scripts/lib/tilt.js": "window.tilt = () => {};" })).toMatch(/licence's name at the top/);
-    expect(errorsOf({ "scripts/lib/tilt.js": "/* tilt.js, MIT licence */ window.tilt = () => {};" })).toBe("");
+    expect(errorsOf({ "package.json": packageJson(undefined, { scripts: { postinstall: "x" } }) })).toMatch(
+      /"scripts": a template's package\.json holds its dependencies only/,
+    );
+    expect(errorsOf({ "package.json": packageJson(undefined, { devDependencies: { vite: "8.3.8" } }) })).toMatch(
+      /"devDependencies"/,
+    );
+    expect(errorsOf({ "package.json": "{" })).toMatch(/package\.json is not JSON/);
+    expect(errorsOf({ "pnpm-lock.yaml": null })).toMatch(
+      /pnpm-lock\.yaml is missing: install the packages with pnpm template:install/,
+    );
+    expect(errorsOf({ "pnpm-lock.yaml": lockfile({ motion: "14.8.0" }) })).toMatch(
+      /pnpm-lock\.yaml does not say what package\.json does \(motion\)/,
+    );
+    expect(errorsOf({ "pnpm-lock.yaml": lockfile({ motion: "14.9.0", lenis: "1.3.27" }) })).toMatch(
+      /does not say what package\.json does \(lenis\)/,
+    );
+    expect(errorsOf({ "pnpm-lock.yaml": "lockfileVersion: '6.0'\n" })).toMatch(/lockfile format 9/);
+    expect(errorsOf({ "package.json": null })).toMatch(/pnpm-lock\.yaml without a package\.json/);
+    expect(errorsOf({ "template.json": JSON.stringify({ ...MANIFEST, app: undefined }) })).toMatch(
+      /packages need Spaka 0\.2\.0 or later: add "app": "0\.2\.0" to template\.json/,
+    );
+    // At its root only.
+    expect(errorsOf({ "blocks/hero/hero-atelier/package.json": "{}" })).toMatch(/are at its root/);
+    // Its libraries by their address are no longer read.
+    expect(errorsOf({ "scripts/libraries.json": "[]" })).toMatch(
+      /scripts\/libraries\.json is no longer read: list its libraries in package\.json/,
+    );
   });
 
-  test("each module exports start, imports pinned libraries, and leaves movement out under reduced motion", () => {
-    expect(errorsOf({ "scripts/reveal.js": "export function begin() {}" })).toMatch(/exports start\(root\)/);
-    expect(errorsOf({ "scripts/split.js": "export const start = () => {};" })).toBe("");
+  test("its modules import the packages package.json lists, by their names, never from an address", () => {
+    expect(
+      errorsOf({ "scripts/carousel.js": 'import EmblaCarousel from "embla-carousel";\nexport function start() {}' }),
+    ).toMatch(/scripts\/carousel\.js imports embla-carousel, which package\.json does not list/);
     expect(
       errorsOf({ "scripts/gl.js": 'import { Renderer } from "https://esm.sh/ogl";\nexport function start() {}' }),
-    ).toMatch(/imported from cdn\.jsdelivr\.net/);
+    ).toMatch(/https:\/\/esm\.sh\/ogl is imported from an address: list the package in package\.json/);
+    expect(errorsOf({ "scripts/bad.js": 'import x from "Not/A/Name";\nexport function start() {}' })).toMatch(
+      /"Not\/A\/Name" is not the name of a package/,
+    );
+    // A path inside a package it lists, and a file of its own, are fine.
+    expect(
+      errorsOf({
+        "scripts/lib/ease.js": 'export { cubicBezier } from "motion";',
+        "scripts/rise.js":
+          'import { animate } from "motion/mini";\nimport { cubicBezier } from "./lib/ease.js";\nexport function start() {}',
+      }),
+    ).toBe("");
+    expect(warningsOf({ "scripts/reveal.js": "export function start() {}" })).toMatch(
+      /package\.json lists motion, which no script imports: remove it/,
+    );
+  });
+
+  test("each module exports start, and leaves movement out under reduced motion", () => {
+    expect(errorsOf({ "scripts/reveal.js": "export function begin() {}" })).toMatch(/exports start\(root\)/);
+    expect(errorsOf({ "scripts/split.js": "export const start = () => {};" })).toBe("");
     expect(warningsOf({ "scripts/move.js": "export function start() { requestAnimationFrame(() => {}); }" })).toMatch(
       /prefers-reduced-motion/,
     );
@@ -450,7 +522,7 @@ describe("its checks", () => {
   test("what is no template's is named, programs refused", () => {
     expect(warningsOf({ "notes.txt": "x" })).toMatch(/notes\.txt is not part of a template/);
     expect(errorsOf({ "scripts/install.sh": "rm -rf /" })).toMatch(/no programs/);
-    expect(errorsOf({ "package.json": "{}" })).toMatch(/no programs and no packages/);
+    expect(errorsOf({ "media/glaze.wasm": "x" })).toMatch(/no programs/);
   });
 });
 

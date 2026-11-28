@@ -1,19 +1,24 @@
 // A template's checks (template:check, templates.test.ts): what makes it one
 // Spaka can start a site from and an agent can adapt. Errors keep it out;
-// warnings are for its author to read. The rules are those of Q231-Q243 and
-// ADR 0011, and the gallery's for its blocks, less the rule that nothing
-// floats (Q256).
+// warnings are for its author to read. The rules are those of Q231-Q243,
+// ADR 0011 and ADR 0013, and the gallery's for its blocks, less the rule that
+// nothing floats (Q256). What its packages are, as npm, OSV and deps.dev say,
+// is checked online by check-packages.ts (Q542, Q546).
 import {
   Datasources,
   DEFINITION_FILE,
   type FieldKind,
+  importedSpecifiers,
   infoFile,
   memorySource,
+  moduleSpecifiers,
   needsCredit,
   Runtime,
+  specifierPackage,
   TEST_RECORDS_DIR,
 } from "@spaka/runtime";
 import { droppedFiles, FIXED_COLOUR } from "../gallery/rules";
+import { lockfileOf } from "../packages/lockfile";
 import { parseSkill } from "../skills/skills";
 import { OPEN_LICENCES, olderVersion } from "./manifest";
 import { guideSections, HOME, PAGES_SECTION, pageTypes, strayPageHeadings } from "./pages";
@@ -33,8 +38,17 @@ import {
 
 export type TemplateCheck = { template?: Template; errors: string[]; warnings: string[] };
 
-/** Where libraries may be loaded from: servers that keep every published version. */
-const LIBRARY_HOSTS = new Set(["cdn.jsdelivr.net", "unpkg.com"]);
+/** The app version that knows a site's packages (ADR 0013, Q543). */
+export const PACKAGES_APP = "0.2.0";
+
+/** What a template's package.json holds: its dependencies, and maybe these. */
+const PACKAGE_FIELDS = new Set(["name", "private", "type", "dependencies"]);
+
+/** A version written as it is installed: never a range, a tag or a pre-release (Q546). */
+export const EXACT_VERSION = /^\d+\.\d+\.\d+$/;
+
+/** GSAP, whose licence forbids tools competing with Webflow. */
+export const GSAP = /^(?:gsap|@gsap\/.+|greensock|@greensock\/.+)$/i;
 
 /** Field kinds an older app reads as text, and the app version that knows them (Q368). */
 export const FIELD_KIND_APP: Partial<Record<FieldKind, string>> = { images: "0.2.0" };
@@ -64,13 +78,16 @@ export function checkTemplate(files: TemplateFiles, { finished = false } = {}): 
   for (const top of new Set(paths.map((p) => p.split("/")[0]!)))
     if (!TEMPLATE_ENTRIES.has(top)) warnings.push(`${top} is not part of a template: it is not copied into a site.`);
   for (const path of paths) {
-    if (
-      /\.(?:sh|command|exe|app|bat|cmd|ps1|dmg|pkg|node|dylib|so|dll)$/i.test(path) ||
-      /(^|\/)package\.json$/.test(path)
-    )
-      errors.push(`${path}: a template holds no programs and no packages.`);
-    if (path.startsWith("scripts/") && !/\.(?:m?js|json)$/.test(path))
-      warnings.push(`${path}: scripts/ holds JavaScript modules, libraries and libraries.json only.`);
+    if (/\.(?:sh|command|exe|app|bat|cmd|ps1|dmg|pkg|node|dylib|so|dll|wasm)$/i.test(path))
+      errors.push(`${path}: a template holds no programs.`);
+    if (/\/(?:package\.json|pnpm-lock\.yaml)$/.test(path))
+      errors.push(`${path}: a template's package.json and pnpm-lock.yaml are at its root.`);
+    if (path === "scripts/libraries.json")
+      errors.push(
+        `${path} is no longer read: list its libraries in package.json, at their exact versions, and import them by their names (ADR 0013).`,
+      );
+    else if (path.startsWith("scripts/") && !/\.m?js$/.test(path))
+      warnings.push(`${path}: scripts/ holds JavaScript modules only.`);
     if (path.startsWith("media/") && files.get(path)!.length > MEDIA_LIMIT)
       warnings.push(`${path} weighs more than 3 MB: make it lighter.`);
   }
@@ -95,6 +112,30 @@ export function checkTemplate(files: TemplateFiles, { finished = false } = {}): 
         );
     }
   }
+
+  // ---- its packages (ADR 0013, Q542, Q546) -----------------------------------
+  const declared = packagesProblems(files, errors);
+  if (declared.size && olderVersion(manifest.app ?? "0.0.0", PACKAGES_APP))
+    errors.push(
+      `package.json: packages need Spaka ${PACKAGES_APP} or later: add "app": "${PACKAGES_APP}" to template.json.`,
+    );
+  const imported = new Set<string>();
+  for (const path of paths.filter((p) => /^scripts\/.+\.m?js$/.test(p))) {
+    const src = text(path);
+    for (const specifier of importedSpecifiers(src)) {
+      const named = specifierPackage(specifier);
+      if (!named) errors.push(`${path}: "${specifier}" is not the name of a package, nor a path inside one.`);
+      else if (!declared.has(named.name))
+        errors.push(`${path} imports ${named.name}, which package.json does not list.`);
+      else imported.add(named.name);
+    }
+    for (const address of moduleSpecifiers(src).filter((s) => /^[a-z][a-z0-9+.-]*:/i.test(s)))
+      errors.push(
+        `${path}: ${address} is imported from an address: list the package in package.json and import it by its name.`,
+      );
+  }
+  for (const name of declared.keys())
+    if (!imported.has(name)) warnings.push(`package.json lists ${name}, which no script imports: remove it.`);
 
   // ---- it renders -------------------------------------------------------------
   const source = textSource(files);
@@ -141,7 +182,7 @@ export function checkTemplate(files: TemplateFiles, { finished = false } = {}): 
     for (const found of fixedColors(text(path)))
       errors.push(`${path}: ${found} is a color of its own; use the theme's variables (var(--color-primary)…).`);
 
-  // ---- nothing from outside but the libraries --------------------------------
+  // ---- nothing from outside ---------------------------------------------------
   const remote =
     /<(?:img|source|video|audio|iframe)\b[^>]*\s(?:src|srcset|poster)\s*=\s*["']?https?:|\burl\(\s*["']?https?:|@import\s+(?:url\(\s*)?["']?https?:/i;
   for (const path of under("pages", "parts", "fragments", "data", "styles", BLOCKS)) {
@@ -181,35 +222,6 @@ export function checkTemplate(files: TemplateFiles, { finished = false } = {}): 
   }
 
   // ---- scripts (ADR 0011) -----------------------------------------------------
-  const pinned = (url: string) => {
-    try {
-      const { host, pathname } = new URL(url);
-      return LIBRARY_HOSTS.has(host) && /@\d+\.\d+\.\d+/.test(pathname);
-    } catch {
-      return false;
-    }
-  };
-  for (const library of template.libraries) {
-    if (/gsap|greensock/i.test(`${library.name} ${library.url}`))
-      errors.push(
-        `scripts/libraries.json: ${library.name}: never GSAP, whose licence forbids tools competing with Webflow.`,
-      );
-    if (!pinned(library.url))
-      errors.push(
-        `scripts/libraries.json: ${library.name}: from cdn.jsdelivr.net or unpkg.com, with its version (@1.2.3).`,
-      );
-    if (!library.licence) errors.push(`scripts/libraries.json: ${library.name} has no licence.`);
-    else if (!OPEN_LICENCES.includes(library.licence as (typeof OPEN_LICENCES)[number]))
-      errors.push(
-        `scripts/libraries.json: ${library.name}: ${library.licence} is not an open licence (${OPEN_LICENCES.join(", ")}).`,
-      );
-  }
-  for (const path of paths.filter((p) => /^scripts\/lib\/[^/]+\.js$/.test(p))) {
-    if (/gsap|greensock/i.test(text(path).slice(0, 2000)))
-      errors.push(`${path}: never GSAP, whose licence forbids tools competing with Webflow.`);
-    if (!/licen[cs]e|\bMIT\b|\bBSD\b|\bISC\b|Apache|Unlicense/i.test(text(path).slice(0, 800)))
-      errors.push(`${path}: write its licence's name at the top of the file.`);
-  }
   const modules = paths.filter((p) => /^scripts\/[^/]+\.m?js$/.test(p));
   for (const path of modules) {
     const src = text(path);
@@ -219,14 +231,10 @@ export function checkTemplate(files: TemplateFiles, { finished = false } = {}): 
       )
     )
       errors.push(`${path}: a module exports start(root), which Spaka calls.`);
-    for (const m of src.matchAll(/(?:\bfrom\s*|\bimport\s*\(\s*)["'](https?:[^"']+)["']/g))
-      if (!pinned(m[1]!))
-        errors.push(`${path}: ${m[1]} is imported from cdn.jsdelivr.net or unpkg.com, with its version.`);
     const elsewhere = [...src.matchAll(/["'`](https?:\/\/[^"'`\s]+)/g)]
       .map((m) => m[1]!)
-      .filter((url) => !pinned(url) && !/^https?:\/\/(?:www\.)?w3\.org\//.test(url));
-    for (const url of new Set(elsewhere))
-      warnings.push(`${path} reaches ${url}: a site takes nothing from outside but its libraries.`);
+      .filter((url) => !/^https?:\/\/(?:www\.)?w3\.org\//.test(url));
+    for (const url of new Set(elsewhere)) warnings.push(`${path} reaches ${url}: a site takes nothing from outside.`);
     if (/\banimate\s*\([^)]*\btransform\s*:\s*["']none["']/.test(src))
       warnings.push(
         `${path}: Motion turns transform "none" into a transform that shrinks the element to nothing: animate y: [24, 0].`,
@@ -331,6 +339,76 @@ export function checkTemplate(files: TemplateFiles, { finished = false } = {}): 
     (finished ? errors : warnings).push(`Its pictures are missing (${missing.join(", ")}): run pnpm template:shoot.`);
 
   return { template, errors, warnings };
+}
+
+/**
+ * Its package.json and lockfile, as Spaka installs them (Q546): the
+ * dependencies only, each at its exact version, never GSAP, and the lockfile
+ * pnpm wrote for them. The packages it lists, by name and version; the
+ * problems go into `errors`.
+ */
+function packagesProblems(files: TemplateFiles, errors: string[]): Map<string, string> {
+  const declared = new Map<string, string>();
+  const manifest = files.get("package.json")?.toString("utf8");
+  const lock = files.get("pnpm-lock.yaml")?.toString("utf8");
+  if (manifest === undefined) {
+    if (lock !== undefined) errors.push("pnpm-lock.yaml without a package.json: remove it.");
+    return declared;
+  }
+  let json: unknown;
+  try {
+    json = JSON.parse(manifest);
+  } catch (error) {
+    errors.push(`package.json is not JSON: ${error instanceof Error ? error.message : error}`);
+    return declared;
+  }
+  if (!json || typeof json !== "object" || Array.isArray(json)) {
+    errors.push("package.json: an object, with its dependencies, is expected.");
+    return declared;
+  }
+  for (const key of Object.keys(json))
+    if (!PACKAGE_FIELDS.has(key))
+      errors.push(
+        `package.json: "${key}": a template's package.json holds its dependencies only, with name, private and type.`,
+      );
+  const dependencies = (json as { dependencies?: unknown }).dependencies ?? {};
+  if (typeof dependencies !== "object" || Array.isArray(dependencies) || dependencies === null) {
+    errors.push("package.json: dependencies is an object, each package's name with its version.");
+    return declared;
+  }
+  for (const [name, version] of Object.entries(dependencies)) {
+    if (!specifierPackage(name) || name.includes("/") !== name.startsWith("@"))
+      errors.push(`package.json: "${name}" is not a package's name.`);
+    else if (GSAP.test(name))
+      errors.push(`package.json: ${name}: never GSAP, whose licence forbids tools competing with Webflow.`);
+    else if (typeof version !== "string" || !EXACT_VERSION.test(version))
+      errors.push(`package.json: ${name}: its exact version, such as 1.2.3, not ${JSON.stringify(version)}.`);
+    else declared.set(name, version);
+  }
+  if (!Object.keys(dependencies).length) return declared;
+  if (lock === undefined) {
+    errors.push("pnpm-lock.yaml is missing: install the packages with pnpm template:install, which writes it.");
+    return declared;
+  }
+  if (!/^lockfileVersion:\s*'?9\./m.test(lock))
+    errors.push("pnpm-lock.yaml: lockfile format 9 is expected, as Spaka's pnpm writes it.");
+  const { direct } = lockfileOf(lock);
+  const locked = new Map(direct.filter((d) => d.field === "dependencies").map((d) => [d.name, d]));
+  const differs = [
+    ...[...declared]
+      .filter(
+        ([name, version]) =>
+          locked.get(name)?.specifier !== version || locked.get(name)?.version.replace(/\(.*$/, "") !== version,
+      )
+      .map(([name]) => name),
+    ...[...locked.keys()].filter((name) => !(name in dependencies)),
+    ...direct.filter((d) => d.field !== "dependencies").map((d) => d.name),
+  ];
+  if (differs.length)
+    errors.push(
+      `pnpm-lock.yaml does not say what package.json does (${[...new Set(differs)].join(", ")}): install the packages again with pnpm template:install.`,
+    );
+  return declared;
 }
 
 /** Why a block folder was not read, as readBlocks says. */
