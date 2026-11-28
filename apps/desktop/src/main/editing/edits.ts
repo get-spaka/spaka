@@ -115,7 +115,7 @@ function classesOf(tag: string): string | undefined {
 }
 
 /**
- * An image set in its frame for some screens (Q490): the frame's classes
+ * An image set in its frame for some screens (Q547): the frame's classes
  * among the <img>'s, in place of the ones an earlier frame left for those
  * screens; the other screens keep theirs, and the template's classes stay.
  * Without a frame they are only taken out, and the image is there as the
@@ -136,7 +136,7 @@ export function setImageFrame(src: string, at: number, frame: Frame | null, form
 }
 
 /**
- * The frame each screen has for an image (Q490); undefined when it cannot be
+ * The frame each screen has for an image (Q547); undefined when it cannot be
  * given one: repeated for each item of a list, or with computed classes.
  */
 export function imageFrames(src: string, at: number): Frames | undefined {

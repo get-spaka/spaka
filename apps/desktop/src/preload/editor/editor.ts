@@ -229,7 +229,7 @@ const pressed = (label: string, tip: string, attrs: string) =>
 const CHECK =
   '<svg class="tick" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 7 17l-5-5"/><path class="second" d="m22 10-7.5 7.5L13 16"/></svg>';
 
-/** The panel that sets an image in its frame (Q490). */
+/** The panel that sets an image in its frame (Q547). */
 const FRAME_PANEL = `<div class="frame" data-testid="frame-pop" role="group" aria-label="${t.adjust}">
   <div class="row"><span class="name">${f.appliesTo}</span><div class="seg grow" role="group" aria-label="${f.appliesTo}">${[
     ...FORMATS,
@@ -262,7 +262,7 @@ function shownFormat(): Format {
   return matchMedia(FROM_DESKTOP).matches ? "desktop" : matchMedia(FROM_TABLET).matches ? "tablet" : "phone";
 }
 
-/** Where an element shows: a zoomed image is scaled past its frame, and cut back to it (Q490). */
+/** Where an element shows: a zoomed image is scaled past its frame, and cut back to it (Q547). */
 function rectOf(el: Element) {
   const r = el.getBoundingClientRect();
   if (el.localName !== "img") return r;
@@ -1037,7 +1037,7 @@ export class Editor {
     this.closeFrame(true);
   }
 
-  // ---- an image in its frame (Q490) ----------------------------------------
+  // ---- an image in its frame (Q547) ----------------------------------------
 
   private async openFrame() {
     const s = this.selected;

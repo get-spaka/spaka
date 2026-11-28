@@ -1,4 +1,4 @@
-// How an image sits in its frame (Q490): what the maker sets on an image
+// How an image sits in its frame (Q547): what the maker sets on an image
 // written in a template, for the screens it is set for, kept as Tailwind
 // classes of the <img>. The preview shows a frame's declarations while the
 // maker adjusts, the main process writes the classes that give the same:

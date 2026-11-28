@@ -91,7 +91,7 @@ h1, h2, h3, h4 { font-family: var(--theme-font-heading, var(--theme-font-body, $
 `;
 
 /**
- * An image the maker zoomed (Q490) is scaled past its frame and cut back to
+ * An image the maker zoomed (Q547) is scaled past its frame and cut back to
  * it for the eye, but a page still counts it whole and would scroll sideways
  * to it: what contains it cuts what goes past. In the base layer, so that a
  * class of the template's still has the last word. Not the page's body, whose
