@@ -38,8 +38,13 @@ const tar = (...entries: Buffer[]) => Buffer.concat([...entries, Buffer.alloc(10
 
 test("Spaka's pnpm and everything it writes live in the app's data folder", () => {
   const folders = pnpmFolders("/data", "darwin");
-  expect(folders.program).toBe("/data/tools/pnpm-12.23.0/pnpm");
-  expect(folders).toMatchObject({ store: "/data/pnpm/store", config: "/data/pnpm/config", npmrc: "/data/pnpm/npmrc" });
+  // Written with the system's separator, as every path Spaka makes.
+  expect(folders.program).toBe(join("/data", "tools", "pnpm-12.23.0", "pnpm"));
+  expect(folders).toMatchObject({
+    store: join("/data", "pnpm", "store"),
+    config: join("/data", "pnpm", "config"),
+    npmrc: join("/data", "pnpm", "npmrc"),
+  });
   expect(pnpmFolders("/data", "win32").program.endsWith("pnpm.exe")).toBe(true);
 });
 
