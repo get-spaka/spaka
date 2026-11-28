@@ -102,6 +102,7 @@ describe.runIf(built && (process.platform === "darwin" || process.platform === "
           "datasources",
           "gallery",
           "htmx-patterns",
+          "server-modules",
           "site-scripts",
           "spaka-help",
           "web-design",
