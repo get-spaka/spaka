@@ -115,9 +115,9 @@ test("pnpm's environment keeps nothing of npm, pnpm, Corepack, XDG or a CI, and 
   expect(env).toEqual({
     HOME: "/Users/x",
     HTTPS_PROXY: "http://proxy:8080",
-    PNPM_HOME: "/data/pnpm/home",
-    PNPM_CONFIG_HOME: "/data/pnpm/config",
-    XDG_RUNTIME_DIR: "/data/pnpm/run",
+    PNPM_HOME: join("/data", "pnpm", "home"),
+    PNPM_CONFIG_HOME: join("/data", "pnpm", "config"),
+    XDG_RUNTIME_DIR: join("/data", "pnpm", "run"),
     PATH: "/data/bin:/usr/bin:/bin:/usr/sbin:/sbin",
   });
   const windows = pnpmEnv({ Path: "C:\\nvm", SystemRoot: "C:\\Windows" }, folders, "C:\\data\\bin", "win32");
@@ -131,9 +131,9 @@ test("every call carries Spaka's folders and settings, as the probe ran them", (
   expect(flags).toEqual(
     expect.arrayContaining([
       "--store-dir",
-      "/data/pnpm/store",
+      join("/data", "pnpm", "store"),
       "--npmrc-auth-file",
-      "/data/pnpm/npmrc",
+      join("/data", "pnpm", "npmrc"),
       "--registry=https://registry.npmjs.org/",
       "--config.ignore-scripts=true",
       "--config.ignore-pnpmfile=true",
