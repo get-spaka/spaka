@@ -121,7 +121,8 @@ export async function launchApp({
     },
     async close() {
       await app.close();
-      rmSync(scratch, { recursive: true, force: true });
+      // What the app started (a template's packages installing) may still write there a moment: tried again.
+      rmSync(scratch, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
     },
   };
 }
