@@ -10,7 +10,7 @@
 | 3. Les paquets dans le navigateur | ✅ | 7936aee ; sous Windows, Rolldown seul (Q557) ec86e33 |
 | 4. Les 37 templates passent aux paquets | ✅ | aed0742 ; get-spaka/templates 6fa8752 (branche `template/packages`) |
 | 5. Les modules serveur dans l'aperçu | ✅ | 57c1276 |
-| 6. Les secrets | ✅ | (ce commit) |
+| 6. Les secrets | ✅ | 3ea6df4 |
 | 7. Les exports statique, Node et Cloudflare | | |
 | 8. Le déploiement sur Cloudflare depuis Spaka | | |
 | 9. Le template de l'école de surf | | |
