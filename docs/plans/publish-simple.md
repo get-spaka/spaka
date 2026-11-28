@@ -1,12 +1,12 @@
 # Publier : une voie simple, un mode avancé, et le nom de domaine
 
-## État (2026-11-28) : tranches 1 et 2 faites
+## État (2026-11-28) : fait ; la tranche 3 laissée de côté
 
 | Tranche | Fait | Commits |
 |---|---|---|
 | 1. Les textes, le dialogue, les guides et les README (Q552-Q555) | ✅ | b61d1ab |
 | 2. L'export serveur avec `compose.yaml` et Caddy, le domaine dans `.env` (Q556) | ✅ | b61d1ab. Lancé pour de vrai sous Docker le 2026-11-27, en HTTP puis en HTTPS sur un nom `.localhost` |
-| 3. Un vrai site mis en ligne chez Netlify, un vrai nom de domaine branché | ❌ | à essayer à la main (« Not verified yet ») |
+| 3. Un vrai site mis en ligne chez Netlify, un vrai nom de domaine branché | — | laissée de côté : Matt n'en voit pas le besoin (2026-11-28) |
 
 ## Contexte
 
@@ -39,4 +39,4 @@ Le dialogue Publish montrait trois façons à égalité, nommées par leur techn
 
 - `pnpm check`, puis les e2e `export`, `servers` et `published`.
 - Les captures `e2e/.runs/export-dialog*.png`, `publish-refused.png`, `publish-node.png`.
-- Reste à faire à la main : la tranche 3, et le certificat HTTPS de Caddy pour un vrai nom de domaine.
+- Non vérifié : le certificat HTTPS de Caddy pour un vrai nom de domaine. La tranche 3 est laissée de côté (Matt, 2026-11-28).
