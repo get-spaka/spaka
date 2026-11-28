@@ -146,7 +146,7 @@ export function StartPanel({
               <h1 className="text-xl font-semibold tracking-tight">{t.start.title}</h1>
               <p className="text-sm text-muted-foreground">{t.start.text}</p>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2" data-testid="start-ways">
+            <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr]" data-testid="start-ways">
               <StartWay
                 testId="start-way-scratch"
                 icon={<PenLine />}
@@ -159,6 +159,9 @@ export function StartPanel({
                   toPrompt();
                 }}
               />
+              <span aria-hidden className="self-center justify-self-center text-xs text-muted-foreground">
+                {t.start.or}
+              </span>
               <StartWay
                 testId="start-way-template"
                 icon={<LayoutTemplate />}
