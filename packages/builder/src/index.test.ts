@@ -154,7 +154,7 @@ test("the images the pages show get WebP copies and a srcset; the original stays
     '<img srcset="/media/cafe-480w.webp 480w, /media/cafe-960w.webp 960w, /media/cafe-1200w.webp 1200w" sizes="100vw" src="/media/cafe.jpg" alt="x">',
   );
   expect(home).toContain('<img src="/media/logo.svg" alt="y">');
-  // The frame the maker set on an image for some screens is published: its classes, and their rules (Q490).
+  // The frame the maker set on an image for some screens is published: its classes, and their rules (Q547).
   expect(home).toContain(
     '<img class="max-md:object-[25%_50%]! md:max-lg:aspect-[4/3]! lg:[clip-path:inset(0%_50%_50%_0%_round_4px)]!" src="/media/unframed.png" alt="w">',
   );

@@ -119,7 +119,7 @@ test("the pages using a shared part, through other parts too", () => {
   expect(pagesUsing("layout", files)).toBe(1);
 });
 
-test("an image's frame is written among its classes for the screens asked, the others keeping theirs (Q490)", () => {
+test("an image's frame is written among its classes for the screens asked, the others keeping theirs (Q547)", () => {
   const src = '<img class="hero object-contain md:object-top" src="/media/a.jpg">';
   const all = ["phone", "tablet", "desktop"] as const;
   const framed = setImageFrame(src, 0, { x: 50, y: 0, zoom: 1, fit: "cover" }, [...all]);

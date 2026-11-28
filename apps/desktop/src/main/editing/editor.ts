@@ -428,7 +428,7 @@ export class Editor {
         label = t.imageReplaced;
         break;
       case "image-frame": {
-        // Set in its frame, or put back as the template's classes have it (Q490).
+        // Set in its frame, or put back as the template's classes have it (Q547).
         const framed = setImageFrame(
           src,
           action.at,
@@ -600,7 +600,7 @@ export class Editor {
     const tag = src.slice(at, src.indexOf(">", at) + 1);
     const address = /\ssrc\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/i.exec(tag)?.[1];
     if (!address || !/\{[{%]/.test(address)) {
-      // Written here for this place alone: it can be set in its frame too (Q490).
+      // Written here for this place alone: it can be set in its frame too (Q547).
       const frame = imageFrames(src, at);
       return { image: frame ? { frame } : {} };
     }

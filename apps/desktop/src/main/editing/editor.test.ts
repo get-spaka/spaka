@@ -273,7 +273,7 @@ test("an image replaced: its address in the template with the new alt text, or t
   ).toThrow("This image's address is computed: ask the agent to change it.");
 });
 
-test("an image written in the template is set in its frame, one version (Q490)", () => {
+test("an image written in the template is set in its frame, one version (Q547)", () => {
   const { root, editor, changes, list, at } = withBlog();
   const file = "pages/blog/index.liquid";
   const fixed = at('<img src="/media');

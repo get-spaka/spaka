@@ -390,7 +390,7 @@ export type EditAction =
    */
   | { type: "image"; file: string; at: number; src: string; record?: string; from?: string }
   /**
-   * An image written in the template set in its frame (Q490), for some
+   * An image written in the template set in its frame (Q547), for some
    * screens: how it sits there, or null for as the template's classes have it.
    */
   | { type: "image-frame"; file: string; at: number; frame: Frame | null; formats: Format[] }
@@ -421,7 +421,7 @@ export type EditInfo = {
    * record's field (Q159). `list`: it is one of a record's list of images,
    * which holds `count` images when the record was named (Q355, Q356).
    * `frame`: it is written in the template for this place alone, so the maker
-   * can set it in its frame (Q490): the frame each screen has now.
+   * can set it in its frame (Q547): the frame each screen has now.
    */
   image?: { field?: string; list?: { count?: number }; frame?: Frames };
 };
@@ -1123,7 +1123,7 @@ export type ToPreview =
   /** The theme or the site's stylesheets changed: replace them in place (styles: what Tailwind compiles). */
   | { type: "theme"; css: string; styles?: string }
   /** How the page answers the pointer (Q99), and whether editing waits for the agent (Q91). */
-  /** `sideways`: the page is on a phone or a tablet turned on its side, as wide as a larger screen (Q490). */
+  /** `sideways`: the page is on a phone or a tablet turned on its side, as wide as a larger screen (Q547). */
   | { type: "editor"; mode: PreviewMode; paused: boolean; sideways?: boolean }
   /** The maker's comments, all pages included, so the page can show its own. */
   | { type: "comments"; comments: PageComment[] }
