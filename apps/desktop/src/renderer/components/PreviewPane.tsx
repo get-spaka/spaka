@@ -928,12 +928,9 @@ function ZoomPicture({ zoom, onDone }: { zoom: Zoom; onDone: () => void }) {
 function EmptyWorking() {
   return (
     <>
-      <style>{workingPillStyle(".preview-working")}</style>
-      <div
-        role="status"
-        data-testid="preview-working"
-        className="preview-working absolute bottom-4 left-1/2 flex -translate-x-1/2"
-      >
+      {/* Placed by transform alone, as the page's pill is: its rise ends on translate(-50%), which a translate of Tailwind's would add to (Q549). */}
+      <style>{`.preview-working { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; }\n${workingPillStyle(".preview-working")}`}</style>
+      <div role="status" data-testid="preview-working" className="preview-working">
         <span className="bars" aria-hidden>
           <i />
           <i />

@@ -62,6 +62,14 @@ describe("a project folder in the preview", () => {
     await pill.waitFor();
     await expect(pill.textContent()).resolves.toBe("Agent workingStop");
     await expect(window.getByText("The agent is building your first page.", { exact: false }).count()).resolves.toBe(1);
+    // Centred under the empty view, once risen.
+    await new Promise((r) => setTimeout(r, 400));
+    const offset = await pill.evaluate((el) => {
+      const own = el.getBoundingClientRect();
+      const area = (el.parentElement as HTMLElement).getBoundingClientRect();
+      return Math.abs(own.left + own.width / 2 - (area.left + area.width / 2));
+    });
+    expect(offset).toBeLessThan(1);
     // Its look is the page's pill: the large shadow and the fine light ring (Q550).
     await expect(pill.evaluate((el) => getComputedStyle(el).boxShadow)).resolves.toMatch(
       /rgba\(0, 0, 0, 0\.45\) 0px 12px 40px 0px, rgba\(255, 255, 255, 0\.15\) 0px 0px 0px 1px/,
