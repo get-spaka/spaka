@@ -687,6 +687,12 @@ export type Invokes = {
   "preview:reload": () => void;
   /** A picture of the page shown, as a data URL, for under the publish dialog (Q392); null when none shows. */
   "preview:snapshot": () => string | null;
+  /**
+   * The native views hidden at once, before a dialog shows over the preview: the
+   * page and the "All pages" live thumbnail, which would otherwise stay on top
+   * for the frames the interface takes to say so itself.
+   */
+  "preview:cover": () => void;
   "preview:set-mode": (mode: PreviewMode) => void;
   /** The tour's step in the page (Q332): its veil, or its bubble on the page; null takes them away. */
   "tour:page": (tour: PageTour | null) => void;
@@ -966,6 +972,7 @@ export const channels = {
     "preview:navigate",
     "preview:reload",
     "preview:snapshot",
+    "preview:cover",
     "preview:set-mode",
     "tour:page",
     "tour:seen",
