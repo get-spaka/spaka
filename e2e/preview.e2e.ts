@@ -92,6 +92,30 @@ describe("a project folder in the preview", () => {
     await pill.waitFor({ state: "detached" });
   });
 
+  test("in the conversation, while the agent works and nothing moves, its bars say Thinking, with the seconds from 5 (Q548)", async () => {
+    const { app, window } = launched;
+    const event = (e: unknown) =>
+      app.evaluate(
+        // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+        (_electron, args) => (globalThis as any).spaka.win.webContents.send("conversation:event", args),
+        { projectId, event: e },
+      );
+    const thinking = window.getByTestId("agent-thinking");
+    await event({ type: "turn-start", id: "quiet", text: "A weather site", at: Date.now() });
+    // At the turn's start, at once.
+    await thinking.waitFor();
+    await expect(thinking.textContent()).resolves.toBe("Thinking…");
+    // A step under way moves: the line goes.
+    await event({ type: "activity", activity: { id: "w", label: "Write theme.css", state: "running" } });
+    await thinking.waitFor({ state: "detached" });
+    // The step done, nothing moves: the line comes back after a moment, then counts.
+    await event({ type: "activity", activity: { id: "w", label: "Write theme.css", state: "done" } });
+    await thinking.waitFor({ timeout: 3000 });
+    await expect.poll(() => thinking.textContent(), { timeout: 8000 }).toMatch(/^Thinking…[5-9] s$/);
+    await event({ type: "turn-end", status: "done" });
+    await thinking.waitFor({ state: "detached" });
+  });
+
   test("files written into the folder appear, styled, without a reload", async () => {
     await inPage("window.__sameDocument = true");
     writeFileSync(

@@ -190,6 +190,18 @@ export function waitingFor(items: ConversationItem[]): QuestionCard | PagesCard 
 }
 
 /** Whether the agent's turn waits for the maker: editing by hand comes back meanwhile (Q294). */
+/**
+ * Whether a working turn's parts leave nothing moving at their end: no step
+ * under way, no card waiting. Words still arriving are the caller's to see,
+ * by the parts changing (Q548).
+ */
+export function isQuiet(parts: AgentPart[]): boolean {
+  const last = parts.at(-1);
+  if (!last) return true;
+  if (last.kind === "activity") return last.activity.state !== "running";
+  return last.kind === "text" || last.kind === "thinking";
+}
+
 export function isWaiting(items: ConversationItem[]): boolean {
   return waitingFor(items) !== undefined;
 }
