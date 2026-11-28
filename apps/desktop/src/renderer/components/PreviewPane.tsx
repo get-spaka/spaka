@@ -28,6 +28,7 @@ import type {
   ProjectInfo,
   Rect,
 } from "../../shared/ipc";
+import { workingPillStyle } from "../../shared/working-pill";
 import { useCommands } from "../hooks/useCommand";
 import { useComments } from "../hooks/useMain";
 import { spaka } from "../lib/bridge";
@@ -750,8 +751,9 @@ export function PreviewPane({
             <>
               <h2 className="text-base font-medium">{project ? t.preview.emptyTitle : t.preview.noProjectTitle}</h2>
               <p className="max-w-80 text-sm text-muted-foreground">
-                {project ? t.preview.emptyText : t.preview.noProjectText}
+                {project ? (working ? t.preview.emptyWorking : t.preview.emptyText) : t.preview.noProjectText}
               </p>
+              {project && working && !waiting && state.routes.length === 0 && <EmptyWorking />}
             </>
           )}
           {zoom && (
@@ -915,5 +917,36 @@ function ZoomPicture({ zoom, onDone }: { zoom: Zoom; onDone: () => void }) {
         />
       )}
     </div>
+  );
+}
+
+/**
+ * The website has no page yet while the agent works (a new one, its first
+ * minute): the pill the editor draws in a page is drawn here, over the empty
+ * view, in the same place and the same look, with Stop (Q549).
+ */
+function EmptyWorking() {
+  return (
+    <>
+      {/* Placed by transform alone, as the page's pill is: its rise ends on translate(-50%), which a translate of Tailwind's would add to (Q549). */}
+      <style>{`.preview-working { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; }\n${workingPillStyle(".preview-working")}`}</style>
+      <div role="status" data-testid="preview-working" className="preview-working">
+        <span className="bars" aria-hidden>
+          <i />
+          <i />
+          <i />
+          <i />
+        </span>
+        <b>{t.editor.working}</b>
+        <Tip text={t.editor.stopTip}>
+          <button type="button" onClick={() => void spaka.invoke("conversation:stop")}>
+            <svg viewBox="0 0 10 10" aria-hidden>
+              <rect width="10" height="10" rx="2" fill="currentColor" />
+            </svg>
+            <span>{t.editor.stop}</span>
+          </button>
+        </Tip>
+      </div>
+    </>
   );
 }

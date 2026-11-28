@@ -1,11 +1,14 @@
 import { expect, test } from "vitest";
 import { handoverNote } from "../main/agent/handover";
 import {
+  type Activity,
+  type AgentPart,
   type AgentQuestion,
   answerText,
   applyEvent,
   type ConversationEvent,
   type ConversationItem,
+  isQuiet,
   isWaiting,
   isWorking,
   type QuestionCard,
@@ -127,4 +130,17 @@ test("a turn that ends while a card waits leaves it not answered", () => {
 test("a settlement for a card the turn does not have changes nothing", () => {
   const items = play([{ type: "turn-start", id: "t1", text: "x", at: 1 }, asked("q1")]);
   expect(play([{ type: "question-settled", id: "nope", state: "skipped" }], items)).toBe(items);
+});
+
+test("a turn is quiet when nothing moves at its end: no step under way, no card waiting (Q548)", () => {
+  const step = (state: Activity["state"]): AgentPart => ({
+    kind: "activity",
+    activity: { id: "a", label: "Write theme.css", state },
+  });
+  expect(isQuiet([])).toBe(true);
+  expect(isQuiet([{ kind: "text", text: "Je construis un site météo." }])).toBe(true);
+  expect(isQuiet([step("done")])).toBe(true);
+  expect(isQuiet([step("failed")])).toBe(true);
+  expect(isQuiet([step("running")])).toBe(false);
+  expect(isQuiet([{ kind: "question", card: { questions: [] } as unknown as QuestionCard }])).toBe(false);
 });
