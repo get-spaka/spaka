@@ -9,6 +9,7 @@ const page = (title: string, body: string) =>
 describe("a project folder in the preview", () => {
   let launched: LaunchedApp;
   let folder: string;
+  let projectId: string;
 
   /** Runs code in the preview's page and returns its value. */
   const inPage = (code: string) =>
@@ -36,6 +37,7 @@ describe("a project folder in the preview", () => {
       (window as any).spaka.invoke("projects:create", "Chez Margot"),
     );
     folder = project.path;
+    projectId = project.id;
   });
   afterAll(async () => {
     await launched?.close();
@@ -45,6 +47,49 @@ describe("a project folder in the preview", () => {
     await expect(launched.window.getByTestId("project-name").textContent()).resolves.toBe("Chez Margot");
     await until("document.readyState === 'complete' && !!document.getElementById('spaka-theme')");
     await expect(inPage("document.body.children.length")).resolves.toBe(0);
+  });
+
+  test("before its first page, the empty view shows the pill while the agent works, its Stop stopping it (Q549)", async () => {
+    const { app, window } = launched;
+    const event = (e: unknown) =>
+      app.evaluate(
+        // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+        (_electron, args) => (globalThis as any).spaka.win.webContents.send("conversation:event", args),
+        { projectId, event: e },
+      );
+    await event({ type: "turn-start", id: "pill", text: "A weather site", at: Date.now() });
+    const pill = window.getByTestId("preview-working");
+    await pill.waitFor();
+    await expect(pill.textContent()).resolves.toBe("Agent workingStop");
+    await expect(window.getByText("The agent is building your first page.", { exact: false }).count()).resolves.toBe(1);
+    // Its look is the page's pill: the large shadow and the fine light ring (Q550).
+    await expect(pill.evaluate((el) => getComputedStyle(el).boxShadow)).resolves.toMatch(
+      /rgba\(0, 0, 0, 0\.45\) 0px 12px 40px 0px, rgba\(255, 255, 255, 0\.15\) 0px 0px 0px 1px/,
+    );
+    await app.evaluate((_electron, id) => {
+      // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+      const { agent } = (globalThis as any).spaka;
+      agent.stopWas = agent.stop;
+      agent.stopped = undefined;
+      agent.stop = async (projectId: string) => {
+        agent.stopped = projectId === id;
+      };
+    }, projectId);
+    try {
+      await pill.getByRole("button").click();
+      await expect
+        // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+        .poll(() => app.evaluate(() => (globalThis as any).spaka.agent.stopped))
+        .toBe(true);
+    } finally {
+      await app.evaluate(() => {
+        // biome-ignore lint/suspicious/noExplicitAny: the main process's globals, set for checks
+        const { agent } = (globalThis as any).spaka;
+        agent.stop = agent.stopWas;
+      });
+    }
+    await event({ type: "turn-end", status: "stopped" });
+    await pill.waitFor({ state: "detached" });
   });
 
   test("files written into the folder appear, styled, without a reload", async () => {

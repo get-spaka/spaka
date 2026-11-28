@@ -36,6 +36,7 @@ import {
   type TourAction,
 } from "../../shared/ipc";
 import { en } from "../../shared/strings/en";
+import { workingPillStyle } from "../../shared/working-pill";
 import { COMMENT_STYLE, CommentLayer, type CommentsBridge } from "./comments";
 import { attachTips, TIP_STYLE } from "./tip";
 import { PageTourLayer, TOUR_STYLE } from "./tour";
@@ -195,24 +196,10 @@ const STYLE = `
 .bar button[data-act="drag"] { cursor: grab; }
 .shield { position: fixed; inset: 0; display: none; pointer-events: auto; cursor: default; }
 .shield.shown { display: block; }
-.working { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); display: none; align-items: center; gap: 10px;
-  height: 40px; padding: 0 6px 0 16px; border-radius: 999px; background: #1c1b2e; color: #f4f4f5; font-size: 13px;
-  white-space: nowrap; box-shadow: 0 8px 24px rgb(28 27 46 / .28); pointer-events: auto; animation: spaka-rise .25s ease-out both; }
+.working { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); display: none; }
 .working.shown { display: flex; }
-.working b { font-weight: 600; }
-.working .sub { color: #a1a1c9; }
-.working .bars { display: flex; gap: 2px; align-items: center; height: 12px; }
-.working .bars i { display: block; width: 3px; height: 12px; border-radius: 2px; background: #b9b8ec; animation: spaka-bar .9s ease-in-out infinite; }
-.working .bars i:nth-child(2) { animation-delay: .15s; } .working .bars i:nth-child(3) { animation-delay: .3s; }
-.working .bars i:nth-child(4) { animation-delay: .45s; }
-.working button { all: unset; display: flex; align-items: center; gap: 5px; height: 28px; padding: 0 12px; border-radius: 999px;
-  background: rgb(255 255 255 / .12); color: #fff; font-size: 12px; font-weight: 500; cursor: default; }
-.working button:hover { background: rgb(255 255 255 / .2); }
-.working button svg { width: 9px; height: 9px; }
+${workingPillStyle(".working")}
 .layer.busy .toast { bottom: 68px; }
-@keyframes spaka-bar { 0%, 100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
-@keyframes spaka-rise { from { transform: translate(-50%, 16px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .working, .working .bars i { animation: none; } }
 .editing-note { position: fixed; display: none; padding: 3px 7px; background: var(--spaka-note); color: var(--spaka-note-text); border-radius: 5px; white-space: nowrap; }
 `;
 

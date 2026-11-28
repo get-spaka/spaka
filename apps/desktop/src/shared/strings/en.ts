@@ -440,6 +440,7 @@ export const en = {
     askAbout: (route: string) => `On the page ${route}: `,
     emptyTitle: "Your website appears here",
     emptyText: "As soon as the agent starts writing, you see the page take shape.",
+    emptyWorking: "The agent is building your first page. It shows here as soon as it is written.",
     noProjectTitle: "Start a new website",
     noProjectText: "Describe it in the conversation, or open a folder you already have.",
     reload: "Reload the page",
