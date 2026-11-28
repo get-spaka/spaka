@@ -3,9 +3,12 @@
 // category chips, their thumbnails moving on hover; a click chooses one, View
 // shows it large, real and moving, its pages to go to; Import a template adds
 // a folder or a .zip. The message box stays at the bottom center and says
-// which template the website starts from. The first message creates the
-// website, and the window takes its usual layout.
-import { ArrowLeft, Check, Eye, LayoutTemplate, PenLine, Upload, X } from "lucide-react";
+// which template the website starts from. Starting from scratch folds the
+// templates away: the message box rises to the middle, taller. Starting from a
+// template stays so when its template is cleared, and nothing is sent until one
+// is chosen. The first message creates the website, and the window takes its
+// usual layout.
+import { ArrowLeft, Check, CircleDashed, Eye, LayoutTemplate, PenLine, Upload, X } from "lucide-react";
 import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   type AgentStatus,
@@ -46,6 +49,12 @@ export function StartPanel({
   const [templates, setTemplates] = useState<TemplateSummary[]>();
   const [category, setCategory] = useState<TemplateCategory>();
   const [chosen, setChosen] = useState<string>();
+  // The way the maker starts, chosen from the two above the templates. None at first.
+  const [mode, setMode] = useState<"scratch" | "template">("scratch");
+  const choose = (id: string) => {
+    setChosen(id);
+    setMode("template");
+  };
   const [viewing, setViewing] = useState<string>();
   const [importing, setImporting] = useState<TemplateImport>();
   const viewState = useTemplateView();
@@ -70,7 +79,7 @@ export function StartPanel({
   };
   const send = () => {
     const text = draft.trim();
-    if (!text || sending) return;
+    if (!text || sending || templateMissing) return;
     setSending(true);
     setSendProblem(undefined);
     void spaka
@@ -107,7 +116,7 @@ export function StartPanel({
     pictures.delete(`${added.id}/hover`);
     setImporting(undefined);
     await load();
-    setChosen(added.id);
+    choose(added.id);
   };
 
   // The chips: All, then each category a template has (Q263).
@@ -115,6 +124,9 @@ export function StartPanel({
   const shown = (templates ?? []).filter((tpl) => !category || tpl.category === category);
   const chosenTemplate = templates?.find((tpl) => tpl.id === chosen);
   const viewed = templates?.find((tpl) => tpl.id === viewing);
+  const scratch = mode === "scratch";
+  // Starting from a template, none chosen yet (or it was cleared): nothing is sent.
+  const templateMissing = mode === "template" && !chosenTemplate;
 
   return (
     <section data-testid="start" className="relative flex min-w-0 flex-1 flex-col bg-background">
@@ -153,9 +165,10 @@ export function StartPanel({
                 title={t.start.scratchTitle}
                 text={t.start.scratchText}
                 tip={t.start.scratchTip}
-                active={zone === "prompt" && !chosenTemplate}
+                active={scratch}
                 onClick={() => {
                   setChosen(undefined);
+                  setMode("scratch");
                   toPrompt();
                 }}
               />
@@ -168,19 +181,29 @@ export function StartPanel({
                 title={t.start.templateTitle}
                 text={t.start.templateText}
                 tip={t.start.templateTip}
-                active={zone === "templates" || !!chosenTemplate}
+                active={mode === "template"}
                 detail={chosenTemplate?.name}
-                onClick={() => setZone("templates")}
+                onClick={() => {
+                  setMode("template");
+                  setZone("templates");
+                }}
               />
             </div>
           </div>
         </div>
       )}
 
+      {/* From scratch, the templates fold away and the message box rises into their place. */}
       <div
         data-testid="start-templates"
         data-active={zone === "templates" || undefined}
-        className="relative flex min-h-0 flex-1 flex-col border-b"
+        data-folded={scratch || undefined}
+        aria-hidden={scratch || undefined}
+        inert={scratch}
+        className={cn(
+          "relative flex min-h-0 shrink basis-0 flex-col overflow-hidden border-b transition-[flex-grow,opacity,border-color] duration-300 ease-out motion-reduce:transition-none",
+          scratch ? "pointer-events-none grow-0 border-transparent opacity-0" : "grow",
+        )}
         onPointerDown={() => setZone("templates")}
       >
         {viewed ? (
@@ -194,7 +217,7 @@ export function StartPanel({
             onRetry={() => view(viewed.id)}
             onBack={() => view(undefined)}
             onChoose={() => {
-              setChosen(viewed.id);
+              choose(viewed.id);
               toPrompt();
             }}
           />
@@ -240,7 +263,7 @@ export function StartPanel({
                           setChosen(undefined);
                           setZone("templates");
                         } else {
-                          setChosen(tpl.id);
+                          choose(tpl.id);
                           toPrompt();
                         }
                       }}
@@ -258,7 +281,10 @@ export function StartPanel({
       <div
         data-testid="start-prompt"
         data-active={zone === "prompt" || undefined}
-        className="shrink-0 pt-2"
+        className={cn(
+          "flex shrink-0 grow-0 flex-col justify-center pt-2 transition-[flex-grow] duration-300 ease-out motion-reduce:transition-none",
+          scratch && "grow",
+        )}
         onPointerDown={() => setZone("prompt")}
         onFocus={() => setZone("prompt")}
       >
@@ -269,14 +295,22 @@ export function StartPanel({
           <div
             data-testid="start-problem"
             role="alert"
-            className="mx-auto mb-2 w-[calc(100%-4rem)] max-w-[68rem] rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm"
+            className="mx-auto mb-2 w-[calc(100%-4rem)] max-w-272 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm"
           >
             <p>{sendProblem}</p>
             <p className="text-xs text-muted-foreground">{t.start.orScratch}</p>
           </div>
         )}
         <MessageBox
-          className="mx-auto w-full max-w-6xl px-8 pb-5"
+          className={cn(
+            "mx-auto w-full px-8 pb-5 transition-[max-width] duration-300 ease-out motion-reduce:transition-none",
+            scratch ? "max-w-3xl" : "max-w-6xl",
+          )}
+          fieldClassName={cn(
+            "transition-[height] duration-300 ease-out motion-reduce:transition-none",
+            scratch ? "h-44" : "h-17",
+          )}
+          sendBlocked={templateMissing ? t.start.noTemplateTip : undefined}
           project={null}
           status={status}
           draft={draft}
@@ -304,13 +338,28 @@ export function StartPanel({
                       className="rounded-full p-0.5 text-muted-foreground hover:bg-background hover:text-foreground"
                       aria-label={t.start.clear}
                       data-testid="chosen-template-clear"
-                      onClick={() => setChosen(undefined)}
+                      onClick={() => {
+                        // Still starting from a template: the maker goes back to choose another.
+                        setChosen(undefined);
+                        setZone("templates");
+                      }}
                     >
                       <X className="size-3" />
                     </button>
                   </Tip>
                 </span>
                 <span className="truncate text-xs text-muted-foreground">{t.start.startingFromHint}</span>
+              </>
+            ) : templateMissing ? (
+              <>
+                <span
+                  data-testid="chosen-template-missing"
+                  className="inline-flex items-center gap-1 rounded-full border border-dashed border-warning px-2.5 py-0.5 text-xs text-warning"
+                >
+                  <CircleDashed className="size-3" />
+                  {t.start.noTemplate}
+                </span>
+                <span className="truncate text-xs text-muted-foreground">{t.start.noTemplateHint}</span>
               </>
             ) : (
               <>
@@ -434,7 +483,7 @@ function TemplateCard({
           onPointerDown={(event) => event.stopPropagation()}
           onClick={onChoose}
           className={cn(
-            "relative block aspect-[8/5] w-full overflow-hidden rounded-lg border bg-muted outline-none transition-shadow",
+            "relative block aspect-8/5 w-full overflow-hidden rounded-lg border bg-muted outline-none transition-shadow",
             "focus-visible:ring-[3px] focus-visible:ring-ring/50",
             chosen ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:shadow-md",
           )}
@@ -660,7 +709,7 @@ function ImportDialog({
                     key={url.slice(-40)}
                     src={url}
                     alt=""
-                    className="aspect-[3/4] w-full rounded border object-cover object-top"
+                    className="aspect-3/4 w-full rounded border object-cover object-top"
                   />
                 ))}
               </div>

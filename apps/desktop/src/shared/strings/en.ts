@@ -282,14 +282,18 @@ export const en = {
     fromScratch: "From scratch",
     fromScratchHint: "the agent designs a new website from your description",
     startingFromHint: "its design is kept, its texts and images rewritten",
+    /** Starting from a template, none chosen yet. */
+    noTemplate: "No template chosen",
+    noTemplateHint: "choose one above to send your message, or start from scratch",
+    noTemplateTip: "Choose a template first",
     /** Above a template's questions, under the message box (Q287). */
-    clear: "Start from scratch instead",
+    clear: "Remove this template",
     placeholder: (name: string) => `Describe your website: ${name} is rewritten for it…`,
     home: "Home",
     downloading: (name: string) => `Downloading ${name}…`,
     tryAgain: "Try again",
     tryAgainTip: "Download the template again",
-    orScratch: "Or start from scratch: clear the template below.",
+    orScratch: "Or start from scratch, above.",
   },
   history: {
     title: "History",

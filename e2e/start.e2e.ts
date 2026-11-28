@@ -80,8 +80,15 @@ describe("the start screen", () => {
     await card.locator("button[aria-pressed]").click();
     await expect(card.getAttribute("data-chosen")).resolves.toBe("true");
     await expect(w.getByTestId("chosen-template").textContent()).resolves.toBe("Starting from Ember");
+    // Cleared, it is still a start from a template: nothing is sent until one is chosen.
     await w.getByTestId("chosen-template-clear").click();
-    await expect(w.getByTestId("chosen-template-none").isVisible()).resolves.toBe(true);
+    await expect(w.getByTestId("chosen-template-missing").isVisible()).resolves.toBe(true);
+    await expect(w.getByTestId("start-way-template").getAttribute("aria-pressed")).resolves.toBe("true");
+    await w.getByTestId("message-input").fill("A ceramics studio in Lisbon.");
+    await expect(w.getByTestId("send").isDisabled()).resolves.toBe(true);
+    await w.getByTestId("message-input").press("Enter");
+    await expect(w.getByTestId("start").isVisible()).resolves.toBe(true);
+    await w.getByTestId("message-input").fill("");
   });
 
   test("the zone the maker is in has a thicker border: the templates, or the message box", async () => {
@@ -131,6 +138,17 @@ describe("the start screen", () => {
     await w.getByTestId("start-way-scratch").click();
     await expect(active()).resolves.toEqual({ templates: false, box: true });
     await expect(w.getByTestId("start-way-scratch").getAttribute("aria-pressed")).resolves.toBe("true");
+    // From scratch, the templates fold away and the message box, taller, rises to the middle.
+    await expect(templates.getAttribute("data-folded")).resolves.toBe("true");
+    await expect(w.getByTestId("chosen-template-none").isVisible()).resolves.toBe(true);
+    await until(async () => ((await templates.boundingBox())?.height ?? 2) < 2);
+    const field = await w.getByTestId("message-input").boundingBox();
+    expect(field!.height).toBeGreaterThan(150);
+    await launched.capture("start-scratch");
+    // Back to the templates: they unfold.
+    await w.getByTestId("start-way-template").click();
+    await expect(templates.getAttribute("data-folded")).resolves.toBeNull();
+    await until(async () => ((await templates.boundingBox())?.height ?? 0) > 200);
     // A click anywhere in a zone makes it the maker's.
     await w.getByRole("heading", { name: "Templates" }).click();
     await expect(active()).resolves.toEqual({ templates: true, box: false });

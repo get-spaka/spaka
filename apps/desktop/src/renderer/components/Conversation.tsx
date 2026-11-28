@@ -301,6 +301,8 @@ export function MessageBox({
   children,
   noPlan = false,
   active = false,
+  fieldClassName,
+  sendBlocked,
 }: {
   project: ProjectInfo | null;
   status: AgentStatus;
@@ -321,6 +323,10 @@ export function MessageBox({
   noPlan?: boolean;
   /** The zone the maker is in, on the start screen: its border thicker. */
   active?: boolean;
+  /** The field's own height, on the start screen: taller when starting from scratch. */
+  fieldClassName?: string;
+  /** Why the message cannot be sent yet, its button's tip: no template chosen on the start screen. */
+  sendBlocked?: string;
 }) {
   const blocked = !accountReady(status, project?.model ?? newSettings.model);
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -354,7 +360,10 @@ export function MessageBox({
           onKeyDown={onKeyDown}
           placeholder={placeholder}
           rows={3}
-          className="max-h-48 w-full resize-none bg-transparent px-1 py-1 text-sm outline-none placeholder:text-muted-foreground"
+          className={cn(
+            "max-h-48 w-full resize-none bg-transparent px-1 py-1 text-sm outline-none placeholder:text-muted-foreground",
+            fieldClassName,
+          )}
         />
         <div className="flex min-w-0 items-center gap-1">
           <ModelControls
@@ -383,8 +392,8 @@ export function MessageBox({
                 type="submit"
                 size="icon-sm"
                 data-testid="send"
-                disabled={!draft.trim() || blocked}
-                tip={t.conversation.sendTip}
+                disabled={!draft.trim() || blocked || !!sendBlocked}
+                tip={sendBlocked ?? t.conversation.sendTip}
               >
                 <ArrowUp />
               </Button>
