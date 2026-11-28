@@ -73,7 +73,8 @@ test.runIf(sandboxAvailable())(
       place,
       withPathFirst(env, launcher.binDir, "darwin"),
     );
-    expect(ran).toMatchObject({ code: 0 });
+    // What the shell said, when it fails: on CI's macOS runner it was killed with nothing shown.
+    expect(ran, ran.output).toMatchObject({ code: 0 });
     expect(ran.output).toMatch(/^\d+\.\d+\.\d+\n$/);
     const home = await runShell(`ls ${JSON.stringify(homedir())}`, place, env);
     expect(home.output).toMatch(/Operation not permitted/);
