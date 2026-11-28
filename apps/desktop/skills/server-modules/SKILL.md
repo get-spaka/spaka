@@ -52,7 +52,7 @@ A key a module needs (a payment service's secret key, an e-mail service's key) i
 - Ask for it with ask_secret, once, when you write the module that reads it: its name in capitals (`PAYMENT_KEY`), what it is for, and where the maker finds it, in their language. The maker types it in a card; you learn only whether it was given, never its value.
 - Never write a key in a file, a page or the conversation, and never ask the maker to paste one in a message.
 - Reading a secret that is not given throws an error that says so, which reaches you with the page's errors: write the page so that it still reads well without it.
-- Publish writes the secrets into the exported folder's `.env`, or gives them to Cloudflare as the Worker's secrets.
+- Publish writes the secrets into the exported folder's `.env`, which the Node server reads and Cloudflare's deploy gives to the Worker.
 
 ## In a page
 
@@ -101,6 +101,14 @@ A module imports a package by its name, added first with add_package (`import { 
 ## What a module may not do
 
 It reads the project and writes only in its `files` folder: it cannot start a program, read the maker's other files or write in the project. The network is open: call only the services the site needs, and send them nothing a visitor did not agree to.
+
+## Once published
+
+Publish bundles `server/` with the packages it imports, for the way the maker picks:
+
+- **Node server**: everything runs as in the preview; `files` is kept beside the site's database.
+- **Cloudflare**: the same on D1, but with no `files` folder, which the export says.
+- **Static site**: each `load` runs once, at export, and its answer stays in the page as it was then; an `action` or a `route` has no server to run on, which the export says. Prefer a server when a page shows changing data or a form books, pays or sends.
 
 ## Checking
 

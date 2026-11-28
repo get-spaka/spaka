@@ -46,6 +46,8 @@ export type ExportOptions = {
   managementToken: () => string;
   /** The modules of the packages the site's scripts import, made by Spaka's Rolldown (ADR 0013). */
   packageModules?: BuildOptions["packageModules"];
+  /** The website's server modules: their loads, bundling and secrets (ADR 0014). */
+  server?: BuildOptions["server"];
 };
 
 function buildProject(projectDir: string, name: string): BuildProject {
@@ -101,6 +103,7 @@ export async function exportProject(projectDir: string, chosen: string, options:
     ...(builder.needs.managementToken ? { managementToken: options.managementToken() } : {}),
     ...(builder.needs.managementToken && earlierEnv !== undefined ? { earlierEnv } : {}),
     ...(options.packageModules ? { packageModules: options.packageModules } : {}),
+    ...(options.server ? { server: options.server } : {}),
   });
   writeFileSync(join(folder, MARKER), "This folder was exported by Spaka. A new export replaces what it holds.\n");
   return {

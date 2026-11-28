@@ -332,3 +332,134 @@ describe("a site's scripts and stylesheet (ADR 0011)", () => {
     expect(readFileSync(join(out, "index.html"), "utf8")).not.toContain("spaka-start");
   });
 });
+
+describe("a site's server modules (ADR 0014)", () => {
+  const read = (file: string) => readFileSync(join(out, file), "utf8");
+  const withModules = (extra: Record<string, string> = {}) =>
+    project({
+      "pages/index.liquid":
+        '<html><head><title>Home</title></head><body>{% load weather city: "Biarritz" %}<p>{{ weather.temperature }}°</p></body></html>',
+      "server/weather.ts": "export function load(args, { env }) { return { temperature: 21 }; }",
+      "server/types.ts.bak": "not a module",
+      "server/migrations/0001-places.sql": "CREATE TABLE places (lesson TEXT PRIMARY KEY, left INTEGER);",
+      "server/migrations/0002-surf.sql": "INSERT INTO places VALUES ('surf', 8);",
+      ...extra,
+    });
+  const asked: [Record<string, string>, string][] = [];
+  const bundle = async (modules: Record<string, string>, target: string) => {
+    asked.push([modules, target]);
+    return {
+      files: [
+        { path: "modules.mjs", code: 'export const modules = { weather: () => import("./server/weather-1.mjs") };' },
+        { path: "server/weather-1.mjs", code: "export function load() {}" },
+      ],
+      warnings: ["a warning of Rolldown's"],
+    };
+  };
+  const secrets = { PAYMENT_KEY: "sk test#1", MAILER_KEY: "" };
+
+  test("the Node export bundles them beside server.mjs; site.json lists them, the secrets' names and the migrations", async () => {
+    asked.length = 0;
+    const result = await builderById("node")!.build(withModules(), {
+      outDir: out,
+      serverBundle: "// the server",
+      managementToken: "t",
+      server: { bundle, secrets },
+    });
+    expect(asked).toEqual([[{ weather: "server/weather.ts" }, "node"]]);
+    expect(read("modules.mjs")).toContain("weather-1.mjs");
+    expect(read("server/weather-1.mjs")).toContain("load");
+    expect(JSON.parse(read("site.json")).server).toEqual({
+      modules: ["weather"],
+      secrets: ["MAILER_KEY", "PAYMENT_KEY"],
+      migrations: [
+        { name: "0001-places.sql", sql: "CREATE TABLE places (lesson TEXT PRIMARY KEY, left INTEGER);" },
+        { name: "0002-surf.sql", sql: "INSERT INTO places VALUES ('surf', 8);" },
+      ],
+    });
+    expect(result.warnings).toContain("Server modules: a warning of Rolldown's");
+    // The secrets in .env, quoted when need be; the one with no value left for the maker to give.
+    expect(read(".env")).toMatch(/^PAYMENT_KEY='sk test#1'$/m);
+    expect(read(".env")).toMatch(/^# MAILER_KEY=$/m);
+    expect(read(".env")).not.toMatch(/^MAILER_KEY=/m);
+    // Exported again, with the secret now given and the other replaced: no line twice, nothing grows.
+    const earlierEnv = read(".env");
+    const again = { PAYMENT_KEY: "sk_2", MAILER_KEY: "mk_1" };
+    await builderById("node")!.build(withModules(), {
+      outDir: out,
+      serverBundle: "// the server",
+      managementToken: "t",
+      earlierEnv,
+      server: { bundle, secrets: again },
+    });
+    expect(read(".env").match(/^(PAYMENT_KEY|MAILER_KEY)=.*$/gm)).toEqual(["MAILER_KEY=mk_1", "PAYMENT_KEY=sk_2"]);
+    expect(read(".env")).not.toMatch(/# MAILER_KEY=|not given in Spaka/);
+    const twice = read(".env");
+    await builderById("node")!.build(withModules(), {
+      outDir: out,
+      serverBundle: "// the server",
+      managementToken: "t",
+      earlierEnv: twice,
+      server: { bundle, secrets: again },
+    });
+    expect(read(".env")).toBe(twice);
+  });
+
+  test("an export cannot leave them out: without Spaka's Rolldown, or when they do not bundle, it stops and says why", async () => {
+    const build = (server?: object) =>
+      builderById("node")!.build(withModules(), { outDir: out, serverBundle: "//", server: server as never });
+    await expect(build()).rejects.toThrow(/Rolldown for the server modules/);
+    await expect(build({ bundle: async () => ({ error: "sharp has native code" }) })).rejects.toThrow(
+      "The server modules could not be bundled: sharp has native code",
+    );
+  });
+
+  test("the Cloudflare export: the migrations after the records', the secrets required and in .env and .dev.vars, no folder for files", async () => {
+    asked.length = 0;
+    const result = await builderById("cloudflare")!.build(
+      withModules({ "server/upload.ts": "export async function action(fields, { files }) { return files; }" }),
+      { outDir: out, serverBundle: "// worker", managementToken: "t", server: { bundle, secrets } },
+    );
+    expect(asked[0]![1]).toBe("worker");
+    expect(result.files.filter((f) => f.startsWith("migrations/")).sort()).toEqual([
+      "migrations/0001_records.sql",
+      "migrations/0002_places.sql",
+      "migrations/0003_surf.sql",
+    ]);
+    expect(read("migrations/0003_surf.sql")).toBe("INSERT INTO places VALUES ('surf', 8);");
+    const config = JSON.parse(read("wrangler.jsonc").replace(/^\/\/.*$/m, ""));
+    expect(config.secrets.required).toEqual(["SPAKA_TOKEN", "PAYMENT_KEY"]);
+    expect(read(".env")).toMatch(/^PAYMENT_KEY='sk test#1'$/m);
+    expect(read(".dev.vars")).toMatch(/^PAYMENT_KEY='sk test#1'$/m);
+    expect(result.warnings).toContain(
+      "server/upload.ts may write files, and a Cloudflare Worker has no folder for them: publish it on a server for that.",
+    );
+    expect(result.warnings.filter((w) => w.includes("weather"))).toEqual([]);
+  });
+
+  test("a Worker always imports modules.mjs: a site with none gets an empty one, and site.json no server", async () => {
+    await builderById("cloudflare")!.build(contact(), { outDir: out, serverBundle: "// worker", managementToken: "t" });
+    expect(read("modules.mjs")).toBe("export const modules = {};\n");
+    expect(JSON.parse(read("site.json")).server).toBeUndefined();
+  });
+
+  test("the static site runs each load at export, and says what answers forms has no server there (Q503)", async () => {
+    const host = {
+      kinds: async (name: string) => (name === "weather" ? ["load" as const] : ["action" as const, "route" as const]),
+      load: async () => ({ temperature: 23 }),
+      action: async () => ({ value: "ok" }),
+      route: async () => new Response("ok"),
+    };
+    const result = await builderById("static")!.build(
+      withModules({ "server/book.ts": "export function action() {}" }),
+      {
+        outDir: out,
+        server: { host },
+      },
+    );
+    expect(read("index.html")).toContain("<p>23°</p>");
+    expect(result.warnings).toEqual([
+      "server/book.ts answers forms and other services' calls at /_server/book, which a static site cannot: publish it on a server or on Cloudflare for that.",
+    ]);
+  });
+});

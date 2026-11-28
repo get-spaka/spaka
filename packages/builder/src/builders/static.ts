@@ -2,9 +2,35 @@
 // each fragment rendered once into an HTML file, served by any static file
 // host. It cannot keep what visitors send: a form sends to a form service's
 // address instead (Q178), and a page showing what visitors sent refuses it.
-import { exportHead, injectHead, type ProjectSource, siteAssets, TRAP_FIELD, withSrcset } from "@spaka/runtime";
+import {
+  exportHead,
+  injectHead,
+  type ProjectSource,
+  type ServerHost,
+  siteAssets,
+  TRAP_FIELD,
+  withSrcset,
+} from "@spaka/runtime";
 import type { Builder, BuildOptions, BuildProject, BuildResult, ImageCopies } from "../builder.ts";
-import { Output, renderSite, shownCollected, writeAssets, writeImageCopies } from "../shared.ts";
+import { Output, renderSite, serverOf, shownCollected, writeAssets, writeImageCopies } from "../shared.ts";
+
+/**
+ * A static site's server modules (Q503): their loads ran at export, but what
+ * answers visitors' forms or other services has no server to run on.
+ */
+async function staticServerWarnings(project: BuildProject, host: ServerHost | undefined): Promise<string[]> {
+  const { modules } = serverOf(project);
+  const warnings: string[] = [];
+  for (const [name, file] of Object.entries(modules)) {
+    const kinds = (await host?.kinds(name).catch(() => undefined)) ?? [];
+    const answers = kinds.filter((k) => k === "action" || k === "route");
+    if (answers.length)
+      warnings.push(
+        `${file} answers ${answers.map((k) => (k === "action" ? "forms" : "other services' calls")).join(" and ")} at /_server/${name}, which a static site cannot: publish it on a server or on Cloudflare for that.`,
+      );
+  }
+  return warnings;
+}
 
 /**
  * Points each form that sends to /_data/<name> at the form service given for
@@ -43,6 +69,7 @@ export async function buildStatic(options: {
   images?: ImageCopies;
   formServices?: Record<string, string>;
   packageModules?: BuildOptions["packageModules"];
+  server?: BuildOptions["server"];
 }): Promise<BuildResult> {
   const project: BuildProject = {
     name: "",
@@ -51,7 +78,8 @@ export async function buildStatic(options: {
     readFile: options.readFile ?? (() => Buffer.alloc(0)),
   };
   const out = new Output(options.outDir);
-  const { pages, fragments, warnings } = await renderSite(project.source);
+  const { pages, fragments, warnings } = await renderSite(project.source, options.server?.host);
+  warnings.push(...(await staticServerWarnings(project, options.server?.host)));
   for (const f of fragments)
     if (f.params) warnings.push(`${f.file} reads its parameters: a static site serves it once, without them.`);
   const all = [...pages, ...fragments];

@@ -130,3 +130,51 @@ test("a specifier Rolldown cannot make is an error, said in one line, and never 
     error: "Spaka could not install its Rolldown 1.2.19: no network.",
   });
 }, 30_000);
+
+test("a website's server modules bundled for an export: modules.mjs importing each, their packages inside (ADR 0014)", async () => {
+  const root = mkdtempSync(join(tmpdir(), "spaka-server-bundle-"));
+  write(root, {
+    "node_modules/greet/package.json": JSON.stringify({
+      name: "greet",
+      version: "1.0.0",
+      main: "index.js",
+      exports: { ".": { workerd: "./worker.js", node: "./node.js", default: "./index.js" } },
+    }),
+    "node_modules/greet/index.js": "module.exports = (n) => 'hello ' + n;\n",
+    "node_modules/greet/node.js": 'const { hostname } = require("node:os");\nmodule.exports = (n) => "node " + n;\n',
+    "node_modules/greet/worker.js": "export default (n) => 'worker ' + n;\n",
+    "server/types.ts": "export type Who = { name: string };\n",
+    "server/hello.ts":
+      'import type { Who } from "./types.ts";\nimport greet from "greet";\nimport { randomUUID } from "node:crypto";\nexport function load(args: Who) { return { text: greet(args.name), id: randomUUID().length }; }\n',
+    "server/book.js": 'export const answer = "booked";\nexport async function action() { return "ok"; }\n',
+  });
+  const modules = new PackageModules({ cacheDir: join(root, ".cache"), tools: async () => tools, confined: false });
+  const entries = { book: "server/book.js", hello: "server/hello.ts" };
+  for (const target of ["node", "worker"] as const) {
+    const bundle = await modules.server(root, entries, target);
+    if ("error" in bundle) throw new Error(bundle.error);
+    const out = join(root, `out-${target}`);
+    for (const file of bundle.files) write(out, { [file.path]: file.code });
+    expect(bundle.files.map((f) => f.path)[0]).toBe("modules.mjs");
+    expect(bundle.files.every((f) => f.path === "modules.mjs" || /^server\/[\w-]+\.mjs$/.test(f.path))).toBe(true);
+    const all = bundle.files.map((f) => f.code).join("\n");
+    // Each file named by its path in the project, and nothing of the machine's folders.
+    expect(all).toContain("// server/hello.ts");
+    expect(all).not.toContain(basename(root));
+    expect(all).not.toMatch(/from ["']greet["']/);
+    if (target === "worker") {
+      expect(all).toMatch(/from ["']node:crypto["']/);
+      expect(all).toMatch(/["']worker ["'] \+ n/);
+      continue;
+    }
+    const loaded = (await import(join(out, "modules.mjs"))) as {
+      modules: Record<string, () => Promise<{ load?: (args: object) => unknown; answer?: string }>>;
+    };
+    expect(Object.keys(loaded.modules)).toEqual(["book", "hello"]);
+    expect(await (await loaded.modules.hello!()).load?.({ name: "Ana" })).toEqual({ text: "node Ana", id: 36 });
+    expect((await loaded.modules.book!()).answer).toBe("booked");
+  }
+  expect(await modules.server(root, { broken: "server/missing.ts" }, "node")).toEqual({
+    error: expect.stringMatching(/missing\.ts/),
+  });
+}, 60_000);

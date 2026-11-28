@@ -6,6 +6,7 @@ import type { CollectedStore } from "../collected.ts";
 import { exportHead } from "../head.ts";
 import { Runtime } from "../runtime.ts";
 import type { SiteAssets } from "../scripts.ts";
+import type { PublishedServer, ServerHost } from "../server.ts";
 import { memorySource } from "../source.ts";
 
 /** What an export writes into site.json. */
@@ -16,9 +17,19 @@ export type PublishedSite = {
   images: Record<string, number[]>;
   /** The site's scripts the head loads (ADR 0011). */
   assets?: SiteAssets;
+  /** Its server modules (ADR 0014), bundled beside the server into modules.mjs. */
+  server?: PublishedServer;
 };
 
-export function siteRuntime(site: PublishedSite, collected: CollectedStore, managementToken?: string): Runtime {
+/** What modules.mjs exports: each module, imported when first asked for. */
+export type BundledModules = { modules: Record<string, () => Promise<unknown>> };
+
+export function siteRuntime(
+  site: PublishedSite,
+  collected: CollectedStore,
+  managementToken?: string,
+  server?: ServerHost,
+): Runtime {
   const hasTheme = site.files["theme.css"] !== undefined;
   return new Runtime(memorySource(site.files), {
     repair: false,
@@ -27,5 +38,12 @@ export function siteRuntime(site: PublishedSite, collected: CollectedStore, mana
     images: site.images,
     collected,
     ...(managementToken ? { managementToken } : {}),
+    ...(server
+      ? {
+          server,
+          // A module's error is logged where the host keeps its logs.
+          onServerError: ({ module, kind, message }) => console.error(`server/${module} (${kind}): ${message}`),
+        }
+      : {}),
   });
 }

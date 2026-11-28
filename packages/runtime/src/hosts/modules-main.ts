@@ -9,7 +9,7 @@ import { dirname, join, relative, sep } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { pathToFileURL } from "node:url";
 import { format } from "node:util";
-import { type DataApi, moduleHost, type ServerModule } from "../server.ts";
+import { type DataApi, moduleHost, type ServerModule, secretsEnv } from "../server.ts";
 import { RECORDS_SCHEMA } from "../sql.ts";
 import { applyMigrations, migrationsIn, moduleFiles, sqlApi } from "./modules.ts";
 import { type DataAnswer, fromWireRequest, type HostCall, type HostMessage, wireResponse } from "./modules-protocol.ts";
@@ -30,13 +30,6 @@ const secretNames = (() => {
   }
 })();
 const secrets: Record<string, string | undefined> = Object.fromEntries(secretNames.map((n) => [n, process.env[n]]));
-/** A secret's name: one the site has not been given is an error that says how to give it. */
-const SECRET = /^[A-Z][A-Z0-9_]*$/;
-const missing = (name: string) =>
-  new Error(
-    `the secret ${name} is not set: the agent asks the maker for it with ask_secret, or the maker gives it in the website's settings`,
-  );
-
 /** Where in the site's own files an error comes from: server/weather.ts:12. */
 function located(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
@@ -92,15 +85,7 @@ const host = moduleHost({
     ]),
   ),
   context: () => ({
-    env: new Proxy(
-      { ...secrets },
-      {
-        get: (target, name) => {
-          if (typeof name === "string" && SECRET.test(name) && !Object.hasOwn(target, name)) throw missing(name);
-          return Reflect.get(target, name);
-        },
-      },
-    ),
+    env: secretsEnv(secrets),
     data,
     sql,
     files: filesDir,

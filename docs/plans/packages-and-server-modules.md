@@ -1,6 +1,6 @@
 # Spaka v2 : plan de construction des paquets et des modules serveur (Q490-Q535)
 
-## État (2026-11-28) : la sonde et les tranches 1 à 6 faites
+## État (2026-11-28) : la sonde et les tranches 1 à 7 faites
 
 | Tranche | Fait | Commits |
 |---|---|---|
@@ -11,7 +11,7 @@
 | 4. Les 37 templates passent aux paquets | ✅ | aed0742 ; get-spaka/templates 6fa8752 (branche `template/packages`) |
 | 5. Les modules serveur dans l'aperçu | ✅ | 57c1276 |
 | 6. Les secrets | ✅ | 3ea6df4 |
-| 7. Les exports statique, Node et Cloudflare | | |
+| 7. Les exports statique, Node et Cloudflare | ✅ | 75fb817 |
 | 8. Le déploiement sur Cloudflare depuis Spaka | | |
 | 9. Le template de l'école de surf | | |
 | 10. Registres privés et dépôts git | | |
@@ -315,6 +315,23 @@ Fait le 2026-11-28 :
   - Wrangler tourne avec un préchargement qui pose `process.defaultApp = true` : sans lui, yargs prend Electron lancé comme Node pour une app empaquetée et lit le chemin du script comme une commande.
   - `WRANGLER_SEND_METRICS=false`, et `XDG_CONFIG_HOME` dans le dossier wrangler de Spaka, où vont ses journaux.
 - Vérification : les trois exports du site de la tranche 5, Node lancé et Cloudflare avec `wrangler dev`.
+
+Décidé en route (des choix techniques, sans nouvelle question) :
+- **Le Rolldown de Spaka empaquette `server/` pour Node comme pour Cloudflare**, dans l'hôte de build de la tranche 3 (un mode « serveur », toujours sous les permissions de Node, en WebAssembly). Il sort `modules.mjs`, qui importe chaque module à son premier appel, et leurs morceaux dans `server/`, paquets compris. Pour Cloudflare il résout les paquets comme workerd (`workerd`, `worker`, `browser`), laisse les modules de Node à la compatibilité Node.js du Worker, et wrangler emballe le tout au déploiement.
+- **Rolldown part du vrai chemin du projet** : le code empaqueté nomme chaque fichier `server/book.ts`, et rien des dossiers de la machine.
+- **Un empaquetage qui échoue arrête l'export**, avec la raison de Rolldown (un paquet au code natif, un fichier manquant) : un site publié sans ses modules casserait en silence. Ses avertissements arrivent avec ceux de l'export.
+- **Statique** : les `load` tournent par le process serveur de l'aperçu, avec ses données. Un module qui a une `action` ou une `route` ne bloque pas l'export : l'export dit qu'elle n'a pas de serveur là (Q503), comme il le dit d'un formulaire sans service. `server/` n'est jamais copié dans les fichiers publiés.
+- **`site.json` gagne `server`** : les noms des modules, ceux des secrets, et les migrations. Le serveur Node applique les migrations à son démarrage ; le Worker reçoit celles de `server/migrations/` à la suite de `0001_records.sql` (`0002_places.sql`…), que `wrangler d1 migrations apply` applique une fois chacune.
+- **Les secrets dans `.env`** : ceux que Spaka garde remplacent ceux d'un export précédent ; ceux que les modules lisent sans valeur y sont en commentaire, à donner là. Pour Cloudflare, ils sont aussi dans `.dev.vars` (pour `wrangler dev`) et dans `secrets.required`. Un secret vide compte comme absent.
+- **Le dossier de fichiers** : `data/files` sur Node (à côté de `data.sqlite`, dans le volume `/data` avec Docker). Pour Cloudflare, l'export avertit quand un module prend `files`.
+- **Un `load` coupé par un redémarrage du process de l'aperçu** (un module changé, un secret donné) est refait une fois sur le nouveau process ; une `action` ou une `route` jamais, elle a pu écrire.
+- **Reporté à la tranche 8** : le préchargement de wrangler et ses variables, qui ne servent qu'à faire tourner le wrangler de Spaka ; et le mot « table » au singulier de l'étape de la base dans le guide de Publish, qui change avec le déploiement depuis Spaka (proposition visuelle).
+
+Fait le 2026-11-28 :
+- **Le runtime** : `hosts/node.ts` (les migrations au démarrage, `data/files`, les secrets lus dans l'environnement) et `hosts/worker.ts` (SQL sur D1, les secrets des bindings) font tourner `modules.mjs` ; `secretsEnv` et `modulesAmong` sont partagés avec l'aperçu.
+- **Les constructeurs** : `BuildOptions.server` (le process de l'aperçu, l'empaquetage, les secrets) ; `writeServerModules` et les lignes de `.env` dans `shared.ts` ; les guides Node et Cloudflare en parlent ; le skill `server-modules` a une section « Once published ».
+- **L'app** : `PackageModules.server` et le mode serveur de `build-host.mjs` ; `export:run` leur passe le process de l'aperçu, l'empaquetage et les secrets.
+- **Vérifié** : les tests unitaires (le runtime publié sur Node et sur un faux D1 ; l'empaquetage réel pour Node, exécuté, et pour un Worker ; les trois constructeurs, `.env` stable d'un export à l'autre ; un `load` qui survit à un redémarrage) ; `e2e/server-exports.e2e.ts` : l'export statique avec la réponse du `load` dans la page et l'avertissement de l'`action` ; le serveur Node lancé (migrations, secret de `.env`, réservation, calendrier, `data/files`) ; le Worker sous `wrangler dev` sur un D1 local ; et `servers`, `export`, `server-modules`, `secrets` toujours verts.
 
 ### 8. Le déploiement sur Cloudflare depuis Spaka
 

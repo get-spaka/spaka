@@ -275,6 +275,11 @@ export class Preview {
     this.emit();
   }
 
+  /** The server process of the site open at this folder, for its loads at a static export (Q503). */
+  serverOf(root: string): ServerProcess | undefined {
+    return this.site?.root === root ? this.site.server : undefined;
+  }
+
   /** The site's secrets changed: its server process starts again with them, and the page is drawn again. */
   serverChanged() {
     const site = this.site;

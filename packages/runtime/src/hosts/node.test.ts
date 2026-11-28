@@ -84,6 +84,7 @@ describe("the Cloudflare export's Worker", () => {
     db.exec(RECORDS_SCHEMA);
     const bound = (sql: string, values: unknown[]) => ({
       all: async () => ({ results: db.prepare(sql).all(...(values as never[])) as Record<string, unknown>[] }),
+      first: async () => (db.prepare(sql).get(...(values as never[])) as Record<string, unknown> | undefined) ?? null,
       run: async () => ({ meta: { changes: Number(db.prepare(sql).run(...(values as never[])).changes) } }),
     });
     const env = {
@@ -102,5 +103,97 @@ describe("the Cloudflare export's Worker", () => {
     expect(await sent.text()).toBe("<p>Thanks Anne</p>");
     expect(String(db.prepare("SELECT visitor FROM records").get()?.visitor)).toMatch(/^[0-9a-f]{24}$/);
     expect(await (await worker.fetch(new Request("https://site.example/"), env)).text()).toContain("Anne");
+  });
+});
+
+/** A site with server modules, as the exports write it: site.json's list, and the modules bundled into modules.mjs. */
+const WITH_MODULES: PublishedSite = {
+  files: {
+    "pages/index.liquid":
+      '<html><head><title>Home</title></head><body>{% load places lesson: "surf" %}<p id="left">{{ places.left }}</p><p id="key">{{ places.key }}</p></body></html>',
+    "fragments/booked.liquid": "<p>Booked, {{ answer.left }} left</p>",
+  },
+  images: {},
+  server: {
+    modules: ["places", "book"],
+    secrets: ["PAYMENT_KEY"],
+    migrations: [
+      { name: "0001-places.sql", sql: "CREATE TABLE places (lesson TEXT PRIMARY KEY, left INTEGER NOT NULL);" },
+      { name: "0002-surf.sql", sql: "INSERT INTO places VALUES ('surf', 2);" },
+    ],
+  },
+};
+const PLACES = `export async function load(args, { sql, env, files }) {
+  const row = await sql.get("SELECT left FROM places WHERE lesson = ?", args.lesson);
+  return { left: row?.left ?? 0, key: env.PAYMENT_KEY.slice(0, 3), files: !!files };
+}`;
+const BOOK = `export const answer = "booked";
+export async function action(fields, { sql }) {
+  await sql.run("UPDATE places SET left = left - 1 WHERE lesson = 'surf'");
+  return await sql.get("SELECT left FROM places WHERE lesson = 'surf'");
+}
+export async function route() { return new Response("BEGIN:VCALENDAR", { headers: { "content-type": "text/calendar" } }); }`;
+const form = (base: string) =>
+  new Request(`${base}/_server/book`, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded", "hx-request": "true" },
+    body: "name=Ana",
+  });
+
+describe("server modules once published (ADR 0014)", () => {
+  test("the Node server applies the migrations at start, runs modules.mjs with the secrets of its environment", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "node-modules-"));
+    writeFileSync(join(dir, "site.json"), JSON.stringify(WITH_MODULES));
+    mkdirSync(join(dir, "modules"));
+    writeFileSync(join(dir, "modules/places.mjs"), PLACES);
+    writeFileSync(join(dir, "modules/book.mjs"), BOOK);
+    writeFileSync(
+      join(dir, "modules.mjs"),
+      'export const modules = { places: () => import("./modules/places.mjs"), book: () => import("./modules/book.mjs") };',
+    );
+    const server = siteServer({ dir, dataDir: join(dir, "data"), env: { PAYMENT_KEY: "sk_live_x", HOME: "/root" } });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    try {
+      const home = await (await fetch(`${base}/`)).text();
+      expect(home).toContain('<p id="left">2</p><p id="key">sk_</p>');
+      expect(await (await fetch(form(base))).text()).toContain("<p>Booked, 1 left</p>");
+      const ics = await fetch(`${base}/_server/book/lessons.ics`);
+      expect(ics.headers.get("content-type")).toBe("text/calendar");
+      expect(existsSync(join(dir, "data/files"))).toBe(true);
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+    // Started again, nothing is applied twice.
+    const again = siteServer({ dir, dataDir: join(dir, "data"), env: {} });
+    await new Promise<void>((resolve) => again.listen(0, "127.0.0.1", resolve));
+    try {
+      const home = await (await fetch(`http://127.0.0.1:${(again.address() as AddressInfo).port}/`)).text();
+      // Without its secret, the load says so in the server's log and the page still shows.
+      expect(home).toContain('<p id="left"></p>');
+    } finally {
+      await new Promise<void>((resolve) => again.close(() => resolve()));
+    }
+  });
+
+  test("the Worker runs the bundled modules on D1, with the secrets of its bindings and no folder for files", async () => {
+    const db = new DatabaseSync(":memory:");
+    db.exec(RECORDS_SCHEMA);
+    for (const m of WITH_MODULES.server!.migrations) db.exec(m.sql);
+    const bound = (sql: string, values: unknown[]) => ({
+      all: async () => ({ results: db.prepare(sql).all(...(values as never[])) as Record<string, unknown>[] }),
+      first: async () => (db.prepare(sql).get(...(values as never[])) as Record<string, unknown> | undefined) ?? null,
+      run: async () => ({ meta: { changes: Number(db.prepare(sql).run(...(values as never[])).changes) } }),
+    });
+    const env = {
+      DB: { prepare: (sql: string) => ({ bind: (...values: unknown[]) => bound(sql, values) }) },
+      PAYMENT_KEY: "sk_test_y",
+    };
+    const asModule = (code: string) => () => import(`data:text/javascript,${encodeURIComponent(code)}`);
+    const worker = siteWorker(WITH_MODULES, { modules: { places: asModule(PLACES), book: asModule(BOOK) } });
+    expect(await (await worker.fetch(new Request("https://site.example/"), env)).text()).toContain(
+      '<p id="left">2</p><p id="key">sk_</p>',
+    );
+    expect(await (await worker.fetch(form("https://site.example"), env)).text()).toContain("<p>Booked, 1 left</p>");
   });
 });

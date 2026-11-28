@@ -33,7 +33,7 @@ await build({
 await build({
   input: join(hosts, "worker-main.ts"),
   platform: "browser",
-  external: ["./site.json"],
+  external: ["./site.json", "./modules.mjs"],
   logLevel: "warn",
   output: { file: join(out, "worker.mjs"), format: "esm", banner, minify: true },
 });

@@ -118,12 +118,15 @@ export {
   type ModuleHostOptions,
   type ModuleKind,
   moduleHost,
+  modulesAmong,
+  type PublishedServer,
   plain,
   SERVER_ROUTE,
   type ServerContext,
   type ServerHost,
   type ServerModule,
   type SqlApi,
+  secretsEnv,
   VisitorLimiter,
 } from "./server.ts";
 export { memorySource, Overlay, type ProjectSource } from "./source.ts";

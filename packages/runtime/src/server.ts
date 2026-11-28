@@ -57,6 +57,21 @@ export type ServerModule = {
 /** What an action answered: its result and the fragment to show it with, or the problems found. */
 export type ActionAnswer = { value: unknown; answer?: string } | { problems: string[] };
 
+/** The files a module may be, by preference when two share a name. */
+const MODULE_EXTENSIONS = [".ts", ".mts", ".js", ".mjs"];
+
+/** The server modules among the names of server/'s files, by name: weather.ts is `weather`. */
+export function modulesAmong(files: string[]): Record<string, string> {
+  const found: Record<string, string> = {};
+  for (const extension of MODULE_EXTENSIONS)
+    for (const file of [...files].sort()) {
+      if (!file.endsWith(extension) || file.endsWith(`.d${extension}`) || /\.test\.[mc]?[jt]s$/.test(file)) continue;
+      const name = file.slice(0, -extension.length);
+      if (MODULE_NAME.test(name) && !Object.hasOwn(found, name)) found[name] = file;
+    }
+  return found;
+}
+
 /** How the runtime reaches a site's server modules. */
 export interface ServerHost {
   /** The kinds of export a module has; undefined when there is no such module. */
@@ -155,6 +170,39 @@ export function moduleHost({ modules, context, now = Date.now }: ModuleHostOptio
     },
   };
 }
+
+/** A secret's name, as modules read it: PAYMENT_KEY. */
+const SECRET = /^[A-Z][A-Z0-9_]*$/;
+
+/**
+ * The `env` modules are given (Q501): the site's secrets, by name; reading one
+ * that has no value is an error that says how to give it.
+ */
+export function secretsEnv(values: Record<string, string | undefined>): Record<string, string | undefined> {
+  return new Proxy(
+    { ...values },
+    {
+      get: (target, name) => {
+        if (
+          typeof name === "string" &&
+          SECRET.test(name) &&
+          (!Object.hasOwn(target, name) || target[name] === undefined || target[name] === "")
+        )
+          throw new Error(
+            `the secret ${name} is not set: the agent asks the maker for it with ask_secret, or the maker gives it in the website's settings`,
+          );
+        return Reflect.get(target, name);
+      },
+    },
+  );
+}
+
+/** What a published site knows of its server modules (site.json): their names, the secrets' names, the migrations. */
+export type PublishedServer = {
+  modules: string[];
+  secrets: string[];
+  migrations: { name: string; sql: string }[];
+};
 
 /** At most `limit` requests per visitor and module in a window, kept in memory (Q532). */
 export class VisitorLimiter {

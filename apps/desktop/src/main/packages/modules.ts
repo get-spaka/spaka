@@ -25,6 +25,12 @@ export type MadeModule = { code: string; gzip: number; bundled: Bundled[]; warni
 /** What a specifier's module is, or why Spaka could not make it. */
 export type ModuleResult = { module: MadeModule } | { error: string };
 
+/** Where a website's server modules are bundled for (ADR 0014): the Node export's server, or a Worker. */
+export type ServerTarget = "node" | "worker";
+
+/** The server modules bundled: modules.mjs and its chunks, by path in the export; or why not. */
+export type ServerBundle = { files: { path: string; code: string }[]; warnings: string[] } | { error: string };
+
 /** A build host's answer for one specifier. */
 type HostResult =
   | { specifier: string; code: string; moduleIds: string[]; exports: string[]; warnings: string[] }
@@ -141,6 +147,24 @@ export class PackageModules {
     return (await this.modules(projectDir, all, [entry])).get(entry.specifier);
   }
 
+  /**
+   * A website's server modules (`server/<name>.ts` by name) bundled for an
+   * export with their packages, made at each export: never kept.
+   */
+  async server(projectDir: string, modules: Record<string, string>, target: ServerTarget): Promise<ServerBundle> {
+    try {
+      const tools = await this.o.tools();
+      return await runHost<ServerBundle>(
+        tools,
+        { root: projectDir, server: { target, modules } },
+        this.o.confined ?? true,
+        this.o.timeoutMs ?? 120_000,
+      );
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
   /** What visitors download of each package, compressed, for the modules already made (Q520). */
   weights(projectDir: string, all: PackageImport[]): Map<string, number> {
     const weights = new Map<string, number>();
@@ -200,12 +224,14 @@ export class PackageModules {
 }
 
 /** Runs the build host once: the request on stdin, its answer on stdout. */
-function runHost(
+function runHost<T = HostResult[]>(
   tools: RolldownTools,
-  request: { root: string; modules: { specifier: string; external: string[] }[] },
+  request:
+    | { root: string; modules: { specifier: string; external: string[] }[] }
+    | { root: string; server: { target: ServerTarget; modules: Record<string, string> } },
   confined: boolean,
   timeoutMs: number,
-): Promise<HostResult[]> {
+): Promise<T> {
   // Reading only: no writing, no other program, no native code (Rolldown runs as WebAssembly);
   // what reads Windows' drives for it loaded first, in each of its threads (Q557).
   const permissions = confined ? ["--permission", "--allow-fs-read=*", "--allow-wasi", "--allow-worker"] : [];
@@ -240,7 +266,7 @@ function runHost(
     child.on("close", (code) => {
       clearTimeout(timer);
       try {
-        resolve(JSON.parse(out) as HostResult[]);
+        resolve(JSON.parse(out) as T);
       } catch {
         const last = err.trim().split("\n").filter(Boolean).slice(-3).join(" ");
         reject(new Error(`Spaka's Rolldown stopped (${code ?? "killed"})${last ? `: ${last}` : ""}`));
