@@ -1,6 +1,6 @@
 import { mkdirSync, mkdtempSync, readdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { packageImports } from "@spaka/runtime";
 import { diskSource } from "@spaka/runtime/node";
 import { expect, test } from "vitest";
@@ -60,7 +60,7 @@ test("one module per specifier, its licence notice at its head, what the import 
     ["slides/autoplay", "/assets/packages/slides@2.1.0/autoplay.js"],
   ]);
   let installs = 0;
-  const cacheDir = join(root, "..", `${root.split("/").pop()}-cache`);
+  const cacheDir = join(root, "..", `${basename(root)}-cache`);
   const modules = new PackageModules({
     cacheDir,
     tools: async () => {
