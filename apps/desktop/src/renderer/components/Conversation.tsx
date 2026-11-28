@@ -392,6 +392,7 @@ export function MessageBox({
 
 function Messages({ items }: { items: ConversationItem[] }) {
   const style = useAppSettings().outputStyle;
+  const working = isWorking(items);
   const scroller = useRef<HTMLDivElement>(null);
   const pinned = useRef(true);
   // Follows the agent as it writes, unless the maker scrolled up to read.
@@ -420,9 +421,23 @@ function Messages({ items }: { items: ConversationItem[] }) {
           );
         if (item.kind === "notice")
           return (
-            <p key={item.id} data-testid="notice" className="text-center text-xs text-muted-foreground">
-              {item.text}
-            </p>
+            <div key={item.id} data-testid="notice" className="text-center text-xs text-muted-foreground">
+              <p>{item.text}</p>
+              {/* A button that asks the agent, as the maker's message (Q538). */}
+              {item.action && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-1.5"
+                  disabled={working}
+                  onClick={() => void spaka.invoke("conversation:send", item.action!.message)}
+                  tip={item.action.tip}
+                  data-testid="notice-action"
+                >
+                  {item.action.label}
+                </Button>
+              )}
+            </div>
           );
         return (
           <div key={item.id} data-testid="agent-message" data-status={item.status} className="space-y-1.5 text-sm">

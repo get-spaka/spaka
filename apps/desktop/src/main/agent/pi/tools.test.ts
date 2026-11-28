@@ -136,6 +136,8 @@ test("reads run together; a reply that changes the project runs in order", () =>
       useImage: async () => "",
       useBlocks: () => "",
       choosePages: async () => "",
+      addPackage: async () => "",
+      removePackage: async () => "",
     }),
   );
   expect(Object.fromEntries(spaka.map((t) => [t.name, t.executionMode]))).toMatchObject({
@@ -153,6 +155,8 @@ test("Spaka's tools keep their short names for the model, and the SDK's names fo
     useImage: async () => "",
     useBlocks: () => "",
     choosePages: async () => "",
+    addPackage: async () => "",
+    removePackage: async () => "",
   });
   const harness = piSpakaTools(defs);
   expect(harness.map((t) => t.name)).toEqual([
@@ -160,6 +164,8 @@ test("Spaka's tools keep their short names for the model, and the SDK's names fo
     "use_block",
     "find_images",
     "use_image",
+    "add_package",
+    "remove_package",
     "choose_pages",
     "look_at_preview",
   ]);
@@ -262,6 +268,8 @@ test("generate_image is among Spaka's tools only with an account that generates 
     useImage: async () => "",
     useBlocks: () => "",
     choosePages: async () => "",
+    addPackage: async () => "",
+    removePackage: async () => "",
   };
   expect(spakaTools(base).map((d) => d.name)).not.toContain("generate_image");
   const asked: unknown[] = [];

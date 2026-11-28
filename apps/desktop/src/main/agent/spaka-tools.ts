@@ -13,6 +13,7 @@ import type { Placing } from "../editing/place-blocks";
 import type { Block } from "../gallery/catalogue";
 import { GENERATIONS_A_TURN, MAX_REFERENCES } from "../images/generate";
 import type { GenerateInput } from "../images/into-media";
+import { MINIMUM_AGE_DAYS } from "../packages/rules";
 import { type LookOptions, lookText, MAX_STEPS, readSteps, type Seen, STEP_ACTIONS } from "../preview/look-steps";
 import { PAGES_DESCRIPTION, PAGES_SHAPE, PAGES_TOOL_NAME } from "../templates/pages-card";
 
@@ -26,6 +27,8 @@ export const USE_IMAGE_TOOL = spakaToolName("use_image");
 export const USE_BLOCK_TOOL = spakaToolName("use_block");
 export const PAGES_TOOL = spakaToolName(PAGES_TOOL_NAME);
 export const GENERATE_IMAGE_TOOL = spakaToolName("generate_image");
+export const ADD_PACKAGE_TOOL = spakaToolName("add_package");
+export const REMOVE_PACKAGE_TOOL = spakaToolName("remove_package");
 
 export type Look = (route?: string, options?: LookOptions) => Promise<Seen>;
 export type FindBlocks = (query: string, kind: string | undefined, limit: number) => Block[];
@@ -41,6 +44,10 @@ export type UseBlocks = (input: Placing) => string;
 export type ChoosePages = (input: unknown, signal?: AbortSignal) => Promise<string>;
 /** Generates an image with the maker's account and adds it to media/ (Q423); answers with its address or why not. */
 export type GenerateImage = (input: GenerateInput, signal?: AbortSignal) => Promise<string>;
+/** Adds a package of npm's registry to the website, by Spaka's rules (Q491, Q493); answers with what was installed, or why not. */
+export type AddPackage = (name: string, version: string | undefined, signal?: AbortSignal) => Promise<string>;
+/** Takes a package out of the website (Q491). */
+export type RemovePackage = (name: string, signal?: AbortSignal) => Promise<string>;
 export type SpakaTools = {
   look: Look;
   findBlocks: FindBlocks;
@@ -50,6 +57,8 @@ export type SpakaTools = {
   choosePages: ChoosePages;
   /** Only when an account that generates images is connected (Q423). */
   generateImage?: GenerateImage;
+  addPackage: AddPackage;
+  removePackage: RemovePackage;
 };
 
 /** What a tool answers: text, and images the model looks at. */
@@ -137,6 +146,8 @@ export function spakaTools({
   useBlocks,
   choosePages,
   generateImage,
+  addPackage,
+  removePackage,
 }: SpakaTools): SpakaToolDef[] {
   return [
     {
@@ -255,6 +266,26 @@ export function spakaTools({
           } satisfies SpakaToolDef,
         ]
       : []),
+    {
+      name: "add_package",
+      description: `Adds a package of npm's registry to the website: Spaka picks the newest version its rules allow (at least ${MINIMUM_AGE_DAYS} days old; none with a known flaw, nor one that compiles native code when installed), asks the maker first about a young, little-downloaded or unlinked package, or one named like a well-known package, then installs it into the website's node_modules and writes it into package.json. Answers with the version and licence, or why it was not installed. Use it, or remove_package, rather than writing package.json's dependencies or running npm or pnpm, which Spaka undoes.`,
+      shape: {
+        name: z.string().describe('The package\'s name on npm, e.g. "embla-carousel" or "@floating-ui/dom"'),
+        version: z
+          .string()
+          .optional()
+          .describe('A version, a range or a tag, e.g. "8.6.0", "^8" or "latest"; without it, the newest Spaka allows'),
+      },
+      openWorld: true,
+      run: async ({ name, version }: { name: string; version?: string }, signal?: AbortSignal) =>
+        text(await addPackage(name.trim(), version, signal)),
+    },
+    {
+      name: "remove_package",
+      description: "Takes a package out of the website: out of package.json and its node_modules.",
+      shape: { name: z.string().describe("The package's name, as package.json lists it") },
+      run: async ({ name }: { name: string }, signal?: AbortSignal) => text(await removePackage(name.trim(), signal)),
+    },
     {
       name: PAGES_TOOL_NAME,
       description: PAGES_DESCRIPTION,

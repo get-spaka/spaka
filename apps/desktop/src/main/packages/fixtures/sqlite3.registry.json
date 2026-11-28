@@ -1,0 +1,51 @@
+{
+  "name": "sqlite3",
+  "dist-tags": {
+    "latest": "6.0.1"
+  },
+  "versions": {
+    "5.1.7": {
+      "name": "sqlite3",
+      "version": "5.1.7",
+      "description": "Asynchronous, non-blocking SQLite3 bindings",
+      "license": "BSD-3-Clause",
+      "repository": {
+        "url": "git+https://github.com/TryGhost/node-sqlite3.git",
+        "type": "git"
+      },
+      "scripts": {
+        "install": "prebuild-install -r napi || node-gyp rebuild"
+      },
+      "dist": {
+        "tarball": "https://registry.npmjs.org/sqlite3/-/sqlite3-5.1.7.tgz"
+      }
+    },
+    "6.0.1": {
+      "name": "sqlite3",
+      "version": "6.0.1",
+      "description": "Asynchronous, non-blocking SQLite3 bindings",
+      "license": "BSD-3-Clause",
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/TryGhost/node-sqlite3.git"
+      },
+      "scripts": {
+        "install": "prebuild-install -r napi || node-gyp rebuild"
+      },
+      "dist": {
+        "tarball": "https://registry.npmjs.org/sqlite3/-/sqlite3-6.0.1.tgz"
+      }
+    }
+  },
+  "time": {
+    "created": "2011-02-24T15:45:51.936Z",
+    "modified": "2026-03-12T15:28:29.587Z",
+    "5.1.7": "2024-01-05T08:48:16.555Z",
+    "6.0.1": "2026-03-12T15:28:29.461Z"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TryGhost/node-sqlite3.git"
+  },
+  "license": "BSD-3-Clause"
+}

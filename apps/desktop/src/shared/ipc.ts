@@ -191,6 +191,22 @@ export type ExportLink =
   | "cloudflare-domain"
   | "github-domain"
   | "worker-domain";
+
+/** One of a website's packages, as its settings list it (Q520). */
+export type PackageInfo = {
+  name: string;
+  /** As package.json asks for it: the exact version Spaka wrote, or a range written by hand. */
+  specifier: string;
+  /** The version installed; none until it is. */
+  version?: string;
+  license?: string;
+  /** Where it comes from: npm's registry, until private registries and git repositories (Q502). */
+  source: "npm";
+  /** Where the site's own modules import it: scripts/ for the browser, server/ for its server (Q508). */
+  sides: ("browser" | "server")[];
+  /** What it weighs for visitors, once the browser's packages are built (the plan's slice 3). */
+  weight?: number;
+};
 export type ExportResult = {
   folder: string;
   /** "static", "node", "cloudflare". */
@@ -777,6 +793,10 @@ export type Invokes = {
   /** Opens one of the hosting services the export guide names, or its help on domain names. */
   "export:open-host": (host: ExportLink) => void;
   "projects:set-site-url": (url: string) => ProjectInfo;
+  /** The open website's packages (Q520). */
+  "packages:list": () => PackageInfo[];
+  /** Takes one of the open website's packages out, then lists them again (Q520). */
+  "packages:remove": (name: string) => PackageInfo[];
   /** The skills the open project's agent gets, from every origin. */
   "skills:list": () => SkillInfo[];
   /** Asks the maker for a skill's folder. Null when they cancel. */
@@ -919,6 +939,8 @@ export type Events = {
   "conversation:prefill": (text: string) => void;
   /** A file under data/ or media/ changed: the Content tab reads again. */
   "content:changed": () => void;
+  /** A website's packages changed: added, removed or installed from package.json. */
+  "packages:changed": (projectId: string) => void;
   /** "Replace…" in the preview: the media picker opens, and answers with media:picked (Q159). */
   "media:pick-request": (request: { id: number }) => void;
   "conversation:event": (message: { projectId: string; event: ConversationEvent }) => void;
@@ -1016,6 +1038,8 @@ export const channels = {
     "export:reveal",
     "export:open-host",
     "projects:set-site-url",
+    "packages:list",
+    "packages:remove",
     "skills:list",
     "skills:choose-folder",
     "skills:add",
@@ -1093,6 +1117,7 @@ export const channels = {
     "preview:placed",
     "conversation:prefill",
     "content:changed",
+    "packages:changed",
     "media:pick-request",
     "conversation:event",
     "adaptation:changed",

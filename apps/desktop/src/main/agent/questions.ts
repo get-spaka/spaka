@@ -4,11 +4,13 @@
 import { z } from "zod";
 import type { AgentQuestion, QuestionAnswer } from "../../shared/conversation";
 import {
+  ADD_PACKAGE_TOOL,
   FIND_BLOCKS_TOOL,
   FIND_IMAGES_TOOL,
   GENERATE_IMAGE_TOOL,
   LOOK_TOOL,
   PAGES_TOOL,
+  REMOVE_PACKAGE_TOOL,
   SPAKA_SERVER,
   USE_BLOCK_TOOL,
   USE_IMAGE_TOOL,
@@ -210,6 +212,8 @@ export const PLAN_WRITERS = new Set([
   USE_IMAGE_TOOL,
   GENERATE_IMAGE_TOOL,
   PAGES_TOOL,
+  ADD_PACKAGE_TOOL,
+  REMOVE_PACKAGE_TOOL,
 ]);
 
 /** What the agent of the Pi harness reads with the maker's message in plan mode. */

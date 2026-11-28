@@ -1,0 +1,17 @@
+{
+  "results": [
+    {
+      "vulns": [
+        { "id": "GHSA-r5fr-rjxr-66jc", "modified": "2026-10-17T02:56:15.633068Z" },
+        { "id": "GHSA-xxjr-mmjv-4gpg", "modified": "2026-11-04T03:15:10.832238Z" }
+      ]
+    },
+    {
+      "vulns": [
+        { "id": "GHSA-28wg-ghj8-5hjv", "modified": "2026-09-10T03:50:51.191256Z" },
+        { "id": "GHSA-xwg4-73v4-xw9w", "modified": "2026-09-01T19:30:08.615560Z" }
+      ]
+    },
+    {}
+  ]
+}

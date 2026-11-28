@@ -2,11 +2,11 @@
 // opened from the button on its row in the websites list or the one before its
 // name over the conversation: its model and effort, its
 // own skills and connectors, all kept in its folder; and which connectors it
-// also gets from the settings for every website. A click on its name, the
+// also gets from the settings for every website; its packages (Q520). A click on its name, the
 // dialog's title, renames it, as a double-click on its row does.
 import { House } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { AgentStatus, ConnectorInfo, ProjectInfo, SiteCheck, SkillInfo } from "../../shared/ipc";
+import type { AgentStatus, ConnectorInfo, PackageInfo, ProjectInfo, SiteCheck, SkillInfo } from "../../shared/ipc";
 import { spaka } from "../lib/bridge";
 import { messageOf } from "../lib/errors";
 import { t } from "../lib/strings";
@@ -144,6 +144,8 @@ export function SiteSettings({
           }
         />
 
+        <Packages projectId={project.id} />
+
         <PublishedSite project={project} />
 
         <div className="flex justify-end">
@@ -153,6 +155,66 @@ export function SiteSettings({
         </div>
       </section>
     </div>
+  );
+}
+
+/** What a package weighs for visitors, once known. */
+const weight = (bytes: number) => (bytes < 1000 ? `${bytes} B` : `${Math.round(bytes / 100) / 10} kB`);
+
+/** The website's packages (Q520): name, version, licence, source, side and weight, and Remove. */
+function Packages({ projectId }: { projectId: string }) {
+  const p = t.packages;
+  const [list, setList] = useState<PackageInfo[]>([]);
+  const [error, setError] = useState<string>();
+  useEffect(() => {
+    const load = () => void spaka.invoke("packages:list").then(setList);
+    load();
+    return spaka.on("packages:changed", (id) => {
+      if (id === projectId) load();
+    });
+  }, [projectId]);
+  const remove = async (name: string) => {
+    if (!window.confirm(p.removeConfirm(name))) return;
+    setError(undefined);
+    try {
+      setList(await spaka.invoke("packages:remove", name));
+    } catch (e) {
+      setError(messageOf(e));
+    }
+  };
+  return (
+    <Group
+      title={p.title}
+      caption={error ? <span className="text-destructive">{error}</span> : p.caption}
+      testid="site-packages"
+    >
+      {list.length === 0 ? (
+        <p className="px-3 py-2.5 text-[13px] text-muted-foreground">{p.none}</p>
+      ) : (
+        list.map((pkg) => (
+          <Row
+            key={pkg.name}
+            label={
+              <span data-testid="package" data-name={pkg.name}>
+                {pkg.name} <span className="text-muted-foreground">{pkg.version ?? p.notInstalled}</span>
+              </span>
+            }
+            detail={[
+              pkg.license,
+              p.source,
+              (pkg.sides.length ? pkg.sides : (["none"] as const)).map((side) => p.sides[side]).join(", "),
+              pkg.weight !== undefined ? weight(pkg.weight) : undefined,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          >
+            <Push testid="package-remove" tip={p.removeTip(pkg.name)} onClick={() => void remove(pkg.name)}>
+              {p.remove}
+            </Push>
+          </Row>
+        ))
+      )}
+    </Group>
   );
 }
 

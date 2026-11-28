@@ -1,12 +1,12 @@
 # Spaka v2 : plan de construction des paquets et des modules serveur (Q490-Q535)
 
-## État (2026-11-27) : la sonde et la tranche 1 faites
+## État (2026-11-27) : la sonde et les tranches 1 et 2 faites
 
 | Tranche | Fait | Commits |
 |---|---|---|
 | 0. La sonde : pnpm 12, Vite, wrangler et Node sous permissions | ✅ | e762c96 (résultats dans [`docs/spikes/packages.md`](../spikes/packages.md)) ; correctif trouvé en passant, le `node` du shell Pi sous `/Users` : get-spaka/spaka#4 |
 | 1. Le pnpm de Spaka et le `node_modules` du projet | ✅ | 999d123 |
-| 2. `add_package`, ses règles et la section Paquets | | |
+| 2. `add_package`, ses règles et la section Paquets | ✅ | 0cc63a3 |
 | 3. Les paquets dans le navigateur | | |
 | 4. Les 37 templates passent aux paquets | | |
 | 5. Les modules serveur dans l'aperçu | | |
@@ -158,6 +158,30 @@ Fait le 2026-11-27 :
 - Dans les réglages du site, une section Paquets : nom, version, licence, source, côté, poids servi aux visiteurs, et un bouton Retirer.
 - Les failles : à l'ouverture d'un site et avant un export, les versions installées sont comparées à OSV. Une faille donne une carte qui propose une mise à jour à l'agent, et l'export l'avertit.
 - Tests unitaires des règles sur des réponses enregistrées ; vérification e2e de la carte.
+
+Décidé en route (Q536 à Q540, dans `docs/v2.0-decisions.md`) :
+- Ce que l'agent écrit lui-même dans les dépendances de `package.json` est remis comme installé, et l'agent est renvoyé à `add_package` ; ce que le maker écrit à la main hors d'un tour est installé, la zone grise avec une notice (Q536).
+- La faille à l'ouverture est une notice avec un bouton « Ask for the update » (Q538).
+- Seul un paquet qui compile du code natif à l'installation est refusé ; les autres scripts ne tournent pas, et l'agent le sait (Q539).
+- Une ligne refusée est retirée de `package.json` avant d'installer le reste, avec une notice (Q540).
+
+Fait le 2026-11-27 :
+- **`main/packages/rules.ts`** :
+  - La version : la plus récente dans la plage demandée (une version, une plage ou un tag), sinon pas plus récente que `latest`, ni pré-version ni dépréciée, publiée il y a au moins 7 jours.
+  - Les signaux de cette version : le document complet du registre (l'abrégé n'a pas `time`), les téléchargements, OSV, et deps.dev pour la licence et le dépôt, que deps.dev vérifie par la provenance. deps.dev est facultatif ; le registre, les téléchargements et OSV hors d'atteinte font répondre à l'agent qu'il réessaie.
+  - Le verdict suit Q500 et Q539. `node-gyp-build` compte parmi les compilateurs : son script compile quand aucun binaire préparé ne convient.
+- **`main/packages/osv.ts`** : les failles d'un paquet, lues une fois avec toutes les versions qu'elles touchent (les intervalles d'OSV), d'où la version qui corrige ; et le lot des versions installées (`querybatch`, puis chaque faille lue une fois).
+- **`main/packages/names.ts`** : un nom à une lettre près (ajoutée, ôtée, changée, deux voisines inversées) d'un des 15 913 paquets les plus téléchargés (`well-known.json`, tiré de npm-high-impact 1.13.0, MIT), dès 5 caractères, ou le même nom sans ses tirets, points ni portée. Aucune des 100 bibliothèques web courantes essayées n'est prise pour un typosquat.
+- **`main/packages/lockfile.ts`** lit `pnpm-lock.yaml` : les paquets du projet avec leur plage, et chaque paquet installé avec ceux du projet qui l'amènent. `node_modules/.pnpm/lock.yaml` dit si `node_modules` est à jour (un dossier copié sans lui est réinstallé).
+- **`main/packages/packages.ts`** : `add`, `remove`, la remise en place après l'agent, la synchronisation d'un `package.json` changé à la main, la liste des réglages et les failles. Une installation à la fois par projet. Un site sans paquet ne lance jamais pnpm ni ne télécharge rien.
+- **Les agents** : `add_package` et `remove_package` dans `spaka-tools.ts`, pour Claude et pour le harness Pi, refusés en mode plan. La carte est une carte de question de Spaka (`agent.askQuestions`, qui partage l'attente de la carte des pages), sans choix recommandé ; l'agent rejoué fait tourner ces deux outils pour de vrai.
+- **L'interface** : la section Packages des réglages du site (nom, version, licence, source, côté, Remove avec confirmation), les notices après un changement à la main, la notice d'une faille avec son bouton, une notice dite une seule fois, et les avertissements de l'export.
+- **Vérifié** :
+  - 27 tests unitaires, sur des réponses enregistrées (nanoid, lodash, sqlite3, core-js) et un vrai lockfile (Vite et wrangler), dont celui des vérifications de fin d'outil ;
+  - `rules.real.test.ts` (`SPAKA_REAL_PACKAGES=1`) contre les vrais services, en 2 s ;
+  - `e2e/packages.e2e.ts` : la carte, refusée puis acceptée, la section, la faille à la réouverture et son bouton, Remove, avec un pnpm qui n'installe rien (pas sous Windows pour l'installation, où pnpm est un programme).
+- **Laissé à la tranche 3** : le poids servi aux visiteurs (la section l'affiche dès qu'il est connu), et la description de `add_package` et le skill site-scripts qui disent comment importer un paquet. Les modules de `scripts/` ne peuvent pas encore l'importer dans le navigateur.
+- **Une limite** : mettre à jour un paquet du projet ne met pas à jour une dépendance déjà résolue dans le lockfile. La notice d'une faille amenée par un autre paquet demande la mise à jour de celui-ci, mais l'agent peut devoir le retirer et l'ajouter de nouveau.
 
 ### 3. Les paquets dans le navigateur
 
