@@ -1,3 +1,4 @@
+import { spawn } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { homedir, tmpdir } from "node:os";
@@ -224,5 +225,30 @@ describe("the preview's server process (ADR 0014)", () => {
       .poll(() => said.some((s) => s.kind === "error" && /^late \(server\/later\.js:1\)$/.test(s.message)))
       .toBe(true);
     expect(await server.load("fine", {})).toBe(2);
+  }, 30_000);
+
+  test("stops by itself when Spaka is gone without stopping it, and keeps no processor busy", async () => {
+    const root = mkdtempSync(join(scratch, "orphan-"));
+    // A module that keeps the process alive and prints: once Spaka is gone, each print found the channel closed.
+    mkdirSync(join(root, "server"));
+    writeFileSync(
+      join(root, "server/tick.js"),
+      "setInterval(() => console.log('tick'), 5); export function load() { return 1; }",
+    );
+    const child = spawn(electron, [hostFile, root, join(root, "files"), join(root, "db", "data.sqlite")], {
+      env: { ELECTRON_RUN_AS_NODE: "1" },
+      stdio: ["ignore", "ignore", "ignore", "ipc"],
+    });
+    await new Promise<void>((resolve) => child.once("message", () => resolve()));
+    child.send({ id: 1, op: "load", name: "tick", args: {} });
+    await new Promise<void>((resolve) =>
+      child.on("message", (m: { type: string; id?: number }) => m.id === 1 && resolve()),
+    );
+    const exited = new Promise<number | null>((resolve) => child.once("exit", resolve));
+    // Spaka's end of the channel closed, as when it quits or is killed.
+    child.disconnect();
+    const code = await Promise.race([exited, new Promise((r) => setTimeout(() => r("still running"), 5000))]);
+    if (code === "still running") child.kill();
+    expect(code).toBe(0);
   }, 30_000);
 });

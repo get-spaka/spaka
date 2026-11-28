@@ -15,7 +15,12 @@ import { applyMigrations, migrationsIn, moduleFiles, sqlApi } from "./modules.ts
 import { type DataAnswer, fromWireRequest, type HostCall, type HostMessage, wireResponse } from "./modules-protocol.ts";
 
 const [root, filesDir, dbFile] = process.argv.slice(2) as [string, string, string];
-const send = (message: HostMessage) => process.send?.(message);
+/** Sends to Spaka, while it is there: a closed channel throws, which the handlers below would send again. */
+const send = (message: HostMessage) => {
+  if (process.connected) process.send?.(message);
+};
+// Spaka gone (closed, or killed before it could stop this process): nothing is left to answer.
+process.on("disconnect", () => process.exit(0));
 
 const secretNames = (() => {
   try {
