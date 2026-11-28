@@ -125,6 +125,7 @@ import {
   recordsCsv,
   SiteUnavailable,
 } from "./publish/management";
+import { SECRET_NAME, SiteSecrets } from "./secrets/site-secrets";
 import { Skills } from "./skills/skills";
 import { APTABASE_KEY, errorType, type PUBLISH_WAYS, Stats } from "./stats";
 import { adaptMessage, copyTemplate, removalMessage, removalsOf, reviewNote, stepMessage } from "./templates/adapt";
@@ -376,6 +377,8 @@ async function main() {
         hostFile: join(app.isPackaged ? join(process.resourcesPath, "hosts") : join(here, "../hosts"), "modules.mjs"),
         readable: [appBundle()],
         data,
+        // The website's secrets alone, read at each start of the process (Q501).
+        secrets: () => siteSecrets.values(project.id),
         onSaid,
       }),
     block: async (id) => {
@@ -520,6 +523,8 @@ async function main() {
   const connectors = new Connectors(userData, vault);
   // Each website's management token, for its published site (Q183).
   const tokens = new ManagementTokens(userData, vault);
+  // Each website's secrets, for its server modules and its exports (Q501, Q558).
+  const siteSecrets = new SiteSecrets(userData, vault);
   // Free images for the agent and the maker (Q150); a folder of made-up ones for the checks.
   const images: ImageFinder = env.imagesFixture ? new FixtureImages(env.imagesFixture) : new ImageSearch();
   // The images generated in each website's turn, at most GENERATIONS_A_TURN (Q426).
@@ -578,6 +583,17 @@ async function main() {
           ipc.emit("packages:changed", project.id);
           makeModules(project.path);
           return answer;
+        },
+        // A secret the website's modules need: the maker gives it in a card, the agent learns only that (Q559).
+        askSecret: async ({ name, purpose, where }, signal) => {
+          if (!SECRET_NAME.test(name))
+            return `${name} is not a secret's name: capitals, digits and underscores, starting with a letter (PAYMENT_KEY).`;
+          if (siteSecrets.has(project.id, name))
+            return `${name} is already set: the modules read it as env.${name}. The maker replaces it in the website's settings if need be.`;
+          const got = await agent.askSecret(project.id, { name, purpose, ...(where ? { where } : {}) }, signal);
+          if (got?.answer.kind === "secret" && siteSecrets.has(project.id, name))
+            return `The maker gave ${name}: the website's server modules read it as env.${name}. You do not see its value; never ask for it in the conversation.`;
+          return `The maker did not give ${name}${got ? " for now" : ""}. Leave the module able to run without it (it says what is missing), and tell the maker they can give it later in the website's settings, in Secrets.`;
         },
         removePackage: async (name, signal) => {
           const { text } = await packages.remove(project.path, name, signal);
@@ -1244,6 +1260,8 @@ async function main() {
     if (!message) return;
     // While the agent waits, what the maker types answers it (Q284).
     const waiting = current && agent.waitingFor(current.id);
+    // A secret is given in its card only: words typed meanwhile, which may hold it, stay in the box (Q559).
+    if (current && waiting && "purpose" in waiting) throw new Error(t.secrets.giveInCard);
     if (current && waiting) {
       editor.leaveRecord();
       const note = notesFor(current.id).take();
@@ -1470,6 +1488,37 @@ async function main() {
     if (!removed.ok) throw new Error(removed.text);
     ipc.emit("packages:changed", project.id);
     return packagesWithWeights(project.path);
+  });
+  // The website's secrets (Q558): listed without their values; given, replaced, removed by the maker.
+  const secretsChanged = (projectId: string) => {
+    ipc.emit("secrets:changed", projectId);
+    if (current?.id === projectId) preview.serverChanged();
+  };
+  ipc.handle("secrets:list", () => (current ? siteSecrets.list(current.id, current.path) : []));
+  ipc.handle("secrets:set", (name, value) => {
+    if (!current) throw new Error("No project is open.");
+    siteSecrets.set(current.id, name, value);
+    secretsChanged(current.id);
+    return siteSecrets.list(current.id, current.path);
+  });
+  ipc.handle("secrets:remove", (name) => {
+    if (!current) throw new Error("No project is open.");
+    siteSecrets.remove(current.id, name);
+    secretsChanged(current.id);
+    return siteSecrets.list(current.id, current.path);
+  });
+  ipc.handle("secrets:provide", (cardId, value) => {
+    if (!current) throw new Error("No project is open.");
+    const card = agent.waitingFor(current.id);
+    if (!card || card.id !== cardId || !("purpose" in card))
+      throw new Error("The agent no longer asks for this secret.");
+    siteSecrets.set(current.id, card.name, value, {
+      purpose: card.purpose,
+      ...(card.where ? { where: card.where } : {}),
+    });
+    secretsChanged(current.id);
+    editor.leaveRecord();
+    agent.answer(current.id, cardId, { kind: "secret" }, notesFor(current.id).take());
   });
   ipc.handle("export:reveal", (folder) => {
     if (!env.background && existsSync(folder)) shell.showItemInFolder(folder);

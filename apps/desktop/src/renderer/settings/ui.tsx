@@ -82,8 +82,9 @@ export function ListBar({
   onAdd?: () => void;
   onRemove?: () => void;
   addLabel: string;
-  removeLabel: string;
-  canRemove: boolean;
+  /** Without it, the bar has no − button: its rows have their own Remove (Q558). */
+  removeLabel?: string;
+  canRemove?: boolean;
   testid?: string;
 }) {
   const button = "flex h-6 w-7 items-center justify-center border-r border-border text-[15px] disabled:opacity-35";
@@ -101,18 +102,20 @@ export function ListBar({
           +
         </button>
       </Tip>
-      <Tip text={removeLabel}>
-        <button
-          type="button"
-          className={button}
-          onClick={onRemove}
-          disabled={!canRemove}
-          aria-label={removeLabel}
-          data-testid={testid && `${testid}-remove`}
-        >
-          −
-        </button>
-      </Tip>
+      {removeLabel && (
+        <Tip text={removeLabel}>
+          <button
+            type="button"
+            className={button}
+            onClick={onRemove}
+            disabled={!canRemove}
+            aria-label={removeLabel}
+            data-testid={testid && `${testid}-remove`}
+          >
+            −
+          </button>
+        </Tip>
+      )}
     </div>
   );
 }

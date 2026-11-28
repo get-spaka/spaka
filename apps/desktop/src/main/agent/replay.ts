@@ -9,7 +9,14 @@ import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { dirname, isAbsolute } from "node:path";
 import type { ModelInfo, Query, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
 import { CARD_TOOLS } from "./questions";
-import { ADD_PACKAGE_TOOL, LOOK_TOOL, PAGES_TOOL, REMOVE_PACKAGE_TOOL, SPAKA_SERVER } from "./spaka-tools";
+import {
+  ADD_PACKAGE_TOOL,
+  ASK_SECRET_TOOL,
+  LOOK_TOOL,
+  PAGES_TOOL,
+  REMOVE_PACKAGE_TOOL,
+  SPAKA_SERVER,
+} from "./spaka-tools";
 
 type Line = { t: number; m: Record<string, unknown> & { type: string } };
 
@@ -143,7 +150,8 @@ export function replayQuery(file: string, speed = 1) {
           // recording goes on once it is answered (Q283, Q286); the maker's
           // time to answer in the recording is not waited again.
           const asked = cardCall(m);
-          if (asked?.name === PAGES_TOOL && runTool) {
+          // The card of pages and that of a secret run for real (Q302, Q559).
+          if ((asked?.name === PAGES_TOOL || asked?.name === ASK_SECRET_TOOL) && runTool) {
             const controller = new AbortController();
             stopAsking = () => controller.abort();
             const content = await runTool(asked.name, asked.input, controller.signal);

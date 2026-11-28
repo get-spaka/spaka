@@ -39,11 +39,20 @@ export async function load(args: { city: string }, { env, data, sql, files }) {
 
 The context:
 
-- `env`: the site's secrets, by name, and nothing else of the machine's environment.
+- `env`: the site's secrets, by name (below), and nothing else of the machine's environment.
 - `data`: the site's records. `await data.list("lessons")` gives a datasource's records as templates see them; `await data.add("bookings", { email, lesson })` adds one to a collected datasource, checked against its definition as a form is, and answers `{ id }` or `{ problems }`.
 - `sql`: SQL on the site's own database (SQLite; D1 on Cloudflare). `await sql.all(query, ...params)`, `await sql.get(…)` (a row, or undefined), `await sql.run(…)` (`{ changes }`). Always pass values as `?` parameters, never inside the query's text.
 - `files`: a folder the module may write in, outside the project, kept between restarts. Cloudflare has none: write files only when the site will be published on Node.
 - `request`: for an action, the request that sent the form.
+
+## Secrets
+
+A key a module needs (a payment service's secret key, an e-mail service's key) is a secret: Spaka keeps it encrypted on the maker's computer, never in the project, and gives it to the modules alone, as `env.PAYMENT_KEY`.
+
+- Ask for it with ask_secret, once, when you write the module that reads it: its name in capitals (`PAYMENT_KEY`), what it is for, and where the maker finds it, in their language. The maker types it in a card; you learn only whether it was given, never its value.
+- Never write a key in a file, a page or the conversation, and never ask the maker to paste one in a message.
+- Reading a secret that is not given throws an error that says so, which reaches you with the page's errors: write the page so that it still reads well without it.
+- Publish writes the secrets into the exported folder's `.env`, or gives them to Cloudflare as the Worker's secrets.
 
 ## In a page
 

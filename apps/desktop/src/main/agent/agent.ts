@@ -272,6 +272,20 @@ export class Agent {
     return got;
   }
 
+  /** Shows the card of a secret for the agent (Q559) and waits for the maker: given, or skipped. */
+  askSecret(
+    projectId: string,
+    secret: { name: string; purpose: string; where?: string },
+    signal?: AbortSignal,
+  ): Promise<{ answer: QuestionAnswer; note?: string } | undefined> {
+    return this.askCard(
+      projectId,
+      "s",
+      (id) => ({ type: "secret", card: { id, ...secret, state: "waiting" } }),
+      signal,
+    );
+  }
+
   /** Spaka's cards of a project no longer wait: its turn ended or stopped. */
   private endCards(projectId: string) {
     for (const id of this.spakaCards.get(projectId) ?? []) this.spakaWaits.settle(id, undefined);

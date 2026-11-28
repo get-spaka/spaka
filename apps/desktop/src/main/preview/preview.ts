@@ -275,6 +275,15 @@ export class Preview {
     this.emit();
   }
 
+  /** The site's secrets changed: its server process starts again with them, and the page is drawn again. */
+  serverChanged() {
+    const site = this.site;
+    if (!site?.server) return;
+    site.said.length = 0;
+    site.server.restart();
+    this.refresh(true);
+  }
+
   /** A new turn of the agent: the preview follows it again. */
   startFollowing() {
     this.following = true;

@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { AgentQuestion, QuestionAnswer } from "../../shared/conversation";
 import {
   ADD_PACKAGE_TOOL,
+  ASK_SECRET_TOOL,
   FIND_BLOCKS_TOOL,
   FIND_IMAGES_TOOL,
   GENERATE_IMAGE_TOOL,
@@ -21,7 +22,7 @@ export const ASK_TOOL = "AskUserQuestion";
 /** The tool the agent hands its plan in with, in plan mode (Q286). */
 export const PLAN_TOOL = "ExitPlanMode";
 /** Tools the conversation shows as cards rather than activity lines; the card of pages too (Q302). */
-export const CARD_TOOLS = new Set([ASK_TOOL, PLAN_TOOL, PAGES_TOOL]);
+export const CARD_TOOLS = new Set([ASK_TOOL, PLAN_TOOL, PAGES_TOOL, ASK_SECRET_TOOL]);
 
 const Option = z.object({
   label: z.string().min(1),
@@ -106,6 +107,7 @@ export function answerResult(questions: AgentQuestion[], answer: QuestionAnswer)
   if (answer.kind === "words") return `The user responded: ${answer.text}`;
   if (answer.kind === "skipped") return "The user did not answer the questions.";
   if (answer.kind === "pages") return `The maker kept these pages: ${answer.kept.join(", ")}.`;
+  if (answer.kind === "secret") return "The maker gave the secret.";
   const pairs = questions
     .filter((q) => answer.answers[q.question] !== undefined)
     .map((q) => {
@@ -214,6 +216,7 @@ export const PLAN_WRITERS = new Set([
   PAGES_TOOL,
   ADD_PACKAGE_TOOL,
   REMOVE_PACKAGE_TOOL,
+  ASK_SECRET_TOOL,
 ]);
 
 /** What the agent of the Pi harness reads with the maker's message in plan mode. */

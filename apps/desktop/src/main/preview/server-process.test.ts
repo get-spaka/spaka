@@ -175,6 +175,7 @@ describe("the preview's server process (ADR 0014)", () => {
                 writeFiles: await attempt(() => writeFileSync(join(files, "kept.txt"), "kept")),
                 child: await attempt(async () => (await import("node:child_process")).execSync("echo hi")),
                 env,
+                missing: await attempt(() => env.MAILER_KEY),
                 // Windows' basics set apart: those Spaka gives, and those Node's libuv adds to
                 // every program it starts there, from Spaka's own (its required_vars).
                 processEnv: Object.keys(process.env)
@@ -201,6 +202,8 @@ describe("the preview's server process (ADR 0014)", () => {
         writeFiles: "allowed",
         child: "ERR_ACCESS_DENIED",
         env: { PAYMENT_KEY: "sk_test_1" },
+        missing:
+          "the secret MAILER_KEY is not set: the agent asks the maker for it with ask_secret, or the maker gives it in the website's settings",
         processEnv: ["ELECTRON_RUN_AS_NODE", "PAYMENT_KEY", "SPAKA_SECRET_NAMES"],
       });
       expect(readFileSync(join(root, "..", `${basename(root)}-files`, "kept.txt"), "utf8")).toBe("kept");

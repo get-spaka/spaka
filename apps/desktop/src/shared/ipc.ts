@@ -193,6 +193,19 @@ export type ExportLink =
   | "worker-domain";
 
 /** One of a website's packages, as its settings list it (Q520). */
+/** A website's secret as its settings show it (Q558): never its value. */
+export type SecretInfo = {
+  name: string;
+  /** Whether it has a value; one the server modules read without a value is missing. */
+  set: boolean;
+  /** What it is for, as the agent said when it asked for it. */
+  purpose?: string;
+  /** When it was given, ISO. */
+  at?: string;
+  /** The server modules that read it, server/book.ts. */
+  readBy: string[];
+};
+
 export type PackageInfo = {
   name: string;
   /** As package.json asks for it: the exact version Spaka wrote, or a range written by hand. */
@@ -798,6 +811,13 @@ export type Invokes = {
   "packages:list": () => PackageInfo[];
   /** Takes one of the open website's packages out, then lists them again (Q520). */
   "packages:remove": (name: string) => PackageInfo[];
+  /** The open website's secrets, and those its server modules read without a value (Q558). */
+  "secrets:list": () => SecretInfo[];
+  /** Gives one of the open website's secrets its value, then lists them again. */
+  "secrets:set": (name: string, value: string) => SecretInfo[];
+  "secrets:remove": (name: string) => SecretInfo[];
+  /** The value given in the card of a secret (Q559): kept by Spaka, the agent told only that it was given. */
+  "secrets:provide": (cardId: string, value: string) => void;
   /** The skills the open project's agent gets, from every origin. */
   "skills:list": () => SkillInfo[];
   /** Asks the maker for a skill's folder. Null when they cancel. */
@@ -943,6 +963,8 @@ export type Events = {
   "content:changed": () => void;
   /** A website's packages changed: added, removed or installed from package.json. */
   "packages:changed": (projectId: string) => void;
+  /** A website's secrets changed. */
+  "secrets:changed": (projectId: string) => void;
   /** "Replace…" in the preview: the media picker opens, and answers with media:picked (Q159). */
   "media:pick-request": (request: { id: number }) => void;
   "conversation:event": (message: { projectId: string; event: ConversationEvent }) => void;
@@ -1042,6 +1064,10 @@ export const channels = {
     "projects:set-site-url",
     "packages:list",
     "packages:remove",
+    "secrets:list",
+    "secrets:set",
+    "secrets:remove",
+    "secrets:provide",
     "skills:list",
     "skills:choose-folder",
     "skills:add",
@@ -1111,6 +1137,7 @@ export const channels = {
     "conversation:prefill",
     "content:changed",
     "packages:changed",
+    "secrets:changed",
     "media:pick-request",
     "conversation:event",
     "adaptation:changed",

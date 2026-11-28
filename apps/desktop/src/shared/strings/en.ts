@@ -1168,6 +1168,42 @@ export const en = {
     /** What visitors' browsers download of it, compressed, once its module is made (Q520). */
     weight: (size: string) => `${size} for visitors`,
   },
+  secrets: {
+    // In the website's settings (Q558): never a value, once given.
+    title: "Secrets",
+    caption:
+      "Kept encrypted on this computer, never in the website's folder. The site's server modules read them as env; the agent never sees them. Publish writes them into the folder's .env.",
+    none: "No secret yet.",
+    set: "Set",
+    missing: "Missing",
+    setOn: (date: string) => `set on ${date}`,
+    readBy: (files: string[]) => `Read by ${files.join(", ")}`,
+    noValue: "with no value",
+    replace: "Replace…",
+    replaceTip: (name: string) => `Give ${name} a new value`,
+    remove: "Remove",
+    removeTip: (name: string) => `Take ${name} out of the website`,
+    removeConfirm: (name: string) =>
+      `Remove the secret ${name}? A server module that reads it stops working until it is given again.`,
+    valuePlaceholder: "Paste its value",
+    namePlaceholder: "NAME_OF_THE_KEY",
+    save: "Save",
+    cancel: "Cancel",
+    add: "Add a secret",
+    show: "Show what you typed",
+    hide: "Hide what you typed",
+    // The card when the agent asks for one (Q559).
+    header: "Secret",
+    kept: "Kept encrypted on this computer, in this website's settings. The agent will only know it was given.",
+    notNow: "Not now",
+    notNowTip: "Go on without it: you can give it later in the website's settings",
+    saveKey: "Save the key",
+    saveKeyTip: "Keep it encrypted on this computer, for the website's server modules",
+    given: (name: string) => `${name} given · kept in this website's settings`,
+    declined: (name: string) => `${name} not given`,
+    unanswered: (name: string) => `${name} was not given before the turn ended`,
+    giveInCard: "Give the secret in its card, or choose Not now, before writing to the agent.",
+  },
   skills: {
     title: "Skills",
     intro:
