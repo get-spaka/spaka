@@ -149,8 +149,12 @@ export function pnpmEnv(
   return out;
 }
 
-/** The settings of every pnpm call, as the probe ran them. */
-export function pnpmFlags(projectDir: string, folders: PnpmFolders): string[] {
+/**
+ * The settings of every pnpm call, as the probe ran them. Spaka's own tools
+ * (`tools`) install as their shipped lockfile says, without the optional
+ * packages: the native programs of Rolldown's own, which Spaka never runs.
+ */
+export function pnpmFlags(projectDir: string, folders: PnpmFolders, { tools = false } = {}): string[] {
   const settings: Record<string, string | number | boolean> = {
     "cache-dir": folders.cache,
     "strict-ssl": true,
@@ -165,7 +169,8 @@ export function pnpmFlags(projectDir: string, folders: PnpmFolders): string[] {
     "minimum-release-age-ignore-missing-time": false,
     "trust-policy": "no-downgrade",
     "trust-lockfile": false,
-    "frozen-lockfile": false,
+    "frozen-lockfile": tools,
+    ...(tools ? { optional: false } : {}),
     "node-linker": "isolated",
     "virtual-store-type": "project",
     "package-import-method": "clone-or-copy",
@@ -250,11 +255,13 @@ export type PnpmPlace = {
   env?: NodeJS.ProcessEnv;
   signal?: AbortSignal;
   timeoutMs?: number;
+  /** Spaka's own tools, installed from their shipped lockfile (pnpmFlags). */
+  tools?: boolean;
 };
 
 /** Runs pnpm once in a project, with no terminal: what it added, removed and said. */
 export function runPnpm(command: "add" | "remove" | "install", specs: string[], place: PnpmPlace): Promise<PnpmRun> {
-  const { program, projectDir, folders, nodeBinDir, env = process.env, signal, timeoutMs = 300_000 } = place;
+  const { program, projectDir, folders, nodeBinDir, env = process.env, signal, timeoutMs = 300_000, tools } = place;
   for (const dir of [folders.home, folders.config, folders.store, folders.cache, folders.state, folders.run])
     mkdirSync(dir, { recursive: true });
   if (!existsSync(folders.npmrc)) writeFileSync(folders.npmrc, "");
@@ -263,7 +270,7 @@ export function runPnpm(command: "add" | "remove" | "install", specs: string[], 
     ...specs,
     ...(command === "add" ? ["--save-exact"] : []),
     ...(command === "install" ? ["--no-runtime"] : []),
-    ...pnpmFlags(projectDir, folders),
+    ...pnpmFlags(projectDir, folders, { tools }),
     "--reporter=ndjson",
   ];
   return new Promise((resolve) => {

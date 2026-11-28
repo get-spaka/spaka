@@ -1159,6 +1159,8 @@ export const en = {
     /** Where the website's own modules import it: its scripts, which visitors' browsers run, or its server modules. */
     sides: { browser: "In the pages", server: "On the server", none: "Not imported yet" },
     source: "npm",
+    /** What visitors' browsers download of it, compressed, once its module is made (Q520). */
+    weight: (size: string) => `${size} for visitors`,
   },
   skills: {
     title: "Skills",

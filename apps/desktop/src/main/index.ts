@@ -19,6 +19,7 @@ import {
   recordFile,
   recordOf,
   recordTitle,
+  siteAssets,
   TEST_RECORDS_DIR,
   titleField,
   titleOf,
@@ -108,8 +109,10 @@ import { FixtureImages, type ImageFinder, ImageSearch, imagesAnswer } from "./me
 import { buildMenu } from "./menu";
 import { fixtureFetch } from "./packages/fixture-fetch";
 import { exportWarnings, flawNotices, greyAnswer, greyCard, syncNotices } from "./packages/maker";
+import { PackageModules } from "./packages/modules";
 import { Packages } from "./packages/packages";
 import { pnpmFolders } from "./packages/pnpm";
+import { ensureRolldown } from "./packages/rolldown";
 import { Preview } from "./preview/preview";
 import { testRecordFile } from "./preview/test-records";
 import { isEffort, Projects, readProjectFile } from "./projects";
@@ -368,6 +371,8 @@ async function main() {
       return block && blockShown(block);
     },
     font: (path) => fonts.path(path),
+    // The modules of the packages the site's scripts import (ADR 0013).
+    packageModule: (root, imports, url) => packageModules.served(root, imports, url),
     background: env.background,
     onState: (state) => ipc.emit("preview:state", state),
     // The Content tab reads again when a datasource or a media file changes,
@@ -459,6 +464,20 @@ async function main() {
     nodeBinDir: launcher.binDir,
     ...(env.packagesFixture ? { fetch: fixtureFetch(env.packagesFixture) } : {}),
   });
+  // The packages in the browser (ADR 0013): a module for each package the scripts
+  // import, made by Spaka's Rolldown, kept for every website.
+  const packageModules = new PackageModules({
+    cacheDir: join(userData, "package-modules"),
+    tools: () => ensureRolldown({ folders: pnpmFolders(userData), nodeBinDir: launcher.binDir }),
+  });
+  const importsOf = (path: string) => siteAssets(diskSource(path)).assets.packages ?? [];
+  /** A website's modules made ahead, so that its pages wait for none; Spaka's Rolldown installed with its first package. */
+  const makeModules = (path: string) => {
+    const imports = importsOf(path);
+    if (imports.length) void packageModules.modules(path, imports).catch(() => {});
+    else if (packages.list(path).length)
+      void ensureRolldown({ folders: pnpmFolders(userData), nodeBinDir: launcher.binDir }).catch(() => {});
+  };
   const agentEnv = () => {
     const base = cleanEnv();
     return {
@@ -551,6 +570,7 @@ async function main() {
             signal,
           );
           ipc.emit("packages:changed", project.id);
+          makeModules(project.path);
           return answer;
         },
         removePackage: async (name, signal) => {
@@ -895,9 +915,12 @@ async function main() {
   const syncPackages = async (project: { id: string; path: string }) => {
     try {
       const report = await packages.sync(project.path);
+      makeModules(project.path);
       if (!report) return;
       for (const text of syncNotices(report)) agent.notice(project.id, text);
       ipc.emit("packages:changed", project.id);
+      // The import map's versions may have changed: the page loads again if they did.
+      if (project.id === current?.id) preview.refresh(true);
     } catch (error) {
       agent.notice(project.id, t.packages.failed((error as Error).message));
     }
@@ -1400,9 +1423,17 @@ async function main() {
     const formServices = readProjectFile(current.path)?.formServices;
     // The packages' known flaws, said with each export (Q521).
     const flawWarnings = await packages.flaws(current.path).then(exportWarnings, () => [t.packages.exportUnchecked]);
+    const exported = current;
     const result = await exportProject(current.path, folder, {
       builder,
       name: current.name,
+      packageModules: async (imports) =>
+        new Map(
+          [...(await packageModules.modules(exported.path, imports))].map(([specifier, made]) => [
+            specifier,
+            "module" in made ? { code: made.module.code } : made,
+          ]),
+        ),
       hostsDir: app.isPackaged ? join(process.resourcesPath, "hosts") : join(here, "../hosts"),
       ...(formServices ? { formServices } : {}),
       managementToken: () => tokens.ensure(current!.id),
@@ -1417,8 +1448,12 @@ async function main() {
     );
     return { ...result, warnings: [...result.warnings, ...flawWarnings] };
   });
-  // The open website's packages, in its settings (Q520).
-  ipc.handle("packages:list", () => (current ? packages.list(current.path) : []));
+  // The open website's packages, in its settings (Q520), with what visitors download of those made.
+  const packagesWithWeights = (path: string) => {
+    const weights = packageModules.weights(path, importsOf(path));
+    return packages.list(path).map((p) => (weights.has(p.name) ? { ...p, weight: weights.get(p.name)! } : p));
+  };
+  ipc.handle("packages:list", () => (current ? packagesWithWeights(current.path) : []));
   ipc.handle("packages:remove", async (name) => {
     if (!current) throw new Error("No project is open.");
     if (agent.isWorking(current.id)) throw new Error(t.editing.busy);
@@ -1426,7 +1461,7 @@ async function main() {
     const removed = await packages.remove(project.path, name);
     if (!removed.ok) throw new Error(removed.text);
     ipc.emit("packages:changed", project.id);
-    return packages.list(project.path);
+    return packagesWithWeights(project.path);
   });
   ipc.handle("export:reveal", (folder) => {
     if (!env.background && existsSync(folder)) shell.showItemInFolder(folder);

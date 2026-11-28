@@ -98,7 +98,13 @@ export {
 export {
   type AddressedLibrary,
   hasScripts,
+  importedSpecifiers,
+  importMap,
   NO_ASSETS,
+  PACKAGES_BASE,
+  type PackageImport,
+  packageImports,
+  packageUrl,
   type SiteAssets,
   START_JS,
   STILL_CSS,

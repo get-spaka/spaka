@@ -204,7 +204,7 @@ export type PackageInfo = {
   source: "npm";
   /** Where the site's own modules import it: scripts/ for the browser, server/ for its server (Q508). */
   sides: ("browser" | "server")[];
-  /** What it weighs for visitors, once the browser's packages are built (the plan's slice 3). */
+  /** What visitors' browsers download of it, compressed, once its modules are made (ADR 0013). */
   weight?: number;
 };
 export type ExportResult = {

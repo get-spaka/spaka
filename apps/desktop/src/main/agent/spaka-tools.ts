@@ -268,7 +268,7 @@ export function spakaTools({
       : []),
     {
       name: "add_package",
-      description: `Adds a package of npm's registry to the website: Spaka picks the newest version its rules allow (at least ${MINIMUM_AGE_DAYS} days old; none with a known flaw, nor one that compiles native code when installed), asks the maker first about a young, little-downloaded or unlinked package, or one named like a well-known package, then installs it into the website's node_modules and writes it into package.json. Answers with the version and licence, or why it was not installed. Use it, or remove_package, rather than writing package.json's dependencies or running npm or pnpm, which Spaka undoes.`,
+      description: `Adds a package of npm's registry to the website: Spaka picks the newest version its rules allow (at least ${MINIMUM_AGE_DAYS} days old; none with a known flaw, nor one that compiles native code when installed), asks the maker first about a young, little-downloaded or unlinked package, or one named like a well-known package, then installs it into the website's node_modules and writes it into package.json. Answers with the version and licence, or why it was not installed. The site's scripts then import it by its name, as in import EmblaCarousel from "embla-carousel", or a path inside it, such as "three/addons/controls/OrbitControls.js": Spaka makes one module of it for visitors' browsers, its licence notice kept (the site-scripts skill). Use it, or remove_package, rather than writing package.json's dependencies or running npm or pnpm, which Spaka undoes.`,
       shape: {
         name: z.string().describe('The package\'s name on npm, e.g. "embla-carousel" or "@floating-ui/dom"'),
         version: z

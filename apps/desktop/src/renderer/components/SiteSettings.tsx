@@ -203,7 +203,7 @@ function Packages({ projectId }: { projectId: string }) {
               pkg.license,
               p.source,
               (pkg.sides.length ? pkg.sides : (["none"] as const)).map((side) => p.sides[side]).join(", "),
-              pkg.weight !== undefined ? weight(pkg.weight) : undefined,
+              pkg.weight !== undefined ? p.weight(weight(pkg.weight)) : undefined,
             ]
               .filter(Boolean)
               .join(" · ")}

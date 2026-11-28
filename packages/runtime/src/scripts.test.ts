@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { exportHead, previewHead } from "./head.ts";
-import { hasScripts, NO_ASSETS, START_JS, siteAssets } from "./scripts.ts";
+import { hasScripts, importedSpecifiers, importMap, NO_ASSETS, START_JS, siteAssets } from "./scripts.ts";
 import { memorySource } from "./source.ts";
 
 const site = memorySource({
@@ -23,6 +23,7 @@ test("a site's scripts and stylesheets are read from scripts/ and styles/ (ADR 0
     lib: ["scripts/lib/splitting.js"],
     modules: ["scripts/b-scroll.mjs", "scripts/reveal.js"],
     styles: ["styles/site.css"],
+    packages: [],
   });
   expect(notes).toEqual([expect.stringContaining("needs a name and an https address")]);
   expect(siteAssets(memorySource({ "scripts/libraries.json": "{" })).notes[0]).toMatch(/^scripts\/libraries\.json:/);
@@ -103,4 +104,87 @@ test("the cascade layers are ordered before daisyUI's stylesheet, utilities last
   const head = previewHead({ vendorBase: "/v", theme: "" });
   expect(head.indexOf("@layer theme, base, daisyui, components, utilities;")).toBeGreaterThan(-1);
   expect(head.indexOf("@layer theme, base, daisyui, components, utilities;")).toBeLessThan(head.indexOf("daisyui.css"));
+});
+
+test("what a script imports by name, not by a path or an address (ADR 0013)", () => {
+  expect(
+    importedSpecifiers(`
+      import EmblaCarousel from "embla-carousel";
+      import { animate,
+        inView } from 'motion';
+      import "lenis/dist/lenis.css";
+      export { OrbitControls } from "three/addons/controls/OrbitControls.js";
+      import * as util from "./util.js";
+      import data from "/data.js";
+      import x from "https://cdn.jsdelivr.net/npm/x@1/+esm";
+      import fs from "node:fs";
+      // import gone from "commented";
+      /* import gone from "commented-too"; */
+      const later = () => import("@floating-ui/dom");
+      const text = "something from somewhere";
+    `),
+  ).toEqual([
+    "embla-carousel",
+    "motion",
+    "lenis/dist/lenis.css",
+    "three/addons/controls/OrbitControls.js",
+    "@floating-ui/dom",
+  ]);
+});
+
+test("the import map points each package the scripts import, as installed, to its module", () => {
+  const installed = (name: string, version: string) => ({
+    [`node_modules/${name}/package.json`]: JSON.stringify({ name, version }),
+  });
+  const withPackages = memorySource({
+    ...installed("embla-carousel", "8.6.0"),
+    ...installed("three", "0.187.0"),
+    ...installed("@floating-ui/dom", "1.7.4"),
+    "scripts/carousel.js": 'import EmblaCarousel from "embla-carousel";\nexport function start() {}',
+    "scripts/scene.js":
+      'import * as THREE from "three";\nimport { OrbitControls } from "three/addons/controls/OrbitControls.js";\nimport { computePosition } from "@floating-ui/dom";\nimport gsap from "gsap";\nimport bad from "Not/A/Name";\nexport function start() {}',
+    "scripts/lib/old.js": 'import nothing from "skipped";',
+  });
+  const { assets, notes } = siteAssets(withPackages);
+  expect(assets.packages).toEqual([
+    {
+      specifier: "@floating-ui/dom",
+      name: "@floating-ui/dom",
+      version: "1.7.4",
+      url: "/assets/packages/@floating-ui/dom@1.7.4.js",
+    },
+    {
+      specifier: "embla-carousel",
+      name: "embla-carousel",
+      version: "8.6.0",
+      url: "/assets/packages/embla-carousel@8.6.0.js",
+    },
+    { specifier: "three", name: "three", version: "0.187.0", url: "/assets/packages/three@0.187.0.js" },
+    {
+      specifier: "three/addons/controls/OrbitControls.js",
+      name: "three",
+      version: "0.187.0",
+      url: "/assets/packages/three@0.187.0/addons/controls/OrbitControls.js",
+    },
+  ]);
+  expect(notes).toEqual([
+    "scripts/scene.js imports gsap, which is not installed: add it with add_package first.",
+    'scripts/scene.js: "Not/A/Name" is not the name of a package, nor a path inside one.',
+  ]);
+  // In the head, before the scripts, in the preview as once published; a "<" never closes it.
+  const head = exportHead(false, assets);
+  expect(head).toContain(
+    `<script type="importmap">{"imports":{"@floating-ui/dom":"/assets/packages/@floating-ui/dom@1.7.4.js","embla-carousel":"/assets/packages/embla-carousel@8.6.0.js","three":"/assets/packages/three@0.187.0.js","three/addons/controls/OrbitControls.js":"/assets/packages/three@0.187.0/addons/controls/OrbitControls.js"}}</script><script src="/scripts/lib/old.js"></script><script src="/assets/spaka-start.js"`,
+  );
+  expect(previewHead({ vendorBase: "/v", theme: "", assets })).toMatch(
+    /<script type="importmap" data-spaka-runtime>\{"imports".*<\/script><script src="\/v\/spaka-start\.js"/,
+  );
+  expect(importMap([{ specifier: "x", name: "x", version: "1.0.0", url: "/a</script>.js" }])).toBe(
+    '{"imports":{"x":"/a\\u003c/script>.js"}}',
+  );
+  expect(importMap([])).toBe("");
+  // A site.json written before packages has none.
+  expect(exportHead(false, { libraries: [], lib: [], modules: ["scripts/a.js"], styles: [] })).not.toContain(
+    "importmap",
+  );
 });
