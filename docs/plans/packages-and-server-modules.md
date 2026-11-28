@@ -7,7 +7,7 @@
 | 0. La sonde : pnpm 12, Vite, wrangler et Node sous permissions | ✅ | e762c96 (résultats dans [`docs/spikes/packages.md`](../spikes/packages.md)) ; correctif trouvé en passant, le `node` du shell Pi sous `/Users` : get-spaka/spaka#4 |
 | 1. Le pnpm de Spaka et le `node_modules` du projet | ✅ | 999d123 |
 | 2. `add_package`, ses règles et la section Paquets | ✅ | 0cc63a3 |
-| 3. Les paquets dans le navigateur | ✅ | 7936aee |
+| 3. Les paquets dans le navigateur | ✅ | 7936aee ; sous Windows, Rolldown seul (Q557) ec86e33 |
 | 4. Les 37 templates passent aux paquets | | |
 | 5. Les modules serveur dans l'aperçu | | |
 | 6. Les secrets | | |
@@ -214,6 +214,12 @@ Fait le 2026-11-27 :
   - les tests unitaires : les imports et l'import map, les modules faits avec le Vite du dépôt (la notice, l'export par défaut, le chemin qui partage son paquet, CommonJS, le cache, les erreurs), la route de l'aperçu, les exports, la note à l'agent ;
   - `e2e/browser-packages.e2e.ts` (il remplace `libraries.e2e.ts`, et demande le réseau) : les cinq paquets du skill écrits dans `package.json`, installés par le vrai pnpm sous les règles, faits par le vrai Vite sous les permissions de Node, chacun à l'œuvre en mode visiteur sans erreur, le module d'exemple du skill compris ; puis l'export statique, servi avec toute autre adresse refusée, où ils marchent pareil. En 10 s, téléchargements compris.
 - **Limites** : la feuille de style d'un paquet n'est pas importée (l'agent copie ce qu'il faut dans `styles/`, le skill le dit) ; le module d'un paquet en contient tout, quoi qu'on en importe.
+
+Repris le 2026-11-28 (Q557) : sous Windows, aucun paquet n'avait de module. Vite donnait au Rolldown en WebAssembly des chemins `D:/…`, qu'il prend pour relatifs et ne lit jamais (« Cannot resolve entry module »), et le Rolldown natif, qui les lit, est bloqué par Smart App Control (rolldown/rolldown#10801).
+- **`build-host.mjs`** appelle Rolldown lui-même, sans Vite : `platform: "browser"`, les conditions et les champs que Vite prend pour un navigateur en production, `process.env.NODE_ENV` remplacé, `es2022`, minifié, les commentaires légaux gardés, et la feuille de style d'un paquet laissée de côté par un plugin.
+- **`wasi-drives.mjs`**, chargé avant lui dans chacun de ses threads (`--import`) : sous Windows, chaque lecteur est ouvert dans le WASI comme `/c`, `/d`…, et la cible d'un lien est rendue sous cette forme : celle d'une jonction (un chemin Windows absolu) comme celle d'un lien symbolique relatif, que le pnpm 12 de Spaka fait quand Windows le permet (avec des `\`) ; ailleurs il ne fait rien. La traduction ne vaut que pour Rolldown en WebAssembly : les tests unitaires prennent le Rolldown natif du dépôt, qui lit les chemins Windows.
+- **`main/packages/rolldown.ts`** (qui remplace `vite.ts`) : le pnpm de Spaka installe Rolldown 1.2.19 et son build WebAssembly dans `tools/rolldown/`, depuis `rolldown/package.json` et `rolldown/pnpm-lock.yaml` (mêmes paquets rolldown qu'avant, sans Vite ni ses dépendances).
+- **Vérifié** : les tests unitaires (le message d'un chemin non exporté vient maintenant de Rolldown), et `e2e/browser-packages.e2e.ts` sur macOS et Windows ; ce test s'arrête maintenant aux erreurs de la page et les montre.
 
 ### 4. Les 37 templates passent aux paquets
 
