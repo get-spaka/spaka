@@ -753,7 +753,7 @@ export function PreviewPane({
               <p className="max-w-80 text-sm text-muted-foreground">
                 {project ? (working ? t.preview.emptyWorking : t.preview.emptyText) : t.preview.noProjectText}
               </p>
-              {project && working && !waiting && state.route === null && <EmptyWorking />}
+              {project && working && !waiting && state.routes.length === 0 && <EmptyWorking />}
             </>
           )}
           {zoom && (
@@ -927,27 +927,29 @@ function ZoomPicture({ zoom, onDone }: { zoom: Zoom; onDone: () => void }) {
  */
 function EmptyWorking() {
   return (
-    <div
-      role="status"
-      data-testid="preview-working"
-      className="preview-working absolute bottom-4 left-1/2 flex -translate-x-1/2"
-    >
+    <>
       <style>{workingPillStyle(".preview-working")}</style>
-      <span className="bars" aria-hidden>
-        <i />
-        <i />
-        <i />
-        <i />
-      </span>
-      <b>{t.editor.working}</b>
-      <Tip tip={t.editor.stopTip}>
-        <button type="button" onClick={() => void spaka.invoke("conversation:stop")}>
-          <svg viewBox="0 0 10 10" aria-hidden>
-            <rect width="10" height="10" rx="2" fill="currentColor" />
-          </svg>
-          <span>{t.editor.stop}</span>
-        </button>
-      </Tip>
-    </div>
+      <div
+        role="status"
+        data-testid="preview-working"
+        className="preview-working absolute bottom-4 left-1/2 flex -translate-x-1/2"
+      >
+        <span className="bars" aria-hidden>
+          <i />
+          <i />
+          <i />
+          <i />
+        </span>
+        <b>{t.editor.working}</b>
+        <Tip text={t.editor.stopTip}>
+          <button type="button" onClick={() => void spaka.invoke("conversation:stop")}>
+            <svg viewBox="0 0 10 10" aria-hidden>
+              <rect width="10" height="10" rx="2" fill="currentColor" />
+            </svg>
+            <span>{t.editor.stop}</span>
+          </button>
+        </Tip>
+      </div>
+    </>
   );
 }
