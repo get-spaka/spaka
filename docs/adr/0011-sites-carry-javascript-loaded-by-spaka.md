@@ -1,5 +1,5 @@
 ---
-status: accepted (2026-11-13, Q233-Q243); the runtime, the preview and the exports built on 2026-11-13 (templates slice 1); the agent told, by its instructions and the site-scripts skill, on 2026-11-13 (templates slice 2)
+status: accepted (2026-11-13, Q233-Q243); the runtime, the preview and the exports built on 2026-11-13 (templates slice 1); the agent told, by its instructions and the site-scripts skill, on 2026-11-13 (templates slice 2); its libraries, by address or in scripts/lib/, replaced by packages (ADR 0013, 2026-11-27)
 ---
 
 # A site may carry JavaScript, loaded by Spaka

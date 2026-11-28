@@ -8,6 +8,7 @@ Each spike was throwaway code, run apart from the app, that ended with a report 
 - [Spike 4: agents over ACP](acp.md), the code kept on a branch of its own
 - [The agent's look at pages](looks.md), a probe of 2026-11-15
 - [The agent's questions](questions.md), a probe for the agent asking the maker
+- [pnpm, Vite, wrangler and Node under permissions](packages.md), the probe of 2026-11-27 for packages and server modules
 
 ## Spike 1: live generation
 
