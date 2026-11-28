@@ -5,7 +5,7 @@ import { useCommands } from "../hooks/useCommand";
 import { spaka } from "../lib/bridge";
 import { t } from "../lib/strings";
 import { cn } from "../lib/utils";
-import { Button } from "./ui/button";
+import { Button, pressedClass } from "./ui/button";
 import { Tip } from "./ui/tip";
 
 const time = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" });
@@ -53,7 +53,7 @@ export function HistoryButtons({
       <Button
         variant="ghost"
         size="icon-sm"
-        className={cn("no-drag text-muted-foreground", open && "bg-foreground/10 text-foreground")}
+        className={cn("no-drag text-muted-foreground", open && pressedClass)}
         onClick={onToggle}
         tip={open ? t.history.hide : t.history.show}
         aria-pressed={open}

@@ -39,7 +39,7 @@ import { stillToAdapt, useAdaptation } from "./AdaptationBar";
 import { ExportDialog } from "./ExportDialog";
 import { HistoryButtons, HistoryList } from "./HistoryPanel";
 import { PagesGrid, pageName } from "./PagesGrid";
-import { Button } from "./ui/button";
+import { Button, pressedClass } from "./ui/button";
 import { NativeSelect } from "./ui/native-select";
 import { Tip, TipOverPage } from "./ui/tip";
 
@@ -554,7 +554,7 @@ export function PreviewPane({
                   key={view}
                   variant="ghost"
                   size="icon-sm"
-                  className={cn("h-6 w-8", state.view === view && "bg-foreground/10 text-foreground")}
+                  className={cn("h-6 w-8 text-muted-foreground", state.view === view && pressedClass)}
                   tip={tip}
                   command={command}
                   aria-pressed={state.view === view}
@@ -584,7 +584,7 @@ export function PreviewPane({
                     key={mode}
                     variant="ghost"
                     size="icon-sm"
-                    className={cn("h-6 w-8", state.mode === mode && "bg-foreground/10 text-foreground")}
+                    className={cn("h-6 w-8 text-muted-foreground", state.mode === mode && pressedClass)}
                     tip={tip}
                     command={`mode-${mode}`}
                     aria-pressed={state.mode === mode}
@@ -612,7 +612,7 @@ export function PreviewPane({
                     key={w}
                     variant="ghost"
                     size="icon-sm"
-                    className={cn("h-6 w-8", width === w && "bg-foreground/10 text-foreground")}
+                    className={cn("h-6 w-8 text-muted-foreground", width === w && pressedClass)}
                     tip={tip}
                     command={`screen-${w}`}
                     aria-pressed={width === w}
@@ -626,7 +626,7 @@ export function PreviewPane({
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  className={cn("h-6 w-8", !!deviceOf(width) && landscape && "bg-foreground/10 text-foreground")}
+                  className={cn("h-6 w-8 text-muted-foreground", !!deviceOf(width) && landscape && pressedClass)}
                   tip={!deviceOf(width) ? t.preview.noLandscape : landscape ? t.preview.portrait : t.preview.landscape}
                   disabled={!deviceOf(width)}
                   aria-pressed={!!deviceOf(width) && landscape}
@@ -654,7 +654,7 @@ export function PreviewPane({
             <Button
               variant="ghost"
               size="icon-sm"
-              className={cn("no-drag h-7 w-8", previewOnly && "bg-foreground/10 text-foreground")}
+              className={cn("no-drag h-7 w-8 text-muted-foreground", previewOnly && pressedClass)}
               tip={previewOnly ? t.preview.backToConversation : t.preview.previewOnly}
               command="preview-only"
               aria-pressed={previewOnly}

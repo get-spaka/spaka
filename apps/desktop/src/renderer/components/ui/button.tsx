@@ -67,4 +67,7 @@ function Button({
   );
 }
 
-export { Button, buttonVariants };
+// A toggle that is on: in dark, 10% of white barely differs from the background or a hover, so it is doubled there.
+const pressedClass = "bg-foreground/10 text-foreground dark:bg-foreground/20";
+
+export { Button, buttonVariants, pressedClass };
