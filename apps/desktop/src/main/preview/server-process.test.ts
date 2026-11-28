@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { homedir, tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "rolldown";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
@@ -42,8 +42,8 @@ function site(files: Record<string, string>, options: { secrets?: Record<string,
   const added: unknown[] = [];
   const server = new ServerProcess({
     root,
-    filesDir: join(root, "..", `${root.split("/").pop()}-files`),
-    dbFile: join(root, "..", `${root.split("/").pop()}-db`, "data.sqlite"),
+    filesDir: join(root, "..", `${basename(root)}-files`),
+    dbFile: join(root, "..", `${basename(root)}-db`, "data.sqlite"),
     hostFile,
     executable: electron,
     readable: [electron.replace(/\/Contents\/MacOS\/[^/]+$/, "")],
@@ -174,7 +174,10 @@ describe("the preview's server process (ADR 0014)", () => {
                 writeFiles: await attempt(() => writeFileSync(join(files, "kept.txt"), "kept")),
                 child: await attempt(async () => (await import("node:child_process")).execSync("echo hi")),
                 env,
-                processEnv: Object.keys(process.env).filter((k) => !k.startsWith("__CF")).sort(),
+                // Windows' basics, which Spaka gives on Windows alone, set apart.
+                processEnv: Object.keys(process.env)
+                  .filter((k) => !k.startsWith("__CF") && !/^(systemroot|windir|temp|tmp)$/i.test(k))
+                  .sort(),
               };
             }`,
           "pages/index.liquid": "<main></main>",
@@ -192,7 +195,7 @@ describe("the preview's server process (ADR 0014)", () => {
         env: { PAYMENT_KEY: "sk_test_1" },
         processEnv: ["ELECTRON_RUN_AS_NODE", "PAYMENT_KEY", "SPAKA_SECRET_NAMES"],
       });
-      expect(readFileSync(join(root, "..", `${root.split("/").pop()}-files`, "kept.txt"), "utf8")).toBe("kept");
+      expect(readFileSync(join(root, "..", `${basename(root)}-files`, "kept.txt"), "utf8")).toBe("kept");
     } finally {
       rmSync(secret, { force: true });
     }
