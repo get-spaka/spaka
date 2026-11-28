@@ -40,6 +40,11 @@ export type BuildOptions = {
    * into the export's .env (Q191), which git and the Docker image leave out.
    */
   managementToken?: string;
+  /**
+   * The .env of the export this one replaces, read before it is cleared: what
+   * the maker wrote into it (a domain name, Q556) is kept.
+   */
+  earlierEnv?: string;
   /** The day of the export, for the Worker's compatibility date. */
   today?: Date;
 };

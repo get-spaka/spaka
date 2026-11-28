@@ -75,13 +75,19 @@ export async function exportProject(projectDir: string, chosen: string, options:
   const checked = builder.check(project);
   if (!checked.ok)
     throw new Error(
-      `A static site cannot show what visitors send (${checked.refusal.datasources.join(", ")}): choose the Node or Cloudflare export.`,
+      `A static site cannot show what visitors send (${checked.refusal.datasources.join(", ")}): publish it on a server or on Cloudflare instead.`,
     );
   const folder = exportFolder(chosen, projectDir, options.name);
   // A previous export is replaced: no page that no longer exists is left behind.
-  if (existsSync(join(folder, MARKER)))
+  // What the maker wrote into its .env is given to the builder, which keeps it (Q556).
+  let earlierEnv: string | undefined;
+  if (existsSync(join(folder, MARKER))) {
+    try {
+      earlierEnv = readFileSync(join(folder, ".env"), "utf8");
+    } catch {}
     for (const entry of readdirSync(folder))
       if (!KEPT.has(entry)) rmSync(join(folder, entry), { recursive: true, force: true });
+  }
   mkdirSync(folder, { recursive: true });
   const result = await builder.build(project, {
     outDir: folder,
@@ -89,6 +95,7 @@ export async function exportProject(projectDir: string, chosen: string, options:
     ...(builder.server ? { serverBundle: readFileSync(join(options.hostsDir, builder.server), "utf8") } : {}),
     ...(options.formServices ? { formServices: options.formServices } : {}),
     ...(builder.needs.managementToken ? { managementToken: options.managementToken() } : {}),
+    ...(builder.needs.managementToken && earlierEnv !== undefined ? { earlierEnv } : {}),
   });
   writeFileSync(join(folder, MARKER), "This folder was exported by Spaka. A new export replaces what it holds.\n");
   return {

@@ -49,17 +49,21 @@ async function body(req: IncomingMessage): Promise<Uint8Array<ArrayBuffer> | und
 }
 
 /**
- * Who sent a request: the address it came from, or, when that is this
- * machine (a reverse proxy such as Caddy in front), the one the proxy gives.
+ * Who sent a request: the address it came from, or the one a reverse proxy
+ * such as Caddy gives, when the request comes from this machine or when every
+ * request is said to come through a proxy (SPAKA_PROXY, Q556).
  */
-function visitorOf(req: IncomingMessage): string | undefined {
-  const remote = req.socket.remoteAddress;
+export function visitorAddress(
+  remote: string | undefined,
+  forwardedFor: string | undefined,
+  proxied: boolean,
+): string | undefined {
   const local = !remote || remote === "::1" || remote.startsWith("127.") || remote === "::ffff:127.0.0.1";
-  const forwarded = String(req.headers["x-forwarded-for"] ?? "")
-    .split(",")[0]
-    ?.trim();
-  return local && forwarded ? forwarded : remote;
+  const forwarded = (forwardedFor ?? "").split(",")[0]?.trim();
+  return (local || proxied) && forwarded ? forwarded : remote;
 }
+const visitorOf = (req: IncomingMessage, proxied: boolean) =>
+  visitorAddress(req.socket.remoteAddress, String(req.headers["x-forwarded-for"] ?? ""), proxied);
 
 export type ServerOptions = {
   /** The export's folder: site.json and public/. */
@@ -67,9 +71,16 @@ export type ServerOptions = {
   /** Where data.sqlite is kept. */
   dataDir: string;
   managementToken?: string;
+  /**
+   * Every request comes through a reverse proxy, whose word on the visitor's
+   * address is believed: the export's compose.yaml, where Caddy alone
+   * reaches the server. Never for a server visitors reach themselves, who
+   * could then give any address.
+   */
+  proxied?: boolean;
 };
 
-export function siteServer({ dir, dataDir, managementToken }: ServerOptions): Server {
+export function siteServer({ dir, dataDir, managementToken, proxied = false }: ServerOptions): Server {
   const site = JSON.parse(readFileSync(join(dir, "site.json"), "utf8")) as PublishedSite;
   mkdirSync(dataDir, { recursive: true });
   const db = new DatabaseSync(join(dataDir, "data.sqlite"));
@@ -117,7 +128,7 @@ export function siteServer({ dir, dataDir, managementToken }: ServerOptions): Se
         if (typeof value === "string") headers.set(name, value);
         else if (Array.isArray(value)) headers.set(name, value.join(", "));
       const data = await body(req);
-      const visitor = visitorOf(req);
+      const visitor = visitorOf(req, proxied);
       const response = await runtime.fetch(
         new Request(new URL(url.pathname + url.search, `http://${req.headers.host ?? "site"}`), {
           method: req.method ?? "GET",

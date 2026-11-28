@@ -53,6 +53,12 @@ describe("every builder", () => {
     for (const file of result.files) expect(existsSync(join(out, file))).toBe(true);
     expect(builder.guide(result).length).toBeGreaterThan(0);
   });
+
+  test("the static one is put online by dragging its folder onto a hosting service's page", async () => {
+    const builder = builderById("static")!;
+    const result = await builder.build(contact(), { outDir: out, formServices: {} });
+    expect(builder.guide(result).map((s) => s.id)).toEqual(["open", "drop", "keep", "update", "forms"]);
+  });
 });
 
 describe("the static site", () => {
@@ -111,13 +117,57 @@ describe("the Node export", () => {
     const docker = readFileSync(join(out, "Dockerfile"), "utf8");
     expect(docker).toContain("FROM node:24-slim");
     expect(docker).toContain("VOLUME /data");
-    expect(readFileSync(join(out, "README.md"), "utf8")).toContain("--env-file .env chez-margot");
+    const readme = readFileSync(join(out, "README.md"), "utf8");
+    expect(readme).toContain("--env-file .env chez-margot");
+    // Docker first, and how to use a domain name of one's own (Q554, Q555).
+    expect(readme.indexOf("## With Docker")).toBeLessThan(readme.indexOf("## Try it on this machine"));
+    // The website behind Caddy, the domain name from .env (Q556).
+    const compose = readFileSync(join(out, "compose.yaml"), "utf8");
+    expect(compose).toContain("SPAKA_DOMAIN: ${SPAKA_DOMAIN:-:80}");
+    expect(compose).toContain('SPAKA_PROXY: "1"');
+    expect(compose).not.toContain("3000:3000");
+    expect(readFileSync(join(out, "Caddyfile"), "utf8")).toContain("{$SPAKA_DOMAIN} {\n\treverse_proxy site:3000");
+    expect(readFileSync(join(out, ".env"), "utf8")).toMatch(/^SPAKA_DOMAIN=$/m);
+    expect(readme).toContain("## Your own domain name");
     // The token is in .env, which git and the Docker image leave out (Q191).
     expect(readFileSync(join(out, ".env"), "utf8")).toMatch(/^SPAKA_TOKEN=the-token$/m);
     expect(readFileSync(join(out, ".dockerignore"), "utf8")).toContain(".env");
     expect(readFileSync(join(out, ".gitignore"), "utf8")).toContain(".env");
-    expect(builderById("node")!.guide(result)[0]).toEqual({ id: "try", command: "node server.mjs" });
+    expect(
+      builderById("node")!
+        .guide(result)
+        .map((s) => s.id),
+    ).toEqual(["docker", "server", "address"]);
+    expect(builderById("node")!.guide(result)[0]!.command).toBe("docker compose up -d --build");
     await expect(builderById("node")!.build(contact(), { outDir: out })).rejects.toThrow(/server\.mjs/);
+  });
+});
+
+describe("the export's .env", () => {
+  const env = () => readFileSync(join(out, ".env"), "utf8");
+  const build = (managementToken: string, earlierEnv?: string) =>
+    builderById("node")!.build(contact(), { outDir: out, serverBundle: "// the server", managementToken, earlierEnv });
+
+  test("keeps what the maker wrote into the earlier one, with the token of today (Q556)", async () => {
+    await build("first-token");
+    const edited = `${env().replace(/^SPAKA_DOMAIN=$/m, "SPAKA_DOMAIN=example.com, www.example.com")}PORT=8080\n`;
+    await build("second-token", edited);
+    expect(env().match(/^SPAKA_TOKEN=.*$/gm)).toEqual(["SPAKA_TOKEN=second-token"]);
+    expect(env().match(/^SPAKA_DOMAIN=.*$/gm)).toEqual(["SPAKA_DOMAIN=example.com, www.example.com"]);
+    expect(env()).toMatch(/^PORT=8080$/m);
+    // Exported again and again, it does not grow.
+    const once = env();
+    await build("second-token", once);
+    expect(env()).toBe(once);
+  });
+
+  test("gains the domain name's line when an earlier one has none", async () => {
+    await build(
+      "the-token",
+      "# The website's management token, with which Spaka reads what visitors send. Keep it private.\nSPAKA_TOKEN=old\n",
+    );
+    expect(env()).toMatch(/^SPAKA_TOKEN=the-token$/m);
+    expect(env()).toMatch(/^SPAKA_DOMAIN=$/m);
   });
 });
 

@@ -210,6 +210,10 @@ _Avoid_: Production, live site, deployment
 The secret the app generates for a published site, which lets the app, and nothing else, read, approve and delete the records that site has collected.
 _Avoid_: API key, password, admin token
 
+**Hosting service**:
+A third party that puts a builder's output online for the maker: Netlify, Cloudflare, a platform that runs Docker, or the maker's own server.
+_Avoid_: Host (the runtime's hosts are its Node and Worker servers), provider
+
 **Form service**:
 A third-party service that receives the forms of a static export, which cannot store them itself.
 _Avoid_: Form backend, form provider

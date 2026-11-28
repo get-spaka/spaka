@@ -182,6 +182,15 @@ export type PublishInfo = {
 };
 /** One step of putting an export online, worded by the app under its builder's id and its own. */
 export type GuideStep = { id: string; command?: string };
+/** A page the Publish dialog opens: a hosting service's, or its help on domain names. */
+export type ExportLink =
+  | "netlify"
+  | "cloudflare"
+  | "github"
+  | "netlify-domain"
+  | "cloudflare-domain"
+  | "github-domain"
+  | "worker-domain";
 export type ExportResult = {
   folder: string;
   /** "static", "node", "cloudflare". */
@@ -759,8 +768,8 @@ export type Invokes = {
   "export:run": (folder: string, builder: string) => ExportResult;
   "projects:set-form-service": (datasource: string, url: string) => ProjectInfo;
   "export:reveal": (folder: string) => void;
-  /** Opens one of the hosting services the export guide names. */
-  "export:open-host": (host: "netlify" | "cloudflare" | "github") => void;
+  /** Opens one of the hosting services the export guide names, or its help on domain names. */
+  "export:open-host": (host: ExportLink) => void;
   "projects:set-site-url": (url: string) => ProjectInfo;
   /** The skills the open project's agent gets, from every origin. */
   "skills:list": () => SkillInfo[];

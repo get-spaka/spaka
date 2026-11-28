@@ -84,9 +84,10 @@ export const staticBuilder: Builder = {
     const checked = this.check(project);
     if (!checked.ok)
       throw new Error(
-        `A static site cannot show what visitors send (${checked.refusal.datasources.join(", ")}): choose the Node or Cloudflare export.`,
+        `A static site cannot show what visitors send (${checked.refusal.datasources.join(", ")}): publish it on a server or on Cloudflare instead.`,
       );
     return buildStatic({ ...project, ...options });
   },
-  guide: () => [{ id: "upload" }, { id: "forms" }],
+  // Put online at a hosting service by dragging the folder onto its page (Q553).
+  guide: () => [{ id: "open" }, { id: "drop" }, { id: "keep" }, { id: "update" }, { id: "forms" }],
 };

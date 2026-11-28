@@ -89,13 +89,15 @@ describe("the Node and Cloudflare exports, run", () => {
   });
 
   test("a static export is refused: a page shows what visitors send", async () => {
-    // Never published: Publish has no way chosen in advance (Q181).
+    // Never published, and the simple way refused: none is chosen, and the advanced ones show (Q553).
     const w = launched.window;
     await w.getByTestId("export-open").click();
     await until(async () => (await w.getByTestId("publish-choice").count()) === 3);
+    expect(await w.getByTestId("publish-advanced").getAttribute("aria-expanded")).toBe("true");
     expect(
       await w.getByTestId("publish-choice").evaluateAll((els) => els.map((e) => e.getAttribute("aria-pressed"))),
     ).toEqual(["false", "false", "false"]);
+    await launched.capture("publish-refused");
     await w.getByTestId("export-close").click();
     await expect(invoke("export:run", join(runsDir, "static-guestbook"), "static")).rejects.toThrow(
       /cannot show what visitors send \(guestbook\)/,
@@ -109,7 +111,13 @@ describe("the Node and Cloudflare exports, run", () => {
       rmSync(out, { recursive: true, force: true });
       const result = await invoke("export:run", out, "node");
       expect(result.builder).toBe("node");
-      expect(result.guide.map((s: { id: string }) => s.id)).toEqual(["try", "docker", "server", "address"]);
+      expect(result.guide.map((s: { id: string }) => s.id)).toEqual(["docker", "server", "address"]);
+      // What the maker wrote into .env, the domain name Caddy serves, is kept by the next export (Q556).
+      const env = () => readFileSync(join(out, ".env"), "utf8");
+      writeFileSync(join(out, ".env"), env().replace(/^SPAKA_DOMAIN=$/m, "SPAKA_DOMAIN=example.com"));
+      await invoke("export:run", out, "node");
+      expect(env()).toMatch(/^SPAKA_DOMAIN=example\.com$/m);
+      expect(env().match(/^SPAKA_TOKEN=/gm)).toHaveLength(1);
       const port = await freePort();
       const base = `http://127.0.0.1:${port}`;
       const server = run(process.execPath, ["server.mjs"], out, {
@@ -161,12 +169,17 @@ describe("the Node and Cloudflare exports, run", () => {
     await w.getByTestId("export-again").click();
     await w.getByTestId("publish-guide").waitFor();
     expect(await w.getByTestId("guide-step").evaluateAll((els) => els.map((e) => e.getAttribute("data-id")))).toEqual([
-      "try",
       "docker",
       "server",
       "address",
     ]);
-    expect(await w.locator('[data-testid="guide-step"][data-id="try"] code').textContent()).toBe("node server.mjs");
+    expect(await w.locator('[data-testid="guide-step"][data-id="docker"] code').textContent()).toBe(
+      "docker compose up -d --build",
+    );
+    expect(await w.getByTestId("publish-domain").getAttribute("data-builder")).toBe("node");
+    await w.getByTestId("publish-domain").locator("summary").click();
+    expect(await w.getByTestId("domain-step").count()).toBe(4);
+    await w.getByTestId("domain-step").last().scrollIntoViewIfNeeded();
     await launched.capture("publish-node");
     await w.getByTestId("export-close").click();
   });
@@ -229,7 +242,7 @@ describe("the Node and Cloudflare exports, run", () => {
 
     const w = launched.window;
     await w.getByTestId("export-open").click();
-    await until(async () => (await w.getByTestId("publish-choice").count()) === 3);
+    // Published with Node last, so the advanced ways show: the simple one is picked instead.
     await w.locator('[data-testid="publish-choice"][data-id="static"]').click();
     const service = w.locator('[data-testid="form-service"][data-name="contact"]');
     await service.locator("input").fill("https://formspree.io/f/abc");

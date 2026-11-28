@@ -45,6 +45,7 @@ import {
   type ContentDatasource,
   type ContentRecord,
   type ContentRecordSummary,
+  type ExportLink,
   type HistoryEntry,
   type MediaFound,
   type MediaItem,
@@ -1342,7 +1343,11 @@ async function main() {
     netlify: "https://app.netlify.com/drop",
     cloudflare: "https://developers.cloudflare.com/pages/get-started/direct-upload/",
     github: "https://docs.github.com/en/pages/getting-started-with-github-pages/creating-a-github-pages-site",
-  } as const;
+    "netlify-domain": "https://docs.netlify.com/manage/domains/configure-domains/configure-external-dns/",
+    "cloudflare-domain": "https://developers.cloudflare.com/pages/configuration/custom-domains/",
+    "github-domain": "https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site",
+    "worker-domain": "https://developers.cloudflare.com/workers/configuration/routing/custom-domains/",
+  } as const satisfies Record<ExportLink, string>;
   ipc.handle("export:open-host", (host) => {
     const url = hosts[host];
     if (url && !env.background) void shell.openExternal(url);
