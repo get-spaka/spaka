@@ -23,6 +23,8 @@ pre-push:
   commands:
     checks:
       run: node scripts/pre-push.ts
+      # Git's lines on what the push sends of each branch, from which the change is read.
+      use_stdin: true
 # After a checkout or a pull, the templates' submodule gets its own hooks once it is there.
 post-checkout:
   commands:
