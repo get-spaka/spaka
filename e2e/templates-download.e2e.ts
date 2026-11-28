@@ -74,6 +74,8 @@ describe("Spaka's templates, downloaded", () => {
 
   test("the latest catalogue is read and its pictures shown; nothing downloaded yet", async () => {
     const w = launched.window;
+    // From scratch at first: the templates unfold.
+    await w.getByTestId("start-way-template").click();
     await w.locator('[data-testid="template-card"][data-template="reel"]').waitFor();
     expect(asked[0]).toBe("/releases/latest/download/catalogue.json");
     const ids = await w.getByTestId("template-card").evaluateAll((els) => els.map((el) => el.dataset.template));

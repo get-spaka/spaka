@@ -4,10 +4,24 @@
 // shows it large, the pictures of its pages at desktop or phone width
 // (Q541, Q544); Import a template adds
 // a folder or a .zip. The message box stays at the bottom center and says
-// which template the website starts from. The first message creates the
-// website, and the window takes its usual layout.
-import { ArrowLeft, Check, Eye, Monitor, Smartphone, Upload, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+// which template the website starts from. Starting from scratch folds the
+// templates away: the message box rises to the middle, taller. Starting from a
+// template stays so when its template is cleared, and nothing is sent until one
+// is chosen. The first message creates the website, and the window takes its
+// usual layout.
+import {
+  ArrowLeft,
+  Check,
+  CircleDashed,
+  Eye,
+  LayoutTemplate,
+  Monitor,
+  PenLine,
+  Smartphone,
+  Upload,
+  X,
+} from "lucide-react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
   type AgentStatus,
   accountReady,
@@ -42,6 +56,12 @@ export function StartPanel({
   const [templates, setTemplates] = useState<TemplateSummary[]>();
   const [category, setCategory] = useState<TemplateCategory>();
   const [chosen, setChosen] = useState<string>();
+  // The way the maker starts, chosen from the two above the templates: from scratch at first.
+  const [mode, setMode] = useState<"scratch" | "template">("scratch");
+  const choose = (id: string) => {
+    setChosen(id);
+    setMode("template");
+  };
   const [viewing, setViewing] = useState<string>();
   const [importing, setImporting] = useState<TemplateImport>();
   const load = () => spaka.invoke("templates:list").then(setTemplates);
@@ -57,9 +77,15 @@ export function StartPanel({
   // Why the website could not start from the chosen template (Q247): it could not be downloaded.
   const [sendProblem, setSendProblem] = useState<string>();
   const input = useRef<HTMLTextAreaElement>(null);
+  // The zone the maker is in, its border thicker: the templates, or the message box. None at first.
+  const [zone, setZone] = useState<"templates" | "prompt">();
+  const toPrompt = () => {
+    setZone("prompt");
+    input.current?.focus();
+  };
   const send = () => {
     const text = draft.trim();
-    if (!text || sending) return;
+    if (!text || sending || templateMissing) return;
     setSending(true);
     setSendProblem(undefined);
     void spaka
@@ -88,7 +114,7 @@ export function StartPanel({
     pictures.delete(`${added.id}/hover`);
     setImporting(undefined);
     await load();
-    setChosen(added.id);
+    choose(added.id);
   };
 
   // The chips: All, then each category a template has (Q263).
@@ -96,6 +122,9 @@ export function StartPanel({
   const shown = (templates ?? []).filter((tpl) => !category || tpl.category === category);
   const chosenTemplate = templates?.find((tpl) => tpl.id === chosen);
   const viewed = templates?.find((tpl) => tpl.id === viewing);
+  const scratch = mode === "scratch";
+  // Starting from a template, none chosen yet (or it was cleared): nothing is sent.
+  const templateMissing = mode === "template" && !chosenTemplate;
 
   return (
     <section data-testid="start" className="relative flex min-w-0 flex-1 flex-col bg-background">
@@ -120,112 +149,228 @@ export function StartPanel({
         </Button>
       </div>
 
-      {viewed ? (
-        <TemplateLarge
-          key={viewed.id}
-          template={viewed}
-          chosen={chosen === viewed.id}
-          onBack={() => view(undefined)}
-          onChoose={() => setChosen(viewed.id)}
-        />
-      ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-6xl space-y-5 px-8 pt-4 pb-6">
+      {!viewed && (
+        <div data-testid="start-top" className="shrink-0 border-b">
+          <div className="mx-auto max-w-6xl space-y-4 px-8 pt-1 pb-5">
             <div className="space-y-1">
               <h1 className="text-xl font-semibold tracking-tight">{t.start.title}</h1>
               <p className="text-sm text-muted-foreground">{t.start.text}</p>
             </div>
-            {categories.length > 1 && (
-              <div className="flex flex-wrap gap-1.5" role="toolbar" aria-label={t.start.title}>
-                {[undefined, ...categories].map((c) => (
-                  <Tip key={c ?? "all"} text={c ? t.start.categoryTip : t.start.allTip}>
-                    <button
-                      type="button"
-                      aria-pressed={category === c}
-                      data-testid="template-chip"
-                      data-category={c ?? "all"}
-                      onClick={() => setCategory(c)}
-                      className={cn(
-                        "rounded-full border px-2.5 py-0.5 text-xs",
-                        category === c
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "text-muted-foreground hover:border-foreground/40 hover:text-foreground",
-                      )}
-                    >
-                      {c ? t.start.categories[c] : t.start.all}
-                    </button>
-                  </Tip>
-                ))}
-              </div>
-            )}
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-x-5 gap-y-6">
-              {shown.map((tpl) => (
-                <TemplateCard
-                  key={tpl.id}
-                  template={tpl}
-                  chosen={chosen === tpl.id}
-                  onChoose={() => setChosen(chosen === tpl.id ? undefined : tpl.id)}
-                  onView={() => view(tpl.id)}
-                />
-              ))}
+            <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr]" data-testid="start-ways">
+              <StartWay
+                testId="start-way-scratch"
+                icon={<PenLine />}
+                title={t.start.scratchTitle}
+                text={t.start.scratchText}
+                tip={t.start.scratchTip}
+                active={scratch}
+                onClick={() => {
+                  setChosen(undefined);
+                  setMode("scratch");
+                  toPrompt();
+                }}
+              />
+              <span aria-hidden className="self-center justify-self-center text-xs text-muted-foreground">
+                {t.start.or}
+              </span>
+              <StartWay
+                testId="start-way-template"
+                icon={<LayoutTemplate />}
+                title={t.start.templateTitle}
+                text={t.start.templateText}
+                tip={t.start.templateTip}
+                active={mode === "template"}
+                detail={chosenTemplate?.name}
+                onClick={() => {
+                  setMode("template");
+                  setZone("templates");
+                }}
+              />
             </div>
           </div>
         </div>
       )}
 
-      {!accountReady(status, newSettings.model) && (
-        <SignInPanel status={status} modelName={modelName(status, newSettings.model)} />
-      )}
-      {sendProblem && (
-        <div
-          data-testid="start-problem"
-          role="alert"
-          className="mx-auto mb-2 w-full max-w-2xl rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm"
-        >
-          <p>{sendProblem}</p>
-          <p className="text-xs text-muted-foreground">{t.start.orScratch}</p>
-        </div>
-      )}
-      <MessageBox
-        className="mx-auto w-full max-w-2xl pb-5"
-        project={null}
-        status={status}
-        draft={draft}
-        onDraft={setDraft}
-        onSend={send}
-        input={input}
-        working={sending}
-        placeholder={chosenTemplate ? t.start.placeholder(chosenTemplate.name) : t.conversation.placeholder}
-        newSettings={newSettings}
-        onNewSettings={setSettings}
-        noPlan={!!chosenTemplate}
+      {/* From scratch, the templates fold away and the message box rises into their place. */}
+      <div
+        data-testid="start-templates"
+        data-active={zone === "templates" || undefined}
+        data-folded={scratch || undefined}
+        aria-hidden={scratch || undefined}
+        inert={scratch}
+        className={cn(
+          "relative flex min-h-0 shrink basis-0 flex-col overflow-hidden border-b transition-[flex-grow,opacity,border-color] duration-300 ease-out motion-reduce:transition-none",
+          scratch ? "pointer-events-none grow-0 border-transparent opacity-0" : "grow",
+        )}
+        onPointerDown={() => setZone("templates")}
       >
-        <div className="flex items-center gap-1.5 px-1 pb-1">
-          {chosenTemplate ? (
-            <span
-              data-testid="chosen-template"
-              className="inline-flex items-center gap-1 rounded-full bg-secondary py-0.5 pr-1 pl-2.5 text-xs"
+        {viewed ? (
+          <TemplateLarge
+            key={viewed.id}
+            template={viewed}
+            chosen={chosen === viewed.id}
+            active={zone === "templates"}
+            onBack={() => view(undefined)}
+            onChoose={() => {
+              choose(viewed.id);
+              toPrompt();
+            }}
+          />
+        ) : (
+          <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col px-8 py-3">
+            <div
+              data-testid="start-grid"
+              className={cn("min-h-0 flex-1 overflow-y-auto rounded-xl", zone === "templates" && "ring-2 ring-primary")}
             >
-              {t.start.startingFrom(chosenTemplate.name)}
-              <Tip text={t.start.clear}>
-                <button
-                  type="button"
-                  className="rounded-full p-0.5 text-muted-foreground hover:bg-background hover:text-foreground"
-                  aria-label={t.start.clear}
-                  data-testid="chosen-template-clear"
-                  onClick={() => setChosen(undefined)}
-                >
-                  <X className="size-3" />
-                </button>
-              </Tip>
-            </span>
-          ) : (
-            <span data-testid="chosen-template-none" className="text-xs text-muted-foreground">
-              {t.start.fromScratch}
-            </span>
+              <div className="space-y-5 px-4 pt-4 pb-10">
+                <h2 className="text-sm font-medium">{t.start.templatesHeading}</h2>
+                {categories.length > 1 && (
+                  <div className="flex flex-wrap gap-1.5" role="toolbar" aria-label={t.start.title}>
+                    {[undefined, ...categories].map((c) => (
+                      <Tip key={c ?? "all"} text={c ? t.start.categoryTip : t.start.allTip}>
+                        <button
+                          type="button"
+                          aria-pressed={category === c}
+                          data-testid="template-chip"
+                          data-category={c ?? "all"}
+                          onClick={() => setCategory(c)}
+                          className={cn(
+                            "rounded-full border px-2.5 py-0.5 text-xs",
+                            category === c
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "text-muted-foreground hover:border-foreground/40 hover:text-foreground",
+                          )}
+                        >
+                          {c ? t.start.categories[c] : t.start.all}
+                        </button>
+                      </Tip>
+                    ))}
+                  </div>
+                )}
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-x-5 gap-y-6">
+                  {shown.map((tpl) => (
+                    <TemplateCard
+                      key={tpl.id}
+                      template={tpl}
+                      chosen={chosen === tpl.id}
+                      onChoose={() => {
+                        if (chosen === tpl.id) {
+                          setChosen(undefined);
+                          setZone("templates");
+                        } else {
+                          choose(tpl.id);
+                          toPrompt();
+                        }
+                      }}
+                      onView={() => view(tpl.id)}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: it only shows which zone the maker is in; the focus in its field does the same from the keyboard */}
+      <div
+        data-testid="start-prompt"
+        data-active={zone === "prompt" || undefined}
+        className={cn(
+          "flex shrink-0 grow-0 flex-col justify-center pt-2 transition-[flex-grow] duration-300 ease-out motion-reduce:transition-none",
+          scratch && "grow",
+        )}
+        onPointerDown={() => setZone("prompt")}
+        onFocus={() => setZone("prompt")}
+      >
+        {!accountReady(status, newSettings.model) && (
+          <SignInPanel status={status} modelName={modelName(status, newSettings.model)} />
+        )}
+        {sendProblem && (
+          <div
+            data-testid="start-problem"
+            role="alert"
+            className="mx-auto mb-2 w-[calc(100%-4rem)] max-w-272 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm"
+          >
+            <p>{sendProblem}</p>
+            <p className="text-xs text-muted-foreground">{t.start.orScratch}</p>
+          </div>
+        )}
+        <MessageBox
+          className={cn(
+            "mx-auto w-full px-8 pb-5 transition-[max-width] duration-300 ease-out motion-reduce:transition-none",
+            scratch ? "max-w-3xl" : "max-w-6xl",
           )}
-        </div>
-      </MessageBox>
+          fieldClassName={cn(
+            "transition-[height] duration-300 ease-out motion-reduce:transition-none",
+            scratch ? "h-44" : "h-17",
+          )}
+          sendBlocked={templateMissing ? t.start.noTemplateTip : undefined}
+          project={null}
+          status={status}
+          draft={draft}
+          onDraft={setDraft}
+          onSend={send}
+          input={input}
+          working={sending}
+          placeholder={chosenTemplate ? t.start.placeholder(chosenTemplate.name) : t.conversation.placeholder}
+          newSettings={newSettings}
+          onNewSettings={setSettings}
+          noPlan={!!chosenTemplate}
+          active={zone === "prompt"}
+        >
+          <div className="flex items-center gap-1.5 px-1 pb-1">
+            {chosenTemplate ? (
+              <>
+                <span
+                  data-testid="chosen-template"
+                  className="inline-flex items-center gap-1 rounded-full bg-secondary py-0.5 pr-1 pl-2.5 text-xs"
+                >
+                  {t.start.startingFrom(chosenTemplate.name)}
+                  <Tip text={t.start.clear}>
+                    <button
+                      type="button"
+                      className="rounded-full p-0.5 text-muted-foreground hover:bg-background hover:text-foreground"
+                      aria-label={t.start.clear}
+                      data-testid="chosen-template-clear"
+                      onClick={() => {
+                        // Still starting from a template: the maker goes back to choose another.
+                        setChosen(undefined);
+                        setZone("templates");
+                      }}
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </Tip>
+                </span>
+                <span className="truncate text-xs text-muted-foreground">{t.start.startingFromHint}</span>
+              </>
+            ) : templateMissing ? (
+              <>
+                <span
+                  data-testid="chosen-template-missing"
+                  className="inline-flex items-center gap-1 rounded-full border border-dashed border-warning px-2.5 py-0.5 text-xs text-warning"
+                >
+                  <CircleDashed className="size-3" />
+                  {t.start.noTemplate}
+                </span>
+                <span className="truncate text-xs text-muted-foreground">{t.start.noTemplateHint}</span>
+              </>
+            ) : (
+              <>
+                <span
+                  data-testid="chosen-template-none"
+                  className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-0.5 text-xs"
+                >
+                  <PenLine className="size-3" />
+                  {t.start.fromScratch}
+                </span>
+                <span className="truncate text-xs text-muted-foreground">{t.start.fromScratchHint}</span>
+              </>
+            )}
+          </div>
+        </MessageBox>
+      </div>
 
       {importing && (
         <ImportDialog
@@ -235,6 +380,61 @@ export function StartPanel({
         />
       )}
     </section>
+  );
+}
+
+/** One of the two ways to start: from a description alone, or from a template. */
+function StartWay({
+  testId,
+  icon,
+  title,
+  text,
+  tip,
+  active,
+  detail,
+  onClick,
+}: {
+  testId: string;
+  icon: ReactNode;
+  title: string;
+  text: string;
+  tip: string;
+  active: boolean;
+  /** The template chosen, under the way that starts from one. */
+  detail?: string;
+  onClick: () => void;
+}) {
+  return (
+    <Tip text={tip}>
+      <button
+        type="button"
+        data-testid={testId}
+        data-active={active || undefined}
+        aria-pressed={active}
+        onClick={onClick}
+        className={cn(
+          "flex items-start gap-3 rounded-lg border p-3 text-left outline-none transition-colors",
+          "focus-visible:ring-[3px] focus-visible:ring-ring/50 [&_svg]:size-4 [&_svg]:shrink-0",
+          active ? "border-primary bg-primary/5" : "hover:border-foreground/30 hover:bg-accent/40",
+        )}
+      >
+        <span
+          className={cn(
+            "mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-md",
+            active ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground",
+          )}
+        >
+          {icon}
+        </span>
+        <span className="min-w-0 space-y-0.5">
+          <span className="flex items-baseline gap-2">
+            <span className="text-sm font-medium">{title}</span>
+            {detail && <span className="truncate text-xs text-primary">{detail}</span>}
+          </span>
+          <span className="block text-xs text-muted-foreground">{text}</span>
+        </span>
+      </button>
+    </Tip>
   );
 }
 
@@ -274,9 +474,11 @@ function TemplateCard({
         <button
           type="button"
           aria-pressed={chosen}
+          // Choosing goes to the message box: the templates' zone is not lit on the way (no flicker).
+          onPointerDown={(event) => event.stopPropagation()}
           onClick={onChoose}
           className={cn(
-            "relative block aspect-[8/5] w-full overflow-hidden rounded-lg border bg-muted outline-none transition-shadow",
+            "relative block aspect-8/5 w-full overflow-hidden rounded-lg border bg-muted outline-none transition-shadow",
             "focus-visible:ring-[3px] focus-visible:ring-ring/50",
             chosen ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:shadow-md",
           )}
@@ -341,11 +543,14 @@ function TemplateCard({
 function TemplateLarge({
   template,
   chosen,
+  active,
   onBack,
   onChoose,
 }: {
   template: TemplateSummary;
   chosen: boolean;
+  /** The templates are the zone the maker is in: the preview's border is thicker. */
+  active: boolean;
   onBack: () => void;
   onChoose: () => void;
 }) {
@@ -377,7 +582,7 @@ function TemplateLarge({
   const picture = usePagePicture(template.id, page?.[device] ? page.page : undefined, device);
 
   return (
-    <div data-testid="template-large" data-template={template.id} className="flex min-h-0 flex-1 flex-col px-4">
+    <div data-testid="template-large" data-template={template.id} className="flex min-h-0 flex-1 flex-col p-3">
       <div className="flex shrink-0 items-center gap-2 pb-2">
         {/* no tip: its label says where it goes */}
         <Button variant="ghost" size="sm" onClick={onBack} data-testid="template-back">
@@ -425,6 +630,7 @@ function TemplateLarge({
         <Button
           size="sm"
           variant={chosen ? "secondary" : "default"}
+          onPointerDown={(event) => event.stopPropagation()}
           onClick={onChoose}
           disabled={chosen}
           data-testid="template-choose"
@@ -437,7 +643,7 @@ function TemplateLarge({
         data-testid="template-frame"
         data-route={page?.route}
         data-device={device}
-        className="min-h-0 flex-1 overflow-y-auto rounded-lg border bg-muted"
+        className={cn("min-h-0 flex-1 overflow-y-auto rounded-lg border bg-muted", active && "ring-2 ring-primary")}
       >
         {problem ? (
           <div className="flex h-full items-center justify-center">
@@ -519,7 +725,7 @@ function ImportDialog({
                     key={url.slice(-40)}
                     src={url}
                     alt=""
-                    className="aspect-[3/4] w-full rounded border object-cover object-top"
+                    className="aspect-3/4 w-full rounded border object-cover object-top"
                   />
                 ))}
               </div>

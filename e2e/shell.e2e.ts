@@ -106,7 +106,7 @@ describe("the app's shell, launched in the background", () => {
 
   test("a button shows its tooltip of Spaka's own, with its shortcut (Q329)", async () => {
     const { window } = launched;
-    await window.getByRole("button", { name: "New website" }).hover();
+    await window.getByTestId("sidebar").getByRole("button", { name: "New website" }).hover();
     const tip = window.getByTestId("tip");
     await tip.waitFor();
     expect(await tip.textContent()).toContain(MAC ? "⌘N" : "Ctrl+N");
