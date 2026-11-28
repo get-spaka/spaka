@@ -13,8 +13,11 @@ import {
   imagesIn,
   infoFile,
   LAYER_ORDER,
+  modulesAmong,
   type ProjectSource,
+  type PublishedServer,
   Runtime,
+  type ServerHost,
   START_JS,
   START_SCRIPT,
   siteAssets,
@@ -22,7 +25,7 @@ import {
   themeStyle,
 } from "@spaka/runtime";
 import { compile } from "tailwindcss";
-import type { BuildOptions, BuildProject, ImageCopies } from "./builder.ts";
+import type { BuildOptions, BuildProject, ImageCopies, ServerTarget } from "./builder.ts";
 
 const resolveFrom = createRequire(import.meta.url);
 
@@ -50,9 +53,12 @@ export class Output {
 
 export type RenderedFile = { rel: string; html: string; file: string; datasources: string[] };
 
-/** Every page (a record's page and the credits page among them) and every fragment, rendered once. */
-export async function renderSite(source: ProjectSource) {
-  const runtime = new Runtime(source, { repair: false, trace: false });
+/**
+ * Every page (a record's page and the credits page among them) and every
+ * fragment, rendered once; their loads run by the server given (ADR 0014).
+ */
+export async function renderSite(source: ProjectSource, server?: ServerHost) {
+  const runtime = new Runtime(source, { repair: false, trace: false, ...(server ? { server } : {}) });
   const warnings: string[] = [];
   const pages: (RenderedFile & { route: string })[] = [];
   for (const { route, file } of runtime.routes()) {
@@ -152,7 +158,8 @@ export async function writeImageCopies(
 export function isStatic(path: string, files: Set<string>) {
   // blocks/: a template's blocks, which the Blocks tab offers (Q235), not files of the site. A
   // stylesheet of styles/ is compiled into site.css; the pictures beside it are served as they are.
-  if (/^(pages|parts|fragments|data|blocks)\//.test(path) || path === "theme.css" || path.endsWith(".liquid"))
+  // server/: the site's server modules and their migrations (ADR 0014), never served.
+  if (/^(pages|parts|fragments|data|blocks|server)\//.test(path) || path === "theme.css" || path.endsWith(".liquid"))
     return false;
   if (/^styles\/.+\.css$/i.test(path)) return false;
   // What pnpm reads and installs, never served as it is (ADR 0013).
@@ -223,6 +230,72 @@ export function templateTexts(project: BuildProject): string[] {
   );
 }
 
+/** A website's server modules (`server/<name>.ts` by name) and its migrations, in the order of their names (ADR 0014). */
+export function serverOf(project: BuildProject): {
+  modules: Record<string, string>;
+  migrations: { name: string; sql: string }[];
+} {
+  const top = project.files.filter((f) => /^server\/[^/]+$/.test(f)).map((f) => f.slice("server/".length));
+  const modules = Object.fromEntries(Object.entries(modulesAmong(top)).map(([name, file]) => [name, `server/${file}`]));
+  const migrations = project.files
+    .filter((f) => /^server\/migrations\/[^/]+\.sql$/.test(f))
+    .sort()
+    .map((f) => ({ name: f.slice("server/migrations/".length), sql: project.readFile(f).toString("utf8") }));
+  return { modules, migrations };
+}
+
+/**
+ * The server modules bundled beside the export's server (modules.mjs and its
+ * chunks), and what site.json says of them: undefined for a site with none.
+ * A Worker always imports modules.mjs, so it gets one, empty if need be.
+ */
+export async function writeServerModules(
+  project: BuildProject,
+  options: BuildOptions,
+  out: Output,
+  target: ServerTarget,
+  warnings: string[],
+): Promise<PublishedServer | undefined> {
+  const { modules, migrations } = serverOf(project);
+  const names = Object.keys(modules);
+  if (!names.length) {
+    if (target === "worker") out.write("modules.mjs", "export const modules = {};\n");
+    if (!migrations.length) return undefined;
+  } else {
+    if (!options.server?.bundle) throw new Error("This export needs Spaka's Rolldown for the server modules.");
+    const bundle = await options.server.bundle(modules, target);
+    if ("error" in bundle) throw new Error(`The server modules could not be bundled: ${bundle.error}`);
+    for (const file of bundle.files) out.write(file.path, file.code);
+    for (const warning of bundle.warnings) warnings.push(`Server modules: ${warning}`);
+  }
+  return { modules: names, secrets: Object.keys(options.server?.secrets ?? {}).sort(), migrations };
+}
+
+/**
+ * The website's secrets as .env lines (Q516): those Spaka keeps, which replace
+ * an earlier export's, then those the modules read with no value, left for the
+ * maker to give.
+ */
+export function secretLines(secrets: Record<string, string> = {}) {
+  const names = Object.keys(secrets).sort();
+  const given = names.filter((n) => secrets[n]);
+  const missing = names.filter((n) => !secrets[n]);
+  return {
+    given: given.map((name) => ({ name, value: secrets[name]! })),
+    missing: missing.length
+      ? [
+          {
+            name: missing[0]!,
+            lines: `${MISSING_HEADER}\n${missing.map((n) => `# ${n}=`).join("\n")}`,
+          },
+        ]
+      : [],
+  };
+}
+
+const MISSING_HEADER = "# Secrets the server modules read, not given in Spaka: give them here.";
+const SECRETS_HEADER = "# The website's secrets, kept by Spaka and read by its server modules. Keep them private.";
+
 const ENV_HEADER = "# The website's management token, with which Spaka reads what visitors send. Keep it private.";
 
 /**
@@ -236,18 +309,32 @@ export function writeEnv(
   token: string | undefined,
   earlier?: string,
   variables: { name: string; lines: string }[] = [],
+  secrets: Record<string, string> = {},
 ) {
+  const { given, missing } = secretLines(secrets);
+  const replaced = new Set(["SPAKA_TOKEN", ...given.map((s) => s.name)]);
   const kept = (earlier ?? "")
     .split(/\r?\n/)
-    .filter((line) => line !== ENV_HEADER && !/^\s*SPAKA_TOKEN\s*=/.test(line))
+    .filter((line) => line !== ENV_HEADER && line !== SECRETS_HEADER && line !== MISSING_HEADER)
+    .filter((line) => !/^#\s*[A-Z][A-Z0-9_]*=$/.test(line))
+    .filter((line) => !replaced.has(/^\s*([A-Za-z_][\w]*)\s*=/.exec(line)?.[1] ?? ""))
     .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
   const parts = [
     ...(token ? [`${ENV_HEADER}\nSPAKA_TOKEN=${token}`] : []),
+    ...(given.length ? [`${SECRETS_HEADER}\n${given.map((s) => `${s.name}=${envValue(s.value)}`).join("\n")}`] : []),
     ...(kept ? [kept] : []),
     ...variables.filter((v) => !new RegExp(`^\\s*${v.name}\\s*=`, "m").test(kept)).map((v) => v.lines),
+    ...missing.map((v) => v.lines),
   ];
   if (parts.length) out.write(".env", `${parts.join("\n\n")}\n`);
+}
+
+/** A value as a .env line holds it: quoted, literally, when it has spaces, quotes or a #. */
+export function envValue(value: string): string {
+  if (!/[\s"'#\\]/.test(value)) return value;
+  return value.includes("'") ? `"${value}"` : `'${value}'`;
 }
 
 /** A name for what an export creates: lower case, letters, digits and dashes. */
@@ -290,6 +377,14 @@ async function tailwind(classes: string[], styles = ""): Promise<string> {
   return compiler.build(classes);
 }
 
+/** A server whose loads give nothing, for rendering a site whose own server runs them. */
+const NO_LOADS: ServerHost = {
+  kinds: async () => ["load"],
+  load: async () => undefined,
+  action: async () => ({ value: undefined }),
+  route: async () => new Response(null, { status: 404 }),
+};
+
 /**
  * What the Node and Cloudflare exports share: public/ with the files served
  * as they are (the stylesheet compiled from the templates too, for what is
@@ -298,17 +393,26 @@ async function tailwind(classes: string[], styles = ""): Promise<string> {
  */
 export async function writePublishedSite(project: BuildProject, options: BuildOptions, out: Output, server: string) {
   if (!options.serverBundle) throw new Error(`This export needs the app's ${server}, which was not given.`);
-  const { pages, fragments, warnings } = await renderSite(project.source);
+  // Rendered here only for the images the pages show: the server's loads run once it is published.
+  const { pages, fragments, warnings } = await renderSite(project.source, NO_LOADS);
   const html = [...pages, ...fragments].map((p) => p.html).join("\n");
   const pub = out.under("public");
   const copies = await writeImageCopies(html, project, options.images, pub, warnings);
   await writeAssets(project, pub, [html, ...templateTexts(project)], options, warnings);
+  const modules = await writeServerModules(
+    project,
+    options,
+    out,
+    server === "worker.mjs" ? "worker" : "node",
+    warnings,
+  );
   out.write(
     "site.json",
     JSON.stringify({
       files: siteFiles(project),
       images: Object.fromEntries(copies),
       assets: siteAssets(project.source).assets,
+      ...(modules ? { server: modules } : {}),
     }),
   );
   out.write(server, options.serverBundle);

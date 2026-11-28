@@ -21,6 +21,7 @@ const server = siteServer({
   dataDir: resolve(dir, process.env.SPAKA_DATA ?? "data"),
   ...(token ? { managementToken: token } : {}),
   proxied: process.env.SPAKA_PROXY === "1",
+  env: process.env,
 });
 server.listen(port, host, () => console.log(`Listening on http://${host === "0.0.0.0" ? "localhost" : host}:${port}`));
 for (const signal of ["SIGINT", "SIGTERM"] as const) process.on(signal, () => server.close(() => process.exit(0)));

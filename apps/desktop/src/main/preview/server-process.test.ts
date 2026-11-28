@@ -265,4 +265,20 @@ describe("the preview's server process (ADR 0014)", () => {
     if (code === "still running") child.kill();
     expect(code).toBe(0);
   }, 30_000);
+
+  test("a load that a restart cuts short is answered by the new process; an action is never made twice", async () => {
+    const { root, server } = site({
+      "server/slow.js": "export async function load() { await new Promise((r) => setTimeout(r, 400)); return 'old'; }",
+      "server/count.js":
+        "let n = 0; export async function action() { n++; await new Promise((r) => setTimeout(r, 400)); return n; }",
+    });
+    expect(await server.kinds("slow")).toEqual(["load"]);
+    const loading = server.load("slow", {});
+    const acting = server.action("count", {}, form("a=1")).catch((error: Error) => error);
+    await new Promise((r) => setTimeout(r, 100));
+    writeFileSync(join(root, "server/slow.js"), "export function load() { return 'new'; }");
+    server.restart();
+    expect(await loading).toBe("new");
+    expect(String(await acting)).toMatch(/started again/);
+  }, 30_000);
 });

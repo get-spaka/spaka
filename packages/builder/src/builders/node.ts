@@ -80,7 +80,10 @@ This folder is a Node.js server: \`server.mjs\` answers the pages, the forms
 and Spaka's management API; \`public/\` holds the files served as they are;
 \`site.json\` holds the pages and data. What visitors send is kept in
 \`data/data.sqlite\` (or in the \`data\` volume with Docker): back it up, and
-keep it when you replace the site with a new export.
+keep it when you replace the site with a new export. The site's server
+modules, when it has some, are bundled into \`modules.mjs\` and \`server/\`:
+the server applies their migrations to that database when it starts, and
+they keep their files in \`data/files\`, kept with it.
 
 \`.env\` holds the settings. Keep it private: git and the Docker image leave
 it out. A new export into this folder keeps what you wrote into it.
@@ -88,6 +91,9 @@ it out. A new export into this folder keeps what you wrote into it.
 - \`SPAKA_TOKEN\`: the website's management token, with which Spaka reads
   what visitors send. Spaka writes it.
 - \`SPAKA_DOMAIN\`: your domain name, for Docker (below).
+- The website's secrets, when its server modules read some: the keys of the
+  services it uses, as Spaka keeps them. One the modules read with no value
+  is written as a comment: give it there.
 
 ## With Docker, on your own server
 
@@ -113,8 +119,8 @@ again and run the same command. \`docker compose down\` stops it; do not add
 
 ## A hosting service that runs Docker
 
-Give it the \`Dockerfile\`, the \`SPAKA_TOKEN\` variable from \`.env\` and a
-volume mounted at \`/data\`. The website listens on port 3000. By hand, that
+Give it the \`Dockerfile\`, the variables of \`.env\` (\`SPAKA_TOKEN\`, and
+the secrets) and a volume mounted at \`/data\`. The website listens on port 3000. By hand, that
 is:
 
     docker build -t ${name} .
@@ -185,7 +191,7 @@ export const nodeBuilder: Builder = {
     out.write("Dockerfile", dockerfile);
     out.write("compose.yaml", compose);
     out.write("Caddyfile", caddyfile);
-    writeEnv(out, options.managementToken, options.earlierEnv, [DOMAIN]);
+    writeEnv(out, options.managementToken, options.earlierEnv, [DOMAIN], options.server?.secrets);
     out.write(".dockerignore", "data\nnode_modules\n.git\n.env\ncompose.yaml\nCaddyfile\n");
     out.write(".gitignore", "data/\nnode_modules/\n.env\n");
     out.write("README.md", guide(name));

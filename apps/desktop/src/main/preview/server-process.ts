@@ -69,6 +69,8 @@ export class ServerProcess implements ServerHost {
   private readonly waiting = new Map<number, Waiting>();
   private stderr = "";
   private stopped = false;
+  /** How many times the process was started again: a call that a restart cut short sees it change. */
+  private restarts = 0;
 
   constructor(private readonly o: ServerProcessOptions) {}
 
@@ -79,13 +81,13 @@ export class ServerProcess implements ServerHost {
 
   async kinds(name: string): Promise<ModuleKind[] | undefined> {
     if (!Object.hasOwn(this.modules(), name)) return undefined;
-    const answer = await this.call({ op: "kinds", name });
+    const answer = await this.again(() => this.call({ op: "kinds", name }));
     return ("kinds" in answer && answer.kinds) || undefined;
   }
 
   async load(name: string, args: Record<string, unknown>): Promise<unknown> {
     this.known(name);
-    const answer = await this.call({ op: "load", name, args });
+    const answer = await this.again(() => this.call({ op: "load", name, args }));
     return "value" in answer ? answer.value : undefined;
   }
 
@@ -105,17 +107,37 @@ export class ServerProcess implements ServerHost {
 
   /** Stops the process: the next call starts it again, with the modules as they are then. */
   restart() {
+    this.restarts++;
+    this.kill(new Error("the server modules changed, and their process was started again"));
+  }
+
+  private kill(why: Error) {
     const child = this.child;
     this.child = undefined;
     this.started = undefined;
     child?.kill();
-    this.fail(new Error("the server modules changed, and their process was started again"));
+    this.fail(why);
   }
 
   /** Stops it for good, the site being closed. */
   stop() {
     this.stopped = true;
     this.restart();
+  }
+
+  /**
+   * A call that reads only (kinds, load), made once more when a restart cut it
+   * short: the modules changed under it, as when the agent writes one and a
+   * page is drawn at once. An action or a route is never made twice.
+   */
+  private async again<T>(make: () => Promise<T>): Promise<T> {
+    const before = this.restarts;
+    try {
+      return await make();
+    } catch (error) {
+      if (this.stopped || this.restarts === before) throw error;
+      return await make();
+    }
   }
 
   private known(name: string) {
@@ -131,8 +153,8 @@ export class ServerProcess implements ServerHost {
       const timer = setTimeout(() => {
         this.waiting.delete(id);
         reject(new Error(`server/${call.name} did not answer within ${timeoutMs / 1000} s, and was stopped`));
-        // A module stuck in a loop holds the whole process: it starts again.
-        if (this.child === child) this.restart();
+        // A module stuck in a loop holds the whole process: it starts again, at the next call.
+        if (this.child === child) this.kill(new Error(`server/${call.name} was stuck, and its process was stopped`));
       }, timeoutMs);
       this.waiting.set(id, { resolve, reject, timer });
       child.send({ ...call, id } as HostCall);

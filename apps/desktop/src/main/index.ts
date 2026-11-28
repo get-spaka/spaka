@@ -1450,6 +1450,7 @@ async function main() {
     // The packages' known flaws, said with each export (Q521).
     const flawWarnings = await packages.flaws(current.path).then(exportWarnings, () => [t.packages.exportUnchecked]);
     const exported = current;
+    const serverHost = preview.serverOf(exported.path);
     const result = await exportProject(current.path, folder, {
       builder,
       name: current.name,
@@ -1461,6 +1462,15 @@ async function main() {
           ]),
         ),
       hostsDir: app.isPackaged ? join(process.resourcesPath, "hosts") : join(here, "../hosts"),
+      server: {
+        ...(serverHost ? { host: serverHost } : {}),
+        bundle: (modules, target) => packageModules.server(exported.path, modules, target),
+        // Those the modules read with no value too, which the export leaves for the maker to give.
+        secrets: {
+          ...Object.fromEntries(siteSecrets.list(exported.id, exported.path).map((s) => [s.name, ""])),
+          ...siteSecrets.values(exported.id),
+        },
+      },
       ...(formServices ? { formServices } : {}),
       managementToken: () => tokens.ensure(current!.id),
     }).catch((error) => {

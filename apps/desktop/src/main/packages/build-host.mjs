@@ -7,7 +7,13 @@
 // request comes on stdin, the modules go out on stdout, as JSON:
 //   in:  { root, modules: [{ specifier, external: [specifier…] }] }
 //   out: [{ specifier, code, moduleIds, exports, warnings } | { specifier, error }]
-import { createRequire } from "node:module";
+// It also bundles a website's server modules for an export (ADR 0014,
+// packages plan, slice 7): modules.mjs, which imports each one when first
+// called, and their chunks, the packages they import included.
+//   in:  { root, server: { target: "node" | "worker", modules: { name: "server/name.ts" } } }
+//   out: { files: [{ path, code }], warnings } | { error }
+import { realpathSync } from "node:fs";
+import { builtinModules, createRequire } from "node:module";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -31,8 +37,73 @@ const toHost = (path) =>
 
 let input = "";
 for await (const chunk of process.stdin) input += chunk;
-const { root, modules } = JSON.parse(input);
+const { root, modules = [], server } = JSON.parse(input);
 const cwd = toGuest(root);
+
+/** The entry of the server's bundle: each module imported when first called. */
+const ENTRY = "\0spaka:server-modules";
+
+/**
+ * The server modules bundled for Node (its own modules left to it) or for a
+ * Cloudflare Worker (as workerd resolves packages; Node's modules left to its
+ * Node.js compatibility, which wrangler resolves).
+ */
+async function bundleServer({ target, modules: files }, cwd) {
+  const warnings = [];
+  const node = target === "node";
+  try {
+    const bundle = await rolldown({
+      cwd,
+      input: { modules: ENTRY },
+      platform: node ? "node" : "neutral",
+      external: node ? [] : [/^node:/, ...builtinModules],
+      resolve: node
+        ? { conditionNames: ["node", "import", "module", "production", "default"] }
+        : {
+            conditionNames: ["workerd", "worker", "browser", "import", "module", "production", "default"],
+            mainFields: ["browser", "module", "main"],
+          },
+      transform: { target: "es2022", define: { "process.env.NODE_ENV": '"production"' } },
+      plugins: [
+        {
+          name: "spaka:server-modules",
+          resolveId: (id) => (id === ENTRY ? ENTRY : null),
+          load(id) {
+            if (id !== ENTRY) return null;
+            const imports = Object.entries(files).map(
+              ([name, file]) => `  ${JSON.stringify(name)}: () => import(${JSON.stringify(`${cwd}/${file}`)}),`,
+            );
+            return `export const modules = {\n${imports.join("\n")}\n};\n`;
+          },
+        },
+      ],
+      onwarn: (warning) => warnings.push(warning.message.replaceAll(`${cwd}/`, "")),
+    });
+    const { output } = await bundle.generate({
+      format: "es",
+      entryFileNames: "[name].mjs",
+      chunkFileNames: "server/[name]-[hash].mjs",
+      comments: { legal: true },
+    });
+    await bundle.close();
+    return {
+      files: output.filter((o) => o.type === "chunk").map((chunk) => ({ path: chunk.fileName, code: chunk.code })),
+      warnings,
+    };
+  } catch (error) {
+    return { error: reason(error, cwd) };
+  }
+}
+
+if (server) {
+  // From the project's folder, by its real path (macOS's /var is /private/var, Windows' short
+  // names are long ones): the bundle names each file by its path there, server/book.ts, and no other.
+  const real = realpathSync.native(root);
+  process.chdir(real);
+  const answer = await bundleServer(server, toGuest(real));
+  process.stdout.write(JSON.stringify(answer), () => process.exit(0));
+  await new Promise(() => {});
+}
 
 const results = [];
 for (const { specifier, external } of modules) {

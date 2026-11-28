@@ -2,7 +2,7 @@
 // BUILDERS, asks each whether the project can use it, builds with the one the
 // maker picks and shows its guide. A new destination (a hosting of Spaka's
 // own, for one) is one more file in builders/ and one more line in BUILDERS.
-import type { PackageImport, ProjectSource } from "@spaka/runtime";
+import type { PackageImport, ProjectSource, ServerHost } from "@spaka/runtime";
 
 /** The project being exported. */
 export type BuildProject = {
@@ -53,6 +53,24 @@ export type BuildOptions = {
    * made. Without it, an export that needs them says so.
    */
   packageModules?: (packages: PackageImport[]) => Promise<Map<string, { code: string } | { error: string }>>;
+  /** The website's server modules (ADR 0014): without it, an export of a site that has some says so. */
+  server?: ServerOptions;
+};
+
+/** Where a website's server modules are bundled for: the Node export's server, or a Cloudflare Worker. */
+export type ServerTarget = "node" | "worker";
+
+/** The server modules bundled: modules.mjs and its chunks, by path in the export; or why not. */
+export type ServerBundle = { files: { path: string; code: string }[]; warnings: string[] } | { error: string };
+
+/** What the exports need of a website's server modules (ADR 0014), given by the app. */
+export type ServerOptions = {
+  /** Runs their loads at export, for a static site: the preview's server process. */
+  host?: ServerHost;
+  /** Bundles them for a target, with the packages they import (`server/<name>.ts` by name). */
+  bundle?: (modules: Record<string, string>, target: ServerTarget) => Promise<ServerBundle>;
+  /** The website's secrets, by name, written into the export's .env (Q516). */
+  secrets?: Record<string, string>;
 };
 
 export type BuildResult = {

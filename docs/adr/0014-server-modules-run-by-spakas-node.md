@@ -24,8 +24,8 @@ ADR 0003 had kept the agent from writing server code in v2.0 and named "custom T
   - Measured on 2026-11-27 with Electron 45's Node 24.22.2, under `--permission`: the maker's home folder, `child_process`, workers, `process.binding`, native addons and an `import()` from outside the project were refused. The network, the environment's variables and a symbolic link placed in the project pointing outside it were not. Inside the sandbox profile that link was refused too ([the probe](../spikes/packages.md)).
 - **Exports:**
   - The static export runs each `load` when it exports, and refuses `action` and `route`, saying so (Q503).
-  - The Node export bundles the modules and their packages with Vite's SSR build (Q526).
-  - The Cloudflare export has wrangler package the Worker ([ADR 0015](0015-the-cloudflare-builder-deploys-with-spakas-wrangler.md)).
+  - The Node export bundles the modules and their packages with Spaka's Rolldown, as WebAssembly, the way the browser's packages are made (Q526, Q557; Vite's SSR build was planned first). They land beside `server.mjs`, in `modules.mjs`, which imports each module when it is first called.
+  - The Cloudflare export bundles them the same way, resolving packages as workerd does, and has wrangler package the Worker with them ([ADR 0015](0015-the-cloudflare-builder-deploys-with-spakas-wrangler.md)).
 
 ## Considered options
 

@@ -9,7 +9,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { RECORDS_SCHEMA } from "@spaka/runtime";
 import type { Builder } from "../builder.ts";
-import { Output, slug, writeEnv, writePublishedSite } from "../shared.ts";
+import { envValue, Output, secretLines, serverOf, slug, writeEnv, writePublishedSite } from "../shared.ts";
 
 /** The wrangler the export installs, the one Spaka is tested with. */
 export const WRANGLER_VERSION = "4.160.1";
@@ -39,7 +39,7 @@ export function databaseIdIn(config: string | undefined): string | undefined {
   return id || undefined;
 }
 
-export function wranglerConfig(name: string, date: string, databaseId?: string): string {
+export function wranglerConfig(name: string, date: string, databaseId?: string, secrets: string[] = []): string {
   return `// Spaka's Cloudflare export: see README.md.
 ${JSON.stringify(
   {
@@ -57,13 +57,22 @@ ${JSON.stringify(
         migrations_dir: "migrations",
       },
     ],
-    secrets: { required: ["SPAKA_TOKEN"] },
+    secrets: { required: ["SPAKA_TOKEN", ...secrets] },
     observability: { enabled: true },
   },
   null,
   2,
 )}
 `;
+}
+
+/** A migration's name as D1's file names it, after its number: 0001-places.sql is places. */
+function d1Name(name: string): string {
+  const bare = name
+    .replace(/\.sql$/i, "")
+    .replace(/^\d+[-_.]?/, "")
+    .replace(/[^\w-]+/g, "-");
+  return bare || "migration";
 }
 
 const guide = (name: string) => `# Putting ${name} online with Cloudflare
@@ -81,13 +90,14 @@ You need Node.js and a Cloudflare account (the free plan is enough).
        npx wrangler login
 
 2. Deploy. \`npm run deploy\` also gives the Worker the website's management
-   token, which Spaka wrote into \`.env\` (keep that file private: git leaves
-   it out). The first deploy creates the database and writes its id into
+   token and its secrets, which Spaka wrote into \`.env\` (keep that file
+   private: git leaves it out). The first deploy creates the database and writes its id into
    wrangler.jsonc: keep this folder, and export into it next time.
 
        npm run deploy
 
-3. Create the database's table:
+3. Create the database's tables (the records', then those of the site's
+   server modules, from \`migrations/\`; it applies each one once):
 
        npx wrangler d1 migrations apply DB --remote
 
@@ -122,9 +132,15 @@ export const cloudflareBuilder: Builder = {
       earlier = readFileSync(join(options.outDir, "wrangler.jsonc"), "utf8");
     } catch {}
     const site = await writePublishedSite(project, options, out, "worker.mjs");
+    const secrets = secretLines(options.server?.secrets).given;
     out.write(
       "wrangler.jsonc",
-      wranglerConfig(name, compatibilityDate(options.today ?? new Date()), databaseIdIn(earlier)),
+      wranglerConfig(
+        name,
+        compatibilityDate(options.today ?? new Date()),
+        databaseIdIn(earlier),
+        secrets.map((s) => s.name),
+      ),
     );
     out.write(
       "package.json",
@@ -141,11 +157,24 @@ export const cloudflareBuilder: Builder = {
       )}\n`,
     );
     out.write("migrations/0001_records.sql", RECORDS_SCHEMA);
+    // The server modules' migrations after it, in their order (Q515): D1 applies each once.
+    const { modules, migrations } = serverOf(project);
+    for (const [i, m] of migrations.entries())
+      out.write(`migrations/${String(i + 2).padStart(4, "0")}_${d1Name(m.name)}.sql`, m.sql);
+    // Workers have no folder to write files in (Q524, Q528).
+    for (const file of Object.values(modules))
+      if (/\{[^}]*\bfiles\b[^}]*\}|\.files\b/.test(project.readFile(file).toString("utf8")))
+        site.warnings.push(
+          `${file} may write files, and a Cloudflare Worker has no folder for them: publish it on a server for that.`,
+        );
     const local = Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => b.toString(16).padStart(2, "0")).join(
       "",
     );
-    out.write(".dev.vars", `# A token for trying the site on this machine only.\nSPAKA_TOKEN=${local}\n`);
-    writeEnv(out, options.managementToken, options.earlierEnv);
+    out.write(
+      ".dev.vars",
+      `# A token for trying the site on this machine only.\nSPAKA_TOKEN=${local}\n${secrets.map((s) => `${s.name}=${envValue(s.value)}\n`).join("")}`,
+    );
+    writeEnv(out, options.managementToken, options.earlierEnv, [], options.server?.secrets);
     out.write(".gitignore", "node_modules/\n.wrangler/\n.dev.vars\n.env\n");
     out.write("README.md", guide(name));
     return { ...site, files: out.files, name };

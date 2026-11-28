@@ -1,12 +1,17 @@
 // The Node export's server (Q176, Q186): the files of public/ served as they
 // are, everything else answered by the runtime, the records kept in SQLite by
-// node:sqlite in the data folder. A host, so Node's own modules are used here.
+// node:sqlite in the data folder, and the site's server modules run from
+// modules.mjs. A host, so Node's own modules are used here.
 import { mkdirSync, readFileSync, statSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server } from "node:http";
 import { extname, join, normalize, sep } from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { pathToFileURL } from "node:url";
+import type { Runtime } from "../runtime.ts";
+import { moduleHost, type PublishedServer, type ServerHost, type ServerModule, secretsEnv } from "../server.ts";
 import { RECORDS_SCHEMA, SqlStore } from "../sql.ts";
-import type { PublishedSite } from "./site.ts";
+import { applyMigrations, sqlApi } from "./modules.ts";
+import type { BundledModules, PublishedSite } from "./site.ts";
 import { siteRuntime } from "./site.ts";
 
 const TYPES: Record<string, string> = {
@@ -71,6 +76,8 @@ export type ServerOptions = {
   /** Where data.sqlite is kept. */
   dataDir: string;
   managementToken?: string;
+  /** Where the site's secrets are read, by the names site.json lists: the environment, .env included. */
+  env?: Record<string, string | undefined>;
   /**
    * Every request comes through a reverse proxy, whose word on the visitor's
    * address is believed: the export's compose.yaml, where Caddy alone
@@ -80,18 +87,59 @@ export type ServerOptions = {
   proxied?: boolean;
 };
 
-export function siteServer({ dir, dataDir, managementToken, proxied = false }: ServerOptions): Server {
+/**
+ * The site's server modules (ADR 0014), from modules.mjs beside the server:
+ * its migrations applied at start (Q515), its files written in data/files
+ * beside data.sqlite (Q524), its secrets read from the environment (Q516).
+ */
+function modulesHost(
+  published: PublishedServer,
+  dir: string,
+  dataDir: string,
+  db: DatabaseSync,
+  env: Record<string, string | undefined>,
+  runtime: () => Runtime,
+): ServerHost {
+  const migrated = applyMigrations(db, published.migrations);
+  if (migrated.error)
+    console.error(`The migration ${migrated.error.name} failed and was not applied: ${migrated.error.message}`);
+  const files = join(dataDir, "files");
+  mkdirSync(files, { recursive: true });
+  const bundled = import(pathToFileURL(join(dir, "modules.mjs")).href) as Promise<BundledModules>;
+  return moduleHost({
+    modules: Object.fromEntries(
+      published.modules.map((name) => [
+        name,
+        async () => {
+          const load = (await bundled).modules[name];
+          if (!load) throw new Error(`modules.mjs has no module named ${name}: export the website again`);
+          return (await load()) as ServerModule;
+        },
+      ]),
+    ),
+    context: () => ({
+      env: secretsEnv(Object.fromEntries(published.secrets.map((name) => [name, env[name]]))),
+      data: runtime().dataApi(),
+      sql: sqlApi(db),
+      files,
+    }),
+  });
+}
+
+export function siteServer({ dir, dataDir, managementToken, proxied = false, env = {} }: ServerOptions): Server {
   const site = JSON.parse(readFileSync(join(dir, "site.json"), "utf8")) as PublishedSite;
   mkdirSync(dataDir, { recursive: true });
   const db = new DatabaseSync(join(dataDir, "data.sqlite"));
   db.exec(RECORDS_SCHEMA);
-  const runtime = siteRuntime(
+  const modules = site.server && modulesHost(site.server, dir, dataDir, db, env, () => runtime);
+  const runtime: ReturnType<typeof siteRuntime> = siteRuntime(
     site,
     new SqlStore({
       all: async (sql, params) => db.prepare(sql).all(...(params as never[])) as Record<string, unknown>[],
       run: async (sql, params) => Number(db.prepare(sql).run(...(params as never[])).changes),
     }),
     managementToken,
+    modules,
   );
   const publicDir = join(dir, "public");
 

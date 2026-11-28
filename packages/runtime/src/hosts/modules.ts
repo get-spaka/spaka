@@ -5,10 +5,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { DatabaseSync, SQLInputValue } from "node:sqlite";
-import { MODULE_NAME, type SqlApi } from "../server.ts";
-
-/** The files a module may be, by preference when two share a name. */
-const MODULE_EXTENSIONS = [".ts", ".mts", ".js", ".mjs"];
+import { modulesAmong, type SqlApi } from "../server.ts";
 
 /** The server modules in a folder, by name: server/weather.ts is `weather`. */
 export function moduleFiles(dir: string): Record<string, string> {
@@ -18,14 +15,7 @@ export function moduleFiles(dir: string): Record<string, string> {
   } catch {
     return {};
   }
-  const found: Record<string, string> = {};
-  for (const extension of MODULE_EXTENSIONS)
-    for (const file of names.sort()) {
-      if (!file.endsWith(extension) || file.endsWith(`.d${extension}`) || /\.test\.[mc]?[jt]s$/.test(file)) continue;
-      const name = file.slice(0, -extension.length);
-      if (MODULE_NAME.test(name) && !Object.hasOwn(found, name)) found[name] = join(dir, file);
-    }
-  return found;
+  return Object.fromEntries(Object.entries(modulesAmong(names)).map(([name, file]) => [name, join(dir, file)]));
 }
 
 /** The table where Spaka notes each migration applied. */
