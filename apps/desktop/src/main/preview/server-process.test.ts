@@ -28,7 +28,8 @@ beforeAll(async () => {
 
 afterAll(() => {
   for (const p of processes) p.stop();
-  rmSync(scratch, { recursive: true, force: true });
+  // Windows keeps a folder while a process just stopped still has it open.
+  rmSync(scratch, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
 });
 
 /** A site with these files, and its server process run by this Node. */
@@ -174,9 +175,16 @@ describe("the preview's server process (ADR 0014)", () => {
                 writeFiles: await attempt(() => writeFileSync(join(files, "kept.txt"), "kept")),
                 child: await attempt(async () => (await import("node:child_process")).execSync("echo hi")),
                 env,
-                // Windows' basics, which Spaka gives on Windows alone, set apart.
+                // Windows' basics set apart: those Spaka gives, and those Node's libuv adds to
+                // every program it starts there, from Spaka's own (its required_vars).
                 processEnv: Object.keys(process.env)
-                  .filter((k) => !k.startsWith("__CF") && !/^(systemroot|windir|temp|tmp)$/i.test(k))
+                  .filter(
+                    (k) =>
+                      !k.startsWith("__CF") &&
+                      !/^(systemroot|windir|temp|tmp|homedrive|homepath|logonserver|path|systemdrive|userdomain|username|userprofile)$/i.test(
+                        k,
+                      ),
+                  )
                   .sort(),
               };
             }`,

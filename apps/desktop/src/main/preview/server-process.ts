@@ -55,7 +55,11 @@ const real = (path: string) => {
   }
 };
 
-/** The few variables Windows needs for a program's network and files, besides the secrets. */
+/**
+ * The few variables Windows needs for a program's network and files, besides the secrets.
+ * Node's libuv adds a few more there, from Spaka's own (PATH, USERPROFILE and the like):
+ * Node cannot start a program without them on Windows.
+ */
 const WINDOWS_BASICS = ["SystemRoot", "SYSTEMROOT", "windir", "TEMP", "TMP"];
 
 export class ServerProcess implements ServerHost {
