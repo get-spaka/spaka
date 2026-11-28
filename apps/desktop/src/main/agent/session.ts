@@ -11,7 +11,7 @@ import type { AgentMode, Effort, ProjectInfo } from "../../shared/ipc";
 import { en } from "../../shared/strings/en";
 import type { AssembledSkills } from "../skills/skills";
 import { Activities } from "./activity";
-import { confinement } from "./confinement";
+import { confinement, grantedInSandbox } from "./confinement";
 import { SPAKA_INSTRUCTIONS } from "./instructions";
 import {
   ASK_TOOL,
@@ -249,6 +249,10 @@ export class AgentSession implements AgentRunner {
     if (name === PLAN_TOOL) return this.proposePlan(input, signal);
     if (this.mode === "plan")
       return readsOnly(name) ? { behavior: "allow" as const, updatedInput: input } : deny(PLAN_REFUSED);
+    // A shell command the sandbox confines, granted here too (Q221): one the binary
+    // cannot read statically, a `for` loop over files, comes here without the
+    // PermissionRequest hook seeing it.
+    if (name === "Bash" && grantedInSandbox(name, input)) return { behavior: "allow" as const, updatedInput: input };
     return deny(DENY_MESSAGE);
   }
 
