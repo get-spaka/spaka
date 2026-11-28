@@ -243,9 +243,11 @@ export const en = {
     title: "Start a new website",
     text: "Two ways to start, both by writing to the agent below.",
     /** The two ways to start, side by side above the templates. */
-    scratchTitle: "Describe it",
+    scratchTitle: "Start from scratch",
     scratchText: "No template: the agent designs a new website from what you write.",
     scratchTip: "Start without a template, from your description alone",
+    /** Between the two ways. */
+    or: "or",
     templateTitle: "Start from a template",
     templateText: "Pick a design below: its look is kept, its texts and images are rewritten for you.",
     templateTip: "Go to the templates",
