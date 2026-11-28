@@ -300,6 +300,7 @@ export function MessageBox({
   className,
   children,
   noPlan = false,
+  active = false,
 }: {
   project: ProjectInfo | null;
   status: AgentStatus;
@@ -318,6 +319,8 @@ export function MessageBox({
   children?: ReactNode;
   /** A website started from a template has no plan mode: the card of pages and the adaptation stand for it (Q312). */
   noPlan?: boolean;
+  /** The zone the maker is in, on the start screen: its border thicker. */
+  active?: boolean;
 }) {
   const blocked = !accountReady(status, project?.model ?? newSettings.model);
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -336,7 +339,11 @@ export function MessageBox({
     >
       <div
         data-tour="conversation"
-        className="rounded-xl border bg-background p-2 shadow-xs focus-within:ring-[3px] focus-within:ring-ring/30"
+        data-active={active || undefined}
+        className={cn(
+          "rounded-xl border bg-background p-2 shadow-xs focus-within:ring-[3px] focus-within:ring-ring/30",
+          active && "border-2 border-primary p-[7px]",
+        )}
       >
         {children}
         <textarea

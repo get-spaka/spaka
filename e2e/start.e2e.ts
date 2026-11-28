@@ -42,6 +42,8 @@ describe("the start screen", () => {
   test("the templates, by name, and a chip per category they have", async () => {
     const w = launched.window;
     await w.getByTestId("template-card").first().waitFor();
+    // Neither zone is the maker's at first: the templates nor the message box.
+    await expect(w.locator("[data-active]").count()).resolves.toBe(0);
     const cards = w.getByTestId("template-card");
     const ids = await cards.evaluateAll((els) => els.map((el) => el.getAttribute("data-template") ?? ""));
     expect(ids).toEqual(expect.arrayContaining(["reel", "ember", "corner", "beacon"]));
@@ -80,6 +82,58 @@ describe("the start screen", () => {
     await expect(w.getByTestId("chosen-template").textContent()).resolves.toBe("Starting from Ember");
     await w.getByTestId("chosen-template-clear").click();
     await expect(w.getByTestId("chosen-template-none").isVisible()).resolves.toBe(true);
+  });
+
+  test("the zone the maker is in has a thicker border: the templates, or the message box", async () => {
+    const w = launched.window;
+    const templates = w.getByTestId("start-templates");
+    const box = w.getByTestId("start-prompt");
+    // Three zones, one under the other: the two ways to start, the templates, the message box.
+    for (const id of ["start-top", "start-templates", "start-prompt"])
+      await expect(w.getByTestId(id).isVisible()).resolves.toBe(true);
+    const form = w.locator('[data-tour="conversation"]');
+    const active = async () => {
+      const lit = {
+        templates: (await templates.getAttribute("data-active")) === "true",
+        box: (await box.getAttribute("data-active")) === "true",
+      };
+      // The message box's own frame is the one drawn thicker, not the whole zone.
+      expect((await form.getAttribute("data-active")) === "true").toBe(lit.box);
+      return lit;
+    };
+    await w.getByTestId("start-way-template").click();
+    await expect(active()).resolves.toEqual({ templates: true, box: false });
+    await expect(w.getByTestId("start-way-template").getAttribute("aria-pressed")).resolves.toBe("true");
+    await launched.capture("start-zone-templates");
+    // Choosing a template takes the maker to the message box.
+    const card = w.locator('[data-testid="template-card"][data-template="ember"]');
+    await card.locator("button[aria-pressed]").click();
+    await expect(active()).resolves.toEqual({ templates: false, box: true });
+    await expect(w.evaluate(() => document.activeElement?.getAttribute("data-testid"))).resolves.toBe("message-input");
+    await launched.capture("start-zone-prompt");
+    // Choosing another one changes the template only: the message box stays lit, the templates never are.
+    await w.evaluate(() => {
+      const zone = document.querySelector('[data-testid="start-templates"]')!;
+      const page = window as unknown as { litTemplates: boolean };
+      page.litTemplates = false;
+      new MutationObserver(() => {
+        if (zone.hasAttribute("data-active")) page.litTemplates = true;
+      }).observe(zone, { attributes: true, attributeFilter: ["data-active"] });
+    });
+    await w.locator('[data-testid="template-card"][data-template="reel"] button[aria-pressed]').click();
+    await expect(w.getByTestId("chosen-template").textContent()).resolves.toBe("Starting from Reel");
+    await expect(active()).resolves.toEqual({ templates: false, box: true });
+    await expect(w.evaluate(() => (window as unknown as { litTemplates: boolean }).litTemplates)).resolves.toBe(false);
+    await w.locator('[data-testid="template-card"][data-template="ember"] button[aria-pressed]').click();
+    // Choosing it again leaves it, and the maker is back among the templates.
+    await card.locator("button[aria-pressed]").click();
+    await expect(active()).resolves.toEqual({ templates: true, box: false });
+    await w.getByTestId("start-way-scratch").click();
+    await expect(active()).resolves.toEqual({ templates: false, box: true });
+    await expect(w.getByTestId("start-way-scratch").getAttribute("aria-pressed")).resolves.toBe("true");
+    // A click anywhere in a zone makes it the maker's.
+    await w.getByRole("heading", { name: "Templates" }).click();
+    await expect(active()).resolves.toEqual({ templates: true, box: false });
   });
 
   test("View shows a template large, real and moving, its pages to go to", async () => {

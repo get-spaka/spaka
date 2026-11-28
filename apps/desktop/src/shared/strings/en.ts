@@ -241,7 +241,15 @@ export const en = {
   },
   start: {
     title: "Start a new website",
-    text: "Describe it below, or pick a template to start from: the agent rewrites it for you.",
+    text: "Two ways to start, both by writing to the agent below.",
+    /** The two ways to start, side by side above the templates. */
+    scratchTitle: "Describe it",
+    scratchText: "No template: the agent designs a new website from what you write.",
+    scratchTip: "Start without a template, from your description alone",
+    templateTitle: "Start from a template",
+    templateText: "Pick a design below: its look is kept, its texts and images are rewritten for you.",
+    templateTip: "Go to the templates",
+    templatesHeading: "Templates",
     all: "All",
     allTip: "Show every template",
     categoryTip: "Show only the templates of this kind",
@@ -270,6 +278,8 @@ export const en = {
     importProblems: "This is not a template Spaka can use:",
     startingFrom: (name: string) => `Starting from ${name}`,
     fromScratch: "From scratch",
+    fromScratchHint: "the agent designs a new website from your description",
+    startingFromHint: "its design is kept, its texts and images rewritten",
     /** Above a template's questions, under the message box (Q287). */
     clear: "Start from scratch instead",
     placeholder: (name: string) => `Describe your website: ${name} is rewritten for it…`,
