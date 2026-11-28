@@ -49,7 +49,7 @@ export function StartPanel({
   const [templates, setTemplates] = useState<TemplateSummary[]>();
   const [category, setCategory] = useState<TemplateCategory>();
   const [chosen, setChosen] = useState<string>();
-  // The way the maker starts, chosen from the two above the templates. None at first.
+  // The way the maker starts, chosen from the two above the templates: from scratch at first.
   const [mode, setMode] = useState<"scratch" | "template">("scratch");
   const choose = (id: string) => {
     setChosen(id);

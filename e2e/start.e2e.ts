@@ -41,9 +41,16 @@ describe("the start screen", () => {
 
   test("the templates, by name, and a chip per category they have", async () => {
     const w = launched.window;
+    // From scratch at first: the templates folded away, neither zone the maker's yet.
+    await expect(w.getByTestId("start-way-scratch").getAttribute("aria-pressed")).resolves.toBe("true");
+    await expect(w.getByTestId("start-templates").getAttribute("data-folded")).resolves.toBe("true");
+    await expect(w.getByTestId("start-templates").getAttribute("data-active")).resolves.toBeNull();
+    await expect(w.getByTestId("start-prompt").getAttribute("data-active")).resolves.toBeNull();
+    await expect(w.getByTestId("chosen-template-none").isVisible()).resolves.toBe(true);
+    // From a template: they unfold.
+    await w.getByTestId("start-way-template").click();
+    await expect(w.getByTestId("start-templates").getAttribute("data-folded")).resolves.toBeNull();
     await w.getByTestId("template-card").first().waitFor();
-    // Neither zone is the maker's at first: the templates nor the message box.
-    await expect(w.locator("[data-active]").count()).resolves.toBe(0);
     const cards = w.getByTestId("template-card");
     const ids = await cards.evaluateAll((els) => els.map((el) => el.getAttribute("data-template") ?? ""));
     expect(ids).toEqual(expect.arrayContaining(["reel", "ember", "corner", "beacon"]));
@@ -76,7 +83,8 @@ describe("the start screen", () => {
     await card.hover();
     await card.getByTestId("template-hover").waitFor();
     await expect(card.getByTestId("template-hover").getAttribute("src")).resolves.toMatch(/^data:image\/webp/);
-    await expect(w.getByTestId("chosen-template-none").isVisible()).resolves.toBe(true);
+    // From a template, none chosen yet: nothing is sent.
+    await expect(w.getByTestId("chosen-template-missing").isVisible()).resolves.toBe(true);
     await card.locator("button[aria-pressed]").click();
     await expect(card.getAttribute("data-chosen")).resolves.toBe("true");
     await expect(w.getByTestId("chosen-template").textContent()).resolves.toBe("Starting from Ember");

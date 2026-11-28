@@ -56,6 +56,8 @@ describe.skipIf(SHOWN)("a template's adaptation, page by page", () => {
 
   test("the first turn shows the card of pages before anything else; the maker's checks are kept (Q302, Q310)", async () => {
     const w = launched.window;
+    // From scratch at first: the templates unfold.
+    await w.getByTestId("start-way-template").click();
     await w.locator('[data-testid="template-card"][data-template="reel"] button[aria-pressed]').click();
     await w.getByTestId("message-input").fill("A website for Terra Lenta, a ceramics studio in Lisbon, with a shop.");
     await w.getByTestId("message-input").press("Enter");
