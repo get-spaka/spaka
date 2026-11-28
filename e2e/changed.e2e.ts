@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { BASIC, checksFor, words } from "./changed.ts";
+import { BASIC, checksFor, pushed, words } from "./changed.ts";
 
 const CHECKS = [
   "agent-gallery.e2e.ts",
@@ -69,4 +69,24 @@ test("documents, unit tests, the CI's files and the runs' pictures run no check"
       "e2e/.runs/agent-design/sheet-desktop-1.png",
     ),
   ).toEqual([]);
+});
+
+test("a push's branches, from Git's lines: a deleted one sends nothing, a new one has no remote commit", () => {
+  const a = "a".repeat(40);
+  const b = "b".repeat(40);
+  const zero = "0".repeat(40);
+  expect(
+    pushed(
+      [
+        `refs/heads/slice-6 ${a} refs/heads/slice-6 ${b}`,
+        `refs/heads/slice-7 ${b} refs/heads/slice-7 ${zero}`,
+        `(delete) ${zero} refs/heads/old ${a}`,
+        "",
+      ].join("\n"),
+    ),
+  ).toEqual([
+    { ref: "refs/heads/slice-6", local: a, remote: b },
+    { ref: "refs/heads/slice-7", local: b },
+  ]);
+  expect(pushed("")).toEqual([]);
 });

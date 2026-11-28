@@ -82,3 +82,20 @@ export function checksFor(changed: string[], checks: string[], imports: (file: s
   if (basic) for (const c of BASIC) if (checks.includes(c)) chosen.add(c);
   return checks.filter((c) => chosen.has(c));
 }
+
+/** What a push sends of one branch: its commit, and the one GitHub has, when it has one. */
+export type Pushed = { ref: string; local: string; remote?: string };
+
+/**
+ * The branches a push sends, from the lines Git gives a pre-push hook on its
+ * input (`<local ref> <local sha> <remote ref> <remote sha>`): a branch deleted
+ * sends nothing, a new one has no remote commit yet.
+ */
+export function pushed(input: string): Pushed[] {
+  const none = /^0+$/;
+  return input
+    .split("\n")
+    .map((line) => line.trim().split(/\s+/))
+    .filter((fields) => fields.length === 4 && !none.test(fields[1]!))
+    .map(([ref, local, , remote]) => ({ ref: ref!, local: local!, ...(none.test(remote!) ? {} : { remote }) }));
+}
