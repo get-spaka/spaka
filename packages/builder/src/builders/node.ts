@@ -1,7 +1,7 @@
 // A Node.js server (Q176, Q186): server.mjs, the runtime bundled with its
 // libraries, answering pages, forms and the management API; the records in
 // SQLite by node:sqlite (Node 24 or later), in data/ or the /data volume. With
-// Docker (Q486), compose.yaml runs it behind Caddy, which gets the HTTPS
+// Docker (Q556), compose.yaml runs it behind Caddy, which gets the HTTPS
 // certificate of the domain name given in .env; the Dockerfile alone is for a
 // hosting service that runs one; or `node server.mjs` behind a reverse proxy
 // on one's own server.

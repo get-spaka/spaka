@@ -79,7 +79,7 @@ export async function exportProject(projectDir: string, chosen: string, options:
     );
   const folder = exportFolder(chosen, projectDir, options.name);
   // A previous export is replaced: no page that no longer exists is left behind.
-  // What the maker wrote into its .env is given to the builder, which keeps it (Q486).
+  // What the maker wrote into its .env is given to the builder, which keeps it (Q556).
   let earlierEnv: string | undefined;
   if (existsSync(join(folder, MARKER))) {
     try {

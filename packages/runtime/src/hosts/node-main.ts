@@ -3,7 +3,7 @@
 // and SPAKA_TOKEN, the website's management token, from the environment,
 // or from the .env beside it that the export wrote (Q191). SPAKA_PROXY=1,
 // which the export's compose.yaml sets, says every request comes through a
-// reverse proxy (Q486).
+// reverse proxy (Q556).
 import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";

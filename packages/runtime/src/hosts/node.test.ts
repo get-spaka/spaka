@@ -23,7 +23,7 @@ const SITE: PublishedSite = {
 const TOKEN = "a-token-long-enough";
 
 describe("a visitor's address", () => {
-  test("is the one a reverse proxy gives, from this machine or when every request comes through one (Q486)", () => {
+  test("is the one a reverse proxy gives, from this machine or when every request comes through one (Q556)", () => {
     expect(visitorAddress("203.0.113.9", "198.51.100.1", false)).toBe("203.0.113.9");
     expect(visitorAddress("127.0.0.1", "198.51.100.1, 10.0.0.2", false)).toBe("198.51.100.1");
     expect(visitorAddress("::1", "", false)).toBe("::1");

@@ -51,7 +51,7 @@ async function body(req: IncomingMessage): Promise<Uint8Array<ArrayBuffer> | und
 /**
  * Who sent a request: the address it came from, or the one a reverse proxy
  * such as Caddy gives, when the request comes from this machine or when every
- * request is said to come through a proxy (SPAKA_PROXY, Q486).
+ * request is said to come through a proxy (SPAKA_PROXY, Q556).
  */
 export function visitorAddress(
   remote: string | undefined,

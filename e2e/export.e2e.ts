@@ -178,7 +178,7 @@ describe("exporting the website", () => {
       w
         .getByTestId("publish-choice")
         .evaluateAll((els) => els.map((e) => [e.getAttribute("data-id"), e.getAttribute("aria-pressed")]));
-    // The simple way alone, the ones that need a terminal folded under the other ways, Cloudflare first (Q483).
+    // The simple way alone, the ones that need a terminal folded under the other ways, Cloudflare first (Q553).
     await until(async () => (await w.getByTestId("publish-choice").count()) === 1);
     expect(await ways()).toEqual([["static", "true"]]);
     expect(await w.getByTestId("publish-advanced").getAttribute("aria-expanded")).toBe("false");
@@ -201,7 +201,7 @@ describe("exporting the website", () => {
       "keep",
       "update",
     ]);
-    // One hosting service's steps, the others folded; then a domain name of one's own (Q483, Q485).
+    // One hosting service's steps, the others folded; then a domain name of one's own (Q553, Q555).
     expect(await w.getByTestId("open-host").count()).toBe(1);
     expect(await w.getByTestId("other-hosts").getAttribute("open")).toBeNull();
     expect(await w.getByTestId("publish-domain").getAttribute("data-builder")).toBe("static");

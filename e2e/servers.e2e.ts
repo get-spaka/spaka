@@ -89,7 +89,7 @@ describe("the Node and Cloudflare exports, run", () => {
   });
 
   test("a static export is refused: a page shows what visitors send", async () => {
-    // Never published, and the simple way refused: none is chosen, and the advanced ones show (Q483).
+    // Never published, and the simple way refused: none is chosen, and the advanced ones show (Q553).
     const w = launched.window;
     await w.getByTestId("export-open").click();
     await until(async () => (await w.getByTestId("publish-choice").count()) === 3);
@@ -112,7 +112,7 @@ describe("the Node and Cloudflare exports, run", () => {
       const result = await invoke("export:run", out, "node");
       expect(result.builder).toBe("node");
       expect(result.guide.map((s: { id: string }) => s.id)).toEqual(["docker", "server", "address"]);
-      // What the maker wrote into .env, the domain name Caddy serves, is kept by the next export (Q486).
+      // What the maker wrote into .env, the domain name Caddy serves, is kept by the next export (Q556).
       const env = () => readFileSync(join(out, ".env"), "utf8");
       writeFileSync(join(out, ".env"), env().replace(/^SPAKA_DOMAIN=$/m, "SPAKA_DOMAIN=example.com"));
       await invoke("export:run", out, "node");

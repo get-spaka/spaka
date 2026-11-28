@@ -208,7 +208,7 @@ const ENV_HEADER = "# The website's management token, with which Spaka reads wha
 /**
  * The export's .env: the website's management token (Q191), read by the
  * server or sent by wrangler at deploy, then what the maker wrote into the
- * .env of the export this one replaces (Q486), and each of the variables
+ * .env of the export this one replaces (Q556), and each of the variables
  * given that it does not set yet, with the lines that explain it.
  */
 export function writeEnv(

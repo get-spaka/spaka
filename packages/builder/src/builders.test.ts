@@ -119,9 +119,9 @@ describe("the Node export", () => {
     expect(docker).toContain("VOLUME /data");
     const readme = readFileSync(join(out, "README.md"), "utf8");
     expect(readme).toContain("--env-file .env chez-margot");
-    // Docker first, and how to use a domain name of one's own (Q484, Q485).
+    // Docker first, and how to use a domain name of one's own (Q554, Q555).
     expect(readme.indexOf("## With Docker")).toBeLessThan(readme.indexOf("## Try it on this machine"));
-    // The website behind Caddy, the domain name from .env (Q486).
+    // The website behind Caddy, the domain name from .env (Q556).
     const compose = readFileSync(join(out, "compose.yaml"), "utf8");
     expect(compose).toContain("SPAKA_DOMAIN: ${SPAKA_DOMAIN:-:80}");
     expect(compose).toContain('SPAKA_PROXY: "1"');
@@ -148,7 +148,7 @@ describe("the export's .env", () => {
   const build = (managementToken: string, earlierEnv?: string) =>
     builderById("node")!.build(contact(), { outDir: out, serverBundle: "// the server", managementToken, earlierEnv });
 
-  test("keeps what the maker wrote into the earlier one, with the token of today (Q486)", async () => {
+  test("keeps what the maker wrote into the earlier one, with the token of today (Q556)", async () => {
     await build("first-token");
     const edited = `${env().replace(/^SPAKA_DOMAIN=$/m, "SPAKA_DOMAIN=example.com, www.example.com")}PORT=8080\n`;
     await build("second-token", edited);

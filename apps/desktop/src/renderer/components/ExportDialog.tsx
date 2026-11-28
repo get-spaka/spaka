@@ -9,11 +9,11 @@ import { stillToAdapt, useAdaptation } from "./AdaptationBar";
 import { Button } from "./ui/button";
 import { Tip } from "./ui/tip";
 
-/** The simple way (Q483): the one a maker needs no technical knowledge for. The others are the advanced ones. */
+/** The simple way (Q553): the one a maker needs no technical knowledge for. The others are the advanced ones. */
 const SIMPLE = "static";
 /**
  * The other ways, in the order shown: Cloudflare first, free for a small
- * website and with no server to rent or look after (Q483).
+ * website and with no server to rent or look after (Q553).
  */
 const ADVANCED = ["cloudflare", "node"];
 /** The hosting services the simple way names besides the one its steps follow. */
@@ -45,8 +45,8 @@ function CopyButton({ text, label, testid }: { text: string; label: string; test
 }
 
 /**
- * Publishing the website (Q187, Q482 to Q485), always at a hosting service of
- * the maker's: the simple way first, recommended and chosen the first time,
+ * Publishing the website (Q187, Q552 to Q555), at a hosting service of the
+ * maker's, Spaka hosting none yet: the simple way first, recommended and chosen the first time,
  * which is the static export put online by dragging its folder onto a page;
  * the ways that keep what visitors send folded under the other ways,
  * open when one was used last or when the simple way is refused, which it

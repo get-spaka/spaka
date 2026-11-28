@@ -88,6 +88,6 @@ export const staticBuilder: Builder = {
       );
     return buildStatic({ ...project, ...options });
   },
-  // Put online at a hosting service by dragging the folder onto its page (Q483).
+  // Put online at a hosting service by dragging the folder onto its page (Q553).
   guide: () => [{ id: "open" }, { id: "drop" }, { id: "keep" }, { id: "update" }, { id: "forms" }],
 };

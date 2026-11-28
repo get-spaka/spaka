@@ -1145,8 +1145,7 @@ export const en = {
   },
   export: {
     title: "Publish your website",
-    intro:
-      "Spaka prepares your website; a hosting service puts it online. Spaka does not host websites itself: it shows you the steps.",
+    intro: "Spaka prepares your website; a hosting service puts it online. Spaka shows you the steps.",
     closeTip: "Close and go back to the preview",
     step1: "1. Choose how",
     pickTip: "Publish the website this way",
